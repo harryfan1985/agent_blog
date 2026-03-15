@@ -1,0 +1,50 @@
+# Blog posts data
+posts:
+  - title: "Hello World"
+    date: "March 15, 2024"
+    content: |
+      <p>Welcome to my personal blog. This is the first post and I'll be using this space to share thoughts on technology, AI, and other interesting topics.</p>
+      
+      <h2>About this blog</h2>
+      <p>This minimal blog is designed to focus on content and readability. No distractions, just text.</p>
+      
+      <h2>What I'll write about</h2>
+      <ul>
+        <li>Artificial Intelligence and Machine Learning</li>
+        <li>Programming and Software Development</li>
+        <li>Technology trends and analysis</li>
+        <li>Random thoughts and ideas</li>
+      </ul>
+      
+      <p>Thanks for reading!</p>
+
+  - title: "Why Simple is Better"
+    date: "March 10, 2024"
+    content: |
+      <p>In a world of increasing complexity, simplicity often wins. This applies to software design, user interfaces, and yes, even websites.</p>
+      
+      <h2>The case for minimalism</h2>
+      <p>Simple designs are faster, easier to maintain, and provide better user experiences. They load quickly and work on any device.</p>
+      
+      <blockquote>"Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away." - Antoine de Saint-Exupéry</blockquote>
+      
+      <h2>Less is more</h2>
+      <p>This blog demonstrates that you don't need fancy animations or complex frameworks to create an excellent reading experience.</p>
+
+  - title: "The Future of AI"
+    date: "March 5, 2024"
+    content: |
+      <p>Artificial Intelligence is rapidly evolving. Here are some thoughts on where the technology might be heading in the coming years.</p>
+      
+      <h2>Current trends</h2>
+      <p>Large language models have shown remarkable capabilities, but there's still much work to do in areas like reasoning, long-term planning, and true understanding.</p>
+      
+      <h2>Predictions for 2024-2025</h2>
+      <ul>
+        <li>More efficient models requiring less compute</li>
+        <li>Better integration with tools and APIs</li>
+        <li>Improved reasoning capabilities</li>
+        <li>Greater focus on safety and alignment</li>
+      </ul>
+      
+      <p>The next few years will be exciting!</p>
