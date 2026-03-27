@@ -20,7 +20,7 @@ def generate_index(site_name="blog", tagline="Thoughts on technology and AI"):
     for post in posts:
         post_html += f"""
 <div class="post-item">
-    <h2><a href="/posts/{post["title"].lower().replace(" ", "-")}.html">{post["title"]}</a></h2>
+    <h2><a href="posts/{post["title"].lower().replace(" ", "-")}.html">{post["title"]}</a></h2>
     <p class="post-meta">{post["date"]}</p>
     <p class="post-excerpt">{post.get("excerpt", post["content"][:150])}...</p>
 </div>
@@ -35,6 +35,8 @@ def generate_index(site_name="blog", tagline="Thoughts on technology and AI"):
         .replace("{site_name}", site_name)
         .replace("{tagline}", tagline)
         .replace("{posts}", post_html)
+        .replace('href="/', 'href="./')
+        .replace('src="/', 'src="./')
     )
 
 
@@ -50,6 +52,8 @@ def generate_post(post):
         .replace("{post.title}", post["title"])
         .replace("{post.date}", post["date"])
         .replace("{post.content}", post["content"])
+        .replace('href="/', 'href="../')
+        .replace('src="/', 'src="../')
     )
 
 
@@ -67,22 +71,23 @@ def generate_static_files():
         with open(output_dir / "posts" / filename, "w") as f:
             f.write(generate_post(post))
 
-    # Copy about and projects pages
+    # Copy about and projects pages (with viewport and relative paths)
     (output_dir / "about.html").write_text("""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About | blog</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
-            <a href="/" class="logo">blog</a>
+            <a href="./index.html" class="logo">blog</a>
             <ul class="nav-links">
-                <li><a href="/">Home</a></li>
-                <li><a href="/about.html">About</a></li>
-                <li><a href="/projects.html">Projects</a></li>
+                <li><a href="./index.html">Home</a></li>
+                <li><a href="./about.html">About</a></li>
+                <li><a href="./projects.html">Projects</a></li>
             </ul>
         </div>
     </nav>
@@ -114,17 +119,18 @@ def generate_static_files():
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects | blog</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
-            <a href="/" class="logo">blog</a>
+            <a href="./index.html" class="logo">blog</a>
             <ul class="nav-links">
-                <li><a href="/">Home</a></li>
-                <li><a href="/about.html">About</a></li>
-                <li><a href="/projects.html">Projects</a></li>
+                <li><a href="./index.html">Home</a></li>
+                <li><a href="./about.html">About</a></li>
+                <li><a href="./projects.html">Projects</a></li>
             </ul>
         </div>
     </nav>
@@ -135,7 +141,7 @@ def generate_static_files():
         <div class="project-item">
             <h2>Personal Blog</h2>
             <p>This minimal blog platform built with static HTML and Python.</p>
-            <a href="/">View project &rarr;</a>
+            <a href="./index.html">View project &rarr;</a>
         </div>
         
         <div class="project-item">
