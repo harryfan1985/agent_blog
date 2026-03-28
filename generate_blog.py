@@ -109,7 +109,7 @@ def generate_static_files():
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 blog. All rights reserved.</p>
+            <p>&copy; 2026 blog. All rights reserved.</p>
         </div>
     </footer>
 </body>
@@ -119,7 +119,7 @@ def generate_static_files():
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects | blog</title>
     <link rel="stylesheet" href="./styles.css">
 </head>
@@ -152,7 +152,7 @@ def generate_static_files():
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 blog. All rights reserved.</p>
+            <p>&copy; 2026 blog. All rights reserved.</p>
         </div>
     </footer>
 </body>
