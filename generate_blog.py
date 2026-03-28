@@ -2,6 +2,7 @@
 """Simple static blog generator."""
 
 import yaml
+import re
 from pathlib import Path
 
 
@@ -12,15 +13,27 @@ def load_posts():
         return yaml.safe_load(f)["posts"]
 
 
+def slugify(title):
+    """Convert title to URL-friendly slug."""
+    slug = title.lower()
+    # Replace spaces, colons, and special chars with hyphens
+    slug = re.sub(r'[^a-z0-9\s]', '-', slug)
+    slug = slug.replace(' ', '-')
+    slug = re.sub(r'-+', '-', slug)
+    slug = slug.strip('-')
+    return slug
+
+
 def generate_index(site_name="blog", tagline="Thoughts on technology and AI"):
     """Generate the index page."""
     posts = load_posts()
 
     post_html = ""
     for post in posts:
+        slug = slugify(post["title"])
         post_html += f"""
 <div class="post-item">
-    <h2><a href="posts/{post["title"].lower().replace(" ", "-")}.html">{post["title"]}</a></h2>
+    <h2><a href="posts/{slug}.html">{post["title"]}</a></h2>
     <p class="post-meta">{post["date"]}</p>
     <p class="post-excerpt">{post.get("excerpt", post["content"][:150])}...</p>
 </div>
@@ -67,8 +80,8 @@ def generate_static_files():
 
     # Generate each post
     for post in load_posts():
-        filename = post["title"].lower().replace(" ", "-") + ".html"
-        with open(output_dir / "posts" / filename, "w") as f:
+        slug = slugify(post["title"])
+        with open(output_dir / "posts" / f"{slug}.html", "w") as f:
             f.write(generate_post(post))
 
     # Copy about and projects pages (with viewport and relative paths)
@@ -119,7 +132,7 @@ def generate_static_files():
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects | blog</title>
     <link rel="stylesheet" href="./styles.css">
 </head>
@@ -140,7 +153,7 @@ def generate_static_files():
         
         <div class="project-item">
             <h2>Personal Blog</h2>
-            <p>This minimal blog platform built with static HTML and Python.</p>
+            <p>This minimal blog) platform built with static HTML and Python.</p>
             <a href="./index.html">View project &rarr;</a>
         </div>
         
