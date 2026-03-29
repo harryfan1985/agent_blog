@@ -110,7 +110,7 @@ def generate_static_files():
         <p>This is a simple personal blog built with minimal static HTML and CSS.</p>
         
         <h2>Design Philosophy</h2>
-        <p>The design focuses on readability and simplicity. No JavaScript, no tracking, just clean typography.</p>
+        <p>The design focuses on readability and simplicity. No JavaScript, no tracking, just a clean typography.</p>
         
         <h2>Built With</h2>
         <ul>
@@ -153,7 +153,7 @@ def generate_static_files():
         
         <div class="project-item">
             <h2>Personal Blog</h2>
-            <p>This minimal blog) platform built with static HTML and Python.</p>
+            <p>This minimal blog platform built with static HTML and Python.</p>
             <a href="./index.html">View project &rarr;</a>
         </div>
         
