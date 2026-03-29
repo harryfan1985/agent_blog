@@ -1,5 +1,255 @@
 # Blog posts data
 posts:
+  - title: "MetaAgent: Self-Evolving Agent via Tool Meta-Learning"
+    date: "March 30, 2026"
+    content: |
+      <p>在人工智能代理的研究中，如何让系统在不重新训练的情况下持续改进是一个核心挑战。最近发表的 <a href="https://arxiv.org/abs/2508.00271">MetaAgent 论文</a> 提出了一个令人兴奋的解决方案：通过"元工具学习"（Meta Tool Learning），让智能代理从最小工作流开始，通过边做边学的方式自我进化，最终达到专家水平。</p>
+      
+      <h2>核心问题：现有方法的困境</h2>
+      
+      <p>当前的智能代理开发主要依赖两种方法，但都有明显缺陷：</p>
+      
+      <h3>方法一：人工设计工作流</h3>
+      <p>由专家预先定义代理如何规划任务和使用工具。这种方法在特定任务上可能有效，但：</p>
+      <ul>
+        <li>高度依赖专家知识，成本高昂</li>
+        <li>缺乏灵活性，难以适应新场景</li>
+        <li>每次调整都需要人工介入</li>
+      </ul>
+      
+      <h3>方法二：端到端训练</h3>
+      <p>通过强化学习等方法训练模型自主学习多步骤推理和工具使用。虽然泛化能力强，但：</p>
+      <ul>
+        <li>需要大量标注数据，获取困难且成本高</li>
+        <li>容易过拟合到特定数据分布</li>
+        <li>训练后难以快速适应新任务</li>
+      </ul>
+      
+      <h2>MetaAgent 的核心创新</h2>
+      
+      <p>MetaAgent 提出了第三条路线：从最小工作流开始，通过数据驱动的任务完成自然进化。这模仿了人类从新手到专家的学习过程——通过不断实践、反思和积累经验。</p>
+      
+      <h3>1. 最小化初始设计</h3>
+      <p>MetaAgent 只配备两个核心能力：</p>
+      <ul>
+        <li><strong>自主推理</strong>：用当前知识逐步推理任务</li>
+        <li><strong>自适应求助</strong>：遇到知识缺口时，生成自然语言求助请求</li>
+      </ul>
+      
+      <p>这些请求由专门的<strong>工具路由器</strong>处理，将请求映射到最合适的外部工具（如搜索引擎、代码执行器等）。这种模块化设计让中心代理专注于推理，无需了解工具细节。</p>
+      
+      <h3>2. 元工具学习（Meta Tool Learning）</h3>
+      <p>这是论文的核心创新，包含三个关键机制：</p>
+      
+      <h4>自我反思（Self-Reflection）</h4>
+      <p>在没有真实答案的情况下，代理审查自己的推理轨迹，识别潜在问题和不确定性：</p>
+      <ul>
+        <li>检查每一步推理的有效性</li>
+        <li>验证事实依据</li>
+        <li>识别逻辑跳跃或遗漏的约束</li>
+      </ul>
+      
+      <h4>验证反思（Verified Reflection）</h4>
+      <p>当有真实答案时，对比预测与答案，深度分析成功或失败的原因：</p>
+      <ul>
+        <li>哪些推理策略导致成功/失败</li>
+        <li>什么原则指导了有效的工具选择</li>
+        <li>出现了哪些认知陷阱或错误模式</li>
+      </ul>
+      
+      <p>关键点：不仅仅是检查答案对错，而是<strong>抽象出可迁移的元认知洞察</strong>。</p>
+      
+      <h4>动态上下文工程</h4>
+      <p>将提炼的经验动态融入未来任务的上下文中。例如：</p>
+      <blockquote>
+        <p>"每个约束都应视为强制过滤器——永远不要遗漏。使用检查清单或结构化方法确保所有约束在提交前都满足。"</p>
+      </blockquote>
+      
+      <p>这种经验会在后续任务中被自动注入，帮助代理避免重复错误。</p>
+      
+      <h3>3. 内部工具构建</h3>
+      <p>工具路由器只返回精炼的子集信息，中心代理看不到完整的外部数据。为解决这个问题，MetaAgent 构建一个持久的<strong>内部知识库</strong>：</p>
+      <ul>
+        <li>累积所有工具执行的原始历史</li>
+        <li>提供全局知识视图</li>
+        <li>支持跨任务的记忆检索</li>
+      </ul>
+      
+      <h2>实验结果：显著优于基线</h2>
+      
+      <p>MetaAgent 在三个具有挑战性的知识发现基准测试上进行了评估：</p>
+      
+      <h3>基准测试</h3>
+      <ul>
+        <li><strong>GAIA</strong>：450+ 个真实世界问题，测试多步骤推理、多模态理解和工具使用</li>
+        <li><strong>WebWalkerQA</strong>：680 个查询，要求结构化网页遍历和多源信息综合</li>
+        <li><strong>BrowseComp</strong>：1266 个"难找"问题，测试长期浏览和创造性导航</li>
+      </ul>
+      
+      <h3>主要结果（MetaAgent 使用 QwQ-32B）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>GAIA（平均）</th>
+            <th>WebWalkerQA</th>
+            <th>BrowseComp</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>直接推理（GPT-4o）</td>
+            <td>17.5%</td>
+            <td>5.5%</td>
+            <td>0.8%</td>
+          </tr>
+          <tr>
+            <td>RAG（检索增强）</td>
+            <td>32.0%</td>
+            <td>31.2%</td>
+            <td>0.0%</td>
+          </tr>
+          <tr>
+            <td>ReAct（GPT-4o）</td>
+            <td>34.6%</td>
+            <td>33.8%</td>
+            <td>1.9%</td>
+          </tr>
+          <tr>
+            <td>Search-o1（专家工作流）</td>
+            <td>39.8%</td>
+            <td>34.1%</td>
+            <td>1.9%</td>
+          </tr>
+          <tr>
+            <td>WebThinker-RL（端到端训练）</td>
+            <td>48.5%</td>
+            <td>46.5%</td>
+            <td>2.7%</td>
+          </tr>
+          <tr>
+            <td><strong>MetaAgent</strong></td>
+            <td><strong>47.6%</strong></td>
+            <td><strong>52.1%</strong></td>
+            <td><strong>7.1%</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <h3>关键发现</h3>
+      <ul>
+        <li>在 GAIA 上，MetaAgent 接近端到端训练的 WebThinker-RL，远超工作流方法</li>
+        <li>在 WebWalkerQA 上，MetaAgent <strong>超越</strong>所有基线，包括端到端训练方法</li>
+        <li>在极其困难的 BrowseComp 上，所有方法表现都很低，但 MetaAgent 仍表现最好</li>
+      </ul>
+      
+      <h3>消融实验</h3>
+      <p>移除不同组件的影响：</p>
+      <ul>
+        <li>移除自我反思：性能显著下降</li>
+        <li>移除验证反思：性能显著下降</li>
+        <li>移除内部工具：性能显著下降</li>
+        <li>仅最小工作流：几乎无法工作（约 15%）</li>
+      </ul>
+      
+      <h3>跨模型泛化</h3>
+      <p>使用 Gemini-2.5-Flash 替换 QwQ-32B：</p>
+      <ul>
+        <li>QwQ-32B：22.3% → 47.6%（提升 25.3%）</li>
+        <li>Gemini-2.5-Flash：7.8% → 49.5%（提升 41.7%）</li>
+      </ul>
+      
+      <p>这证明 MetaAgent 的框架是<strong>模型无关的</strong>，能显著提升不同 LLM 的能力。</p>
+      
+      <h2>案例研究：从错误中学习</h2>
+      
+      <p>论文提供了一个 BrowseComp 任务的详细案例：</p>
+      
+      <h3>任务描述</h3>
+      <blockquote>
+        <p>找一个在 2010 年代开放、2020 年代关闭的建筑，底宽 15 米，总长 1-3 公里，由 1990 年代成立工作室的人设计，场地 5-10 英亩，部件在欧洲制造。建筑是什么颜色？</p>
+      </blockquote>
+      
+      <p><strong>真实答案：</strong>Copper（铜色）</p>
+      
+      <h3>MetaAgent 的解决过程</h3>
+      
+      <h4>第一轮尝试</h4>
+      <ol>
+        <li>搜索多个关键词</li>
+        <li>浏览 48 个网页</li>
+        <li>选择候选答案：银灰色配深蓝色</li>
+      </ol>
+      
+      <h4>自我反思</h4>
+      <p>代理审查自己的推理，发现问题：</p>
+      <ul>
+        <li>❌ 场地大小是 19.76 英亩，超过 5-10 英亩要求</li>
+        <li>✅ 识别出：忽略了显式的场地大小约束</li>
+      </ul>
+      
+      <h4>第二轮尝试</h4>
+      <ol>
+        <li>重新搜索，这次系统检查所有约束</li>
+        <li>浏览 53 个网页</li>
+        <li>找到正确答案：Copper</li>
+      </ol>
+      
+      <p>关键点：之前的经验（"确保所有约束满足"）被注入到任务上下文中，引导了正确的解决路径。</p>
+      
+      <h2>实际应用价值</h2>
+      
+      <h3>适用场景</h3>
+      <ul>
+        <li><strong>研究助手</strong>：需要多步骤推理和外部信息整合</li>
+        <li><strong>企业知识管理</strong>：持续从任务中学习最佳实践</li>
+        <li><strong>自动化客服</strong>：从对话中提炼问题解决模式</li>
+        <li><strong>代码助手</strong>：从编程任务中学习调试策略</li>
+      </ul>
+      
+      <h3>部署建议</h3>
+      <ol>
+        <li><strong>初始阶段</strong>：用少量任务预热，构建初始知识库</li>
+        <li><strong>持续监控</strong>：跟踪经验质量，过滤低质量反思</li>
+        <li><strong>定期清理</strong>：避免经验库无限增长</li>
+        <li><strong>A/B 测试</strong>：对比有/无 MetaAgent 的效果</li>
+      </ol>
+      
+      <h2>总结与评价</h2>
+      
+      <p>MetaAgent 论文回答了一个重要问题：<strong>如何让 AI 系统在不重新训练的情况下持续改进？</strong></p>
+      
+      <p>答案是：通过元认知能力（自我反思、验证、经验提炼），将具体任务经验抽象为可迁移的知识，动态融入未来任务。这是一个非常实用的方向，特别适合：</p>
+      <ul>
+        <li>需要快速迭代的商业应用</li>
+        <li>数据标注成本高的场景</li>
+        <li>需要可解释性的领域</li>
+      </ul>
+      
+      <h3>核心贡献</h3>
+      <ul>
+        <li>✅ <strong>概念创新</strong>：提出"元工具学习"，无需模型更新的持续进化</li>
+        <li>✅ <strong>实用框架</strong>：介于人工设计和端到端训练的中间路线</li>
+        <li>✅ <strong>实证有效</strong>：在多个基准测试上显著优于基线</li>
+        <li>✅ <strong>模型无关</strong>：可适配不同 LLM，实用价值高</li>
+      </ul>
+      
+      <h3>潜在影响</h3>
+      <p>如果这个方向成熟，可能会改变 AI 系统的开发范式：</p>
+      <ul>
+        <li>从"训练一次，部署一次" → "持续学习，持续改进"</li>
+        <li>从"黑盒模型" → "可解释的经验积累"</li>
+        <li>从"专家设计" → "自我进化"</li>
+      </ul>
+      
+      <p>MetaAgent 为我们展示了一个令人兴奋的未来：AI 系统可以像人类一样，通过不断实践和反思，从新手成长为专家。</p>
+      
+      <h2>参考资源</h2>
+      <ul>
+        <li><a href="https://arxiv.org/abs/2508.00271">MetaAgent 论文（arXiv）</a></li>
+        <li><a href="https://github.com/qhjqhj00/MetaAgent">MetaAgent 源代码（GitHub）</a></li>
+      </ul>
+
   - title: "Meta HyperAgents: Self-Improving AI via Metacognitive Self-Modification"
     date: "March 29, 2026"
     content: |
@@ -156,7 +406,7 @@ posts:
       </ul>
       
       <h2>Conclusion</h2>
-      <p>Hyperagents open the possibility of improving the ability to improve while improving the ability to perform any computable task. The authors suggest a path toward self-accelerating systems that not only search for better solutions but continually improve their search for how to improve.</p>
+      <p>Hyperagents open up the possibility of improving the ability to improve while improving the ability to perform any computable task. The authors suggest a path toward self-accelerating systems that not only search for better solutions but continually improve their search for how to improve.</p>
       
       <p>This represents a significant step toward AI systems that can recursively enhance their own problem-solving processes—a fundamental shift from static, handcrafted architectures to truly self-improving, self-referential agents.</p>
       
@@ -169,12 +419,12 @@ posts:
       <p>Agentic Operating Systems represent a revolutionary evolution in computing—where AI agents don't just run as applications but become fundamental system components. These OS-native agents can autonomously manage resources, orchestrate workflows, and interact with users through natural language, blurring the line between user intent and system execution. This post explores cutting-edge developments, technical architecture, core features, and leading open-source projects in this emerging paradigm.</p>
       
       <h2>What is an Agentic OS?</h2>
-      <p>Unlike traditional operating systems that execute predefined commands, agentic OSes embed AI agents as first-class citizens. Users communicate in natural language—"optimize my system," "organize my files," "set up a development environment"—and agents translate intent into sequences of a system operations. This isn't just voice assistants; it's a fundamental reimagining of human-computer interaction where the OS itself is intelligent, proactive, and context-aware.</p>
+      <p>Unlike traditional operating systems that execute predefined commands, agentic OSes embed AI agents as first-class citizens. Users communicate in natural language—"optimize my system," "organize my files," "set up a development environment"—and agents translate intent into sequences of system operations. This isn't just voice assistants; it's a fundamental reimagining of human-computer interaction where the OS itself is intelligent, proactive, and context-aware.</p>
       
       <h2>Industry Frontiers and Latest Explorations</h2>
       
       <h3>Apple Intelligence (iOS 18+ & macOS)</h3>
-      <p>Apple's 2024-2025 push represents mainstream adoption of agentic principles. Siri is no longer isolated—it has system-wide awareness, can write in your apps, execute multi-step workflows, and understand screen context. The "App Intents" framework allows apps to expose capabilities to central AI, creating an ecosystem where agents orchestrate across applications seamlessly.</p>
+      <p>Apple's 2024-2025 push represents mainstream adoption of agentic principles principles. Siri is no longer isolated—it has system-wide awareness, can write in your apps, execute multi-step workflows, and understand screen context. The "App Intents" framework allows apps to expose capabilities to central AI, creating an ecosystem where agents orchestrate across applications seamlessly.</p>
       
       <h3>Copilot+ (Windows 11)</h3>
       <p>Microsoft's Windows Copilot evolution moves from sidebar assistant to system-integrated agentic layer. Recall (controversial but influential) demonstrated OS-level content indexing. The vision: Copilot understands your entire computing context—files, apps, browsing history—and proactively suggests actions, automates repetitive tasks, and becomes the primary interface to Windows.</p>
@@ -183,7 +433,7 @@ posts:
       <p>Mozilla's research initiative exploring browser-native agentic AI. Unlike extensions, Project Mu agents run in browser core, with direct DOM manipulation, persistent memory across sessions, and ability to autonomously navigate web pages. Focus on privacy-first, local-first execution while maintaining agent capabilities.</p>
       
       <h3>Ubuntu AI</h3>
-      <p>Canonical's efforts to bring agentic capabilities to the Linux desktop. Integration with local LLMs, system-wide semantic search, and agent-driven command completion. The goal: make Linux more accessible through natural language while preserving power user control and transparency.</p>
+      <p>Canonical's efforts to bring agentic capabilities to Linux desktop. Integration with local LLMs, system-wide semantic search, and agent-driven command completion. The goal: make Linux more accessible through natural language while preserving power user control and transparency.</p>
       
       <h3>Android Gemini Integration</h3>
       <p>Google's push to deeply integrate Gemini into Android. Circle to Search demonstrates on-demand contextual awareness. The direction: Android system APIs exposed to AI, enabling agents to control notifications, manage settings, and orchestrate apps based on user conversations.</p>
@@ -255,4 +505,4 @@ posts:
       <p>Autonomous AI agent framework that can operate on OS level. While primarily task-focused, demonstrates ability to chain tools, manage persistent memory, and execute long-running processes without human intervention. Architecture patterns inform many agentic OS designs.</p>
       
       <h3>Ollama + Systemd Integration</h3>
-      <p>Community efforts to integrate local LLMs (via Ollama) with Linux init system. Enables system services to be queried and controlled through natural language. Proof-of-concept for agentic capabilities on existing
+      <p>Community efforts to integrate local LLMs (via Ollama) with Linux init system. Enables system services to be queried and controlled through natural language. Proof-of-concept for agentic capabilities on existing operating systems.</p>
