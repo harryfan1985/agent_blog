@@ -25,7 +25,7 @@
             <div class="content"><p>Meta's latest paper "HyperAgents" introduces a groundbreaking framework for self-improving AI systems that can not only solve tasks better but also improve their ability to improve themselves. This work extends the Darwin Gödel Machine (DGM) with hyperagents—self-referential agents that integrate task-solving and self-modification capabilities into a single editable program.</p>
 
 <h2>What is the Problem?</h2>
-<p>Existing self-improving AI systems rely on fixed, handcrafted meta-level mechanisms. This creates a fundamental limitation: the base system can only improve within boundaries defined by the meta agent's initial design. Even adding a meta-meta system to improve the meta agent merely shifts the problem upward, leading to infinite regress.</p>
+<p>Existing self-improving AI systems rely on fixed, handcrafted meta-level mechanisms. This creates a fundamental limitation: the base system can only improve within the boundaries defined by the meta agent's initial design. Even adding a meta-meta system to improve the meta agent merely shifts the problem upward, leading to infinite regress.</p>
 
 <p>The Darwin Gödel Machine (DGM) demonstrated open-ended self-improvement in coding domains. However, DGM relies on a handcrafted, fixed mechanism to generate self-improvement instructions. This works in coding because both evaluation and self-modification are coding tasks—improving coding ability directly translates to improved self-modification ability. But this alignment doesn't hold outside coding domains.</p>
 
@@ -41,7 +41,7 @@
 
 <p>The key innovation: the meta agent is part of the same editable program and can rewrite itself. This enables <strong>metacognitive self-modification</strong>—the agent can improve not only how it solves tasks but also how it generates future self-modifications.</p>
 
-<h2>Darwin Gödelquisition with Hyperagents (DGM-H)</h2>
+<h2>Darwin Gödel Machine with Hyperagents (DGM-H)</h2>
 <p>The authors instantiate hyperagents by building on DGM to create DGM-Hyperagents (DGM-H). DGM-H retains the open-ended exploration structure of DGM while making the entire meta-level modification mechanism editable.</p>
 
 <h3>The Algorithm</h3>
@@ -57,7 +57,7 @@
   </li>
 </ol>
 
-<p>Parent selection is probabilistic, proportional to performance and inversely proportional to number of children already produced. This balances exploiting high-performing agents with continued exploration.</p>
+<p>Parent selection is probabilistic, proportional to performance and inversely proportional to the number of children already produced. This balances exploiting high-performing agents with continued exploration.</p>
 
 <h2>Experimental Results</h2>
 
@@ -125,7 +125,7 @@
 <h2>The Breakthrough: Cross-Domain Transfer</h2>
 <p>The most important contribution: hyperagents learn transferable self-improvement strategies.</p>
 
-<p>The authors introduce Improvement@k (imp@k) metric: maximum performance gain a fixed meta agent can achieve by generating up to k new task agents.</p>
+<p>The authors introduce the Improvement@k (imp@k) metric: the maximum performance gain a fixed meta agent can achieve by generating up to k new task agents.</p>
 
 <p>Results on Olympiad-level math grading (completely unseen domain):</p>
 
@@ -136,7 +136,7 @@
   </tr>
   <tr>
     <td>Initial meta agent</td>
-    <td>0.0%</td>
+    <td>0.0% /td>
   </tr>
   <tr>
     <td>DGM w/o self-improve</td>
@@ -163,7 +163,7 @@
 <p>Hyperagents learn general-purpose capabilities like performance tracking and persistent memory that improve their ability to generate better task agents across domains.</p>
 
 <h3>Compounding Self-Improvement</h3>
-<p>Self-improvements learned in one setting can continue to accumulate when DGM-H is run in different settings, suggesting the potential for unbounded open-ended self-improvement over time.</p>
+<p>Self-improvements learned in one setting can continue to accumulate when DGM-H is run in different settings, suggesting potential for unbounded open-ended self-improvement over time.</p>
 
 <h2>Safety Considerations</h2>
 <p>The authors acknowledge that self-improving systems pose distinct safety challenges:</p>
@@ -179,7 +179,7 @@
 
 <p>This represents a significant step toward AI systems that can recursively enhance their own problem-solving processes—a fundamental shift from static, handcrafted architectures to truly self-improving, self-referential agents.</p>
 
-<p><strong>Paper:</strong> <a href="https://arxiv.org/abs/2503.03425">HyperAgents</a> by Jenny Zhang et al., Meta FAIR & Superintelligence Labs</p>
+<p.p><strong>Paper:</strong> <a href="https://arxiv.org/abs/2503.03425">HyperAgents</a> by Jenny Zhang et al., Meta FAIR & Superintelligence Labs</p>
 <p><strong>Code:</strong> <a href="https://github.com/facebookresearch/Hyperagents">github.com/facebookresearch/Hyperagents</a></p>
 </div>
             <a href="../index.html" class="back-link">&larr; Back to home</a>
