@@ -47,7 +47,7 @@
 <h2>Technical Architecture</h2>
 
 <h3>1. Agentic Kernel Layer</h3>
-<p>Extension of traditional kernel to support AI-driven operations. Provides hooks for agents to access system resources through controlled interfaces. Implements policy-based permission model—what can agents do without explicit user approval? Includes audit logging for all agentic actions a</p>
+<p>Extension of traditional kernel to support AI-driven operations. Provides hooks for agents to access system resources through controlled interfaces. Implements policy-based permission model—what can agents do without explicit user approval? Includes audit logging for all agentic actions.</p>
 
 <h3>2. Intent Translation Engine</h3>
 <p>Maps natural language user requests to executable system operations. Uses multi-stage pipeline:</p>
@@ -102,7 +102,7 @@
 <p>Research OS from Anthropic exploring LLM-native operating system concepts. Every system interaction goes through an intent translation layer. Features semantic file system, agent-driven process management, and natural language shell. Early-stage but influential in design thinking.</p>
 
 <h3>OpenInterpreter</h3>
-<p>While not a full OS, OpenInterpreter demonstrates OS-level agent capabilities. Can execute arbitrary code locally, control files, and a manage system resources through conversation. Inspiration for many agentic OS permission and sandboxing models.</p>
+<p>While not a full OS, OpenInterpreter demonstrates OS-level agent capabilities. Can execute arbitrary code locally, control files, and manage system resources through conversation. Inspiration for many agentic OS permission and sandboxing models.</p>
 
 <h3>Aptos AI Layer</h3>
 <p>Project exploring agentic extensions to Linux. Provides API for agents to safely execute system commands, query hardware status, and manage services. Focus on transparency—every agentic action logged and reviewable.</p>
@@ -111,37 +111,7 @@
 <p>Autonomous AI agent framework that can operate on OS level. While primarily task-focused, demonstrates ability to chain tools, manage persistent memory, and execute long-running processes without human intervention. Architecture patterns inform many agentic OS designs.</p>
 
 <h3>Ollama + Systemd Integration</h3>
-<p>Community efforts to integrate local LLMs (via Ollama) with Linux init system. Enables system services to be queried and controlled through natural language. Proof-of-concept for agentic capabilities on existing OSes without a complete rebuild.</p>
-
-<h3>MCP (Model Context Protocol)</h3>
-<p>Open protocol for connecting AI models to system resources. Standardizes how agents discover and interact with OS capabilities. Gaining adoption across open-source AI tools—foundation for interoperable agentic OS ecosystems.</p>
-
-<h3>Natural Shell</h3>
-<p>Linux shell replacement accepting natural language input. Translates conversational commands to bash, maintaining full power of CLI while making it accessible. Demonstrates intent-translation approach central to agentic OS design.</p>
-
-<h2>Challenges and Privacy Considerations</h2>
-
-<h3>Privacy and Data Access</h3>
-<p>Agentic OSes need deep system access to be useful—creating inherent privacy tensions. Solutions: on-device processing, user-controlled memory retention, transparent permission systems, and local-first architectures.</p>
-
-<h3>Reliability and Determinism</h3>
-<p>AI can hallucinate or misinterpret intent. Critical system operations must remain reliable. Hybrid approaches—AI for common tasks, traditional methods for critical commands—balance a innovation with stability.</p>
-
-<h3>Over-Automation Risks</h3>
-<p>Proactive agents can inadvertently make unwanted changes. Safeguards: confirmation thresholds, undo capabilities, configuration profiles for "aggressive" vs "conservative" automation, and clear opt-out mechanisms.</p>
-
-<h3>Complexity of Intent Translation</h3>
-<p>Natural language is ambiguous. Mapping "clean up my computer" to specific file deletions, cache clearing, and process management requires sophisticated disambiguation. Context awareness and clarification prompts are essential.</p>
-
-<h2>The Road Ahead</h2>
-<p>Agentic OS is moving from research to mainstream. 2024-2025 saw Apple Intelligence and Windows Copilot bring concepts to billions of users. The next generation will likely see: deeper local model integration, standardized capability protocols across OSes, and emergence of third-party agentic apps that plug into OS-level agent frameworks.</p>
-
-<p>The paradigm shift is fundamental: computing moves from "tell the OS exactly what to do" to "tell the OS what you want." Traditional GUI doesn't disappear but becomes one interface among many. The OS becomes an intelligent collaborator rather than a passive tool.</p>
-
-<p>For developers, this means designing apps with agentic compatibility in mind—exposing capabilities through intent frameworks, supporting semantic search, and enabling automation hooks. For users, it means computing becomes more accessible, personalized, and proactive.</p>
-
-<p>The agentic OS era isn't coming—it's already begun. The next five years will define how deeply AI integrates into the foundation of computing itself.</p>
-</div>
+<p>Community efforts to integrate local LLMs (via Ollama) with Linux init system. Enables system services to be queried and controlled through natural language. Proof-of-concept for agentic capabilities on existing</div>
             <a href="../index.html" class="back-link">&larr; Back to home</a>
         </article>
     </main>
