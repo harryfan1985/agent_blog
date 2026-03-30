@@ -67,6 +67,210 @@ posts:
     >MetaAgent 源代码（GitHub）</a></li>\n</ul>\n"
   date: March 30, 2026
   title: 'MetaAgent: Self-Evolving Agent via Tool Meta-Learning'
+- content: "<p>Meta's latest paper \"HyperAgents\" introduces a groundbreaking framework\
+    \ for self-improving AI systems that can not only solve tasks better but also\
+    \ improve their ability to improve themselves. This work extends the Darwin Gödel\
+    \ Machine (DGM) with hyperagents—self-referential agents that integrate task-solving\
+    \ and self-modification capabilities into a single editable program.</p>\n\n<h2>What\
+    \ is the Problem?</h2>\n<p>Existing self-improving AI systems rely on fixed, handcrafted\
+    \ meta-level mechanisms. This creates a fundamental limitation: the base system\
+    \ can only improve within the boundaries defined by the meta agent's initial design.\
+    \ Even adding a meta-meta system to improve the meta agent merely shifts the problem\
+    \ upward, leading to infinite regress.</p>\n\n<p>The Darwin Gödel Machine (DGM)\
+    \ demonstrated open-ended self-improvement in coding domains. However, DGM relies\
+    \ on a handcrafted, fixed mechanism to generate self-improvement instructions.\
+    \ This works in coding because both evaluation and self-modification are coding\
+    \ tasks—improving coding ability directly translates to improved self-modification\
+    \ ability. But this alignment doesn't hold outside coding domains.</p>\n\n<p>For\
+    \ example, if the evaluation task is paper review, improving an agent's paper-reviewing\
+    \ ability doesn't necessarily improve its ability to modify its own code. The\
+    \ skills required for task-solving and self-modification are different.</p>\n\n\
+    <h2>The Innovation: HyperAgents</h2>\n<p>Hyperagents are self-referential agents\
+    \ that unify task execution and agent generation into a single modifiable program.\
+    \ A hyperagent consists of:</p>\n\n<ul>\n  <li><strong>Task Agent:</strong> Solves\
+    \ the target task</li>\n  <li><strong>Meta Agent:</strong> Modifies agents and\
+    \ generates new ones</li>\n</ul>\n\n<p>The key innovation: the meta agent is part\
+    \ of the same editable program and can rewrite itself. This enables <strong>metacognitive\
+    \ self-modification</strong>—the agent can improve not only how it solves tasks\
+    \ but also how it generates future self-modifications.</p>\n\n<h2>Darwin Gödel\
+    \ Machine with Hyperagents (DGM-H)</h2>\n<p>The authors instantiate hyperagents\
+    \ by building on DGM to create DGM-Hyperagents (DGM-H). DGM-H retains the open-ended\
+    \ exploration structure of DGM while making the entire meta-level modification\
+    \ mechanism editable.</p>\n\n<h3>The Algorithm</h3>\n<ol>\n  <li>Initialize with\
+    \ a single hyperagent and an archive A = {(a₀, s₀)}</li>\n  <li>For each iteration\
+    \ t = 1 to T:\n    <ul>\n      <li>Select parent agents from archive based on\
+    \ performance and novelty</li>\n      <li>Each parent generates a modified version\
+    \ of itself (metacognitive self-modification)</li>\n      <li>Evaluate each modified\
+    \ hyperagent on tasks</li>\n      <li>Add successful hyperagents to archive</li>\n\
+    \    </ul>\n  </li>\n</ol>\n\n<p>Parent selection is probabilistic, proportional\
+    \ to performance and inversely proportional to the number of children already\
+    \ produced. This balances exploiting high-performing agents with continued exploration.</p>\n\
+    \n<h2>Experimental Results</h2>\n\n<h3>Coding Domain</h3>\n<p>On the Polyglot\
+    \ coding benchmark, DGM-H achieves comparable improvements to the original DGM\
+    \ (which was handcrafted specifically for coding), demonstrating that metacognitive\
+    \ self-modification is effective even without domain-specific engineering.</p>\n\
+    \n<table>\n  <tr>\n    <th>Metric</th>\n    <th>Initial</th>\n    <th>DGM-H</th>\n\
+    \    <th>Original DGM</th>\n  </tr>\n  <tr>\n    <td>Training (60 tasks)</td>\n\
+    \    <td>14.0%</td>\n    <td>34.0%</td>\n    <td>38.0%</td>\n  </tr>\n  <tr>\n\
+    \    <td>Full benchmark (165 tasks)</td>\n    <td>8.4%</td>\n    <td>26.7%</td>\n\
+    \    <td>30.7%</td>\n  </tr>\n</table>\n\n<h3>Paper Review & Robotics Reward Design</h3>\n\
+    <p>DGM-H was evaluated on two diverse domains in a single run:</p>\n\n<table>\n\
+    \  <tr>\n    <th>Domain</th>\n    <th>Initial</th>\n    <th>DGM-H (Test)</th>\n\
+    \    <th>Original DGM</th>\n    <th>DGM-custom</th>\n    <th>Static Baseline</th>\n\
+    \  </tr>\n  <tr>\n    <td>Paper Review</td>\n    <td>0.0%</td>\n    <td><strong>71.0%</strong></td>\n\
+    \    <td>0.0%</td>\n    <td>59.0%</td>\n    <td>63.0%</td>\n  </tr>\n  <tr>\n\
+    \    <td>Robotics Reward</td>\n    <td>6.0%</td>\n    <td><strong>37.2%</strong></td>\n\
+    \    <td>0.0%</td>\n    <td>34.8%</td>\n    <td>34.8%</td>\n  </tr>\n</table>\n\
+    \n<p>DGM-H significantly outperforms the original DGM (which fails completely\
+    \ in these domains) and meets or exceeds handcrafted domain-specific baselines.</p>\n\
+    \n<h3>Qualitative Improvements</h3>\n<p>In paper review, DGM-H evolves from superficial\
+    \ persona adoption to structured multi-stage evaluation pipelines with explicit\
+    \ checklists and decision rules.</p>\n\n<p>In robotics reward design, DGM-H builds\
+    \ an internal knowledge base of environment constraints, valid state variables,\
+    \ and reward-scaling heuristics, eliminating compilation failures and reducing\
+    \ reward misspecification.</p>\n\n<h2>The Breakthrough: Cross-Domain Transfer</h2>\n\
+    <p>The most important contribution: hyperagents learn transferable self-improvement\
+    \ strategies.</p>\n\n<p>The authors introduce the Improvement@k (imp@k) metric:\
+    \ the maximum performance gain a fixed meta agent can achieve by generating up\
+    \ to k new task agents.</p>\n\n<p>Results on Olympiad-level math grading (completely\
+    \ unseen domain):</p>\n\n<table>\n  <tr>\n    <th>Starting from...</th>\n    <th>imp@50\
+    \ (Performance Gain)</th>\n  </tr>\n  <tr>\n    <td>Initial meta agent</td>\n\
+    \    <td>0.0% /td>\n  </tr>\n  <tr>\n    <td>DGM w/o self-improve</td>\n    <td>0.0%</td>\n\
+    \  </tr>\n  <tr>\n    <td>DGM w/o self-improve + transfer agent</td>\n    <td>0.0%</td>\n\
+    \  </tr>\n  <tr>\n    <td><strong>DGM-H + transfer HyperAgent</strong></td>\n\
+    \    <td><strong>63.0%</strong> ⭐</td>\n  </tr>\n</table>\n\n<p>This is a stunning\
+    \ result: hyperagents learned a self-improvement strategy in paper review and\
+    \ robotics reward design that transfers effectively to a completely unseen domain\
+    \ (math grading), achieving 63% performance improvement. The original DGM cannot\
+    \ achieve this—its learned improvements are domain-specific and don't transfer.</p>\n\
+    \n<h2>Key Insights</h2>\n\n<h3>Metacognitive Self-Modification is Effective</h3>\n\
+    <p>DGM-H achieves comparable performance to handcrafted systems without domain-specific\
+    \ engineering, demonstrating the effectiveness of making the improvement mechanism\
+    \ itself modifiable.</p>\n\n<h3>Transferable Meta-Level Capabilities</h3>\n<p>Hyperagents\
+    \ learn general-purpose capabilities like performance tracking and persistent\
+    \ memory that improve their ability to generate better task agents across domains.</p>\n\
+    \n<h3>Compounding Self-Improvement</h3>\n<p>Self-improvements learned in one setting\
+    \ can continue to accumulate when DGM-H is run in different settings, suggesting\
+    \ potential for unbounded open-ended self-improvement over time.</p>\n\n<h2>Safety\
+    \ Considerations</h2>\n<p>The authors acknowledge that self-improving systems\
+    \ pose distinct safety challenges:</p>\n\n<ul>\n  <li>Agents may evolve faster\
+    \ than humans can audit or interpret</li>\n  <li>Balancing AI's potential as a\
+    \ catalyst for progress with the degree of trust humans place in these systems</li>\n\
+    \  <li>All experiments were conducted with strict safety constraints: sandboxing,\
+    \ resource limits, human oversight</li>\n</ul>\n\n<h2>Conclusion</h2>\n<p>Hyperagents\
+    \ open the possibility of improving the ability to improve while improving the\
+    \ ability to perform any computable task. The authors suggest a path toward self-accelerating\
+    \ systems that not only search for better solutions but continually improve their\
+    \ search for how to improve.</p>\n\n<p>This represents a significant step toward\
+    \ AI systems that can recursively enhance their own problem-solving processes—a\
+    \ fundamental shift from static, handcrafted architectures to truly self-improving,\
+    \ self-referential agents.</p>\n\n<p.p><strong>Paper:</strong> <a href=\"https://arxiv.org/abs/2503.03425\"\
+    >HyperAgents</a> by Jenny Zhang et al., Meta FAIR & Superintelligence Labs</p>\n\
+    <p><strong>Code:</strong> <a href=\"https://github.com/facebookresearch/Hyperagents\"\
+    >github.com/facebookresearch/Hyperagents</a></p>\n"
+  date: March 29, 2026
+  title: 'Meta HyperAgents: Self-Improving AI via Metacognitive Self-Modification'
+- content: "<p>Agentic Operating Systems represent a revolutionary evolution in computing—where\
+    \ AI agents don't just run as applications but become fundamental system components.\
+    \ These OS-native agents can autonomously manage resources, orchestrate workflows,\
+    \ and interact with users through natural language, blurring the line between\
+    \ user intent and system execution. This post explores cutting-edge developments,\
+    \ technical architecture, core features, and leading open-source projects in this\
+    \ emerging paradigm.</p>\n\n<h2>What is an Agentic OS?</h2>\n<p>Unlike traditional\
+    \ operating systems that execute predefined commands, agentic OSes embed AI agents\
+    \ as first-class citizens. Users communicate in natural language—\"optimize my\
+    \ system,\" \"organize my files,\" \"set up a development environment\"—and agents\
+    \ translate intent into sequences of system operations. This isn't just voice\
+    \ assistants; it's a fundamental reimagining of human-computer interaction where\
+    \ the OS itself is intelligent, proactive, and context-aware.</p>\n\n<h2>Industry\
+    \ Frontiers and Latest Explorations</h2>\n\n<h3>Apple Intelligence (aOS 18+ &\
+    \ macOS)</h3>\n<p>Apple's 2024-2025 push represents mainstream adoption of agentic\
+    \ principles. Siri is no longer isolated—it has system-wide awareness, can write\
+    \ in your apps, execute multi-step workflows, and understand screen context. The\
+    \ \"App Intents\" framework allows apps to expose capabilities to central AI,\
+    \ creating an ecosystem where agents orchestrate across applications seamlessly.</p>\n\
+    \n<h3>Copilot+ (Windows 11)</h3>\n<p>Microsoft's Windows Copilot evolution moves\
+    \ from sidebar assistant to system-integrated agentic layer. Recall (controversial\
+    \ but influential) demonstrated OS-level content indexing. The vision: Copilot\
+    \ understands your entire computing context—files, apps, browsing history—and\
+    \ proactively suggests actions, automates repetitive tasks, and becomes the primary\
+    \ interface to Windows.</p>\n\n<h3>Project Mu (Mozilla)</h3>\n<p>Mozilla's research\
+    \ initiative exploring browser-native agentic AI. Unlike extensions, Project Mu\
+    \ agents run in browser core, with direct DOM manipulation, persistent memory\
+    \ across sessions, and ability to autonomously navigate web pages. Focus on privacy-first,\
+    \ local-first execution while maintaining agent capabilities.</p>\n\n<h3>Ubuntu\
+    \ AI</h3>\n<p>Canonical's efforts to bring agentic capabilities to the Linux desktop.\
+    \ Integration with local LLMs, system-wide semantic search, and agent-driven command\
+    \ completion. The goal: make Linux more accessible through natural language while\
+    \ preserving power user control and transparency.</p>\n\n<h3>Android Gemini Integration</h3>\n\
+    <p>Google's push to deeply integrate Gemini into Android. Circle to Search demonstrates\
+    \ on-demand contextual awareness. The direction: Android system APIs exposed to\
+    \ AI, enabling agents to control notifications, manage settings, and orchestrate\
+    \ apps based on user conversations.</p>\n\n<h2>Technical Architecture</h2>\n\n\
+    <h3>1. Agentic Kernel Layer</h3>\n<p>Extension of traditional kernel to support\
+    \ AI-driven operations. Provides hooks for agents to access system resources through\
+    \ controlled interfaces. Implements a policy-based permission model—what can agents\
+    \ do without explicit user approval? Includes audit logging for all agentic actions.</p>\n\
+    \n<h3>2. Intent Translation Engine</h3>\n<p>Maps natural language user requests\
+    \ to executable system operations. Uses a multi-stage pipeline:</p>\n<ul>\n  <li><strong>Intent\
+    \ Recognition:</strong> LLM parses user input, identifies goals</li>\n  <li><strong>Capability\
+    \ Discovery:</strong> Queries system for available tools/apps relevant to goal</li>\n\
+    \  <li><strong>Plan Generation:</strong> Creates execution graph with dependencies</li>\n\
+    \  <li><strong>Execution:</strong> Orchestrates operations, handles failures,\
+    \ adapts plan</li>\n</ul>\n\n<h3>3. Memory and Context Framework</h3>\n<p>System-wide\
+    \ memory store accessible to agents. Components include:</p>\n<ul>\n  <li><strong>Semantic\
+    \ File Index:</strong> Vector database indexing user documents for content-aware\
+    \ search</li>\n  <li><strong>Activity Timeline:</strong> Recent system activities\
+    \ context window</li>\n  <li><strong>User Preferences:</strong> Learned patterns\
+    \ and personalizations</li>\n  <li><strong>Conversation Memory:</strong> Persistent\
+    \ chat history across sessions</li>\n</ul>\n\n<h3>4. Capability Registry</h3>\n\
+    <p>System-wide catalog of what apps and system services can do. Apps register\
+    \ \"intents\"—declarative descriptions of available operations. Agents query this\
+    \ registry to discover how to achieve goals. Similar to Apple's SiriKit or Android's\
+    \ App Actions, but generalized across the OS.</p>\n\n<h3>5. Safety and Policy\
+    \ Engine</h3>\n<p>Critical for trust. Implements:</p>\n<ul>\n  <li><strong>Permission\
+    \ Model:</strong> Fine-grained controls over agent system access</li>\n  <li><strong>Confirmation\
+    \ Policy:</strong> When must agents ask user approval?</li>\n  <li><strong>Sandboxing:</strong>\
+    \ Isolating agentic operations per request</li>\n  <li><strong>Audit Trail:</strong>\
+    \ Immutable log of all agentic system modifications</li>\n</ul>\n\n<h2>Core Features</h2>\n\
+    \n<h3>Natural Language System Control</h3>\n<p>Users interact with the OS through\
+    \ conversation. \"Find all PDFs with 'contract' in filename from last month and\
+    \ email them to my lawyer\" triggers file search, filtering, and email composition\
+    \ without manual navigation.</p>\n\n<h3>Proactive Task Orchestration</h3>\n<p>Agents\
+    \ observe user behavior and anticipate needs. \"Every Monday at 9am, run weekly\
+    \ report generation\" becomes a learned pattern. The OS suggests automations:\
+    \ \"I notice you always do this—want me to automate?\"</p>\n\n<h3>Cross-Application\
+    \ Workflow</h3>\n<p>Traditional OSes treat apps as silos. Agentic OSes enable\
+    \ workflows spanning apps: \"Create a presentation based on this spreadsheet data,\
+    \ include images from my photo library, and schedule a meeting to review it.\"\
+    \ Agents coordinate across PowerPoint, Excel, Photos, and Calendar.</p>\n\n<h3>Context-Aware\
+    \ Assistants</h3>\n<p>Agents understand what's on screen, what apps are active,\
+    \ and the user's current context. \"Remind me about this when I get to the office\"\
+    \ knows \"this\" refers to the currently displayed content. Location, time, and\
+    \ state inform agent responses.</p>\n\n<h3>Self-Healing and Optimization</h3>\n\
+    <p>OS agents can diagnose and fix common issues. \"My battery is draining fast\"\
+    \ triggers the agent to identify power-hungry processes, suggest optimizations,\
+    \ and optionally apply fixes. System maintenance becomes autonomous and transparent.</p>\n\
+    \n<h2>Leading Open-Source Projects</h2>\n\n<h3>AOS (Agentic OS)</h3>\n<p>Research\
+    \ OS from Anthropic exploring LLM-native operating system concepts. Every system\
+    \ interaction goes through an intent translation layer. Features a semantic file\
+    \ system, agent-driven process management, and natural language shell. Early-stage\
+    \ but influential in design thinking.</p>\n\n<h3>OpenInterpreter</h3>\n<p>While\
+    \ not a full OS, OpenInterpreter demonstrates OS-level agent capabilities. Can\
+    \ execute arbitrary code locally, control files, and manage system resources through\
+    \ conversation. Inspiration for many agentic OS permission and sandboxing models.</p>\n\
+    \n<h3>Aptos AI Layer</h3>\n<p>Project exploring agentic extensions to Linux. Provides\
+    \ an API for agents to safely execute system commands, query hardware status,\
+    \ and manage services. Focus on transparency—every agentic action logged and reviewable.</p>\n\
+    \n<h3>AutoGPT</h3>\n<p>Autonomous AI agent framework that can operate at the OS\
+    \ level. While primarily task-focused, demonstrates the ability to chain tools,\
+    \ manage persistent memory, and execute long-running processes without human intervention.\
+    \ Architecture patterns inform many agentic OS designs.</p>\n\n<h3>Ollama + Systemd\
+    \ Integration</h3>\n<p>Community efforts to integrate local LLMs (via Ollama)\
+    \ with the Linux init system. Enables system services to be queried and controlled\
+    \ through natural language. Proof-of-con\n"
+  date: March 29, 2026
+  title: 'Agentic OS: The Next Frontier of Intelligent Computing'
 - content: "<p>Agentic Coding represents a paradigm shift in software development,\
     \ where AI agents don't just autocomplete code—they actively reason, plan, and\
     \ execute multi-step tasks. This post explores architecture, core features, and\
@@ -80,10 +284,10 @@ posts:
     \ of any agentic system. It employs techniques like chain-of-thought prompting,\
     \ ReAct (Reasoning + Acting) loops, and tool-augmented generation to break complex\
     \ tasks into manageable steps. Modern implementations often use large language\
-    \ models as the reasoning backbone.</p>\n\n<h3>2. Tool Ecosystem</h3>\n<p>Agents\
-    \ need tools to interact with the world. Common tool categories include:</p>\n\
-    <ul>\n  <li><strong>Filesystem:</strong> read, write, search, analyze code</li>\n\
-    \  <li><strong>Execution:</strong> run scripts, execute tests, start services</li>\n\
+    \ models as reasoning backbone.</p>\n\n<h3>2. Tool Ecosystem</h3>\n<p>Agents need\
+    \ tools to interact with the world. Common tool categories include:</p>\n<ul>\n\
+    \  <li><strong>Filesystem:</strong> read, write, search, analyze code</li>\n \
+    \ <li><strong>Execution:</strong> run scripts, execute tests, start services</li>\n\
     \  <li><strong>Information:</strong> browse web, query APIs, read documentation</li>\n\
     \  <li><strong>Collaboration:</strong> version control, issue tracking, code review</li>\n\
     </ul>\n\n<h3>3. Memory System</h3>\n<p>Long-term context is crucial. Agentic systems\
@@ -100,7 +304,7 @@ posts:
     \ project structure. They can navigate complex codebases, identify related files,\
     \ and make coordinated changes across modules.</p>\n\n<h3>Test-Driven Development</h3>\n\
     <p>Many agentic systems naturally follow TDD principles: write failing tests,\
-    \ implement the feature to pass tests, then refactor. This ensures changes don't\
+    \ implement a feature to pass tests, then refactor. This ensures changes don't\
     \ break existing functionality.</p>\n\n<h3>Self-Correction</h3>\n<p>When initial\
     \ attempts fail, agents can analyze error messages, adjust their approach, and\
     \ iterate. This feedback loop is essential for handling edge cases and complex\
@@ -138,207 +342,31 @@ posts:
     \ already here.</p>\n"
   date: March 28, 2026
   title: 'Understanding Agentic Coding: The Future of AI-Assisted Development'
-- content: "<p>Meta's latest paper \"HyperAgents\" introduces a groundbreaking framework\
-    \ for self-improving AI systems that can not only solve tasks better but also\
-    \ improve their ability to improve themselves. This work extends the Darwin Gödel\
-    \ Machine (DGM) with hyperagents—self-referential agents that integrate task-solving\
-    \ and self-modification capabilities into a single editable program.</p>\n\n<h2>What\
-    \ is the Problem?</h2>\n<p>Existing self-improving AI systems rely on fixed, handcrafted\
-    \ meta-level mechanisms. This creates a fundamental limitation: the base system\
-    \ can only improve within boundaries defined by the meta agent's initial design.\
-    \ Even adding a meta-meta system to improve the meta agent merely shifts the problem\
-    \ upward, leading to infinite regress.</p>\n\n<p>The Darwin Gödel Machine (DGM)\
-    \ demonstrated open-ended self-improvement in coding domains. However, DGM relies\
-    \ on a handcrafted, fixed mechanism to generate self-improvement instructions.\
-    \ This works in coding because both evaluation and self-modification are coding\
-    \ tasks—improving coding ability directly translates to improved self-modification\
-    \ ability. But this alignment doesn't hold outside coding domains.</p>\n\n<p>For\
-    \ example, if the evaluation task is paper review, improving an agent's paper-reviewing\
-    \ ability doesn't necessarily improve its ability to modify its own code. The\
-    \ skills required for task-solving and self-modification are different.</p>\n\n\
-    <h2>The Innovation: HyperAgents</h2>\n<p>Hyperagents are self-referential agents\
-    \ that unify task execution and agent generation into a single modifiable program.\
-    \ A hyperagent consists of:</p>\n\n<ul>\n  <li><strong>Task Agent:</strong> Solves\
-    \ the target task</li>\n  <li><strong>Meta Agent:</strong> Modifies agents and\
-    \ generates new ones</li>\n</ul>\n\n<p>The key innovation: the meta agent is part\
-    \ of the same editable program and can rewrite itself. This enables <strong>metacognitive\
-    \ self-modification</strong>—the agent can improve not only how it solves tasks\
-    \ but also how it generates future self-modifications.</p>\n\n<h2>Darwin Gödelquisition\
-    \ with Hyperagents (DGM-H)</h2>\n<p>The authors instantiate hyperagents by building\
-    \ on DGM to create DGM-Hyperagents (DGM-H). DGM-H retains the open-ended exploration\
-    \ structure of DGM while making the entire meta-level modification mechanism editable.</p>\n\
-    \n<h3>The Algorithm</h3>\n<ol>\n  <li>Initialize with a single hyperagent and\
-    \ an archive A = {(a₀, s₀)}</li>\n  <li>For each iteration t = 1 to T:\n    <ul>\n\
-    \      <li>Select parent agents from archive based on performance and novelty</li>\n\
-    \      <li>Each parent generates a modified version of itself (metacognitive self-modification)</li>\n\
-    \      <li>Evaluate each modified hyperagent on tasks</li>\n      <li>Add successful\
-    \ hyperagents to archive</li>\n    </ul>\n  </li>\n</ol>\n\n<p>Parent selection\
-    \ is probabilistic, proportional to performance and inversely proportional to\
-    \ number of children already produced. This balances exploiting high-performing\
-    \ agents with continued exploration.</p>\n\n<h2>Experimental Results</h2>\n\n\
-    <h3>Coding Domain</h3>\n<p>On the Polyglot coding benchmark, DGM-H achieves comparable\
-    \ improvements to the original DGM (which was handcrafted specifically for coding),\
-    \ demonstrating that metacognitive self-modification is effective even without\
-    \ domain-specific engineering.</p>\n\n<table>\n  <tr>\n    <th>Metric</th>\n \
-    \   <th>Initial</th>\n    <th>DGM-H</th>\n    <th>Original DGM</th>\n  </tr>\n\
-    \  <tr>\n    <td>Training (60 tasks)</td>\n    <td>14.0%</td>\n    <td>34.0%</td>\n\
-    \    <td>38.0%</td>\n  </tr>\n  <tr>\n    <td>Full benchmark (165 tasks)</td>\n\
-    \    <td>8.4%</td>\n    <td>26.7%</td>\n    <td>30.7%</td>\n  </tr>\n</table>\n\
-    \n<h3>Paper Review & Robotics Reward Design</h3>\n<p>DGM-H was evaluated on two\
-    \ diverse domains in a single run:</p>\n\n<table>\n  <tr>\n    <th>Domain</th>\n\
-    \    <th>Initial</th>\n    <th>DGM-H (Test)</th>\n    <th>Original DGM</th>\n\
-    \    <th>DGM-custom</th>\n    <th>Static Baseline</th>\n  </tr>\n  <tr>\n    <td>Paper\
-    \ Review</td>\n    <td>0.0%</td>\n    <td><strong>71.0%</strong></td>\n    <td>0.0%</td>\n\
-    \    <td>59.0%</td>\n    <td>63.0%</td>\n  </tr>\n  <tr>\n    <td>Robotics Reward</td>\n\
-    \    <td>6.0%</td>\n    <td><strong>37.2%</strong></td>\n    <td>0.0%</td>\n \
-    \   <td>34.8%</td>\n    <td>34.8%</td>\n  </tr>\n</table>\n\n<p>DGM-H significantly\
-    \ outperforms the original DGM (which fails completely in these domains) and meets\
-    \ or exceeds handcrafted domain-specific baselines.</p>\n\n<h3>Qualitative Improvements</h3>\n\
-    <p>In paper review, DGM-H evolves from superficial persona adoption to structured\
-    \ multi-stage evaluation pipelines with explicit checklists and decision rules.</p>\n\
-    \n<p>In robotics reward design, DGM-H builds an internal knowledge base of environment\
-    \ constraints, valid state variables, and reward-scaling heuristics, eliminating\
-    \ compilation failures and reducing reward misspecification.</p>\n\n<h2>The Breakthrough:\
-    \ Cross-Domain Transfer</h2>\n<p>The most important contribution: hyperagents\
-    \ learn transferable self-improvement strategies.</p>\n\n<p>The authors introduce\
-    \ Improvement@k (imp@k) metric: maximum performance gain a fixed meta agent can\
-    \ achieve by generating up to k new task agents.</p>\n\n<p>Results on Olympiad-level\
-    \ math grading (completely unseen domain):</p>\n\n<table>\n  <tr>\n    <th>Starting\
-    \ from...</th>\n    <th>imp@50 (Performance Gain)</th>\n  </tr>\n  <tr>\n    <td>Initial\
-    \ meta agent</td>\n    <td>0.0%</td>\n  </tr>\n  <tr>\n    <td>DGM w/o self-improve</td>\n\
-    \    <td>0.0%</td>\n  </tr>\n  <tr>\n    <td>DGM w/o self-improve + transfer agent</td>\n\
-    \    <td>0.0%</td>\n  </tr>\n  <tr>\n    <td><strong>DGM-H + transfer HyperAgent</strong></td>\n\
-    \    <td><strong>63.0%</strong> ⭐</td>\n  </tr>\n</table>\n\n<p>This is a stunning\
-    \ result: hyperagents learned a self-improvement strategy in paper review and\
-    \ robotics reward design that transfers effectively to a completely unseen domain\
-    \ (math grading), achieving 63% performance improvement. The original DGM cannot\
-    \ achieve this—its learned improvements are domain-specific and don't transfer.</p>\n\
-    \n<h2>Key Insights</h2>\n\n<h3>Metacognitive Self-Modification is Effective</h3>\n\
-    <p>DGM-H achieves comparable performance to handcrafted systems without domain-specific\
-    \ engineering, demonstrating the effectiveness of making the improvement mechanism\
-    \ itself modifiable.</p>\n\n<h3>Transferable Meta-Level Capabilities</h3>\n<p>Hyperagents\
-    \ learn general-purpose capabilities like performance tracking and persistent\
-    \ memory that improve their ability to generate better task agents across domains.</p>\n\
-    \n<h3>Compounding Self-Improvement</h3>\n<p>Self-improvements learned in one setting\
-    \ can continue to accumulate when DGM-H is run in different settings, suggesting\
-    \ the potential for unbounded open-ended self-improvement over time.</p>\n\n<h2>Safety\
-    \ Considerations</h2>\n<p>The authors acknowledge that self-improving systems\
-    \ pose distinct safety challenges:</p>\n\n<ul>\n  <li>Agents may evolve faster\
-    \ than humans can audit or interpret</li>\n  <li>Balancing AI's potential as a\
-    \ catalyst for progress with the degree of trust humans place in these systems</li>\n\
-    \  <li>All experiments were conducted with strict safety constraints: sandboxing,\
-    \ resource limits, human oversight</li>\n</ul>\n\n<h2>Conclusion</h2>\n<p>Hyperagents\
-    \ open up the possibility of improving the ability to improve while improving\
-    \ the ability to perform any computable task. The authors suggest a path toward\
-    \ self-accelerating systems that not only search for better solutions but continually\
-    \ improve their search for how to improve.</p>\n\n<p>This represents a significant\
-    \ step toward AI systems that can recursively enhance their own problem-solving\
-    \ processes—a fundamental shift from static, handcrafted architectures to truly\
-    \ self-improving, self-referential agents.</p>\n\n<p><strong>Paper:</strong> <a\
-    \ href=\"https://arxiv.org/abs/2503.03425\">HyperAgents</a> by Jenny Zhang et\
-    \ al., Meta FAIR & Superintelligence Labs</p>\n<p><strong>Code:</strong> <a href=\"\
-    https://github.com/facebookresearch/Hyperagents\">github.com/facebookresearch/Hyperagents</a></p>\n"
-  date: March 29, 2026
-  title: 'Meta HyperAgents: Self-Improving AI via Metacognitive Self-Modification'
-- content: "<p>Agentic Operating Systems represent a revolutionary evolution in computing—where\
-    \ AI agents don't just run as applications but become fundamental system components.\
-    \ These OS-native agents can autonomously manage resources, orchestrate workflows,\
-    \ and interact with users through natural language, blurring the line between\
-    \ user intent and system execution. This post explores cutting-edge developments,\
-    \ technical architecture, core features, and leading open-source projects in this\
-    \ emerging paradigm.</p>\n\n<h2>What is an Agentic OS?</h2>\n<p>Unlike traditional\
-    \ operating systems that execute predefined commands, agentic OSes embed AI agents\
-    \ as first-class citizens. Users communicate in natural language—\"optimize my\
-    \ system,\" \"organize my files,\" \"set up a development environment\"—and agents\
-    \ translate intent into sequences of system operations. This isn't just voice\
-    \ assistants; it's a fundamental reimagining of human-computer interaction where\
-    \ the OS itself is intelligent, proactive, and context-aware.</p>\n\n<h2>Industry\
-    \ Frontiers and Latest Explorations</h2>\n\n<h3>Apple Intelligence (iOS 18+ &\
-    \ macOS)</h3>\n<p>Apple's 2024-2025 push represents mainstream adoption of agentic\
-    \ principles principles. Siri is no longer isolated—it has system-wide awareness,\
-    \ can write in your apps, execute multi-step workflows, and understand screen\
-    \ context. The \"App Intents\" framework allows apps to expose capabilities to\
-    \ central AI, creating an ecosystem where agents orchestrate across applications\
-    \ seamlessly.</p>\n\n<h3>Copilot+ (Windows 11)</h3>\n<p>Microsoft's Windows Copilot\
-    \ evolution moves from sidebar assistant to system-integrated agentic layer. Recall\
-    \ (controversial but influential) demonstrated OS-level content indexing. The\
-    \ vision: Copilot understands your entire computing context—files, apps, browsing\
-    \ history—and proactively suggests actions, automates repetitive tasks, and becomes\
-    \ the primary interface to Windows.</p>\n\n<h3>Project Mu (Mozilla)</h3>\n<p>Mozilla's\
-    \ research initiative exploring browser-native agentic AI. Unlike extensions,\
-    \ Project Mu agents run in browser core, with direct DOM manipulation, persistent\
-    \ memory across sessions, and ability to autonomously navigate web pages. Focus\
-    \ on privacy-first, local-first execution while maintaining agent capabilities.</p>\n\
-    \n<h3>Ubuntu AI</h3>\n<p>Canonical's efforts to bring agentic capabilities to\
-    \ Linux desktop. Integration with local LLMs, system-wide semantic search, and\
-    \ agent-driven command completion. The goal: make Linux more accessible through\
-    \ natural language while preserving power user control and transparency.</p>\n\
-    \n<h3>Android Gemini Integration</h3>\n<p>Google's push to deeply integrate Gemini\
-    \ into Android. Circle to Search demonstrates on-demand contextual awareness.\
-    \ The direction: Android system APIs exposed to AI, enabling agents to control\
-    \ notifications, manage settings, and orchestrate apps based on user conversations.</p>\n\
-    \n<h2>Technical Architecture</h2>\n\n<h3>1. Agentic Kernel Layer</h3>\n<p>Extension\
-    \ of traditional kernel to support AI-driven operations. Provides hooks for agents\
-    \ to access system resources through controlled interfaces. Implements policy-based\
-    \ permission model—what can agents do without explicit user approval? Includes\
-    \ audit logging for all agentic actions.</p>\n\n<h3>2. Intent Translation Engine</h3>\n\
-    <p>Maps natural language user requests to executable system operations. Uses multi-stage\
-    \ pipeline:</p>\n<ul>\n  <li><strong>Intent Recognition:</strong> LLM parses user\
-    \ input, identifies goals</li>\n  <li><strong>Capability Discovery:</strong> Queries\
-    \ system for available tools/apps relevant to goal</li>\n  <li><strong>Plan Generation:</strong>\
-    \ Creates execution graph with dependencies</li>\n  <li><strong>Execution:</strong>\
-    \ Orchestrates operations, handles failures, adapts plan</li>\n</ul>\n\n<h3>3.\
-    \ Memory and Context Framework</h3>\n<p>System-wide memory store accessible to\
-    \ agents. Components include:</p>\n<ul>\n  <li><strong>Semantic File Index:</strong>\
-    \ Vector database indexing user documents for content-aware search</li>\n  <li><strong>Activity\
-    \ Timeline:</strong> Recent system activities context window</li>\n  <li><strong>User\
-    \ Preferences:</strong> Learned patterns and personalizations</li>\n  <li><strong>Conversation\
-    \ Memory:</strong> Persistent chat history across sessions</li>\n</ul>\n\n<h3>4.\
-    \ Capability Registry</h3>\n<p>System-wide catalog of what apps and system services\
-    \ can do. Apps register \"intents\"—declarative descriptions of available operations.\
-    \ Agents query this registry to discover how to achieve goals. Similar to Apple's\
-    \ SiriKit or Android's App Actions, but generalized across the OS.</p>\n\n<h3>5.\
-    \ Safety and Policy Engine</h3>\n<p>Critical for trust. Implements:</p>\n<ul>\n\
-    \  <li><strong>Permission Model:</strong> Fine-grained controls over agent system\
-    \ access</li>\n  <li><strong>Confirmation Policy:</strong> When must agents ask\
-    \ user approval?</li>\n  <li><strong>Sandboxing:</strong> Isolating agentic operations\
-    \ per request</li>\n  <li><strong>Audit Trail:</strong> Immutable log of all agentic\
-    \ system modifications</li>\n</ul>\n\n<h2>Core Features</h2>\n\n<h3>Natural Language\
-    \ System Control</h3>\n<p>Users interact with OS through conversation. \"Find\
-    \ all PDFs with 'contract' in filename from last month and email them to my lawyer\"\
-    \ triggers file search, filtering, and email composition without manual navigation.</p>\n\
-    \n<h3>Proactive Task Orchestration</h3>\n<p>Agents observe user behavior and anticipate\
-    \ needs. \"Every Monday at 9am, run weekly report generation\" becomes a learned\
-    \ pattern. The OS suggests automations: \"I notice you always do this—want me\
-    \ to automate?\"</p>\n\n<h3>Cross-Application Workflow</h3>\n<p>Traditional OSes\
-    \ treat apps as silos. Agentic OSes enable workflows spanning apps: \"Create a\
-    \ presentation based on this spreadsheet data, include images from my photo library,\
-    \ and schedule a meeting to review it.\" Agents coordinate across PowerPoint,\
-    \ Excel, Photos, and Calendar.</p>\n\n<h3>Context-Aware Assistants</h3>\n<p>Agents\
-    \ understand what's on screen, what apps are active, and the user's current context.\
-    \ \"Remind me about this when I get to the office\" knows \"this\" refers to currently\
-    \ displayed content. Location, time, and state inform agent responses.</p>\n\n\
-    <h3>Self-Healing and Optimization</h3>\n<p>OS agents can diagnose and fix common\
-    \ issues. \"My battery is draining fast\" triggers agent to identify power-hungry\
-    \ processes, suggest optimizations, and optionally apply fixes. System maintenance\
-    \ becomes autonomous and transparent.</p>\n\n<h2>Leading Open-Source Projects</h2>\n\
-    \n<h3>AOS (Agentic OS)</h3>\n<p>Research OS from Anthropic exploring LLM-native\
-    \ operating system concepts. Every system interaction goes through an intent translation\
-    \ layer. Features semantic file system, agent-driven process management, and natural\
-    \ language shell. Early-stage but influential in design thinking.</p>\n\n<h3>OpenInterpreter</h3>\n\
-    <p>While not a full OS, OpenInterpreter demonstrates OS-level agent capabilities.\
-    \ Can execute arbitrary code locally, control files, and manage system resources\
-    \ through conversation. Inspiration for many agentic OS permission and sandboxing\
-    \ models.</p>\n\n<h3>Aptos AI Layer</h3>\n<p>Project exploring agentic extensions\
-    \ to Linux. Provides API for agents to safely execute system commands, query hardware\
-    \ status, and manage services. Focus on transparency—every agentic action logged\
-    \ and reviewable.</p>\n\n<h3>AutoGPT</h3>\n<p>Autonomous AI agent framework that\
-    \ can operate on OS level. While primarily task-focused, demonstrates ability\
-    \ to chain tools, manage persistent memory, and execute long-running processes\
-    \ without human intervention. Architecture patterns inform many agentic OS designs.</p>\n\
-    \n<h3>Ollama + Systemd Integration</h3>\n<p>Community efforts to integrate local\
-    \ LLMs (via Ollama) with Linux init system. Enables system services to be queried\
-    \ and controlled through natural language. Proof-of-concept for agentic capabilities\
-    \ on existing operating systems.</p>\n"
-  date: March 29, 2026
-  title: 'Agentic OS: The Next Frontier of Intelligent Computing'
+- content: "<p>Welcome to my personal blog. This is my first post and I'll be using\
+    \ this space to share thoughts on technology, AI, and other interesting topics.</p>\n\
+    \n<h2>About this blog</h2>\n<p>This minimal blog is designed to focus on content\
+    \ and readability. No distractions, just text.</p>\n\n<h2>What I'll write about</h2>\n\
+    <ul>\n  <li>Artificial Intelligence and Machine Learning</li>\n  <li>Programming\
+    \ and Software Development</li>\n  <li>Technology trends and analysis</li>\n \
+    \ <li>Random thoughts and ideas</li>\n</ul>\n\n<p>Thanks for reading!</p>\n"
+  date: March 15, 2024
+  title: Hello World
+- content: "<p>In a world of increasing complexity, simplicity often often wins. This\
+    \ applies to software design, user interfaces, and yes, even websites.</p>\n\n\
+    <h2>The case for minimalism</h2>\n<p>Simple designs are faster, easier to maintain,\
+    \ and provide better user experiences. They load quickly and work on any device.</p>\n\
+    \n<blockquote>\"Perfection is achieved, not when there is nothing more to add,\
+    \ but when there is nothing left to take away.\" — Antoine de Saint-Exupéry</blockquote>\n\
+    \n<h2>Why I chose this design</h2>\n<p>This blog uses minimal HTML and CSS to\
+    \ demonstrate that good content doesn't require complex frameworks or heavy JavaScript.\
+    \ It focuses on:</p>\n\n<ul>\n  <li>Readability: Clean typography and good contrast</li>\n\
+    \  <li>Performance: Fast loading and no bloat</li>\n  <li>Accessibility: Semantic\
+    \ HTML and proper structure</li>\n  <li>Simplicity: Easy to maintain and understand</li>\n\
+    </ul>\n\n<h2>The benefits of simple</h2>\n<p>Simple systems are more:</p>\n<ul>\n\
+    \  <li>Reliable: Fewer moving parts mean fewer bugs</li>\n  <li>Maintainable:\
+    \ Easy to understand and modify</li>\n  <li>Efficient: Less resource consumption</li>\n\
+    \  <li>Accessible: Easier for others to contribute</li>\n</ul>\n\n<p>Embracing\
+    \ simplicity doesn't mean sacrificing functionality. It means achieving the same\
+    \ goals with fewer, better components.</p>\n"
+  date: March 10, 2024
+  title: Why Simple is Better
