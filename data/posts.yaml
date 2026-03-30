@@ -1,4 +1,123 @@
 posts:
+- content: "<p>在 Agentic OS 的探索浪潮中，阿里巴巴开源了 <a href=\"https://github.com/alibaba/ANOLISA\"\
+    >ANOLISA</a>（Agentic Nexus Operating Layer & Interface System Architecture）——一个完整的\
+    \ Agentic OS 实现栈。基于 Anolis OS 构建，ANOLISA 旨在为 AI Agent 工作负载提供最佳实践的服务端操作系统实现。本文将深入分析其架构设计、核心组件和技术创新。</p>\n\
+    \n<h2>项目概述</h2>\n\n<p>ANOLISA 是阿里巴巴 Anolis OS 的 Agentic 演进版本，代表了业界首个完整的 Agentic\
+    \ OS 开源实现。它不是简单的 AI 助手集成，而是从操作系统层面重新设计，为 AI Agent 提供原生的系统级支持。</p>\n\n<p><strong>核心定位：</strong>\
+    \ 为 AI Agent 工作负载构建的服务端操作系统，提供从安全、可观测性到技能编排的完整基础设施。</p>\n\n<h2>整体架构</h2>\n\n<p>ANOLISA\
+    \ 采用分层架构设计，由四大核心组件构成完整的 Agentic OS 栈：</p>\n\n<pre><code>┌─────────────────────────────────────────────────────────┐\n\
+    │                    Copilot Shell                         │\n│              AI-Powered\
+    \ Terminal Assistant                │\n│   (Natural Language Programming + Tool\
+    \ Orchestration)     │\n├─────────────────────────────────────────────────────────┤\n\
+    │                    OS Skills                             │\n│              Curated\
+    \ Skill Library                        │\n│   (System Admin + Security + DevOps\
+    \ + Cloud Integration)   │\n├─────────────────────────────────────────────────────────┤\n\
+    │                 Agent Sec Core                            │\n│             \
+    \ OS-Level Security Kernel                      │\n│   (System Hardening + Sandboxing\
+    \ + Asset Verification)     │\n├─────────────────────────────────────────────────────────┤\n\
+    │                   AgentSight                              │\n│             \
+    \ eBPF-Based Observability                     │\n│   (LLM API Monitoring + Token\
+    \ Tracking + Process Trace)    │\n├─────────────────────────────────────────────────────────┤\n\
+    │                  Anolis OS / Linux Kernel                │\n└─────────────────────────────────────────────────────────┘\n\
+    </code></pre>\n\n<h2>核心组件深度解析</h2>\n\n<h3>1. Copilot Shell — AI 驱动的终端助手</h3>\n\
+    \n<p>Copilot Shell 是 ANOLISA 的用户交互层，基于 <a href=\"https://github.com/QwenLM/qwen-code\"\
+    >Qwen Code</a> v0.9.0 构建，提供自然语言编程能力。</p>\n\n<h4>核心特性：</h4>\n\n<ul>\n<li><strong>自然语言编程</strong>：用自然语言描述即可修改代码、实现功能或修复\
+    \ Bug，无需手动编写命令</li>\n<li><strong>代码分析与导航</strong>：理解整个项目结构，回答代码相关问题，支持代码库级别的语义理解</li>\n\
+    <li><strong>多工具编排</strong>：在单次会话中集成文件、Shell、搜索、Web、LSP 和 MCP 工具</li>\n<li><strong>交互式\
+    \ Shell</strong>：<code>/bash</code> 命令进入交互式 Shell，输入 <code>exit</code> 返回，无缝切换</li>\n\
+    <li><strong>技能系统</strong>：本地 + 远程技能发现，支持优先级回退（项目 > 用户 > 扩展 > 远程）</li>\n<li><strong>Hooks\
+    \ 系统</strong>：PreToolUse 事件，在工具调用前拦截处理，实现安全策略注入</li>\n<li><strong>Git 工作流自动化</strong>：自动化提交、分支创建、冲突解决和发布说明生成</li>\n\
+    <li><strong>多模型支持</strong>：支持 Qwen OAuth、阿里云百炼、OpenAI 兼容 API、Anthropic 和 Google\
+    \ GenAI</li>\n<li><strong>PTY 模式</strong>：完整的伪终端支持，包括 <code>sudo</code> 命令</li>\n\
+    </ul>\n\n<h4>技术架构：</h4>\n\n<p>采用 npm workspaces 的 monorepo 布局：</p>\n\n<ul>\n<li><code>packages/cli</code>：终端\
+    \ UI 层 — 输入处理、命令解析、Ink/React 渲染</li>\n<li><code>packages/core</code>：后端核心 — AI\
+    \ 模型通信、提示词构建、工具编排</li>\n<li><code>packages/test-utils</code>：共享测试工具</li>\n</ul>\n\
+    \n<h3>2. Agent Sec Core — OS 级安全内核</h3>\n\n<p>Agent Sec Core 是面向 AI Agent 的 OS\
+    \ 级安全内核，提供系统加固、资产完整性校验与安全决策的完整防护链。这是 ANOLISA 最具创新性的组件之一。</p>\n\n<h4>核心原则：</h4>\n\
+    \n<ol>\n<li><strong>最小权限</strong>：Agent 仅获得完成任务所需的最小系统权限</li>\n<li><strong>显式授权</strong>：敏感操作必须经过用户明确确认，禁止静默提权</li>\n\
+    <li><strong>零信任</strong>：Skill 间互不信任，每次操作独立鉴权</li>\n<li><strong>纵深防御</strong>：系统加固\
+    \ → 资产校验 → 安全决策，任一层失守不影响其他层</li>\n<li><strong>安全优先于执行</strong>：当安全与功能冲突时，安全优先；存疑时按高风险处理</li>\n\
+    </ol>\n\n<h4>三层安全防护架构：</h4>\n\n<pre><code>┌─────────────────────────────────────────────┐\n\
+    │              Agent Application              │\n├─────────────────────────────────────────────┤\n\
+    │         安全决策流程（风险分级与处置）          │\n├─────────────────────────────────────────────┤\n\
+    │  Phase 3: 最终安全确认                       │\n├─────────────────────────────────────────────┤\n\
+    │  Phase 2: 关键资产保护 (GPG + SHA-256)       │\n├─────────────────────────────────────────────┤\n\
+    │  Phase 1: 系统安全加固 (loongshield)         │\n├─────────────────────────────────────────────┤\n\
+    │              Linux Kernel                   │\n└─────────────────────────────────────────────┘\n\
+    </code></pre>\n\n<h4>风险分级与处置：</h4>\n\n<table>\n<thead>\n<tr>\n<th>风险等级</th>\n\
+    <th>典型场景</th>\n<th>处置策略</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>低</strong></td>\n\
+    <td>文件读取、信息查询、文本处理</td>\n<td>允许，沙箱内执行</td>\n</tr>\n<tr>\n<td><strong>中</strong></td>\n\
+    <td>代码执行、包安装、调用外部 API</td>\n<td>沙箱隔离 + 用户确认</td>\n</tr>\n<tr>\n<td><strong>高</strong></td>\n\
+    <td>读取 <code>.env</code>/SSH 密钥、数据外发、修改系统配置</td>\n<td>阻断，除非用户显式批准</td>\n</tr>\n\
+    <tr>\n<td><strong>危急</strong></td>\n<td>Prompt injection、secret 外泄、禁用安全策略</td>\n\
+    <td>立即阻断 + 审计日志 + 通知用户</td>\n</tr>\n</tbody>\n</table>\n\n<h4>沙箱策略模板：</h4>\n\n\
+    <p><code>linux-sandbox</code> 提供 3 种内置策略模板（基于 Rust + bubblewrap + seccomp）：</p>\n\
+    \n<table>\n<thead>\n<tr>\n<th>模板</th>\n<th>文件系统</th>\n<th>网络</th>\n<th>使用场景</th>\n\
+    </tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>read-only</strong></td>\n<td>全盘只读</td>\n\
+    <td>禁止</td>\n<td>只读操作：<code>ls</code>、<code>cat</code>、<code>grep</code>、<code>git\
+    \ status</code> 等</td>\n</tr>\n<tr>\n<td><strong>workspace-write</strong></td>\n\
+    <td>cwd + /tmp 可写，其余只读</td>\n<td>禁止</td>\n<td>构建、编辑、脚本执行等需要写文件的操作</td>\n</tr>\n\
+    <tr>\n<td><strong>danger-full-access</strong></td>\n<td>无限制</td>\n<td>允许</td>\n\
+    <td>⚠ 保留模板，仅供特殊场景手动指定</td>\n</tr>\n</tbody>\n</table>\n\n<h3>3. AgentSight — eBPF\
+    \ 可观测性工具</h3>\n\n<p>AgentSight 是基于 eBPF 的 AI Agent 可观测性工具，提供零侵入式的 LLM API 调用监控、Token\
+    \ 用量统计、进程行为追踪和 SSL/TLS 流量捕获。</p>\n\n<h4>核心特性：</h4>\n\n<ul>\n<li><strong>零侵入式监控</strong>：通过\
+    \ eBPF 内核探针捕获事件，无需修改 Agent 代码或配置</li>\n<li><strong>SSL/TLS 流量解密</strong>：基于 uprobe\
+    \ 拦截 OpenSSL/GnuTLS 库调用，捕获加密连接的明文 HTTP 流量</li>\n<li><strong>LLM Token 精确计量</strong>：集成\
+    \ Hugging Face tokenizer，支持 Qwen 等系列模型的精确 Token 计数</li>\n<li><strong>AI Agent\
+    \ 自动发现</strong>：扫描 <code>/proc</code> 并监控 <code>execve</code> 事件，动态检测系统上运行的 AI\
+    \ Agent 进程</li>\n<li><strong>流式响应支持</strong>：解析 Server-Sent Events (SSE)，追踪 LLM\
+    \ 流式响应</li>\n<li><strong>审计日志</strong>：完整记录 LLM 调用和进程操作的结构化审计轨迹</li>\n<li><strong>云端集成</strong>：原生支持导出至阿里云\
+    \ SLS（日志服务）进行集中化日志分析</li>\n</ul>\n\n<h4>统一数据流水线架构：</h4>\n\n<pre><code>┌──────────┐\
+    \    ┌────────┐    ┌────────────┐    ┌──────────┐    ┌───────┐    ┌─────────┐\n\
+    │  Probes  │───▶│ Parser │───▶│ Aggregator │───▶│ Analyzer │───▶│ GenAI │───▶│\
+    \ Storage │\n└──────────┘    └────────┘    └────────────┘    └──────────┘    └───────┘\
+    \    └─────────┘\n  eBPF 事件      HTTP/SSE      请求-响应          Token/审计      语义\
+    \         SQLite /\n  (内核态)       结构化提取     关联聚合           信息提取        事件构建  \
+    \   SLS 导出\n</code></pre>\n\n<h4>eBPF 探针：</h4>\n\n<table>\n<thead>\n<tr>\n<th>探针</th>\n\
+    <th>源文件</th>\n<th>说明</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>sslsniff</strong></td>\n\
+    <td><code>src/bpf/sslsniff.bpf.c</code></td>\n<td>通过 uprobe 挂钩 SSL_read/SSL_write，捕获加密连接的明文数据</td>\n\
+    </tr>\n<tr>\n<td><strong>proctrace</strong></td>\n<td><code>src/bpf/proctrace.bpf.c</code></td>\n\
+    <td>追踪 execve 系统调用，捕获命令行参数，构建进程树</td>\n</tr>\n<tr>\n<td><strong>procmon</strong></td>\n\
+    <td><code>src/bpf/procmon.bpf.c</code></td>\n<td>轻量级进程监控，追踪进程创建/退出事件（用于 Agent\
+    \ 发现）</td>\n</tr>\n</tbody>\n</table>\n\n<h4>支持的 LLM 提供商：</h4>\n\n<ul>\n<li>OpenAI\
+    \ / OpenAI 兼容 API</li>\n<li>Anthropic（Claude，包括缓存 Token 处理）</li>\n<li>Google Gemini</li>\n\
+    <li>通义千问 Qwen（支持原生 Chat Template）</li>\n</ul>\n\n<h3>4. OS Skills — 运维技能库</h3>\n\
+    \n<p>OS Skills 是精心策划的技能库，涵盖系统管理、监控、安全、DevOps 和云集成等场景。每个技能都是可复用的、经过验证的最佳实践。</p>\n\
+    \n<h4>技能分类：</h4>\n\n<ul>\n<li><strong>System Admin</strong>：系统管理技能（内核升级、存储调整、Shell\
+    \ 脚本、正则表达式、备份恢复、Anolis 管理）</li>\n<li><strong>Security</strong>：安全相关技能（待扩展）</li>\n\
+    <li><strong>DevOps</strong>：DevOps 相关技能（待扩展）</li>\n<li><strong>Cloud Integration</strong>：云集成技能（待扩展）</li>\n\
+    </ul>\n\n<h4>技能结构：</h4>\n\n<p>每个技能目录包含：</p>\n\n<ul>\n<li><code>SKILL.md</code>：技能描述和使用指南</li>\n\
+    <li><code>scripts/</code>：技能脚本</li>\n<li><code>references/</code>：参考文档和示例</li>\n\
+    <li><code>examples.md</code>：使用示例</li>\n</ul>\n\n<h2>技术创新与亮点</h2>\n\n<h3>1. 完整的\
+    \ Agentic OS 栈</h3>\n\n<p>ANOLISA 不是简单的 AI 助手集成，而是从操作系统层面重新设计，提供了从用户交互、技能编排、安全防护到可观测性的完整基础设施。这是业界首个完整的\
+    \ Agentic OS 开源实现。</p>\n\n<h3>2. 三层纵深安全架构</h3>\n\n<p>Agent Sec Core 的三层安全架构（系统加固\
+    \ → 资产校验 → 安全决策）为 AI Agent 提供了企业级的安全保障。特别是基于 Rust 的沙箱执行器和 GPG 签名校验机制，确保了 Agent\
+    \ 在受控、可审计、最小权限的环境中运行。</p>\n\n<h3>3. 零侵入式可观测性</h3>\n\n<p>AgentSight 基于 eBPF 的零侵入式监控技术，无需修改\
+    \ Agent 代码或配置即可捕获 LLM API 调用、Token 消耗和进程行为。SSL/TLS 流量解密能力更是突破了传统监控的盲区。</p>\n\n\
+    <h3>4. 自然语言编程</h3>\n\n<p>Copilot Shell 提供的自然语言编程能力，让用户可以用自然语言描述任务，Agent 自动转换为具体的系统操作。这降低了使用门槛，提高了开发效率。</p>\n\
+    \n<h3>5. 多语言协同</h3>\n\n<p>ANOLISA 采用多语言协同架构：</p>\n\n<ul>\n<li><strong>Node.js</strong>：Copilot\
+    \ Shell（终端 UI 和 AI 模型通信）</li>\n<li><strong>Rust</strong>：AgentSight（eBPF 探针）和\
+    \ linux-sandbox（沙箱执行器）</li>\n<li><strong>Python</strong>：OS Skills（技能库）和 Agent\
+    \ Sec Core（安全策略）</li>\n</ul>\n\n<p>这种多语言架构充分发挥了各语言的优势，实现了性能、开发效率和生态的最佳平衡。</p>\n\
+    \n<h2>应用场景</h2>\n\n<h3>1. AI 辅助系统运维</h3>\n\n<p>运维人员可以通过 Copilot Shell 用自然语言描述运维任务，Agent\
+    \ 自动执行系统检查、故障诊断、性能优化等操作，大幅提高运维效率。</p>\n\n<h3>2. 自动化 DevOps 流程</h3>\n\n<p>通过 OS\
+    \ Skills 库，Agent 可以自动执行 CI/CD 流程、容器编排、配置管理等 DevOps 任务，减少人工干预。</p>\n\n<h3>3. 安全审计与合规</h3>\n\
+    \n<p>Agent Sec Core 的安全防护机制和 AgentSight 的审计日志功能，为企业提供了完整的安全审计和合规检查能力。</p>\n\n\
+    <h3>4. 成本优化</h3>\n\n<p>AgentSight 的 Token 精确计量功能，帮助企业监控和优化 LLM API 调用成本，实现精细化的成本管理。</p>\n\
+    \n<h2>技术栈总结</h2>\n\n<table>\n<thead>\n<tr>\n<th>组件</th>\n<th>主要技术</th>\n<th>语言</th>\n\
+    </tr>\n</thead>\n<tbody>\n<tr>\n<td>Copilot Shell</td>\n<td>Qwen Code, Ink/React,\
+    \ MCP</td>\n<td>Node.js</td>\n</tr>\n<tr>\n<td>Agent Sec Core</td>\n<td>loongshield,\
+    \ bubblewrap, seccomp, GPG</td>\n<td>Python + Rust</td>\n</tr>\n<tr>\n<td>AgentSight</td>\n\
+    <td>eBPF, HuggingFace tokenizer, SQLite</td>\n<td>Rust</td>\n</tr>\n<tr>\n<td>OS\
+    \ Skills</td>\n<td>Shell 脚本, Python 脚本</td>\n<td>Python + Shell</td>\n</tr>\n\
+    </tbody>\n</table>\n\n<h2>总结</h2>\n\n<p>ANOLISA 代表了 Agentic OS 领域的重要里程碑。作为业界首个完整的\
+    \ Agentic OS 开源实现，它不仅提供了从用户交互到系统底层的完整基础设施，更展示了如何将 AI Agent 能力深度集成到操作系统中。</p>\n\
+    \n<p>其三层纵深安全架构、零侵入式可观测性、自然语言编程能力和多语言协同设计，为 Agentic OS 的发展提供了宝贵的实践经验和技术参考。对于企业级\
+    \ AI Agent 应用，ANOLISA 提供了一个可信赖、可扩展、可观测的生产级解决方案。</p>\n\n<p><strong>项目地址：</strong>\
+    \ <a href=\"https://github.com/alibaba/ANOLISA\">https://github.com/alibaba/ANOLISA</a></p>\n\
+    \n<p><strong>许可证：</strong> Apache License 2.0</p>\n"
+  date: March 30, 2026
+  title: 'ANOLISA: Alibaba''s Open Source Agentic OS Implementation'
 - content: "<p>在人工智能代理的研究中，如何让系统在不重新训练的情况下持续改进是一个核心挑战。最近发表的 <a href=\"https://arxiv.org/abs/2508.00271\"\
     >MetaAgent 论文</a> 提出了一个令人兴奋的解决方案：通过\"元工具学习\"（Meta Tool Learning），让智能代理从最小工作流开始，通过边做边学的方式自我进化，最终达到专家水平。</p>\n\
     \n<h2>核心问题：现有方法的困境</h2>\n\n<p>当前的智能代理开发主要依赖两种方法，但都有明显缺陷：</p>\n\n<h3>方法一：人工设计工作流</h3>\n\
