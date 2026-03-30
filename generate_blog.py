@@ -107,17 +107,32 @@ def generate_static_files():
 
     <main class="container about-content">
         <h1>About</h1>
-        <p>This is a simple personal blog built with minimal static HTML and CSS.</p>
         
-        <h2>Design Philosophy</h2>
-        <p>The design focuses on readability and simplicity. No JavaScript, no tracking, just a clean typography.</p>
+        <div class="about-section">
+            <h2>About Me</h2>
+            <p class="bio">拥抱AI时代 To be or not to be.</p>
+            
+            <h3>Contact</h3>
+            <p>
+                <strong>Email:</strong> 
+                <a href="mailto:harryfan1985@gmail.com">harryfan1985@gmail.com</a>
+            </p>
+        </div>
         
-        <h2>Built With</h2>
-        <ul>
-            <li>HTML5</li>
-            <li>CSS3</li>
-            <li>Python for generation</li>
-        </ul>
+        <div class="about-section">
+            <h2>About This Blog</h2>
+            <p>This is a simple personal blog built with minimal static HTML and CSS.</p>
+            
+            <h2>Design Philosophy</h2>
+            <p>The design focuses on readability and simplicity. No JavaScript, no tracking, just a clean typography.</p>
+            
+            <h2>Built With</h2>
+            <ul>
+                <li>HTML5</li>
+                <li>CSS3</li>
+                <li>Python for generation</li>
+            </ul>
+        </div>
     </main>
 
     <footer class="footer">
