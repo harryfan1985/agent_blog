@@ -1,4 +1,415 @@
 posts:
+- title: Hermes Agent 技术报告：架构、记忆与自演进机制
+  date: April 11, 2026
+  content: "# Hermes Agent 技术报告\n\n**项目名称**: Hermes Agent  \n**组织**: Nous Research\
+    \  \n**仓库**: https://github.com/NousResearch/hermes-agent  \n**文档**: https://hermes-agent.nousresearch.com/docs/\
+    \  \n**许可证**: MIT  \n**分析日期**: 2026-04-11  \n\n---\n\n## 执行摘要\n\nHermes Agent\
+    \ 是 Nous Research 开发的自改进 AI 助手框架，核心特点包括内置学习循环、多平台支持、多模型兼容性以及强大的长期记忆和自演进机制。该框架可在\
+    \ $5 VPS、GPU 集群或无服务器基础设施上运行，支持 CLI、Telegram、Discord、Slack、WhatsApp、Signal 等多种交互方式。\n\
+    \n本报告详细分析了 Hermes Agent 的整体架构、核心子系统、长期记忆机制、自演进能力以及设计哲学。\n\n---\n\n## 一、项目概述\n\n\
+    ### 1.1 核心特性\n\n- **自改进能力**: 内置学习循环，从经验中创建技能并持续改进\n- **多平台支持**: CLI、Telegram、Discord、Slack、WhatsApp、Signal、Email\
+    \ 等\n- **多模型兼容**: 支持 OpenRouter、Nous Portal、OpenAI、Anthropic、z.ai/GLM、Kimi/Moonshot、MiniMax\
+    \ 等\n- **灵活部署**: 可在 $5 VPS、GPU 集群或无服务器基础设施上运行\n- **完整 TUI**: 全功能终端界面，支持多行编辑、斜杠命令自动补全、对话历史、中断重定向、流式工具输出\n\
+    - **跨平台会话连续性**: 语音备忘录转录、跨平台对话连续性\n- **定时自动化**: 内置 cron 调度器，支持自然语言任务调度\n- **并行委派**:\
+    \ 可生成隔离子代理进行并行工作流\n- **研究就绪**: 批量轨迹生成、Atropos RL 环境、轨迹压缩\n\n### 1.2 安装与快速开始\n\n\
+    ```bash\ncurl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh\
+    \ | bash\nsource ~/.bashrc\nhermes\n```\n\n支持平台：Linux、macOS、WSL2、Android (Termux)\n\
+    \n---\n\n## 二、核心架构\n\n### 2.1 系统架构图\n\n```\n┌─────────────────────────────────────────────────────────────────────┐\n\
+    │ Entry Points                                                     │\n│      \
+    \                                                           │\n│ CLI (cli.py)\
+    \ Gateway (gateway/run.py) ACP (acp_adapter/)          │\n│ Batch Runner API Server\
+    \ Python Library                            │\n└──────────┬──────────────┬───────────────────────┬────────────────────┘\n\
+    \           │               │                       │\n           ▼          \
+    \     ▼                       ▼\n┌─────────────────────────────────────────────────────────────────────┐\n\
+    │ AIAgent (run_agent.py)                                          │\n│       \
+    \                                                          │\n│ ┌──────────────┐\
+    \ ┌──────────────┐ ┌──────────────┐            │\n│ │ Prompt       │ │ Provider\
+    \     │ │ Tool         │            │\n│ │ Builder      │ │ Resolution   │ │ Dispatch\
+    \     │            │\n│ │ (prompt_     │ │ (runtime_    │ │ (model_      │   \
+    \         │\n│ │  builder.py) │ │  provider.py)│ │  tools.py)   │            │\n\
+    │ └──────┬───────┘ └──────┬───────┘ └──────┬───────┘            │\n│        │\
+    \               │               │                             │\n│ ┌──────┴───────┐\
+    \ ┌──────┴───────┐ ┌──────┴───────┐            │\n│ │ Compression   │ │ 3 API\
+    \ Modes  │ │ Tool Registry│            │\n│ │ & Caching     │ │ chat_compl.  │\
+    \ │ (registry.py)│            │\n│ │               │ │ codex_resp.  │ │ 48 tools\
+    \    │            │\n│ │               │ │ anthropic    │ │ 40 toolsets │    \
+    \        │\n│ └──────────────┘ └──────────────┘ └──────────────┘            │\n\
+    └─────────────────────────────────────────────────────────────────────┘\n    \
+    \       │               │\n           ▼               ▼\n┌───────────────────┐\
+    \ ┌──────────────────────┐\n│ Session Storage   │ │ Tool Backends         │\n\
+    │ (SQLite + FTS5)  │ │ Terminal (6 backends) │\n          │          │ Browser\
+    \ (5 backends)    │\n          │          │ Web (4 backends)       │\n       \
+    \   │          │ MCP (dynamic)          │\n          │          │ File, Vision,\
+    \ etc.     │\n          └───────────────────────────────────┘\n```\n\n### 2.2\
+    \ 目录结构\n\n```\nhermes-agent/\n├── run_agent.py              # AIAgent 核心循环 (~9,200\
+    \ 行)\n├── cli.py                    # CLI TUI (~8,500 行)\n├── model_tools.py \
+    \           # 工具发现、分发\n├── toolsets.py               # 工具集分组\n├── hermes_state.py\
+    \           # SQLite 会话存储\n├── batch_runner.py           # 批量轨迹生成\n│\n├── agent/\
+    \                    # Agent 内部\n│   ├── prompt_builder.py      # 系统提示词组装\n│ \
+    \  ├── context_engine.py      # ContextEngine ABC\n│   ├── context_compressor.py\
+    \ # 默认压缩引擎\n│   ├── prompt_caching.py      # Anthropic 缓存\n│   ├── auxiliary_client.py\
+    \    # 辅助 LLM 客户端\n│   ├── skill_commands.py      # 技能斜杠命令\n│   ├── memory_manager.py\
+    \      # 记忆管理器\n│   └── memory_provider.py     # Memory Provider ABC\n│\n├── hermes_cli/\
+    \               # CLI 子命令\n│   ├── main.py               # 主入口 (~5,500 行)\n│ \
+    \  ├── config.py              # 配置管理\n│   ├── commands.py            # 命令注册表\n\
+    │   ├── auth.py               # Provider 注册表\n│   ├── runtime_provider.py    #\
+    \ Provider 解析\n│   ├── models.py             # 模型目录\n│   ├── model_switch.py \
+    \       # /model 命令逻辑\n│   ├── setup.py              # 设置向导 (~3,100 行)\n│   ├──\
+    \ skin_engine.py        # CLI 主题引擎\n│   ├── skills_config.py      # 技能配置\n│  \
+    \ ├── skills_hub.py         # Skills Hub\n│   ├── tools_config.py       # 工具配置\n\
+    │   ├── plugins.py            # PluginManager\n│   ├── callbacks.py          #\
+    \ 终端回调\n│   └── gateway.py            # 网关管理\n│\n├── tools/                  \
+    \  # 工具实现\n│   ├── registry.py           # 中央注册表\n│   ├── approval.py        \
+    \   # 危险命令检测\n│   ├── terminal_tool.py      # 终端编排\n│   ├── process_registry.py\
+    \    # 后台进程管理\n│   ├── file_tools.py         # 文件工具\n│   ├── web_tools.py    \
+    \      # Web 工具\n│   ├── browser_tool.py       # 浏览器工具\n│   ├── code_execution_tool.py\
+    \ # 代码执行沙箱\n│   ├── delegate_tool.py      # 子代理委派\n│   ├── mcp_tool.py       \
+    \    # MCP 客\n│   ├── credential_files.py    # 凭证文件传递\n│   ├── env_passthrough.py\
+    \     # 环境变量传递\n│   ├── ansi_strip.py         # ANSI 剥离\n│   └── environments/\
+    \         # 终端后端\n│       ├── local.py\n│       ├── docker.py\n│       ├── ssh.py\n\
+    │       ├── modal.py\n│       ├── daytona.py\n│       └── singularity.py\n│\n\
+    ├── gateway/                  # 消息网关\n│   ├── run.py                # 网关运行器 (~7,500\
+    \ 行)\n│   ├── session.py            # 会话存储\n│   ├── delivery.py           # 出站消息投递\n\
+    │   ├── pairing.py            # DM 配对授权\n│   ├── hooks.py              # Hook\
+    \ 发现\n│   ├── mirror.py             # 跨会话消息镜像\n│   ├── status.py             #\
+    \ 状态跟踪\n│   └── platforms/            # 平台适配器\n│       ├── telegram.py\n│    \
+    \   ├── discord.py\n│       ├── slack.py\n│       ├── whatsapp.py\n│       ├──\
+    \ signal.py\n│       ├── matrix.py\n│       ├── mattermost.py\n│       ├── email.py\n\
+    │       ├── sms.py\n│       ├── dingtalk.py\n│       ├── feishu.py\n│       ├──\
+    \ wecom.py\n│       ├── weixin.py\n│       ├── bluebubbles.py\n│       ├── homeassistant.py\n\
+    │       └── webhook.py\n│\n├── acp_adapter/              # ACP 服务器\n├── cron/\
+    \                     # 调度器\n├── plugins/memory/           # Memory Provider 插件\n\
+    ├── plugins/context_engine/   # Context Engine 插件\n├── environments/         \
+    \    # RL 训练环境\n├── skills/                   # 内置技能\n├── optional-skills/   \
+    \       # 官方可选技能\n├── website/                  # Docusaurus 文档\n└── tests/  \
+    \                  # Pytest 套件 (~3,000+ 测试)\n```\n\n---\n\n## 三、核心子系统\n\n### 3.1\
+    \ AIAgent 核心引擎\n\n**文件**: `run_agent.py` (~9,200 行)\n\n**核心职责**:\n- 组装有效系统提示词和工具架构\n\
+    - 选择正确的 Provider/API 模式\n- 执行可中断的模型调用\n- 执行工具调用（顺序或并发）\n- 维护对话历史（OpenAI 消息格式）\n\
+    - 处理压缩、重试、回退模型切换\n- 跟踪父代理和子代理的迭代预算\n- 在上下文丢失前刷新持久记忆\n\n#### API 模式\n\n| 模式 | 用途\
+    \ | 客户端类型 |\n|------|------|-----------|\n| `chat_completions` | OpenAI 兼容端点 |\
+    \ openai.OpenAI |\n| `codex_responses` | OpenAI Codex/Responses API | openai.OpenAI\
+    \ |\n| `anthropic_messages` | Anthropic 原生 API | anthropic.Anthropic |\n\n**模式解析顺序**:\n\
+    1. 显式 `api_mode` 构造函数参数（最高优先级）\n2. Provider 特定检测（如 anthropic → anthropic_messages）\n\
+    3. Base URL 启发式（如 api.anthropic.com → anthropic_messages）\n4. 默认: chat_completions\n\
+    \n#### 轮次生命周期\n\n```\nrun_conversation()\n  1. 生成 task_id（如未提供）\n  2. 追ser 用户消息到对话历史\n\
+    \  3. 构建或重用缓存的系统提示词\n  4. 检查是否需要预压缩（>50% 上下文）\n  5. 从对话历史构建 API 消息\n  6. 注入临时提示词层（预算警告、上下文压力）\n\
+    \  7. 应用提示词缓存标记（如在 Anthropic）\n  8. 执行可中断 API 调用\n  9. 解析响应:\n     - 如 tool_calls:\
+    \ 执行它们，追加结果，循环回步骤 5\n     - 如文本响应: 持久化会话，如需要刷新记忆，返回\n```\n\n#### 消息格式\n\n所有消息使用\
+    \ OpenAI 兼容格式：\n\n```json\n{\"role\": \"system\", \"content\": \"...\"}\n{\"role\"\
+    : \"user\", \"content\": \"...\"}\n{\"role\": \"assistant\", \"content\": \"...\"\
+    , \"tool_calls\": [...]}\n{\"role\": \"tool\", \"tool_call_id\": \"...\", \"content\"\
+    : \"...\"}\n```\n\n**推理内容**: 存储在 `assistant_msg[\"reasoning\"]`，可选通过 `reasoning_callback`\
+    \ 显示。\n\n#### 消息交替规则\n\nAgent 循环强制严格的消息角色交替：\n- 系统消息后: User → Assistant → User\
+    \ → Assistant → ...\n- 工具调用期间: Assistant (with tool_calls) → Tool → Tool → ...\
+    \ → Assistant\n- 永不两个 assistant 消息连续\n- 永不两个 user 消息连续\n- 只有 tool 角色可以有连续条目（并行工具结果）\n\
+    \n#### 可中断 API 调用\n\n```\n┌──────────────────────┐ ┌──────────────┐\n│ Main thread\
+    \         │ │ API thread    │\n│ wait on:            │────▶│ HTTP POST    │\n\
+    │ - response ready     │ │ to provider   │\n│ - interrupt event    │ └──────────────┘\n\
+    │ - timeout           │\n└──────────────────────┘\n```\n\n当被中断（用户发送新消息、/stop 命令或信号）：\n\
+    - API 线程被放弃（响应丢弃）\n- Agent 可以处理新输入或干净关闭\n- 不会将部分响应注入对话历史\n\n#### 工具执行\n\n**顺序\
+    \ vs 并发**:\n- 单个工具调用 → 直接在主线程执行\n- 多个工具调用 → 通过通过 ThreadPoolExecutor 并发执行\n\n例外：标记为交互式的工具（如\
+    \ clarify）强制顺序执行。\n\n**执行流程**:\n```\nfor each tool_call in response.tool_calls:\n\
+    \  1. 从 tools/registry.py 解析处理器\n  2. 触发 pre_tool_call 插件 hook\n  3. 检查是否危验命令\
+    \ (tools/approval.py)\n     - 如危验: 调用 approval_callback，等待用户\n  4. 用 args + task_id\
+    \ 执行处理器\n  5. 触发 post_tool_call 插件 hook\n  6. 追ser {\"role\": \"tool\", \"content\"\
+    : result} 到历史\n```\n\n#### Agent 级工具\n\n有些工具在到达 `handle_function_call()` 前被 `run_agent.py`\
+    \ 拦截：\n\n| 工具 | 拦截原因 |\n|------|----------|\n| todo | 读写 agent 本地任务状态 |\n| memory\
+    \ | 写入持久记忆文件 |\n| session_search | 查询 agent 的会话 DB |\n| delegate_task | 生成子代理会话\
+    \ |\n\n这些工具直接修改 agent 状态并返回合成工具结果，不通过注册表。\n\n#### 回调表面\n\n| 回调 | 触发时机 | 使用者 |\n\
+    |------|----------|---------|\n| tool_progress_callback | 工具执行前后 | CLI spinner、网关进度消息\
+    \ |\n| thinking_callback | 模型开始/停止思考 | CLI \"thinking...\" 指示器 |\n| reasoning_callback\
+    \ | 模型返回推理内容 | CLI 推理显示、网关推理块 |\n| clarify_callback | clarify 工具被调用 | CLI 输入提示、网关交互消息\
+    \ |\n| step_callback | 每个完整 agent 轮次后 | 网关步骤跟踪、ACP 进度 |\n| stream_delta_callback\
+    \ | 每个流式 token（启用时） | CLI 流式显示 |\n| tool_gen_callback | 从流解析工具调用 | CLI spinner\
+    \ 中工具预览 |\n| status_callback | 状态变化 | ACP 状态更新 |\n\n#### 预算和回退行为\n\n**迭代预算**:\n\
+    - 默认: 90 轮次（可通过 `agent.max_turns` 配置）\n- 在父代理和子代理间共享\n- 两层预算压力:\n  - 70%+ 使用:\
+    \ 追ser `[BUDGET: Iteration X/Y. N iterations left. Start consolidating your work.]`\n\
+    \  - 90%+ 使用: 追ser `[BUDGET WARNING: Iteration X/Y. Only N iteration(s) left.\
+    \ Provide your final response NOW.]`\n  - 100%: Agent 停止并返回工作摘要\n\n**回退模型**:\n\
+    当主模型失败（429 速率限制、5xx 服务器错误、401/403 认证错误）：\n- 检查配置中的 `fallback_providers` 列表\n-\
+    \ 按顺序尝试每个回退\n- 成功后用新 provider 继续对话\n- 401/403 时，失败前尝试凭证刷新\n\n### 3.2 Prompt 系统\n\
+    \n**文件**: `agent/prompt_builder.py`\n\n**系统提示词组装来源**:\n1. **个性** (SOUL.md) - Agent\
+    \ 的人格和语调\n2. **记忆** (MEMORY.md, USER.md) - 长期记忆和用户画像\n3. **技能** - 可用技能列表和内容\n\
+    4. **上下文文件** (AGENTS.md, .hermes.md) - 项目上下文\n5. **工具使用指导** - 工具调用指南\n6. **模型特定指令**\
+    \ - 针对特定模型的指令\n\n**提示词缓存** (`agent/prompt_caching.py`):\n- 应用 Anthropic 缓存断点\n\
+    - 支持 5m 或 1h TTL\n- 降低多轮对话输入 Token 成本 ~75%\n\n**上下文压缩** (`agent/context_compressor.py`):\n\
+    - 默认压缩引擎\n- 有损摘要算法\n- 保护最后 N 条消息（默认 20）\n\n### 3.3 Provider 解析\n\n**文件**: `hermes_cli/runtime_provider.py`\n\
+    \n**功能**:\n- 共享运行时解析器，被 CLI、网关、cron、ACP 和辅助调用使用\n- 映射 `(provider, model)` 元组到\
+    \ `(api_mode, api_key, base_url)`\n- 处理 18+ Provider\n- OAuth 流程处理\n- 凭证池管理\n\
+    - 别名解析\n\n**支持的 Provider**:\n- OpenRouter, Nous Portal, OpenAI, Anthropic\n- z.ai/GLM,\
+    \ Kimi/Moonshot, MiniMax\n- Groq, Together, xAI, DeepInfra\n- 以及更多...\n\n### 3.4\
+    \ 工具系统\n\n**文件**: `tools/registry.py`\n\n**统计**: 47 个工具，20 个工具集\n\n**工具注册机制**:\n\
+    ```python\nregistry.register(\n    name=\"terminal\",\n    toolset=\"terminal\"\
+    ,\n    schema={...},  # OpenAI function-calling schema\n    handler=handle_terminal,\n\
+    \    check_fn=check_terminal,  # 可用性检查\n    requires_env=[\"SOME_VAR\"],\n   \
+    \ is_async=False,\n    description=\"Run commands\",\n    emoji=\"\U0001F4BB\"\
+    \n)\n```\n\n**工具可用性检查** (`check_fn`):\n- API Key 存在性检查\n- 服务运行状态检查\n- 二进制安装检查\n\
+    \n**工具集解析**:\n- 显式启用/禁用工具集列表\n- 平台预设 (hermes-cli, hermes-telegram 等)\n- 动态 MCP\
+    \ 工具集\n- 特殊用途集如 hermes-acp\n\n**工具分发流程**:\n```\nModel response with tool_call\n\
+    \  ↓\nrun_agent.py agent loop\n  ↓\nmodel_tools.handle_function_call(name, args,\
+    \ task_id, user_task)\n  ↓\n[Agent-loop tools?] → 直接由 agent 循环处理\n  ↓\n[Plugin\
+    \ pre-hook] → invoke_hook(\"pre_tool_call\", ...)\n  ↓\nregistry.dispatch(name,\
+    \ args, **kwargs)\n  ↓\n查找 ToolEntry by name\n  ↓\n[Async handler?] → 通过 _run_async()\
+    \ 桥接\n[Sync handler?] → 直接调用\n  ↓\n返回结果字符串（或 JSON 错误）\n  ↓\n[Plugin post-hook]\
+    \ → invoke_hook(\"post_tool_call\", ...)\n```\n\n**危险命令批准流程** (`tools/approval.py`):\n\
+    \n**检测模式**:\n- 递归删除 (`rm -rf`)\n- 文件系统格式化 (`mkfs`, `dd`)\n- SQL 破坏性操作\n- 系统配置覆盖\n\
+    - 服务操作\n- 远程代码执行\n- Fork bombs、进程 kills 等\n\n**批准流程**:\n1. 模式检测\n2. 如匹配:\n   -\
+    \ CLI 模式: 交互式提示\n   - 网关模式: 异步批准回调\n3. 会话级跟踪\n4. 永久 allowlist 选项\n\n**终端后端** (6\
+    \ 种):\n- local, Docker, SSH, Daytona, Modal, Singularity\n\n### 3.5 会话持久化\n\n\
+    **文件**: `hermes_state.py`\n\n**特性**:\n- SQLite + FTS5 全文搜索\n- 会话谱系追踪（父/子关系）\n\
+    - 平台隔离\n- 原子写入 + 竞争处理\n\n**数据流**:\n```\n每轮对话后\n  ↓\n消息保存到会话存储\n  ↓\n记忆变更刷新到 MEMORY.md\
+    \ / USER.md\n  ↓\n会话可通过 /resume 或 hermes chat --resume 恢复\n```\n\n### 3.6 消息网关\n\
+    \n**文件**: `gateway/run.py` (~7,500 行)\n\n**15 个平台适配器**:\n- Telegram, Discord,\
+    \ Slack, WhatsApp, Signal\n- Matrix, Mattermost, Email, SMS\n- DingTalk, Feishu,\
+    \ WeCom, Weixin, BlueBubbles\n- Home Assistant, Webhook\n\n**功能**:\n- 统一会话路由\n\
+    - 用户授权（allowlist + DM 配对）\n- 斜杠命令分发\n- Hook 系统\n- Cron 计时\n- 后台维护\n\n**数据流**:\n\
+    ```\n平台事件\n  → Adapter.on_message()\n  → MessageEvent\n  → GatewayRunner._handle_message()\n\
+    \  → 授权用户\n  → 解析会话 key\n  → 创建 AIAgent + 会话历史\n  → AIAgent.run_conversation()\n\
+    \  → 通过适配器投递响应\n```\n\n### 3.7 插件系统\n\n**发现来源**:\n1. `~/.hermes/plugins/` (用户)\n\
+    2. `.hermes/plugins/` (项目)\n3. pip entry points\n\n**插件类型**:\n- 工具插件\n- Hook 插件\n\
+    - CLI 命令插件\n- Memory Provider 插件（单选）\n- Context Engine 插件（单选）\n\n### 3.8 Cron\
+    \ 调度器\n\n**特性**:\n- JSON 任务存储\n- 多种调度格式\n- 可附加技能和脚本\n- 投递到任意平台\n\n**数据流**:\n```\n\
+    调度器 tick\n  → 从 jobs.json 加载到期任务\n  → 创建新的 AIAgent（无历史）\n  → 注入附加技能作为上下文\n  →\
+    \ 运行任务提示词\n  → 投递到目标平台\n  → 更新任务状态和 next_run\n```\n\n### 3.9 ACP 集成\n\n**文件**:\
+    \ `acp_adapter/`\n\n**功能**:\n- 通过 stdio/JSON-RPC 暴露给编辑器\n- 支持 VS Code, Zed, JetBrains\n\
+    \n### 3.10 RL/环境/轨迹\n\n**特性**:\n- Atropos 集成\n- 多工具调用解析器\n- ShareGPT 格式轨迹生成\n\n\
+    ---\n\n## 四、长期记忆系统\n\n### 4.1 内置记忆（核心层）\n\nHermes 采用**双层记忆架构**，在会话开始时注入系统提示词：\n\
+    \n| 记忆文件 | 用途 | 字符限制 | Token 估算 |\n|----------|------|----------|-----------|\n\
+    | `MEMORY.md` | Agent 个人笔记（环境事实、约定、教训） | 2,200 字符 | ~800 tokens |\n| `USER.md`\
+    \ | 用户画像（偏好、沟通风格、期望） | 1,375 字符 | ~500 tokens |\n\n**特点**:\n- **冻结快照模式**: 在会话开始时一次性注入，会话中不改变\n\
+    - **Agent 自主管理**: 通过 `memory` 工具自动 add/replace/remove\n- **字符限制**: 保持记忆聚焦，强制精集\n\
+    - **安全扫描**: 检测提示注入、凭证泄露、SSH 后门等威胁\n\n**记忆注入格式**:\n```\n══════════════════════════════════════════════\n\
+    MEMORY (your personal notes) [67% — 1,474/2,200 chars]\n══════════════════════════════════════════════\n\
+    User's project is a Rust web service at ~/code/myapi using Axum + SQLx\n§\nThis\
+    \ machine runs Ubuntu 22.04, has Docker and Podman installed\n§\nUser prefers\
+    \ concise responses, dislikes verbose explanations\n```\n\n**记忆工具操作**:\n- `add`\
+    \ - 添加新记忆条目\n- `replace` - 替换现有条目（使用子串匹配）\n- `remove` - 移除不再相关的条目（使用子串匹配）\n\n\
+    **子串匹配**:\n`replace` 和 `remove` 使用短唯一子串匹配：\n```python\nmemory(action=\"replace\"\
+    , target=\"memory\",\n         old_text=\"dark mode\",\n         content=\"User\
+    \ prefers light mode in VS Code, dark mode in terminal\")\n```\n\n### 4.2 外部 Memory\
+    \ Providers（扩展层）\n\nHermes 集成了 **8 个外部记忆提供商**，提供超越内置记忆的深度知识管理：\n\n| Provider |\
+    \ 存储方式 | 成本 | 独特能力 |\n|----------|----------|------|----------|\n| **Honcho**\
+    \ | Cloud/自托管 | 付费/免费 | 辩证式用户建模、语义搜索 |\n| **OpenViking** | 自托管 | 免费 | 文件系统层级、分层加载\
+    \ |\n| **Mem0** | Cloud | 付费 | 服务端 LLM 自动提取 |\n| **Hindsight** | Cloud/本地 | 付费/免费\
+    \ | 知识图谱、实体解析、跨会话语义合成 |\n| **Holographic** | 本地 SQLite | 免费 | HRR 代数查询、信任评分 |\n\
+    | **RetainDB** | Cloud | $20/月 | 混合搜索、7 种记忆类型 |\n| **ByteRover** | 本地/Cloud |\
+    \ 免费/付费 | 预压缩提取、知识树 |\n| **Supermemory** | Cloud | 付费 | 上下文隔离、会话图谱构建 |\n\n####\
+    \ Honcho\n\n**最佳用途**: 多代理系统与跨会话上下文、用户-代理对齐\n\n**要求**: `pip install honcho-ai`\
+    \ + API Key 或自托管实例\n\n**工具**:\n- `honcho_profile` (peer card)\n- `honcho_search`\
+    \ (语义搜索)\n- `honcho_context` (LLM 合成)\n- `honcho_conclude` (存储事实)\n\n**关键配置**:\n\
+    ```json\n{\n  \"apiKey\": \"your-key-from-app.honcho.dev\",\n  \"hosts\": {\n\
+    \    \"hermes\": {\n      \"enabled\": true,\n      \"aiPeer\": \"hermes\",\n\
+    \      \"peerName\": \"your-name\",\n      \"workspace\": \"hermes\"\n    }\n\
+    \  }\n}\n```\n\n**多代理/Profiles**:\n每个 Hermes profile 获得自己的 Honcho AI peer，同时共享同一\
+    \ workspace。\n\n#### OpenViking\n\n**最佳用途**: 自托管知识管理与结构化浏览\n\n**要求**: `pip install\
+    \ openviking` + 运行服务器\n\n**工具**:\n- `viking_search` (语义搜索)\n- `viking_read` (分层:\
+    \ abstract/overview/full)\n- `viking_browse` (文件系统导航)\n- `viking_remember` (存储事实)\n\
+    - `viking_add_resource` (摄取 URLs/docs)\n\n**关键特性**:\n- 分层上下文加载: L0 (~100 tokens)\
+    \ → L1 (~2k) → L2 (full)\n- 会话提交时自动记忆提取（profile、偏好、实体、事件、cases、patterns）\n- `viking://`\
+    \ URI scheme 用于分层知识浏览\n\n#### Mem0\n\n**最佳用途**: 免手记忆管理 - Mem0 自动处理提取\n\n**要求**:\
+    \ `pip install mem0ai` + API Key\n\n**工具**:\n- `mem0_profile` (所有存储的记忆)\n- `mem0_search`\
+    \ (语义搜索 + 重排序)\n- `mem0_conclude` (存储逐字事实)\n\n#### Hindsight\n\n**最佳用途**: 基于知识图谱的回忆与实体关系\n\
+    \n**要求**: Cloud: API Key 或 Local: LLM API Key\n\n**工具**:\n- `hindsight_retain`\
+    \ (存储 + 实体提取)\n- `hindsight_recall` (多策略搜索)\n- `hindsight_reflect` (跨记忆合成)\n\n\
+    **独特能力**: `hindsight_reflect` 工具提供跨记忆合成，无其他 provider 提供。\n\n#### Holographic\n\
+    \n**最佳用途**: 本地记忆与高级检索，无外部依赖\n\n**要求**: 无（SQLite 始终可用）\n\n**工具**:\n- `fact_store`\
+    \ (9 个操作: add, search, probe, related, reason, contradict, update, remove, list)\n\
+    - `fact_feedback` (有帮助/无帮助评分，训练信任分数)\n\n**独特能力**:\n- `probe` - 实体特定代数回忆（关于一个人/事物的所有事实）\n\
+    - `reason` - 跨多个实体的组合 AND 查询\n- `contradict` - 自动检测冲突事实\n- 信任评分，非对称反馈（+0.05 有帮助\
+    \ / -0.10 无帮助）\n\n#### RetainDB\n\n**最佳用途**: 已使用 RetainDB 基础设施的团队\n\n**要求**: RetainDB\
+    \ 账户 + API Key\n\n**工具**:\n- `retaindb_profile` (用户画像)\n- `retaindb_search` (语义搜索)\n\
+    - `retaindb_context` (任务相关上下文)\n- `retaindb_remember` (存储 + 类型 + 重要性)\n- `retaindb_forget`\
+    \ (删除记忆)\n\n#### ByteRover\n\n**最佳用途**: 想要便携、本地优先记忆的开发者\n\n**要求**: ByteRover CLI\
+    \ (`npm install -g byterover-cli`)\n\n**工具**:\n- `brv_query` (搜索知识树)\n- `brv_curate`\
+    \ (存储事实/决策/模式)\n- `brv_status` (CLI 版本 + 树统计)\n\n**关键特性**:\n- 自动预压缩提取（在上下文压缩丢弃前保存洞察）\n\
+    - 知识树存储在 `$HERMES_HOME/byterover/` (profile-scoped)\n- SOC2 Type II 认证云同步（可选）\n\
+    \n#### Supermemory\n\n**最佳用途**: 语义回忆与用户画像和会话级图谱构建\n\n**要求**: `pip install supermemory`\
+    \ + API Key\n\n**工具**:\n- `supermemory_store` (保存显式记忆)\n- `supermemory_search`\
+    \ (语义相似性搜索)\n- `supermemory_forget` (通过 ID 或最佳匹配查询忘记)\n- `supermemory_profile`\
+    \ (持久画像 + 最近上下文)\n\n**关键特性**:\n- 自动上下文隔离 - 从捕获的轮次中剥离回忆的记忆，防止递归记忆污染\n- 会话结束对话摄取，用于更丰富的图谱级知识构建\n\
+    - 画像事实在第一轮和每 N 轮注入\n- 平凡消息过滤（跳过 \"ok\"、\"thanks\" 等）\n- Profile-scoped 容器 - 使用\
+    \ `{identity}` 在 container_tag 中（如 hermes-{identity} → hermes-coder）\n\n### 4.3\
+    \ 会话搜索（跨会话回忆）\n\n**FTS5 全文搜索 + LLM 摘要**:\n- 所有 CLI 和消息会话存储在 SQLite（`~/.hermes/state.db`）\n\
+    - 使用 FTS5 全文搜索索引\n- 返回相关历史对话 + Gemini Flash 摘要\n- Agent 可以找到几周前讨论的内容\n\n**Memory\
+    \ vs Session Search 对比**:\n\n| 特性 | 内置 Memory | Session Search |\n|------|-------------|----------------|\n\
+    | 容量 | ~1,300 tokens 固定 | 无限制（所有会话） |\n| 速度 | 即时（在系统提示词中） | 需要搜索 + LLM 摘要 |\n\
+    | 用途 | 关键事实始终可用 | 查找特定历史对话 |\n| 管理 | Agent 手动整理 | 自动存储所有会话 |\n| Token 成本 | 每会会固定\
+    \ | 按需调用 |\n\n### 4.4 Provider 工作流程\n\n```\n会话开始\n  ↓\n预取相关记忆（后台非阻塞）\n  ↓\n注入提供商上下文到系统提示词\n\
+    \  ↓\n每轮对话后同步到提供商\n  ↓\n会话结束时提取记忆（支持的提供商）\n  ↓\n镜像内置记忆写入到外部提供商\n```\n\n---\n\n\
+    ## 五、自演进机制\n\n### 5.1 技能系统（程序性记忆）\n\n技能是 Agent 的**程序性记忆**——从经验中提取的可复用工作流。\n\n\
+    #### 技能创建触发条件\n\n- ✅ 成功完成复杂任务（5+ 工具调用）\n- ✅ 遇到错误或死胡同后找到可行路径\n- ✅ 用户纠正了 Agent 的方法\n\
+    - ✅ 发现非平凡的工作流\n\n#### 技能管理工具\n\n```python\nskill_manage(\n    action=\"create\"\
+    ,  # 创建新技能\n    name=\"deploy-k8s\",\n    content=\"# SKILL.md 内容\",\n    category=\"\
+    devops\"\n)\n\nskill_manage(\n    action=\"patch\",  # 目标修复（推荐）\n    name=\"deploy-k8s\"\
+    ,\n    old_string=\"旧文本\",\n    new_string=\"新文本\"\n)\n\nskill_manage(\n    action=\"\
+    edit\",  # 重大结构重写\n    name=\"deploy-k8s\",\n    content=\"# 完整的 SKILL.md 替换\"\
+    \n)\n\nskill_manage(\n    action=\"delete\",  # 删除技能\n    name=\"deploy-k8s\"\n\
+    )\n\nskill_manage(\n    action=\"write_file\",  # 添加/更新支持文件\n    name=\"deploy-k8s\"\
+    ,\n    file_path=\"scripts/deploy.sh\",\n    file_content=\"#!/bin/bash\\n...\"\
+    \n)\n\nskill_manage(\n    action=\"remove_file\",  # 移除支持文件\n    name=\"deploy-k8s\"\
+    ,\n    file_path=\"scripts/deploy.sh\"\n)\n```\n\n#### 技能自我改进\n\n- Agent 可以在技能使用过程中检测到问题\n\
+    - 通过 `patch` 或 `edit` 动态更新技能\n- 改进后的技能在后续会话中自动生效\n\n### 5.2 技能生态系统\n\n#### Skills\
+    \ Hub 集成\n\n```bash\nhermes skills browse                    # 浏览所有技能\nhermes\
+    \ skills browse --source official   # 仅浏览官方可选技能\nhermes skills search kubernetes\
+    \         # 搜索所有来源\nhermes skills search react --source skills-sh  # 搜索 skills.sh\n\
+    hermes skills inspect openai/skills/k8s  # 预览\nhermes skills install openai/skills/k8s\
+    \   # 安装\nhermes skills check                     # 检查更新\nhermes skills update\
+    \                    # 更新技能\nhermes skills uninstall k8s             # 卸载\n```\n\
+    \n#### 支持的技能源\n\n| 来源 | 示例 | 说明 |\n|------|------|------|\n| **official** | `official/security/1password`\
+    \ | 官方可选技能 |\n| **skills.sh** | `skills-sh/vercel-labs/agent-skills/vercel-react-best-practices`\
+    \ | Vercel 公共技能目录 |\n| **well-known** | `well-known:https://mintlify.com/docs/.well-known/skills/mintlify`\
+    \ | URL 发现 |\n| **github** | `openai/skills/k8s` | 直接从仓库安装 |\n| **clawhub** |\
+    \ `clawhub:skill-name` | 第三方市场 |\n| **claude-marketplace** | `claude-marketplace:skill-name`\
+    \ | Claude 风格仓库 |\n| **lobehub** | `lobehub:agent-name` | LobeHub Agent 目录转换 |\n\
+    \n#### 安全扫描\n\n所有 Hub 安装的技能都经过安全扫描，检查：\n- 数据泄露模式\n- 提示注入尝试\n- 破坏性命令\n- Shell 注入\n\
+    \n**信任级别**:\n- `builtin` - 始终信任\n- `official` - 内置信任\n- `trusted` - 更宽松策略\n`community`\
+    \ - 非危险发现可用 `--force` 覆盖\n\n### 5.3 渐进式披露（Token 优化）\n\n技能采用三层加载模式，最小化 Token 使用：\n\
+    \n```\nLevel 0: skills_list()\n  → [{name, description, category}, ...]\n  ~3k\
+    \ tokens（技能索引）\n\nLevel 1: skill_view(name)\n  → 完整内容 + 元数据\n  按需加载\n\nLevel 2:\
+    \ skill_view(name, path)\n  → 特定引用文件\n  深度加载\n```\n\n### 5.4 条件激活（智能技能可见性）\n\n\
+    技能可根据工具可用性自动显示/隐藏：\n\n```yaml\nmetadata:\n  hermes:\n    fallback_for_toolsets:\
+    \ [web]  # 仅当 web 工具集不可用时显示\n    requires_toolsets: [terminal]  # 仅当 terminal\
+    \ 工具集可用时显示\n    fallback_for_tools: [web_search]  # 仅当 web_search 不可用时显示\n   \
+    \ requires_tools: [terminal]  # 仅当 terminal 工具可用时显示\n```\n\n**用例**:\n- `duckduckgo-search`\
+    \ 技能设置 `fallback_for_tools: [web_search]`\n- 当用户有 `FIRECRAWL_API_KEY` 时，使用 `web_search`，DuckDuckGo\
+    \ 技能隐藏\n- 当 API Key 缺失时，DuckDuckGo 技能自动出现作为备选\n\n---\n\n## 六、上下文压缩与缓存\n\n### 6.1\
+    \ 双层压缩系统\n\n```\n┌──────────────────────────┐\n│ Gateway Session Hygiene │ 85%\
+    \ 阈值\n│ (预 Agent，粗略估算)    │ 安全网\n└─────────────┬────────────┘\n              │\n\
+    \              ▼\n┌──────────────────────────┐\n│ Agent ContextCompressor  │ 50%\
+    \ 阈值（可配置）\n│ (循环内，真实 Token)     │ 主要管理\n└──────────────────────────┘\n```\n\n\
+    **配置参数**:\n```yaml\ncompression:\n  enabled: true\n  threshold: 0.50        #\
+    \ 50% 上下文窗口时触发\n  target_ratio: 0.20     # 尾部保护 20% 阈值预算\n  protect_last_n: 20\
+    \       # 最少保护 20 条消息\n  summary_model: null      # 摘要模型（默认 auxiliary）\n）\n```\n\
+    \n**参数详情**:\n\n| 参数 | 默认值 | 范围 | 说明 |\n|------|--------|------|------|\n| threshold\
+    \ | 0.50 | 0.0-1.0 | 当 prompt tokens ≥ threshold × context_length 时触发压缩 |\n| target_ratio\
+    \ | 0.20 | 0.10-0.80 | 控制尾部保护 token 预算: threshold_tokens × target_ratio |\n| protect_last_n\
+    \ | 20 | ≥1 | 始终保留的最少消息数 |\n| protect_first_n | 3 | (硬编码) | 始终保护系统提示词 + 首次交换 |\n\
+    \n**计算值（200K 上下文模型，默认配置）**:\n```\ncontext_length = 200,000\nthreshold_tokens =\
+    \ 200,000 × 0.50 = 100,000\ntail_token_budget = 100,000 × 0.20 = 20,000\nmax_summary_tokens\
+    \ = min(200,000 × 0.05, 12,000) = 10,000\n```\n\n### 6.2 压缩算法（四阶段）\n\n#### Phase\
+    \ 1: 修剪旧工具结果（无 LLM 调用）\n\n受保护尾部之外的旧工具结果（>200 字符）被替换为：\n```\n[Old tool output cleared\
+    \ to save context space]\n```\n\n这是一个廉价的预通过，从冗长的工具输出（文件内容、终端输出、搜索结果）中节省大量 token。\n\
+    \n#### Phase 2: 确定边界\n\n```\n┌─────────────────────────────────────────────────────────────┐\n\
+    │ Message list                                             │\n│              \
+    \                                           │\n│ [0..2] ← protect_first_n (系统提示词\
+    \ + 首次交换)       │\n│ [3..N] ← middle turns → 摘要化                         │\n│\
+    \ [N..end] ← tail (by token budget OR protect_last_n)        │\n│            \
+    \                                             │\n└─────────────────────────────────────────────────────────────┘\n\
+    ```\n\n尾部保护基于 token 预算：从末尾向后走，累积 token 直到预算耗尽。如果预算保护的消息数少于 `protect_last_n`，则回退到固定计数。\n\
+    \n边界对齐以避免分割 tool_call/tool_result 组。`_align_boundary_backward()` 方法走过连续的 tool\
+    \ 结果以找到父 assistant 消息，保持组完整。\n\n#### Phase 3: 生成结构化摘要\n\n中间轮次使用辅助 LLM 和结构化模板进行摘要：\n\
+    \n```markdown\n## Goal\n[用户试图完成什么]\n\n## Constraints & Preferences\n[用户偏好、编码风格、约束、重要决策]\n\
+    \n## Progress\n### Done\n[已完成工作 - 具体文件路径、命令、结果]\n### In Progress\n[当前进行的工作]\n\
+    ### Blocked\n[阻塞或遇到的问题]\n\n## Key Decisions\n[重要技术决策及原因]\n\n## Relevant Files\n\
+    [读取、修改或创建的文件 - 简短说明]\n\n## Next Steps\n[接下来需要做什么]\n\n## Critical Context\n[具体值、错误消息、配置详情]\n\
+    ```\n\n**摘要预算**根据压缩的内容量缩放：\n- 公式: `content_tokens ×` 0.20（`_SUMMARY_RATIO` 常量）\n\
+    - 最小: 2,000 tokens\n- 最大: `min(context_length × 0.05, 12,000)` tokens\n\n####\
+    \ Phase 4: 组装压缩消息\n\n压缩消息列表为：\n- 头部消息（首次压缩时在系统提示词附加注释）\n- 摘要消息（角色选择以避免连续同角色违规）\n\
+    - 尾部消息（未修改）\n\n孤立的 tool_call/tool_result 对通过 `_sanitize_tool_pairs()` 清理：\n- 引用已移除调用的工具结果\
+    \ → 移除\n- 结果被移除的工具调用 → 注入存根结果\n\n### 6.3 迭代式重新压缩\n\n在后续压缩中，前摘要传递给 LLM 并指示更新而非从头摘要。这跨多次压缩保留信息——项目从\
+    \ \"In Progress\" 移到 \"Done\"，添加新进度，移除过时信息。\n\n压缩器实例上的 `_previous_summary` 字段为此目的存储上次摘要文本。\n\
+    \n### 6.4 压缩前后示例\n\n#### 压缩前（45 条消息，~95K tokens）\n\n```\n[0] system: \"YouYou\
+    \ are a helpful assistant...\" (系统提示词)\n[1] user: \"Help me set up a FastAPI project\"\
+    \n[2] assistant: → terminal: mkdir project\n[3] tool: \"directory created\"\n\
+    [4] assistant: → write_file: main.py\n[5] tool: \"file written (2.3KB)\"\n...\
+    \ 30 more turns of file editing, testing, debugging ...\n[38] assistant: → terminal:\
+    \ pytest\n[39] tool: \"8 passed, 2 failed\\n...\" (5KB output)\n[40] user: \"\
+    Fix failing tests\"\n[41] assistant: → read_file: tests/test_api.py\n[42] tool:\
+    \ \"import pytest\\n...\" (3KB)\n[43] assistant: \"I see issue with the test fixtures...\"\
+    \n[44] user: \"Great, also add error handling\"\n```\n\n#### 压缩后（25 条消息，~45K tokens）\n\
+    \n```\n[0] system: \"You are a helpful assistant...\n [Note: Some earlier conversation\
+    \ turns have been compacted...]\"\n[1] user: \"Help me set up a FastAPI project\"\
+    \n[2] assistant: \"[CONTEXT COMPACTION] Earlier turns were compacted...\n\n ##\
+    \ Goal\n Set up a FastAPI project with tests and error handling\n\n ## Progress\n\
+    \ ### Done\n - Created project structure: main.py, tests/, requirements.txt\n\
+    \ - Implemented 5 API endpoints in main.py\n - Wrote 10 test cases in tests/test_api.py\n\
+    \ - 8/10 tests passing\n\n ### In Progress\n - Fixing 2 failing tests (test_create_user,\
+    \ test_delete_user)\n\n ## Relevant Files\n - main.py — FastAPI app with 5 endpoints\n\
+    \ - tests/test_api.py — 10 test cases\n - requirements.txt — fastapi, pytest,\
+    \ httpx\n\n ## Next Steps\n - Fix failing test fixtures\n - Add error handling\"\
+    \n[3] user: \"Fix failing tests\"\n[4] assistant: → read_file: tests/test_api.py\n\
+    [5] tool: \"import pytest\\n...\"\n[6] assistant: \"I see issue with the test\
+    \ fixtures...\"\n[7] user: \"Great, also add error handling\"\n```\n\n### 6.5\
+    \ Anthropic 提示词缓存\n\n**策略**: system_and_3\n\nAnthropic 允许每个请求最多 4 个 cache_control\
+    \ 断点。Hermes 使用 \"system_and_3\" 策略：\n\n```\nBreakpoint 1: 系统提示词（所有轮次稳定）\nBreakpoint\
+    \ 2: 倒数第 3 条非系统消息 ─┐\nBreakpoint 3: 倒数第 2 条非系统消息 ├─ 滚动窗口\nBreakpoint 4: 最后一条非系统消息\
+    \ ─┘\n```\n\n**工作原理**:\n\n`apply_anthropic_cache_control()` 深拷消息并注入缓存标记：\n\n```python\n\
+    # 缓存标记格式\nmarker = {\"type\": \"ephemeral\"}\n# 或 1 小时 TTL:\nmarker = {\"type\"\
+    : \"ephemeral\", \"ttl\": \"1h\"}\n```\n\n标记根据内容类型不同应用：\n\n| 内容类型 | 标记位置 |\n|----------|----------|\n\
+    | String content | 转换为 `[{\"type\": \"text\", \"text\": ..., \"cache_control\"\
+    : ...}]` |\n| List content | 添加到最后元素的 dict |\n| None/empty | 添加为 `msg[\"cache_control\"\
+    ]` |\n| Tool messages | 添加为 `msg[\"cache_control\"]`（仅原生 Anthropic） |\n\n**缓存感知设计模式**:\n\
+    - ✅ 稳定系统提示词：系统提示词是断点 1 并跨所有轮次缓存。避免对话中途变异（压缩仅在首次压缩时附加注释）\n- ✅ 消息顺序很重要：缓存命中需要前缀匹配。在中间添加或移除消息会使之后的所有内容缓存失效\n\
+    - ✅ 压缩缓存交互：压缩后，压缩区域的缓存失效，但系统提示词缓存存活。滚动的 3 消息窗口在 1-2 轮内重建缓存\n- ✅ TTL 选择：默认 5m（5\
+    \ 分钟）。对长运行会话使用 1h，其中用户在轮次之间休息\n\n**启用提示词缓存**:\n\n提示词缓存在以下情况自动启用：\n- 模型是 Anthropic\
+    \ Claude 模型（通过模型名检测）\n- Provider 支持 cache_control（原生 Anthropic API 或 OpenRouter）\n\
+    \n```yaml\n# config.yaml — TTL 可配置\nmodel:\n  cache_ttl: \"5m\"  # \"5m\" 或 \"\
+    1h\"\n```\n\nCLI 在启动时显示缓存状态：\n```\n\U0001F4BE Prompt caching: ENABLED (Claude\
+    \ via OpenRouter, 5m TTL)\n```\n\n### 6.6 上下文压力警告\n\nAgent 在压缩阈值的 85%（不是 85% 上下文——85%\
+    \ 的阈值为 50% 上下文）时发出上下文压力警告：\n\n```\n⚠️ Context is 85% to compaction threshold (42,500/50,000\
+    \ tokens)\n```\n\n压缩后，如果使用率降到阈值的 85% 以下，警告状态被清除。如果压缩未能将使用率降到警告水平以下（对话太密集），警告持续，但压缩不会在再次超过阈值前重新触发。\n\
+    \n---\n\n## 七、学习循环闭环\n\n### 7.1 完整学习流程\n\n```\n用户请求\n  ↓\nAgent 执行任务（工具调用、推理）\n\
+    \  ↓\n成功完成？\n  ├─ 是 → 复杂任务？（5+ 工具调用）\n  │        ├─ 是 → 提取工作流 → 创建技能\n  │    \
+    \    └─ 否 → 记录到记忆\n  │\n  └─ 否 → 遇到错误？\n           ├─ 是 → 找到解决路径？\n          \
+    \ │        ├─ 是 → 记录教训 → 更新技能\n           │        └─ 否 → 寻求帮助\n           │\n\
+    \           └─ 否 → 用户纠正？\n                    └─ 是 → 记录纠正 → 更新技能\n  ↓\n会话结束\n\
+    \  ↓\n压缩上下文（保留关键信息）\n  ↓\n提取记忆到外部 Provider\n  ↓\n同步到会话数据库（FTS5 索引）\n```\n\n###\
+    \ 7.2 记忆与技能的协同\n\n| 层面 | 存储形式 | 用途 | 更新频率 |\n|------|----------|------|----------|\n\
+    | **短期记忆** | 对话历史 | 当前会话上下文 | 每轮 |\n| **程序性记忆** | 技能（SKILL.md） | 可工作流 | 按需创建 |\n\
+    | **长期记忆** | MEMORY.md/USER.md | 关键事实、用户画像 | 会话中 |\n| **外部记忆** | Provider 存储 |\
+    \ 深度知识图谱 | 每轮/会话结束 |\n| **历史会话** | SQLite + FTS5 | 跨会话回忆 | 自动 |\n\n### 7.3 自演进的关键特性\n\
+    \n**1. 主动记忆管理**\n- Agent 自动保存用户偏好、环境事实、约定\n- 检测重复信息，避免冗余\n- 字符限制强制精集和整合\n\n**2.\
+    \ 技能自动创建**\n- 复杂任务后自动提取工作流\n- 错误和纠正驱动技能改进\n- 技能通过 Skills Hub 共享和复用\n\n**3. 上下文智能压缩**\n\
+    - 结构化摘要保留关键信息\n- 迭代式更新避免信息丢失\n- Anthropic 缓存降低成本\n\n**4. 跨会话知识检索**\n- FTS5 全文搜索快速定位\n\
+    - LLM 摘要提取关键信息\n- 外部 Provider 提供语义搜索\n\n**5. 多层记忆架构**\n- 内置记忆提供即时访问\n- 外部 Provider\
+    \ 提供深度知识\n- 会话搜索连接历史对话\n\n---\n\n## 八、设计原则\n\n| 原则 | 实践 |\n|------|------|\n|\
+    \ **提示词稳定性** | 系统提示词不会在对话中途改变。除非显式用户操作（/model），否则无缓存破坏变异 |\n| **可观察执行** | 每个工具调用对用户可见（通过回调）。CLI\
+    \ 中的进度更新（spinner）和网关中的聊天消息 |\n| **可中断** | API 调用和工具执行可中途取消（通过用户输入或信号） |\n| **平台无关核心**\
+    \ | 一个 AIAgent 类服务 CLI、网关、ACP、批量和 API 服务器。平台差异存在于入口点，而非 agent |\n| **松耦合** | 可选子系统（MCP、插件、memory\
+    \ providers、RL 环境）使用注册模式和 check_fn 门控，而非硬依赖 |\n| **Profile 配置隔离** | 每个 profile（`hermes\
+    \ -p <name>`）获得自己的 HERMES_HOME、配置、记忆、会话和网关 PID。多个 profile 可并发运行 |\n\n---\n\n##\
+    \ 九、数据流详解\n\n### 9.1 CLI 会话流程\n\n```\n用户输入\n  → HermesCLI.process_input()\n  →\
+    \ AIAgent.run_conversation()\n  → prompt_builder.build_system_prompt()\n  → runtime_provider.resolve_runtime_provider()\n\
+    \  → API 调用\n  → tool_calls? → model_tools.handle_function_call()\n  → 循环\n  →\
+    \ 最终响应 → 显示 → 保存到 SessionDB\n```\n\n### 9.2 网关消息流程\n\n```\n平台事件\n  → Adapter.on_message()\n\
+    \  → MessageEvent\n  → GatewayRunner._handle_message()\n  → 授权用户\n  → 解析会话 key\n\
+    \  → 创建 AIAgent + 会话历史\n  → AIAgent.run_conversation()\n  → 通过适配器投递响应\n```\n\n\
+    ### 9.3 Cron 任务流程\n\n```\n调度器 tick\n  → 从 jobs.json 加载到期任务\n  → 创建新的 AIAgent（无历史）\n\
+    \  → 注入附加技能作为上下文\n  → 运行任务提示词\n  → 投递到目标平台\n  → 更新任务状态和 next_run\n```\n\n---\n\
+    \n## 十、安全特性\n\n### 10.1 危险命令检测\n\n**检测模式** (`tools/approval.py`):\n\n| 类别 | 模式示例\
+    \ |\n|------|----------|\n| 递归删除 | `rm -rf` |\n| 文件系统格式化 | `mkfs`, `dd` |\n| SQL\
+    \ 破坏性操作 | `DROP TABLE`, `DELETE FROM` without WHERE |\n| 系统配置覆盖 | `> /etc/` |\n\
+    | 服务操作 | `systemctl stop` |\n| 远程代码执行 | `curl \\| sh` |\n| Fork bombs, 进程 kills\
+    \ | `:(){ :|:& };:`, `kill -9` |\n\n### 10.2 命令批准流程\n\n1. **模式检测**: `detect_dangerous_command(command)`\
+    \ 检查所有模式\n2. **批准提示**: 如匹配：\n   - CLI 模式: 交互式提示要求用户批准、拒绝或永久允许\n   - 网关模式: 异步批准回调发送请求到消息平台\n\
+    3. **智能批准**: 可选地，辅助 LLM 可自动批准匹配模式的低风险命令（如 `rm -rf node_modules/` 安全但匹配 \"recursive\
+    \ delete\"）\n4. **会话状态**: 批准按会话跟踪。一旦你为会话批准 \"recursive delete\"，后续 `rm -rf` 命令不再提示\n\
+    5. **永久 allowlist**: \"永久允许\" 选项将模式写入 `config.yaml` 的 `command_allowlist`，跨会话持久\n\
+    \n### 10.3 记忆安全扫描\n\n记忆条目在注入系统提示词前被扫描，因为它们被注入到系统提示词中。匹配威胁模式（提示注入、凭证泄露、SSH 后门）或包含不可见\
+    \ Unicode 字符的内容被阻止。\n\n---\n\n## 十一、与 OpenClaw 的对比\n\n| 特性 | OpenClaw | Hermes\
+    \ Agent |\n|------|----------|---------------|\n| **内置记忆** | MEMORY.md | MEMORY.md\
+    \ + USER.md |\n| **外部 Provider** | 无 | 8 个集成 |\n| **技能系统** | 基础 | 完整（创建/更新/删除）\
+    \ |\n| **Skills Hub** | ClawHub | 7+ 源集成 |\n| **上下文压缩** | 手动 | 自动双层 |\n| **提示词缓存**`\
+    \ | 无 | Anthropic 缓存 |\n| **会话搜索** | 无 | FTS5 + LLM |\n| **自演进** | 有限 | 完整学习循环\
+    \ |\n| **Provider 支持** | 有限 | 18+ |\n| **平台支持** | Telegram 等 | 15+ 平台 |\n| **RL/训练**\
+    \ | 无 | 完整框架 |\n\n---\n\n## 十二、代码规模\n\n| 组件 | 行数 |\n|------|------|\n| `run_agent.py`\
+    \ | ~9,200 |\n| `cli.py` | ~8,500 |\n| `hermes_cli/main.py` | ~5,500 |\n| `gateway/run.py`\
+    \ | ~7,500 |\n| `hermes_cli/setup/setup.py` | ~3,100 |\n| `tools/mcp_tool.py`\
+    \ | ~2,200 |\n| **测试** | ~3,000+ |\n\n---\n\n## 十三、总结\n\nHermes Agent 是一个设计精良、功能完备的\
+    \ AI 助手框架，特别适合需要长期记忆、多平台集成和工具调用能力的场景。\n\n### 核心优势\n\n1. **真正的自演进能力**: 通过技能系统和记忆管理，Agent\
+    \ 能够从经验中学习并持续改进\n2. **多层记忆架构**: 内置记忆 + 8 个外部 Provider，提供从即时访问到深度知识图谱的完整谱系\n3.\
+    \ **智能上下文管理**: 双层压缩 + Anthropic 缓存，优化 Token 使用和成本\n4. **平台无关核心**: 单一 AIAgent 类服务所有入口点，易于扩展和维护\n\
+    5. **安全优先**: 危险命令检测、批准流程、记忆安全扫描等多层防护\n6. **灵活部署**: 从 $5 VPS 到 GPU 集群，适应各种使用场景\n\
+    \n### 适用场景\n\n- 需要长期记忆和跨会话上下文的个人助手\n- 多平台消息集成（Telegram、Discord、Slack 等）\n- 自动化任务调度和定时执行\n\
+    - 研究和开发工作流自动化\n- 需要从经验中学习并持续改进的 AI 系统\n\n### 设计哲学\n\nHermes Agent 的自演进机制体现了几个核心设计原则：\n\
+    \n1. **渐进式披露** - 只在需要时加载完整内容\n2. **可观察执行** - 所有工具调用对用户可见\n3. **提示词稳定性** - 系统提示词不会中途改变\n\
+    4. **松耦合** - 可选子系统使用注册模式\n5. **Token 效率** - 缓存、压缩、分层加载\n6. **安全优先** - 扫描、批准、隔离\n\
+    \n这是一个真正能够**从经验中学习**的 AI 助手框架，随着使用时间增长，它会变得更了解用户、更高效、更智能。\n\n---\n\n## 十四、相关链接\n\
+    \n- \U0001F4DA **文档**: https://hermes-agent.nousresearch.com/docs/\n- \U0001F4AC\
+    \ **Discord**: https://discord.gg/NousResearch\n- \U0001F6E0️ **Skills Hub**:\
+    \ https://agentskills.io\n- \U0001F4DD **许可证**: MIT\n- \U0001F3E2 **仓库**: https://github.com/NousResearch/hermes-agent\n\
+    - \U0001F310 **Nous Research**: https://nousresearch.com\n\n---\n\n**报告生成时间**:\
+    \ 2026-04-11  \n**分析工具**: Web Fetch + 文档分析  \n**报告版本**: 1.0\n"
 - content: "<p>在 Agentic OS 的探索浪潮中，阿里巴巴开源了 <a href=\"https://github.com/alibaba/ANOLISA\"\
     >ANOLISA</a>（Agentic Nexus Operating Layer & Interface System Architecture）——一个完整的\
     \ Agentic OS 实现栈。基于 Anolis OS 构建，ANOLISA 旨在为 AI Agent 工作负载提供最佳实践的服务端操作系统实现。本文将深入分析其架构设计、核心组件和技术创新。</p>\n\
