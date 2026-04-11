@@ -3,6 +3,7 @@
 
 import yaml
 import re
+import markdown
 from pathlib import Path
 
 
@@ -24,18 +25,45 @@ def slugify(title):
     return slug
 
 
+def markdown_to_html(md_content):
+    """Convert Markdown content to HTML."""
+    # Configure markdown-it with common extensions
+    md = markdown.Markdown(extensions=[
+        'extra',           # Add extra features like tables
+        'codehilite',      # Code highlighting
+        'nl2br',           # Newline to <br>
+        'sane_lists',       # Better list handling
+        'fenced_code',      # ```code``` blocks
+        'toc',              # Table of contents
+    ])
+    
+    # Convert markdown to HTML
+    html = md.convert(md_content)
+    return html
+
+
 def generate_index(site_name="blog", tagline="Thoughts on technology and AI"):
-    """Generate the index page."""
+    """Generate index page."""
     posts = load_posts()
 
     post_html = ""
     for post in posts:
         slug = slugify(post["title"])
+        # Get excerpt (first 200 chars of plain text or HTML)
+        excerpt = post.get("excerpt", "")
+        if not excerpt:
+            # Try to get excerpt from content (strip HTML tags)
+            content = post.get("content", "")
+            # Simple HTML tag stripping for excerpt
+            import re
+            clean_content = re.sub(r'<[^>]+>', '', content)
+            excerpt = clean_content[:200] + "..."
+        
         post_html += f"""
 <div class="post-item">
     <h2><a href="posts/{slug}.html">{post["title"]}</a></h2>
     <p class="post-meta">{post["date"]}</p>
-    <p class="post-excerpt">{post.get("excerpt", post["content"][:150])}...</p>
+    <p class="post-excerpt">{excerpt}</p>
 </div>
 """
 
@@ -59,12 +87,23 @@ def generate_post(post):
     with open(template, "r") as f:
         content = f.read()
 
+    # Convert markdown content to HTML
+    post_content = post.get("content", "")
+    
+    # Check if content is already HTML or markdown
+    if '<!DOCTYPE html>' in post_content.lower() or '<html' in post_content.lower():
+        # Already HTML, use as-is
+        html_content = post_content
+    else:
+        # Convert markdown to HTML
+        html_content = markdown_to_html(post_content)
+
     return (
         content.replace("{title}", post["title"])
         .replace("{site_name}", "blog")
         .replace("{post.title}", post["title"])
         .replace("{post.date}", post["date"])
-        .replace("{post.content}", post["content"])
+        .replace("{post.content}", html_content)
         .replace('href="/', 'href="../')
         .replace('src="/', 'src="../')
     )
@@ -87,7 +126,7 @@ def generate_static_files():
     # Copy about and projects pages (with viewport and relative paths)
     (output_dir / "about.html").write_text("""<!DOCTYPE html>
 <html lang="en">
-<head>
+"head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About | blog</title>
@@ -174,7 +213,7 @@ def generate_static_files():
         
         <div class="project-item">
             <h2>More Coming Soon</h2>
-            <p>I'll add more projects here in the future.</p>
+            <p>I'll add more projects here in future.</p>
         </div>
     </main>
 

@@ -22,501 +22,505 @@
         <article>
             <h1>Hermes Agent 技术报告：架构、记忆与自演进机制</h1>
             <p class="meta">April 11, 2026</p>
-            <div class="content"># Hermes Agent 技术报告
-
-**项目名称**: Hermes Agent  
-**组织**: Nous Research  
-**仓库**: https://github.com/NousResearch/hermes-agent  
-**文档**: https://hermes-agent.nousresearch.com/docs/  
-**许可证**: MIT  
-**分析日期**: 2026-04-11  
-
----
-
-## 执行摘要
-
-Hermes Agent 是 Nous Research 开发的自改进 AI 助手框架，核心特点包括内置学习循环、多平台支持、多模型兼容性以及强大的长期记忆和自演进机制。该框架可在 $5 VPS、GPU 集群或无服务器基础设施上运行，支持 CLI、Telegram、Discord、Slack、WhatsApp、Signal 等多种交互方式。
-
-本报告详细分析了 Hermes Agent 的整体架构、核心子系统、长期记忆机制、自演进能力以及设计哲学。
-
----
-
-## 一、项目概述
-
-### 1.1 核心特性
-
-- **自改进能力**: 内置学习循环，从经验中创建技能并持续改进
-- **多平台支持**: CLI、Telegram、Discord、Slack、WhatsApp、Signal、Email 等
-- **多模型兼容**: 支持 OpenRouter、Nous Portal、OpenAI、Anthropic、z.ai/GLM、Kimi/Moonshot、MiniMax 等
-- **灵活部署**: 可在 $5 VPS、GPU 集群或无服务器基础设施上运行
-- **完整 TUI**: 全功能终端界面，支持多行编辑、斜杠命令自动补全、对话历史、中断重定向、流式工具输出
-- **跨平台会话连续性**: 语音备忘录转录、跨平台对话连续性
-- **定时自动化**: 内置 cron 调度器，支持自然语言任务调度
-- **并行委派**: 可生成隔离子代理进行并行工作流
-- **研究就绪**: 批量轨迹生成、Atropos RL 环境、轨迹压缩
-
-### 1.2 安装与快速开始
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-source ~/.bashrc
+            <div class="content"><h1 id="hermes-agent">Hermes Agent 技术报告</h1>
+<p><strong>项目名称</strong>: Hermes Agent<br />
+<strong>组织</strong>: Nous Research<br />
+<strong>仓库</strong>: https://github.com/NousResearch/hermes-agent<br />
+<strong>文档</strong>: https://hermes-agent.nousresearch.com/docs/<br />
+<strong>许可证</strong>: MIT<br />
+<strong>分析日期</strong>: 2026-04-11  </p>
+<hr />
+<h2 id="_1">执行摘要</h2>
+<p>Hermes Agent 是 Nous Research 开发的自改进 AI 助手框架，核心特点包括内置学习循环、多平台支持、多模型兼容性以及强大的长期记忆和自演进机制。该框架可在 $5 VPS、GPU 集群或无服务器基础设施上运行，支持 CLI、Telegram、Discord、Slack、WhatsApp、Signal 等多种交互方式。</p>
+<p>本报告详细分析了 Hermes Agent 的整体架构、核心子系统、长期记忆机制、自演进能力以及设计哲学。</p>
+<hr />
+<h2 id="_2">一、项目概述</h2>
+<h3 id="11">1.1 核心特性</h3>
+<ul>
+<li><strong>自改进能力</strong>: 内置学习循环，从经验中创建技能并持续改进</li>
+<li><strong>多平台支持</strong>: CLI、Telegram、Discord、Slack、WhatsApp、Signal、Email 等</li>
+<li><strong>多模型兼容</strong>: 支持 OpenRouter、Nous Portal、OpenAI、Anthropic、z.ai/GLM、Kimi/Moonshot、MiniMax 等</li>
+<li><strong>灵活部署</strong>: 可在 $5 VPS、GPU 集群或无服务器基础设施上运行</li>
+<li><strong>完整 TUI</strong>: 全功能终端界面，支持多行编辑、斜杠命令自动补全、对话历史、中断重定向、流式工具输出</li>
+<li><strong>跨平台会话连续性</strong>: 语音备忘录转录、跨平台对话连续性</li>
+<li><strong>定时自动化</strong>: 内置 cron 调度器，支持自然语言任务调度</li>
+<li><strong>并行委派</strong>: 可生成隔离子代理进行并行工作流</li>
+<li><strong>研究就绪</strong>: 批量轨迹生成、Atropos RL 环境、轨迹压缩</li>
+</ul>
+<h3 id="12">1.2 安装与快速开始</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+<span class="nb">source</span><span class="w"> </span>~/.bashrc
 hermes
-```
+</code></pre></div>
 
-支持平台：Linux、macOS、WSL2、Android (Termux)
+<p>支持平台：Linux、macOS、WSL2、Android (Termux)</p>
+<hr />
+<h2 id="_3">二、核心架构</h2>
+<h3 id="21">2.1 系统架构图</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">Entry</span><span class="w"> </span><span class="n">Points</span><span class="w">                                                     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                 </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="n">CLI</span><span class="w"> </span><span class="p">(</span><span class="n">cli</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="w"> </span><span class="n">Gateway</span><span class="w"> </span><span class="p">(</span><span class="n">gateway</span><span class="o">/</span><span class="n">run</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="w"> </span><span class="n">ACP</span><span class="w"> </span><span class="p">(</span><span class="n">acp_adapter</span><span class="o">/</span><span class="p">)</span><span class="w">          </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="n">Batch</span><span class="w"> </span><span class="n">Runner</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">Server</span><span class="w"> </span><span class="n">Python</span><span class="w"> </span><span class="n">Library</span><span class="w">                            </span><span class="err">│</span>
+<span class="err">└──────────┬──────────────┬───────────────────────┬────────────────────┘</span>
+<span class="w">           </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w">                       </span><span class="err">│</span>
+<span class="w">           </span><span class="err">▼</span><span class="w">               </span><span class="err">▼</span><span class="w">                       </span><span class="err">▼</span>
+<span class="err">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">AIAgent</span><span class="w"> </span><span class="p">(</span><span class="n">run_agent</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="w">                                          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                 </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">┌──────────────┐</span><span class="w"> </span><span class="err">┌──────────────┐</span><span class="w"> </span><span class="err">┌──────────────┐</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Prompt</span><span class="w">       </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Provider</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Tool</span><span class="w">         </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Builder</span><span class="w">      </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Resolution</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Dispatch</span><span class="w">     </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="n">prompt_</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="n">runtime_</span><span class="w">    </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="n">model_</span><span class="w">      </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="n">builder</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="n">provider</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="n">tools</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="w">   </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">└──────┬───────┘</span><span class="w"> </span><span class="err">└──────┬───────┘</span><span class="w"> </span><span class="err">└──────┬───────┘</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">        </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w">                             </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">┌──────┴───────┐</span><span class="w"> </span><span class="err">┌──────┴───────┐</span><span class="w"> </span><span class="err">┌──────┴───────┐</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Compression</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">Modes</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Tool</span><span class="w"> </span><span class="n">Registry</span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">Caching</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">chat_compl</span><span class="o">.</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="n">registry</span><span class="o">.</span><span class="n">py</span><span class="p">)</span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">codex_resp</span><span class="o">.</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="mi">48</span><span class="w"> </span><span class="n">tools</span><span class="w">    </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">anthropic</span><span class="w">    </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="mi">40</span><span class="w"> </span><span class="n">toolsets</span><span class="w"> </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="err">└──────────────┘</span><span class="w"> </span><span class="err">└──────────────┘</span><span class="w"> </span><span class="err">└──────────────┘</span><span class="w">            </span><span class="err">│</span>
+<span class="err">└─────────────────────────────────────────────────────────────────────┘</span>
+<span class="w">           </span><span class="err">│</span><span class="w">               </span><span class="err">│</span>
+<span class="w">           </span><span class="err">▼</span><span class="w">               </span><span class="err">▼</span>
+<span class="err">┌───────────────────┐</span><span class="w"> </span><span class="err">┌──────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">Session</span><span class="w"> </span><span class="n">Storage</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Tool</span><span class="w"> </span><span class="n">Backends</span><span class="w">         </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="n">SQLite</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">FTS5</span><span class="p">)</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w"> </span><span class="n">Terminal</span><span class="w"> </span><span class="p">(</span><span class="mi">6</span><span class="w"> </span><span class="n">backends</span><span class="p">)</span><span class="w"> </span><span class="err">│</span>
+<span class="w">          </span><span class="err">│</span><span class="w">          </span><span class="err">│</span><span class="w"> </span><span class="n">Browser</span><span class="w"> </span><span class="p">(</span><span class="mi">5</span><span class="w"> </span><span class="n">backends</span><span class="p">)</span><span class="w">    </span><span class="err">│</span>
+<span class="w">          </span><span class="err">│</span><span class="w">          </span><span class="err">│</span><span class="w"> </span><span class="n">Web</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="n">backends</span><span class="p">)</span><span class="w">       </span><span class="err">│</span>
+<span class="w">          </span><span class="err">│</span><span class="w">          </span><span class="err">│</span><span class="w"> </span><span class="n">MCP</span><span class="w"> </span><span class="p">(</span><span class="n">dynamic</span><span class="p">)</span><span class="w">          </span><span class="err">│</span>
+<span class="w">          </span><span class="err">│</span><span class="w">          </span><span class="err">│</span><span class="w"> </span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="n">Vision</span><span class="p">,</span><span class="w"> </span><span class="n">etc</span><span class="o">.</span><span class="w">     </span><span class="err">│</span>
+<span class="w">          </span><span class="err">└───────────────────────────────────┘</span>
+</code></pre></div>
 
----
+<h3 id="22">2.2 目录结构</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">hermes</span><span class="o">-</span><span class="n">agent</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">run_agent</span><span class="o">.</span><span class="n">py</span><span class="w">              </span><span class="c1"># AIAgent 核心循环 (~9,200 行)</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">cli</span><span class="o">.</span><span class="n">py</span><span class="w">                    </span><span class="c1"># CLI TUI (~8,500 行)</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">model_tools</span><span class="o">.</span><span class="n">py</span><span class="w">            </span><span class="c1"># 工具发现、分发</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">toolsets</span><span class="o">.</span><span class="n">py</span><span class="w">               </span><span class="c1"># 工具集分组</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">hermes_state</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># SQLite 会话存储</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">batch_runner</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># 批量轨迹生成</span>
+<span class="err">│</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">agent</span><span class="o">/</span><span class="w">                    </span><span class="c1"># Agent 内部</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">prompt_builder</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># 系统提示词组装</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">context_engine</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># ContextEngine ABC</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">context_compressor</span><span class="o">.</span><span class="n">py</span><span class="w"> </span><span class="c1"># 默认压缩引擎</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">prompt_caching</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># Anthropic 缓存</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">auxiliary_client</span><span class="o">.</span><span class="n">py</span><span class="w">    </span><span class="c1"># 辅助 LLM 客户端</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">skill_commands</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># 技能斜杠命令</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">memory_manager</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># 记忆管理器</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">memory_provider</span><span class="o">.</span><span class="n">py</span><span class="w">     </span><span class="c1"># Memory Provider ABC</span>
+<span class="err">│</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">hermes_cli</span><span class="o">/</span><span class="w">               </span><span class="c1"># CLI 子命令</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">main</span><span class="o">.</span><span class="n">py</span><span class="w">               </span><span class="c1"># 主入口 (~5,500 行)</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">config</span><span class="o">.</span><span class="n">py</span><span class="w">              </span><span class="c1"># 配置管理</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">commands</span><span class="o">.</span><span class="n">py</span><span class="w">            </span><span class="c1"># 命令注册表</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">auth</span><span class="o">.</span><span class="n">py</span><span class="w">               </span><span class="c1"># Provider 注册表</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">runtime_provider</span><span class="o">.</span><span class="n">py</span><span class="w">    </span><span class="c1"># Provider 解析</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">models</span><span class="o">.</span><span class="n">py</span><span class="w">             </span><span class="c1"># 模型目录</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">model_switch</span><span class="o">.</span><span class="n">py</span><span class="w">        </span><span class="c1"># /model 命令逻辑</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">setup</span><span class="o">.</span><span class="n">py</span><span class="w">              </span><span class="c1"># 设置向导 (~3,100 行)</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">skin_engine</span><span class="o">.</span><span class="n">py</span><span class="w">        </span><span class="c1"># CLI 主题引擎</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">skills_config</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># 技能配置</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">skills_hub</span><span class="o">.</span><span class="n">py</span><span class="w">         </span><span class="c1"># Skills Hub</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">tools_config</span><span class="o">.</span><span class="n">py</span><span class="w">       </span><span class="c1"># 工具配置</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">plugins</span><span class="o">.</span><span class="n">py</span><span class="w">            </span><span class="c1"># PluginManager</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">callbacks</span><span class="o">.</span><span class="n">py</span><span class="w">          </span><span class="c1"># 终端回调</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">gateway</span><span class="o">.</span><span class="n">py</span><span class="w">            </span><span class="c1"># 网关管理</span>
+<span class="err">│</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">tools</span><span class="o">/</span><span class="w">                    </span><span class="c1"># 工具实现</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">registry</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># 中央注册表</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">approval</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># 危险命令检测</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">terminal_tool</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># 终端编排</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">process_registry</span><span class="o">.</span><span class="n">py</span><span class="w">    </span><span class="c1"># 后台进程管理</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">file_tools</span><span class="o">.</span><span class="n">py</span><span class="w">         </span><span class="c1"># 文件工具</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">web_tools</span><span class="o">.</span><span class="n">py</span><span class="w">          </span><span class="c1"># Web 工具</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">browser_tool</span><span class="o">.</span><span class="n">py</span><span class="w">       </span><span class="c1"># 浏览器工具</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">code_execution_tool</span><span class="o">.</span><span class="n">py</span><span class="w"> </span><span class="c1"># 代码执行沙箱</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">delegate_tool</span><span class="o">.</span><span class="n">py</span><span class="w">      </span><span class="c1"># 子代理委派</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">mcp_tool</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># MCP 客</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">credential_files</span><span class="o">.</span><span class="n">py</span><span class="w">    </span><span class="c1"># 凭证文件传递</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">env_passthrough</span><span class="o">.</span><span class="n">py</span><span class="w">     </span><span class="c1"># 环境变量传递</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">ansi_strip</span><span class="o">.</span><span class="n">py</span><span class="w">         </span><span class="c1"># ANSI 剥离</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">environments</span><span class="o">/</span><span class="w">         </span><span class="c1"># 终端后端</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">local</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">docker</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">ssh</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">modal</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">daytona</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">└──</span><span class="w"> </span><span class="n">singularity</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">gateway</span><span class="o">/</span><span class="w">                  </span><span class="c1"># 消息网关</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">run</span><span class="o">.</span><span class="n">py</span><span class="w">                </span><span class="c1"># 网关运行器 (~7,500 行)</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">session</span><span class="o">.</span><span class="n">py</span><span class="w">            </span><span class="c1"># 会话存储</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">delivery</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># 出站消息投递</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">pairing</span><span class="o">.</span><span class="n">py</span><span class="w">            </span><span class="c1"># DM 配对授权</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">hooks</span><span class="o">.</span><span class="n">py</span><span class="w">              </span><span class="c1"># Hook 发现</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">mirror</span><span class="o">.</span><span class="n">py</span><span class="w">             </span><span class="c1"># 跨会话消息镜像</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">status</span><span class="o">.</span><span class="n">py</span><span class="w">             </span><span class="c1"># 状态跟踪</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">platforms</span><span class="o">/</span><span class="w">            </span><span class="c1"># 平台适配器</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">telegram</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">discord</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">slack</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">whatsapp</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="k">signal</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">matrix</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">mattermost</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">email</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">sms</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">dingtalk</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">feishu</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">wecom</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">weixin</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">bluebubbles</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">homeassistant</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">└──</span><span class="w"> </span><span class="n">webhook</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">acp_adapter</span><span class="o">/</span><span class="w">              </span><span class="c1"># ACP 服务器</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">cron</span><span class="o">/</span><span class="w">                     </span><span class="c1"># 调度器</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">plugins</span><span class="o">/</span><span class="n">memory</span><span class="o">/</span><span class="w">           </span><span class="c1"># Memory Provider 插件</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">plugins</span><span class="o">/</span><span class="n">context_engine</span><span class="o">/</span><span class="w">   </span><span class="c1"># Context Engine 插件</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">environments</span><span class="o">/</span><span class="w">             </span><span class="c1"># RL 训练环境</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">skills</span><span class="o">/</span><span class="w">                   </span><span class="c1"># 内置技能</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">optional</span><span class="o">-</span><span class="n">skills</span><span class="o">/</span><span class="w">          </span><span class="c1"># 官方可选技能</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">website</span><span class="o">/</span><span class="w">                  </span><span class="c1"># Docusaurus 文档</span>
+<span class="err">└──</span><span class="w"> </span><span class="n">tests</span><span class="o">/</span><span class="w">                    </span><span class="c1"># Pytest 套件 (~3,000+ 测试)</span>
+</code></pre></div>
 
-## 二、核心架构
+<hr />
+<h2 id="_4">三、核心子系统</h2>
+<h3 id="31-aiagent">3.1 AIAgent 核心引擎</h3>
+<p><strong>文件</strong>: <code>run_agent.py</code> (~9,200 行)</p>
+<p><strong>核心职责</strong>:<br />
+- 组装有效系统提示词和工具架构<br />
+- 选择正确的 Provider/API 模式<br />
+- 执行可中断的模型调用<br />
+- 执行工具调用（顺序或并发）<br />
+- 维护对话历史（OpenAI 消息格式）<br />
+- 处理压缩、重试、回退模型切换<br />
+- 跟踪父代理和子代理的迭代预算<br />
+- 在上下文丢失前刷新持久记忆</p>
+<h4 id="api">API 模式</h4>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>用途</th>
+<th>客户端类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chat_completions</code></td>
+<td>OpenAI 兼容端点</td>
+<td>openai.OpenAI</td>
+</tr>
+<tr>
+<td><code>codex_responses</code></td>
+<td>OpenAI Codex/Responses API</td>
+<td>openai.OpenAI</td>
+</tr>
+<tr>
+<td><code>anthropic_messages</code></td>
+<td>Anthropic 原生 API</td>
+<td>anthropic.Anthropic</td>
+</tr>
+</tbody>
+</table>
+<p><strong>模式解析顺序</strong>:<br />
+1. 显式 <code>api_mode</code> 构造函数参数（最高优先级）<br />
+2. Provider 特定检测（如 anthropic → anthropic_messages）<br />
+3. Base URL 启发式（如 api.anthropic.com → anthropic_messages）<br />
+4. 默认: chat_completions</p>
+<h4 id="_5">轮次生命周期</h4>
+<div class="codehilite"><pre><span></span><code><span class="n">run_conversation</span><span class="p">()</span>
+<span class="w">  </span><span class="mf">1.</span><span class="w"> </span><span class="err">生成</span><span class="w"> </span><span class="n">task_id</span><span class="err">（如未提供）</span>
+<span class="w">  </span><span class="mf">2.</span><span class="w"> </span><span class="err">追</span><span class="n">ser</span><span class="w"> </span><span class="err">用户消息到对话历史</span>
+<span class="w">  </span><span class="mf">3.</span><span class="w"> </span><span class="err">构建或重用缓存的系统提示词</span>
+<span class="w">  </span><span class="mf">4.</span><span class="w"> </span><span class="err">检查是否需要预压缩（</span><span class="o">&gt;</span><span class="mi">50</span><span class="o">%</span><span class="w"> </span><span class="err">上下文）</span>
+<span class="w">  </span><span class="mf">5.</span><span class="w"> </span><span class="err">从对话历史构建</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="err">消息</span>
+<span class="w">  </span><span class="mf">6.</span><span class="w"> </span><span class="err">注入临时提示词层（预算警告、上下文压力）</span>
+<span class="w">  </span><span class="mf">7.</span><span class="w"> </span><span class="err">应用提示词缓存标记（如在</span><span class="w"> </span><span class="n">Anthropic</span><span class="err">）</span>
+<span class="w">  </span><span class="mf">8.</span><span class="w"> </span><span class="err">执行可中断</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="err">调用</span>
+<span class="w">  </span><span class="mf">9.</span><span class="w"> </span><span class="err">解析响应</span><span class="p">:</span>
+<span class="w">     </span><span class="o">-</span><span class="w"> </span><span class="err">如</span><span class="w"> </span><span class="n">tool_calls</span><span class="p">:</span><span class="w"> </span><span class="err">执行它们，追加结果，循环回步骤</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">     </span><span class="o">-</span><span class="w"> </span><span class="err">如文本响应</span><span class="p">:</span><span class="w"> </span><span class="err">持久化会话，如需要刷新记忆，返回</span>
+</code></pre></div>
 
-### 2.1 系统架构图
+<h4 id="_6">消息格式</h4>
+<p>所有消息使用 OpenAI 兼容格式：</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;system&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">}</span>
+<span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">}</span>
+<span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;tool_calls&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">]}</span>
+<span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tool&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;tool_call_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">}</span>
+</code></pre></div>
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Entry Points                                                     │
-│                                                                 │
-│ CLI (cli.py) Gateway (gateway/run.py) ACP (acp_adapter/)          │
-│ Batch Runner API Server Python Library                            │
-└──────────┬──────────────┬───────────────────────┬────────────────────┘
-           │               │                       │
-           ▼               ▼                       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ AIAgent (run_agent.py)                                          │
-│                                                                 │
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
-│ │ Prompt       │ │ Provider     │ │ Tool         │            │
-│ │ Builder      │ │ Resolution   │ │ Dispatch     │            │
-│ │ (prompt_     │ │ (runtime_    │ │ (model_      │            │
-│ │  builder.py) │ │  provider.py)│ │  tools.py)   │            │
-│ └──────┬───────┘ └──────┬───────┘ └──────┬───────┘            │
-│        │               │               │                             │
-│ ┌──────┴───────┐ ┌──────┴───────┐ ┌──────┴───────┐            │
-│ │ Compression   │ │ 3 API Modes  │ │ Tool Registry│            │
-│ │ & Caching     │ │ chat_compl.  │ │ (registry.py)│            │
-│ │               │ │ codex_resp.  │ │ 48 tools    │            │
-│ │               │ │ anthropic    │ │ 40 toolsets │            │
-│ └──────────────┘ └──────────────┘ └──────────────┘            │
-└─────────────────────────────────────────────────────────────────────┘
-           │               │
-           ▼               ▼
-┌───────────────────┐ ┌──────────────────────┐
-│ Session Storage   │ │ Tool Backends         │
-│ (SQLite + FTS5)  │ │ Terminal (6 backends) │
-          │          │ Browser (5 backends)    │
-          │          │ Web (4 backends)       │
-          │          │ MCP (dynamic)          │
-          │          │ File, Vision, etc.     │
-          └───────────────────────────────────┘
-```
-
-### 2.2 目录结构
-
-```
-hermes-agent/
-├── run_agent.py              # AIAgent 核心循环 (~9,200 行)
-├── cli.py                    # CLI TUI (~8,500 行)
-├── model_tools.py            # 工具发现、分发
-├── toolsets.py               # 工具集分组
-├── hermes_state.py           # SQLite 会话存储
-├── batch_runner.py           # 批量轨迹生成
-│
-├── agent/                    # Agent 内部
-│   ├── prompt_builder.py      # 系统提示词组装
-│   ├── context_engine.py      # ContextEngine ABC
-│   ├── context_compressor.py # 默认压缩引擎
-│   ├── prompt_caching.py      # Anthropic 缓存
-│   ├── auxiliary_client.py    # 辅助 LLM 客户端
-│   ├── skill_commands.py      # 技能斜杠命令
-│   ├── memory_manager.py      # 记忆管理器
-│   └── memory_provider.py     # Memory Provider ABC
-│
-├── hermes_cli/               # CLI 子命令
-│   ├── main.py               # 主入口 (~5,500 行)
-│   ├── config.py              # 配置管理
-│   ├── commands.py            # 命令注册表
-│   ├── auth.py               # Provider 注册表
-│   ├── runtime_provider.py    # Provider 解析
-│   ├── models.py             # 模型目录
-│   ├── model_switch.py        # /model 命令逻辑
-│   ├── setup.py              # 设置向导 (~3,100 行)
-│   ├── skin_engine.py        # CLI 主题引擎
-│   ├── skills_config.py      # 技能配置
-│   ├── skills_hub.py         # Skills Hub
-│   ├── tools_config.py       # 工具配置
-│   ├── plugins.py            # PluginManager
-│   ├── callbacks.py          # 终端回调
-│   └── gateway.py            # 网关管理
-│
-├── tools/                    # 工具实现
-│   ├── registry.py           # 中央注册表
-│   ├── approval.py           # 危险命令检测
-│   ├── terminal_tool.py      # 终端编排
-│   ├── process_registry.py    # 后台进程管理
-│   ├── file_tools.py         # 文件工具
-│   ├── web_tools.py          # Web 工具
-│   ├── browser_tool.py       # 浏览器工具
-│   ├── code_execution_tool.py # 代码执行沙箱
-│   ├── delegate_tool.py      # 子代理委派
-│   ├── mcp_tool.py           # MCP 客
-│   ├── credential_files.py    # 凭证文件传递
-│   ├── env_passthrough.py     # 环境变量传递
-│   ├── ansi_strip.py         # ANSI 剥离
-│   └── environments/         # 终端后端
-│       ├── local.py
-│       ├── docker.py
-│       ├── ssh.py
-│       ├── modal.py
-│       ├── daytona.py
-│       └── singularity.py
-│
-├── gateway/                  # 消息网关
-│   ├── run.py                # 网关运行器 (~7,500 行)
-│   ├── session.py            # 会话存储
-│   ├── delivery.py           # 出站消息投递
-│   ├── pairing.py            # DM 配对授权
-│   ├── hooks.py              # Hook 发现
-│   ├── mirror.py             # 跨会话消息镜像
-│   ├── status.py             # 状态跟踪
-│   └── platforms/            # 平台适配器
-│       ├── telegram.py
-│       ├── discord.py
-│       ├── slack.py
-│       ├── whatsapp.py
-│       ├── signal.py
-│       ├── matrix.py
-│       ├── mattermost.py
-│       ├── email.py
-│       ├── sms.py
-│       ├── dingtalk.py
-│       ├── feishu.py
-│       ├── wecom.py
-│       ├── weixin.py
-│       ├── bluebubbles.py
-│       ├── homeassistant.py
-│       └── webhook.py
-│
-├── acp_adapter/              # ACP 服务器
-├── cron/                     # 调度器
-├── plugins/memory/           # Memory Provider 插件
-├── plugins/context_engine/   # Context Engine 插件
-├── environments/             # RL 训练环境
-├── skills/                   # 内置技能
-├── optional-skills/          # 官方可选技能
-├── website/                  # Docusaurus 文档
-└── tests/                    # Pytest 套件 (~3,000+ 测试)
-```
-
----
-
-## 三、核心子系统
-
-### 3.1 AIAgent 核心引擎
-
-**文件**: `run_agent.py` (~9,200 行)
-
-**核心职责**:
-- 组装有效系统提示词和工具架构
-- 选择正确的 Provider/API 模式
-- 执行可中断的模型调用
-- 执行工具调用（顺序或并发）
-- 维护对话历史（OpenAI 消息格式）
-- 处理压缩、重试、回退模型切换
-- 跟踪父代理和子代理的迭代预算
-- 在上下文丢失前刷新持久记忆
-
-#### API 模式
-
-| 模式 | 用途 | 客户端类型 |
-|------|------|-----------|
-| `chat_completions` | OpenAI 兼容端点 | openai.OpenAI |
-| `codex_responses` | OpenAI Codex/Responses API | openai.OpenAI |
-| `anthropic_messages` | Anthropic 原生 API | anthropic.Anthropic |
-
-**模式解析顺序**:
-1. 显式 `api_mode` 构造函数参数（最高优先级）
-2. Provider 特定检测（如 anthropic → anthropic_messages）
-3. Base URL 启发式（如 api.anthropic.com → anthropic_messages）
-4. 默认: chat_completions
-
-#### 轮次生命周期
-
-```
-run_conversation()
-  1. 生成 task_id（如未提供）
-  2. 追ser 用户消息到对话历史
-  3. 构建或重用缓存的系统提示词
-  4. 检查是否需要预压缩（>50% 上下文）
-  5. 从对话历史构建 API 消息
-  6. 注入临时提示词层（预算警告、上下文压力）
-  7. 应用提示词缓存标记（如在 Anthropic）
-  8. 执行可中断 API 调用
-  9. 解析响应:
-     - 如 tool_calls: 执行它们，追加结果，循环回步骤 5
-     - 如文本响应: 持久化会话，如需要刷新记忆，返回
-```
-
-#### 消息格式
-
-所有消息使用 OpenAI 兼容格式：
-
-```json
-{"role": "system", "content": "..."}
-{"role": "user", "content": "..."}
-{"role": "assistant", "content": "...", "tool_calls": [...]}
-{"role": "tool", "tool_call_id": "...", "content": "..."}
-```
-
-**推理内容**: 存储在 `assistant_msg["reasoning"]`，可选通过 `reasoning_callback` 显示。
-
-#### 消息交替规则
-
-Agent 循环强制严格的消息角色交替：
-- 系统消息后: User → Assistant → User → Assistant → ...
-- 工具调用期间: Assistant (with tool_calls) → Tool → Tool → ... → Assistant
-- 永不两个 assistant 消息连续
-- 永不两个 user 消息连续
-- 只有 tool 角色可以有连续条目（并行工具结果）
-
-#### 可中断 API 调用
-
-```
-┌──────────────────────┐ ┌──────────────┐
-│ Main thread         │ │ API thread    │
-│ wait on:            │────▶│ HTTP POST    │
-│ - response ready     │ │ to provider   │
-│ - interrupt event    │ └──────────────┘
-│ - timeout           │
+<p><strong>推理内容</strong>: 存储在 <code>assistant_msg["reasoning"]</code>，可选通过 <code>reasoning_callback</code> 显示。</p>
+<h4 id="_7">消息交替规则</h4>
+<p>Agent 循环强制严格的消息角色交替：<br />
+- 系统消息后: User → Assistant → User → Assistant → ...<br />
+- 工具调用期间: Assistant (with tool_calls) → Tool → Tool → ... → Assistant<br />
+- 永不两个 assistant 消息连续<br />
+- 永不两个 user 消息连续<br />
+- 只有 tool 角色可以有连续条目（并行工具结果）</p>
+<h4 id="api_1">可中断 API 调用</h4>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────┐<span class="w"> </span>┌──────────────┐
+│<span class="w"> </span><span class="nv">Main</span><span class="w"> </span><span class="nv">thread</span><span class="w">         </span>│<span class="w"> </span>│<span class="w"> </span><span class="nv">API</span><span class="w"> </span><span class="nv">thread</span><span class="w">    </span>│
+│<span class="w"> </span><span class="k">wait</span><span class="w"> </span><span class="nv">on</span>:<span class="w">            </span>│────▶│<span class="w"> </span><span class="nv">HTTP</span><span class="w"> </span><span class="nv">POST</span><span class="w">    </span>│
+│<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">response</span><span class="w"> </span><span class="nv">ready</span><span class="w">     </span>│<span class="w"> </span>│<span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="nv">provider</span><span class="w">   </span>│
+│<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">interrupt</span><span class="w"> </span><span class="nv">event</span><span class="w">    </span>│<span class="w"> </span>└──────────────┘
+│<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">timeout</span><span class="w">           </span>│
 └──────────────────────┘
-```
+</code></pre></div>
 
-当被中断（用户发送新消息、/stop 命令或信号）：
-- API 线程被放弃（响应丢弃）
-- Agent 可以处理新输入或干净关闭
-- 不会将部分响应注入对话历史
+<p>当被中断（用户发送新消息、/stop 命令或信号）：<br />
+- API 线程被放弃（响应丢弃）<br />
+- Agent 可以处理新输入或干净关闭<br />
+- 不会将部分响应注入对话历史</p>
+<h4 id="_8">工具执行</h4>
+<p><strong>顺序 vs 并发</strong>:<br />
+- 单个工具调用 → 直接在主线程执行<br />
+- 多个工具调用 → 通过通过 ThreadPoolExecutor 并发执行</p>
+<p>例外：标记为交互式的工具（如 clarify）强制顺序执行。</p>
+<p><strong>执行流程</strong>:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">for</span><span class="w"> </span><span class="n">each</span><span class="w"> </span><span class="n">tool_call</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">response</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+<span class="w">  </span><span class="mf">1.</span><span class="w"> </span><span class="err">从</span><span class="w"> </span><span class="n">tools</span><span class="o">/</span><span class="n">registry</span><span class="o">.</span><span class="n">py</span><span class="w"> </span><span class="err">解析处理器</span>
+<span class="w">  </span><span class="mf">2.</span><span class="w"> </span><span class="err">触发</span><span class="w"> </span><span class="n">pre_tool_call</span><span class="w"> </span><span class="err">插件</span><span class="w"> </span><span class="n">hook</span>
+<span class="w">  </span><span class="mf">3.</span><span class="w"> </span><span class="err">检查是否危验命令</span><span class="w"> </span><span class="p">(</span><span class="n">tools</span><span class="o">/</span><span class="n">approval</span><span class="o">.</span><span class="n">py</span><span class="p">)</span>
+<span class="w">     </span><span class="o">-</span><span class="w"> </span><span class="err">如危验</span><span class="p">:</span><span class="w"> </span><span class="err">调用</span><span class="w"> </span><span class="n">approval_callback</span><span class="err">，等待用户</span>
+<span class="w">  </span><span class="mf">4.</span><span class="w"> </span><span class="err">用</span><span class="w"> </span><span class="n">args</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">task_id</span><span class="w"> </span><span class="err">执行处理器</span>
+<span class="w">  </span><span class="mf">5.</span><span class="w"> </span><span class="err">触发</span><span class="w"> </span><span class="n">post_tool_call</span><span class="w"> </span><span class="err">插件</span><span class="w"> </span><span class="n">hook</span>
+<span class="w">  </span><span class="mf">6.</span><span class="w"> </span><span class="err">追</span><span class="n">ser</span><span class="w"> </span><span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tool&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="n">result</span><span class="p">}</span><span class="w"> </span><span class="err">到历史</span>
+</code></pre></div>
 
-#### 工具执行
+<h4 id="agent">Agent 级工具</h4>
+<p>有些工具在到达 <code>handle_function_call()</code> 前被 <code>run_agent.py</code> 拦截：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>拦截原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>todo</td>
+<td>读写 agent 本地任务状态</td>
+</tr>
+<tr>
+<td>memory</td>
+<td>写入持久记忆文件</td>
+</tr>
+<tr>
+<td>session_search</td>
+<td>查询 agent 的会话 DB</td>
+</tr>
+<tr>
+<td>delegate_task</td>
+<td>生成子代理会话</td>
+</tr>
+</tbody>
+</table>
+<p>这些工具直接修改 agent 状态并返回合成工具结果，不通过注册表。</p>
+<h4 id="_9">回调表面</h4>
+<table>
+<thead>
+<tr>
+<th>回调</th>
+<th>触发时机</th>
+<th>使用者</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tool_progress_callback</td>
+<td>工具执行前后</td>
+<td>CLI spinner、网关进度消息</td>
+</tr>
+<tr>
+<td>thinking_callback</td>
+<td>模型开始/停止思考</td>
+<td>CLI "thinking..." 指示器</td>
+</tr>
+<tr>
+<td>reasoning_callback</td>
+<td>模型返回推理内容</td>
+<td>CLI 推理显示、网关推理块</td>
+</tr>
+<tr>
+<td>clarify_callback</td>
+<td>clarify 工具被调用</td>
+<td>CLI 输入提示、网关交互消息</td>
+</tr>
+<tr>
+<td>step_callback</td>
+<td>每个完整 agent 轮次后</td>
+<td>网关步骤跟踪、ACP 进度</td>
+</tr>
+<tr>
+<td>stream_delta_callback</td>
+<td>每个流式 token（启用时）</td>
+<td>CLI 流式显示</td>
+</tr>
+<tr>
+<td>tool_gen_callback</td>
+<td>从流解析工具调用</td>
+<td>CLI spinner 中工具预览</td>
+</tr>
+<tr>
+<td>status_callback</td>
+<td>状态变化</td>
+<td>ACP 状态更新</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_10">预算和回退行为</h4>
+<p><strong>迭代预算</strong>:<br />
+- 默认: 90 轮次（可通过 <code>agent.max_turns</code> 配置）<br />
+- 在父代理和子代理间共享<br />
+- 两层预算压力:<br />
+  - 70%+ 使用: 追ser <code>[BUDGET: Iteration X/Y. N iterations left. Start consolidating your work.]</code><br />
+  - 90%+ 使用: 追ser <code>[BUDGET WARNING: Iteration X/Y. Only N iteration(s) left. Provide your final response NOW.]</code><br />
+  - 100%: Agent 停止并返回工作摘要</p>
+<p><strong>回退模型</strong>:<br />
+当主模型失败（429 速率限制、5xx 服务器错误、401/403 认证错误）：<br />
+- 检查配置中的 <code>fallback_providers</code> 列表<br />
+- 按顺序尝试每个回退<br />
+- 成功后用新 provider 继续对话<br />
+- 401/403 时，失败前尝试凭证刷新</p>
+<h3 id="32-prompt">3.2 Prompt 系统</h3>
+<p><strong>文件</strong>: <code>agent/prompt_builder.py</code></p>
+<p><strong>系统提示词组装来源</strong>:<br />
+1. <strong>个性</strong> (SOUL.md) - Agent 的人格和语调<br />
+2. <strong>记忆</strong> (MEMORY.md, USER.md) - 长期记忆和用户画像<br />
+3. <strong>技能</strong> - 可用技能列表和内容<br />
+4. <strong>上下文文件</strong> (AGENTS.md, .hermes.md) - 项目上下文<br />
+5. <strong>工具使用指导</strong> - 工具调用指南<br />
+6. <strong>模型特定指令</strong> - 针对特定模型的指令</p>
+<p><strong>提示词缓存</strong> (<code>agent/prompt_caching.py</code>):<br />
+- 应用 Anthropic 缓存断点<br />
+- 支持 5m 或 1h TTL<br />
+- 降低多轮对话输入 Token 成本 ~75%</p>
+<p><strong>上下文压缩</strong> (<code>agent/context_compressor.py</code>):<br />
+- 默认压缩引擎<br />
+- 有损摘要算法<br />
+- 保护最后 N 条消息（默认 20）</p>
+<h3 id="33-provider">3.3 Provider 解析</h3>
+<p><strong>文件</strong>: <code>hermes_cli/runtime_provider.py</code></p>
+<p><strong>功能</strong>:<br />
+- 共享运行时解析器，被 CLI、网关、cron、ACP 和辅助调用使用<br />
+- 映射 <code>(provider, model)</code> 元组到 <code>(api_mode, api_key, base_url)</code><br />
+- 处理 18+ Provider<br />
+- OAuth 流程处理<br />
+- 凭证池管理<br />
+- 别名解析</p>
+<p><strong>支持的 Provider</strong>:<br />
+- OpenRouter, Nous Portal, OpenAI, Anthropic<br />
+- z.ai/GLM, Kimi/Moonshot, MiniMax<br />
+- Groq, Together, xAI, DeepInfra<br />
+- 以及更多...</p>
+<h3 id="34">3.4 工具系统</h3>
+<p><strong>文件</strong>: <code>tools/registry.py</code></p>
+<p><strong>统计</strong>: 47 个工具，20 个工具集</p>
+<p><strong>工具注册机制</strong>:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;terminal&quot;</span><span class="p">,</span>
+    <span class="n">toolset</span><span class="o">=</span><span class="s2">&quot;terminal&quot;</span><span class="p">,</span>
+    <span class="n">schema</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">},</span>  <span class="c1"># OpenAI function-calling schema</span>
+    <span class="n">handler</span><span class="o">=</span><span class="n">handle_terminal</span><span class="p">,</span>
+    <span class="n">check_fn</span><span class="o">=</span><span class="n">check_terminal</span><span class="p">,</span>  <span class="c1"># 可用性检查</span>
+    <span class="n">requires_env</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;SOME_VAR&quot;</span><span class="p">],</span>
+    <span class="n">is_async</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Run commands&quot;</span><span class="p">,</span>
+    <span class="n">emoji</span><span class="o">=</span><span class="s2">&quot;💻&quot;</span>
+<span class="p">)</span>
+</code></pre></div>
 
-**顺序 vs 并发**:
-- 单个工具调用 → 直接在主线程执行
-- 多个工具调用 → 通过通过 ThreadPoolExecutor 并发执行
+<p><strong>工具可用性检查</strong> (<code>check_fn</code>):<br />
+- API Key 存在性检查<br />
+- 服务运行状态检查<br />
+- 二进制安装检查</p>
+<p><strong>工具集解析</strong>:<br />
+- 显式启用/禁用工具集列表<br />
+- 平台预设 (hermes-cli, hermes-telegram 等)<br />
+- 动态 MCP 工具集<br />
+- 特殊用途集如 hermes-acp</p>
+<p><strong>工具分发流程</strong>:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">Model</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">tool_call</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="n">run_agent</span><span class="o">.</span><span class="n">py</span><span class="w"> </span><span class="n">agent</span><span class="w"> </span><span class="n">loop</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="n">model_tools</span><span class="o">.</span><span class="n">handle_function_call</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="n">task_id</span><span class="p">,</span><span class="w"> </span><span class="n">user_task</span><span class="p">)</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="p">[</span><span class="n">Agent</span><span class="o">-</span><span class="n">loop</span><span class="w"> </span><span class="n">tools</span><span class="err">?</span><span class="p">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">直接由</span><span class="w"> </span><span class="n">agent</span><span class="w"> </span><span class="err">循环处理</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="p">[</span><span class="n">Plugin</span><span class="w"> </span><span class="n">pre</span><span class="o">-</span><span class="n">hook</span><span class="p">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">invoke_hook</span><span class="p">(</span><span class="s2">&quot;pre_tool_call&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">...</span><span class="p">)</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">args</span><span class="p">,</span><span class="w"> </span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="err">查找</span><span class="w"> </span><span class="n">ToolEntry</span><span class="w"> </span><span class="n">by</span><span class="w"> </span><span class="n">name</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="p">[</span><span class="n">Async</span><span class="w"> </span><span class="n">handler</span><span class="err">?</span><span class="p">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">通过</span><span class="w"> </span><span class="n">_run_async</span><span class="p">()</span><span class="w"> </span><span class="err">桥接</span>
+<span class="p">[</span><span class="n">Sync</span><span class="w"> </span><span class="n">handler</span><span class="err">?</span><span class="p">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">直接调用</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="err">返回结果字符串（或</span><span class="w"> </span><span class="n">JSON</span><span class="w"> </span><span class="err">错误）</span>
+<span class="w">  </span><span class="err">↓</span>
+<span class="p">[</span><span class="n">Plugin</span><span class="w"> </span><span class="n">post</span><span class="o">-</span><span class="n">hook</span><span class="p">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">invoke_hook</span><span class="p">(</span><span class="s2">&quot;post_tool_call&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">...</span><span class="p">)</span>
+</code></pre></div>
 
-例外：标记为交互式的工具（如 clarify）强制顺序执行。
-
-**执行流程**:
-```
-for each tool_call in response.tool_calls:
-  1. 从 tools/registry.py 解析处理器
-  2. 触发 pre_tool_call 插件 hook
-  3. 检查是否危验命令 (tools/approval.py)
-     - 如危验: 调用 approval_callback，等待用户
-  4. 用 args + task_id 执行处理器
-  5. 触发 post_tool_call 插件 hook
-  6. 追ser {"role": "tool", "content": result} 到历史
-```
-
-#### Agent 级工具
-
-有些工具在到达 `handle_function_call()` 前被 `run_agent.py` 拦截：
-
-| 工具 | 拦截原因 |
-|------|----------|
-| todo | 读写 agent 本地任务状态 |
-| memory | 写入持久记忆文件 |
-| session_search | 查询 agent 的会话 DB |
-| delegate_task | 生成子代理会话 |
-
-这些工具直接修改 agent 状态并返回合成工具结果，不通过注册表。
-
-#### 回调表面
-
-| 回调 | 触发时机 | 使用者 |
-|------|----------|---------|
-| tool_progress_callback | 工具执行前后 | CLI spinner、网关进度消息 |
-| thinking_callback | 模型开始/停止思考 | CLI "thinking..." 指示器 |
-| reasoning_callback | 模型返回推理内容 | CLI 推理显示、网关推理块 |
-| clarify_callback | clarify 工具被调用 | CLI 输入提示、网关交互消息 |
-| step_callback | 每个完整 agent 轮次后 | 网关步骤跟踪、ACP 进度 |
-| stream_delta_callback | 每个流式 token（启用时） | CLI 流式显示 |
-| tool_gen_callback | 从流解析工具调用 | CLI spinner 中工具预览 |
-| status_callback | 状态变化 | ACP 状态更新 |
-
-#### 预算和回退行为
-
-**迭代预算**:
-- 默认: 90 轮次（可通过 `agent.max_turns` 配置）
-- 在父代理和子代理间共享
-- 两层预算压力:
-  - 70%+ 使用: 追ser `[BUDGET: Iteration X/Y. N iterations left. Start consolidating your work.]`
-  - 90%+ 使用: 追ser `[BUDGET WARNING: Iteration X/Y. Only N iteration(s) left. Provide your final response NOW.]`
-  - 100%: Agent 停止并返回工作摘要
-
-**回退模型**:
-当主模型失败（429 速率限制、5xx 服务器错误、401/403 认证错误）：
-- 检查配置中的 `fallback_providers` 列表
-- 按顺序尝试每个回退
-- 成功后用新 provider 继续对话
-- 401/403 时，失败前尝试凭证刷新
-
-### 3.2 Prompt 系统
-
-**文件**: `agent/prompt_builder.py`
-
-**系统提示词组装来源**:
-1. **个性** (SOUL.md) - Agent 的人格和语调
-2. **记忆** (MEMORY.md, USER.md) - 长期记忆和用户画像
-3. **技能** - 可用技能列表和内容
-4. **上下文文件** (AGENTS.md, .hermes.md) - 项目上下文
-5. **工具使用指导** - 工具调用指南
-6. **模型特定指令** - 针对特定模型的指令
-
-**提示词缓存** (`agent/prompt_caching.py`):
-- 应用 Anthropic 缓存断点
-- 支持 5m 或 1h TTL
-- 降低多轮对话输入 Token 成本 ~75%
-
-**上下文压缩** (`agent/context_compressor.py`):
-- 默认压缩引擎
-- 有损摘要算法
-- 保护最后 N 条消息（默认 20）
-
-### 3.3 Provider 解析
-
-**文件**: `hermes_cli/runtime_provider.py`
-
-**功能**:
-- 共享运行时解析器，被 CLI、网关、cron、ACP 和辅助调用使用
-- 映射 `(provider, model)` 元组到 `(api_mode, api_key, base_url)`
-- 处理 18+ Provider
-- OAuth 流程处理
-- 凭证池管理
-- 别名解析
-
-**支持的 Provider**:
-- OpenRouter, Nous Portal, OpenAI, Anthropic
-- z.ai/GLM, Kimi/Moonshot, MiniMax
-- Groq, Together, xAI, DeepInfra
-- 以及更多...
-
-### 3.4 工具系统
-
-**文件**: `tools/registry.py`
-
-**统计**: 47 个工具，20 个工具集
-
-**工具注册机制**:
-```python
-registry.register(
-    name="terminal",
-    toolset="terminal",
-    schema={...},  # OpenAI function-calling schema
-    handler=handle_terminal,
-    check_fn=check_terminal,  # 可用性检查
-    requires_env=["SOME_VAR"],
-    is_async=False,
-    description="Run commands",
-    emoji="💻"
-)
-```
-
-**工具可用性检查** (`check_fn`):
-- API Key 存在性检查
-- 服务运行状态检查
-- 二进制安装检查
-
-**工具集解析**:
-- 显式启用/禁用工具集列表
-- 平台预设 (hermes-cli, hermes-telegram 等)
-- 动态 MCP 工具集
-- 特殊用途集如 hermes-acp
-
-**工具分发流程**:
-```
-Model response with tool_call
-  ↓
-run_agent.py agent loop
-  ↓
-model_tools.handle_function_call(name, args, task_id, user_task)
-  ↓
-[Agent-loop tools?] → 直接由 agent 循环处理
-  ↓
-[Plugin pre-hook] → invoke_hook("pre_tool_call", ...)
-  ↓
-registry.dispatch(name, args, **kwargs)
-  ↓
-查找 ToolEntry by name
-  ↓
-[Async handler?] → 通过 _run_async() 桥接
-[Sync handler?] → 直接调用
-  ↓
-返回结果字符串（或 JSON 错误）
-  ↓
-[Plugin post-hook] → invoke_hook("post_tool_call", ...)
-```
-
-**危险命令批准流程** (`tools/approval.py`):
-
-**检测模式**:
-- 递归删除 (`rm -rf`)
-- 文件系统格式化 (`mkfs`, `dd`)
-- SQL 破坏性操作
-- 系统配置覆盖
-- 服务操作
-- 远程代码执行
-- Fork bombs、进程 kills 等
-
-**批准流程**:
-1. 模式检测
-2. 如匹配:
-   - CLI 模式: 交互式提示
-   - 网关模式: 异步批准回调
-3. 会话级跟踪
-4. 永久 allowlist 选项
-
-**终端后端** (6 种):
-- local, Docker, SSH, Daytona, Modal, Singularity
-
-### 3.5 会话持久化
-
-**文件**: `hermes_state.py`
-
-**特性**:
-- SQLite + FTS5 全文搜索
-- 会话谱系追踪（父/子关系）
-- 平台隔离
-- 原子写入 + 竞争处理
-
-**数据流**:
-```
-每轮对话后
+<p><strong>危险命令批准流程</strong> (<code>tools/approval.py</code>):</p>
+<p><strong>检测模式</strong>:<br />
+- 递归删除 (<code>rm -rf</code>)<br />
+- 文件系统格式化 (<code>mkfs</code>, <code>dd</code>)<br />
+- SQL 破坏性操作<br />
+- 系统配置覆盖<br />
+- 服务操作<br />
+- 远程代码执行<br />
+- Fork bombs、进程 kills 等</p>
+<p><strong>批准流程</strong>:<br />
+1. 模式检测<br />
+2. 如匹配:<br />
+   - CLI 模式: 交互式提示<br />
+   - 网关模式: 异步批准回调<br />
+3. 会话级跟踪<br />
+4. 永久 allowlist 选项</p>
+<p><strong>终端后端</strong> (6 种):<br />
+- local, Docker, SSH, Daytona, Modal, Singularity</p>
+<h3 id="35">3.5 会话持久化</h3>
+<p><strong>文件</strong>: <code>hermes_state.py</code></p>
+<p><strong>特性</strong>:<br />
+- SQLite + FTS5 全文搜索<br />
+- 会话谱系追踪（父/子关系）<br />
+- 平台隔离<br />
+- 原子写入 + 竞争处理</p>
+<p><strong>数据流</strong>:</p>
+<div class="codehilite"><pre><span></span><code>每轮对话后
   ↓
 消息保存到会话存储
   ↓
 记忆变更刷新到 MEMORY.md / USER.md
   ↓
 会话可通过 /resume 或 hermes chat --resume 恢复
-```
+</code></pre></div>
 
-### 3.6 消息网关
-
-**文件**: `gateway/run.py` (~7,500 行)
-
-**15 个平台适配器**:
-- Telegram, Discord, Slack, WhatsApp, Signal
-- Matrix, Mattermost, Email, SMS
-- DingTalk, Feishu, WeCom, Weixin, BlueBubbles
-- Home Assistant, Webhook
-
-**功能**:
-- 统一会话路由
-- 用户授权（allowlist + DM 配对）
-- 斜杠命令分发
-- Hook 系统
-- Cron 计时
-- 后台维护
-
-**数据流**:
-```
-平台事件
+<h3 id="36">3.6 消息网关</h3>
+<p><strong>文件</strong>: <code>gateway/run.py</code> (~7,500 行)</p>
+<p><strong>15 个平台适配器</strong>:<br />
+- Telegram, Discord, Slack, WhatsApp, Signal<br />
+- Matrix, Mattermost, Email, SMS<br />
+- DingTalk, Feishu, WeCom, Weixin, BlueBubbles<br />
+- Home Assistant, Webhook</p>
+<p><strong>功能</strong>:<br />
+- 统一会话路由<br />
+- 用户授权（allowlist + DM 配对）<br />
+- 斜杠命令分发<br />
+- Hook 系统<br />
+- Cron 计时<br />
+- 后台维护</p>
+<p><strong>数据流</strong>:</p>
+<div class="codehilite"><pre><span></span><code>平台事件
   → Adapter.on_message()
   → MessageEvent
   → GatewayRunner._handle_message()
@@ -525,273 +529,304 @@ registry.dispatch(name, args, **kwargs)
   → 创建 AIAgent + 会话历史
   → AIAgent.run_conversation()
   → 通过适配器投递响应
-```
+</code></pre></div>
 
-### 3.7 插件系统
-
-**发现来源**:
-1. `~/.hermes/plugins/` (用户)
-2. `.hermes/plugins/` (项目)
-3. pip entry points
-
-**插件类型**:
-- 工具插件
-- Hook 插件
-- CLI 命令插件
-- Memory Provider 插件（单选）
-- Context Engine 插件（单选）
-
-### 3.8 Cron 调度器
-
-**特性**:
-- JSON 任务存储
-- 多种调度格式
-- 可附加技能和脚本
-- 投递到任意平台
-
-**数据流**:
-```
-调度器 tick
+<h3 id="37">3.7 插件系统</h3>
+<p><strong>发现来源</strong>:<br />
+1. <code>~/.hermes/plugins/</code> (用户)<br />
+2. <code>.hermes/plugins/</code> (项目)<br />
+3. pip entry points</p>
+<p><strong>插件类型</strong>:<br />
+- 工具插件<br />
+- Hook 插件<br />
+- CLI 命令插件<br />
+- Memory Provider 插件（单选）<br />
+- Context Engine 插件（单选）</p>
+<h3 id="38-cron">3.8 Cron 调度器</h3>
+<p><strong>特性</strong>:<br />
+- JSON 任务存储<br />
+- 多种调度格式<br />
+- 可附加技能和脚本<br />
+- 投递到任意平台</p>
+<p><strong>数据流</strong>:</p>
+<div class="codehilite"><pre><span></span><code>调度器 tick
   → 从 jobs.json 加载到期任务
   → 创建新的 AIAgent（无历史）
   → 注入附加技能作为上下文
   → 运行任务提示词
   → 投递到目标平台
   → 更新任务状态和 next_run
-```
+</code></pre></div>
 
-### 3.9 ACP 集成
-
-**文件**: `acp_adapter/`
-
-**功能**:
-- 通过 stdio/JSON-RPC 暴露给编辑器
-- 支持 VS Code, Zed, JetBrains
-
-### 3.10 RL/环境/轨迹
-
-**特性**:
-- Atropos 集成
-- 多工具调用解析器
-- ShareGPT 格式轨迹生成
-
----
-
-## 四、长期记忆系统
-
-### 4.1 内置记忆（核心层）
-
-Hermes 采用**双层记忆架构**，在会话开始时注入系统提示词：
-
-| 记忆文件 | 用途 | 字符限制 | Token 估算 |
-|----------|------|----------|-----------|
-| `MEMORY.md` | Agent 个人笔记（环境事实、约定、教训） | 2,200 字符 | ~800 tokens |
-| `USER.md` | 用户画像（偏好、沟通风格、期望） | 1,375 字符 | ~500 tokens |
-
-**特点**:
-- **冻结快照模式**: 在会话开始时一次性注入，会话中不改变
-- **Agent 自主管理**: 通过 `memory` 工具自动 add/replace/remove
-- **字符限制**: 保持记忆聚焦，强制精集
-- **安全扫描**: 检测提示注入、凭证泄露、SSH 后门等威胁
-
-**记忆注入格式**:
-```
-══════════════════════════════════════════════
+<h3 id="39-acp">3.9 ACP 集成</h3>
+<p><strong>文件</strong>: <code>acp_adapter/</code></p>
+<p><strong>功能</strong>:<br />
+- 通过 stdio/JSON-RPC 暴露给编辑器<br />
+- 支持 VS Code, Zed, JetBrains</p>
+<h3 id="310-rl">3.10 RL/环境/轨迹</h3>
+<p><strong>特性</strong>:<br />
+- Atropos 集成<br />
+- 多工具调用解析器<br />
+- ShareGPT 格式轨迹生成</p>
+<hr />
+<h2 id="_11">四、长期记忆系统</h2>
+<h3 id="41">4.1 内置记忆（核心层）</h3>
+<p>Hermes 采用<strong>双层记忆架构</strong>，在会话开始时注入系统提示词：</p>
+<table>
+<thead>
+<tr>
+<th>记忆文件</th>
+<th>用途</th>
+<th>字符限制</th>
+<th>Token 估算</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MEMORY.md</code></td>
+<td>Agent 个人笔记（环境事实、约定、教训）</td>
+<td>2,200 字符</td>
+<td>~800 tokens</td>
+</tr>
+<tr>
+<td><code>USER.md</code></td>
+<td>用户画像（偏好、沟通风格、期望）</td>
+<td>1,375 字符</td>
+<td>~500 tokens</td>
+</tr>
+</tbody>
+</table>
+<p><strong>特点</strong>:<br />
+- <strong>冻结快照模式</strong>: 在会话开始时一次性注入，会话中不改变<br />
+- <strong>Agent 自主管理</strong>: 通过 <code>memory</code> 工具自动 add/replace/remove<br />
+- <strong>字符限制</strong>: 保持记忆聚焦，强制精集<br />
+- <strong>安全扫描</strong>: 检测提示注入、凭证泄露、SSH 后门等威胁</p>
+<p><strong>记忆注入格式</strong>:</p>
+<div class="codehilite"><pre><span></span><code>══════════════════════════════════════════════
 MEMORY (your personal notes) [67% — 1,474/2,200 chars]
 ══════════════════════════════════════════════
-User's project is a Rust web service at ~/code/myapi using Axum + SQLx
+User&#39;s project is a Rust web service at ~/code/myapi using Axum + SQLx
 §
 This machine runs Ubuntu 22.04, has Docker and Podman installed
 §
 User prefers concise responses, dislikes verbose explanations
-```
+</code></pre></div>
 
-**记忆工具操作**:
-- `add` - 添加新记忆条目
-- `replace` - 替换现有条目（使用子串匹配）
-- `remove` - 移除不再相关的条目（使用子串匹配）
+<p><strong>记忆工具操作</strong>:<br />
+- <code>add</code> - 添加新记忆条目<br />
+- <code>replace</code> - 替换现有条目（使用子串匹配）<br />
+- <code>remove</code> - 移除不再相关的条目（使用子串匹配）</p>
+<p><strong>子串匹配</strong>:<br />
+<code>replace</code> 和 <code>remove</code> 使用短唯一子串匹配：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">memory</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span>
+         <span class="n">old_text</span><span class="o">=</span><span class="s2">&quot;dark mode&quot;</span><span class="p">,</span>
+         <span class="n">content</span><span class="o">=</span><span class="s2">&quot;User prefers light mode in VS Code, dark mode in terminal&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-**子串匹配**:
-`replace` 和 `remove` 使用短唯一子串匹配：
-```python
-memory(action="replace", target="memory",
-         old_text="dark mode",
-         content="User prefers light mode in VS Code, dark mode in terminal")
-```
+<h3 id="42-memory-providers">4.2 外部 Memory Providers（扩展层）</h3>
+<p>Hermes 集成了 <strong>8 个外部记忆提供商</strong>，提供超越内置记忆的深度知识管理：</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>存储方式</th>
+<th>成本</th>
+<th>独特能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Honcho</strong></td>
+<td>Cloud/自托管</td>
+<td>付费/免费</td>
+<td>辩证式用户建模、语义搜索</td>
+</tr>
+<tr>
+<td><strong>OpenViking</strong></td>
+<td>自托管</td>
+<td>免费</td>
+<td>文件系统层级、分层加载</td>
+</tr>
+<tr>
+<td><strong>Mem0</strong></td>
+<td>Cloud</td>
+<td>付费</td>
+<td>服务端 LLM 自动提取</td>
+</tr>
+<tr>
+<td><strong>Hindsight</strong></td>
+<td>Cloud/本地</td>
+<td>付费/免费</td>
+<td>知识图谱、实体解析、跨会话语义合成</td>
+</tr>
+<tr>
+<td><strong>Holographic</strong></td>
+<td>本地 SQLite</td>
+<td>免费</td>
+<td>HRR 代数查询、信任评分</td>
+</tr>
+<tr>
+<td><strong>RetainDB</strong></td>
+<td>Cloud</td>
+<td>$20/月</td>
+<td>混合搜索、7 种记忆类型</td>
+</tr>
+<tr>
+<td><strong>ByteRover</strong></td>
+<td>本地/Cloud</td>
+<td>免费/付费</td>
+<td>预压缩提取、知识树</td>
+</tr>
+<tr>
+<td><strong>Supermemory</strong></td>
+<td>Cloud</td>
+<td>付费</td>
+<td>上下文隔离、会话图谱构建</td>
+</tr>
+</tbody>
+</table>
+<h4 id="honcho">Honcho</h4>
+<p><strong>最佳用途</strong>: 多代理系统与跨会话上下文、用户-代理对齐</p>
+<p><strong>要求</strong>: <code>pip install honcho-ai</code> + API Key 或自托管实例</p>
+<p><strong>工具</strong>:<br />
+- <code>honcho_profile</code> (peer card)<br />
+- <code>honcho_search</code> (语义搜索)<br />
+- <code>honcho_context</code> (LLM 合成)<br />
+- <code>honcho_conclude</code> (存储事实)</p>
+<p><strong>关键配置</strong>:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;apiKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;your-key-from-app.honcho.dev&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;hosts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;hermes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;aiPeer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hermes&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;peerName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;your-name&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;workspace&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hermes&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 
-### 4.2 外部 Memory Providers（扩展层）
-
-Hermes 集成了 **8 个外部记忆提供商**，提供超越内置记忆的深度知识管理：
-
-| Provider | 存储方式 | 成本 | 独特能力 |
-|----------|----------|------|----------|
-| **Honcho** | Cloud/自托管 | 付费/免费 | 辩证式用户建模、语义搜索 |
-| **OpenViking** | 自托管 | 免费 | 文件系统层级、分层加载 |
-| **Mem0** | Cloud | 付费 | 服务端 LLM 自动提取 |
-| **Hindsight** | Cloud/本地 | 付费/免费 | 知识图谱、实体解析、跨会话语义合成 |
-| **Holographic** | 本地 SQLite | 免费 | HRR 代数查询、信任评分 |
-| **RetainDB** | Cloud | $20/月 | 混合搜索、7 种记忆类型 |
-| **ByteRover** | 本地/Cloud | 免费/付费 | 预压缩提取、知识树 |
-| **Supermemory** | Cloud | 付费 | 上下文隔离、会话图谱构建 |
-
-#### Honcho
-
-**最佳用途**: 多代理系统与跨会话上下文、用户-代理对齐
-
-**要求**: `pip install honcho-ai` + API Key 或自托管实例
-
-**工具**:
-- `honcho_profile` (peer card)
-- `honcho_search` (语义搜索)
-- `honcho_context` (LLM 合成)
-- `honcho_conclude` (存储事实)
-
-**关键配置**:
-```json
-{
-  "apiKey": "your-key-from-app.honcho.dev",
-  "hosts": {
-    "hermes": {
-      "enabled": true,
-      "aiPeer": "hermes",
-      "peerName": "your-name",
-      "workspace": "hermes"
-    }
-  }
-}
-```
-
-**多代理/Profiles**:
-每个 Hermes profile 获得自己的 Honcho AI peer，同时共享同一 workspace。
-
-#### OpenViking
-
-**最佳用途**: 自托管知识管理与结构化浏览
-
-**要求**: `pip install openviking` + 运行服务器
-
-**工具**:
-- `viking_search` (语义搜索)
-- `viking_read` (分层: abstract/overview/full)
-- `viking_browse` (文件系统导航)
-- `viking_remember` (存储事实)
-- `viking_add_resource` (摄取 URLs/docs)
-
-**关键特性**:
-- 分层上下文加载: L0 (~100 tokens) → L1 (~2k) → L2 (full)
-- 会话提交时自动记忆提取（profile、偏好、实体、事件、cases、patterns）
-- `viking://` URI scheme 用于分层知识浏览
-
-#### Mem0
-
-**最佳用途**: 免手记忆管理 - Mem0 自动处理提取
-
-**要求**: `pip install mem0ai` + API Key
-
-**工具**:
-- `mem0_profile` (所有存储的记忆)
-- `mem0_search` (语义搜索 + 重排序)
-- `mem0_conclude` (存储逐字事实)
-
-#### Hindsight
-
-**最佳用途**: 基于知识图谱的回忆与实体关系
-
-**要求**: Cloud: API Key 或 Local: LLM API Key
-
-**工具**:
-- `hindsight_retain` (存储 + 实体提取)
-- `hindsight_recall` (多策略搜索)
-- `hindsight_reflect` (跨记忆合成)
-
-**独特能力**: `hindsight_reflect` 工具提供跨记忆合成，无其他 provider 提供。
-
-#### Holographic
-
-**最佳用途**: 本地记忆与高级检索，无外部依赖
-
-**要求**: 无（SQLite 始终可用）
-
-**工具**:
-- `fact_store` (9 个操作: add, search, probe, related, reason, contradict, update, remove, list)
-- `fact_feedback` (有帮助/无帮助评分，训练信任分数)
-
-**独特能力**:
-- `probe` - 实体特定代数回忆（关于一个人/事物的所有事实）
-- `reason` - 跨多个实体的组合 AND 查询
-- `contradict` - 自动检测冲突事实
-- 信任评分，非对称反馈（+0.05 有帮助 / -0.10 无帮助）
-
-#### RetainDB
-
-**最佳用途**: 已使用 RetainDB 基础设施的团队
-
-**要求**: RetainDB 账户 + API Key
-
-**工具**:
-- `retaindb_profile` (用户画像)
-- `retaindb_search` (语义搜索)
-- `retaindb_context` (任务相关上下文)
-- `retaindb_remember` (存储 + 类型 + 重要性)
-- `retaindb_forget` (删除记忆)
-
-#### ByteRover
-
-**最佳用途**: 想要便携、本地优先记忆的开发者
-
-**要求**: ByteRover CLI (`npm install -g byterover-cli`)
-
-**工具**:
-- `brv_query` (搜索知识树)
-- `brv_curate` (存储事实/决策/模式)
-- `brv_status` (CLI 版本 + 树统计)
-
-**关键特性**:
-- 自动预压缩提取（在上下文压缩丢弃前保存洞察）
-- 知识树存储在 `$HERMES_HOME/byterover/` (profile-scoped)
-- SOC2 Type II 认证云同步（可选）
-
-#### Supermemory
-
-**最佳用途**: 语义回忆与用户画像和会话级图谱构建
-
-**要求**: `pip install supermemory` + API Key
-
-**工具**:
-- `supermemory_store` (保存显式记忆)
-- `supermemory_search` (语义相似性搜索)
-- `supermemory_forget` (通过 ID 或最佳匹配查询忘记)
-- `supermemory_profile` (持久画像 + 最近上下文)
-
-**关键特性**:
-- 自动上下文隔离 - 从捕获的轮次中剥离回忆的记忆，防止递归记忆污染
-- 会话结束对话摄取，用于更丰富的图谱级知识构建
-- 画像事实在第一轮和每 N 轮注入
-- 平凡消息过滤（跳过 "ok"、"thanks" 等）
-- Profile-scoped 容器 - 使用 `{identity}` 在 container_tag 中（如 hermes-{identity} → hermes-coder）
-
-### 4.3 会话搜索（跨会话回忆）
-
-**FTS5 全文搜索 + LLM 摘要**:
-- 所有 CLI 和消息会话存储在 SQLite（`~/.hermes/state.db`）
-- 使用 FTS5 全文搜索索引
-- 返回相关历史对话 + Gemini Flash 摘要
-- Agent 可以找到几周前讨论的内容
-
-**Memory vs Session Search 对比**:
-
-| 特性 | 内置 Memory | Session Search |
-|------|-------------|----------------|
-| 容量 | ~1,300 tokens 固定 | 无限制（所有会话） |
-| 速度 | 即时（在系统提示词中） | 需要搜索 + LLM 摘要 |
-| 用途 | 关键事实始终可用 | 查找特定历史对话 |
-| 管理 | Agent 手动整理 | 自动存储所有会话 |
-| Token 成本 | 每会会固定 | 按需调用 |
-
-### 4.4 Provider 工作流程
-
-```
-会话开始
+<p><strong>多代理/Profiles</strong>:<br />
+每个 Hermes profile 获得自己的 Honcho AI peer，同时共享同一 workspace。</p>
+<h4 id="openviking">OpenViking</h4>
+<p><strong>最佳用途</strong>: 自托管知识管理与结构化浏览</p>
+<p><strong>要求</strong>: <code>pip install openviking</code> + 运行服务器</p>
+<p><strong>工具</strong>:<br />
+- <code>viking_search</code> (语义搜索)<br />
+- <code>viking_read</code> (分层: abstract/overview/full)<br />
+- <code>viking_browse</code> (文件系统导航)<br />
+- <code>viking_remember</code> (存储事实)<br />
+- <code>viking_add_resource</code> (摄取 URLs/docs)</p>
+<p><strong>关键特性</strong>:<br />
+- 分层上下文加载: L0 (~100 tokens) → L1 (~2k) → L2 (full)<br />
+- 会话提交时自动记忆提取（profile、偏好、实体、事件、cases、patterns）<br />
+- <code>viking://</code> URI scheme 用于分层知识浏览</p>
+<h4 id="mem0">Mem0</h4>
+<p><strong>最佳用途</strong>: 免手记忆管理 - Mem0 自动处理提取</p>
+<p><strong>要求</strong>: <code>pip install mem0ai</code> + API Key</p>
+<p><strong>工具</strong>:<br />
+- <code>mem0_profile</code> (所有存储的记忆)<br />
+- <code>mem0_search</code> (语义搜索 + 重排序)<br />
+- <code>mem0_conclude</code> (存储逐字事实)</p>
+<h4 id="hindsight">Hindsight</h4>
+<p><strong>最佳用途</strong>: 基于知识图谱的回忆与实体关系</p>
+<p><strong>要求</strong>: Cloud: API Key 或 Local: LLM API Key</p>
+<p><strong>工具</strong>:<br />
+- <code>hindsight_retain</code> (存储 + 实体提取)<br />
+- <code>hindsight_recall</code> (多策略搜索)<br />
+- <code>hindsight_reflect</code> (跨记忆合成)</p>
+<p><strong>独特能力</strong>: <code>hindsight_reflect</code> 工具提供跨记忆合成，无其他 provider 提供。</p>
+<h4 id="holographic">Holographic</h4>
+<p><strong>最佳用途</strong>: 本地记忆与高级检索，无外部依赖</p>
+<p><strong>要求</strong>: 无（SQLite 始终可用）</p>
+<p><strong>工具</strong>:<br />
+- <code>fact_store</code> (9 个操作: add, search, probe, related, reason, contradict, update, remove, list)<br />
+- <code>fact_feedback</code> (有帮助/无帮助评分，训练信任分数)</p>
+<p><strong>独特能力</strong>:<br />
+- <code>probe</code> - 实体特定代数回忆（关于一个人/事物的所有事实）<br />
+- <code>reason</code> - 跨多个实体的组合 AND 查询<br />
+- <code>contradict</code> - 自动检测冲突事实<br />
+- 信任评分，非对称反馈（+0.05 有帮助 / -0.10 无帮助）</p>
+<h4 id="retaindb">RetainDB</h4>
+<p><strong>最佳用途</strong>: 已使用 RetainDB 基础设施的团队</p>
+<p><strong>要求</strong>: RetainDB 账户 + API Key</p>
+<p><strong>工具</strong>:<br />
+- <code>retaindb_profile</code> (用户画像)<br />
+- <code>retaindb_search</code> (语义搜索)<br />
+- <code>retaindb_context</code> (任务相关上下文)<br />
+- <code>retaindb_remember</code> (存储 + 类型 + 重要性)<br />
+- <code>retaindb_forget</code> (删除记忆)</p>
+<h4 id="byterover">ByteRover</h4>
+<p><strong>最佳用途</strong>: 想要便携、本地优先记忆的开发者</p>
+<p><strong>要求</strong>: ByteRover CLI (<code>npm install -g byterover-cli</code>)</p>
+<p><strong>工具</strong>:<br />
+- <code>brv_query</code> (搜索知识树)<br />
+- <code>brv_curate</code> (存储事实/决策/模式)<br />
+- <code>brv_status</code> (CLI 版本 + 树统计)</p>
+<p><strong>关键特性</strong>:<br />
+- 自动预压缩提取（在上下文压缩丢弃前保存洞察）<br />
+- 知识树存储在 <code>$HERMES_HOME/byterover/</code> (profile-scoped)<br />
+- SOC2 Type II 认证云同步（可选）</p>
+<h4 id="supermemory">Supermemory</h4>
+<p><strong>最佳用途</strong>: 语义回忆与用户画像和会话级图谱构建</p>
+<p><strong>要求</strong>: <code>pip install supermemory</code> + API Key</p>
+<p><strong>工具</strong>:<br />
+- <code>supermemory_store</code> (保存显式记忆)<br />
+- <code>supermemory_search</code> (语义相似性搜索)<br />
+- <code>supermemory_forget</code> (通过 ID 或最佳匹配查询忘记)<br />
+- <code>supermemory_profile</code> (持久画像 + 最近上下文)</p>
+<p><strong>关键特性</strong>:<br />
+- 自动上下文隔离 - 从捕获的轮次中剥离回忆的记忆，防止递归记忆污染<br />
+- 会话结束对话摄取，用于更丰富的图谱级知识构建<br />
+- 画像事实在第一轮和每 N 轮注入<br />
+- 平凡消息过滤（跳过 "ok"、"thanks" 等）<br />
+- Profile-scoped 容器 - 使用 <code>{identity}</code> 在 container_tag 中（如 hermes-{identity} → hermes-coder）</p>
+<h3 id="43">4.3 会话搜索（跨会话回忆）</h3>
+<p><strong>FTS5 全文搜索 + LLM 摘要</strong>:<br />
+- 所有 CLI 和消息会话存储在 SQLite（<code>~/.hermes/state.db</code>）<br />
+- 使用 FTS5 全文搜索索引<br />
+- 返回相关历史对话 + Gemini Flash 摘要<br />
+- Agent 可以找到几周前讨论的内容</p>
+<p><strong>Memory vs Session Search 对比</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>内置 Memory</th>
+<th>Session Search</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>容量</td>
+<td>~1,300 tokens 固定</td>
+<td>无限制（所有会话）</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>即时（在系统提示词中）</td>
+<td>需要搜索 + LLM 摘要</td>
+</tr>
+<tr>
+<td>用途</td>
+<td>关键事实始终可用</td>
+<td>查找特定历史对话</td>
+</tr>
+<tr>
+<td>管理</td>
+<td>Agent 手动整理</td>
+<td>自动存储所有会话</td>
+</tr>
+<tr>
+<td>Token 成本</td>
+<td>每会会固定</td>
+<td>按需调用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-provider">4.4 Provider 工作流程</h3>
+<div class="codehilite"><pre><span></span><code>会话开始
   ↓
 预取相关记忆（后台非阻塞）
   ↓
@@ -802,119 +837,139 @@ Hermes 集成了 **8 个外部记忆提供商**，提供超越内置记忆的深
 会话结束时提取记忆（支持的提供商）
   ↓
 镜像内置记忆写入到外部提供商
-```
+</code></pre></div>
 
----
+<hr />
+<h2 id="_12">五、自演进机制</h2>
+<h3 id="51">5.1 技能系统（程序性记忆）</h3>
+<p>技能是 Agent 的<strong>程序性记忆</strong>——从经验中提取的可复用工作流。</p>
+<h4 id="_13">技能创建触发条件</h4>
+<ul>
+<li>✅ 成功完成复杂任务（5+ 工具调用）</li>
+<li>✅ 遇到错误或死胡同后找到可行路径</li>
+<li>✅ 用户纠正了 Agent 的方法</li>
+<li>✅ 发现非平凡的工作流</li>
+</ul>
+<h4 id="_14">技能管理工具</h4>
+<div class="codehilite"><pre><span></span><code><span class="n">skill_manage</span><span class="p">(</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;create&quot;</span><span class="p">,</span>  <span class="c1"># 创建新技能</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deploy-k8s&quot;</span><span class="p">,</span>
+    <span class="n">content</span><span class="o">=</span><span class="s2">&quot;# SKILL.md 内容&quot;</span><span class="p">,</span>
+    <span class="n">category</span><span class="o">=</span><span class="s2">&quot;devops&quot;</span>
+<span class="p">)</span>
 
-## 五、自演进机制
+<span class="n">skill_manage</span><span class="p">(</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;patch&quot;</span><span class="p">,</span>  <span class="c1"># 目标修复（推荐）</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deploy-k8s&quot;</span><span class="p">,</span>
+    <span class="n">old_string</span><span class="o">=</span><span class="s2">&quot;旧文本&quot;</span><span class="p">,</span>
+    <span class="n">new_string</span><span class="o">=</span><span class="s2">&quot;新文本&quot;</span>
+<span class="p">)</span>
 
-### 5.1 技能系统（程序性记忆）
+<span class="n">skill_manage</span><span class="p">(</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;edit&quot;</span><span class="p">,</span>  <span class="c1"># 重大结构重写</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deploy-k8s&quot;</span><span class="p">,</span>
+    <span class="n">content</span><span class="o">=</span><span class="s2">&quot;# 完整的 SKILL.md 替换&quot;</span>
+<span class="p">)</span>
 
-技能是 Agent 的**程序性记忆**——从经验中提取的可复用工作流。
+<span class="n">skill_manage</span><span class="p">(</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span>  <span class="c1"># 删除技能</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deploy-k8s&quot;</span>
+<span class="p">)</span>
 
-#### 技能创建触发条件
+<span class="n">skill_manage</span><span class="p">(</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;write_file&quot;</span><span class="p">,</span>  <span class="c1"># 添加/更新支持文件</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deploy-k8s&quot;</span><span class="p">,</span>
+    <span class="n">file_path</span><span class="o">=</span><span class="s2">&quot;scripts/deploy.sh&quot;</span><span class="p">,</span>
+    <span class="n">file_content</span><span class="o">=</span><span class="s2">&quot;#!/bin/bash</span><span class="se">\n</span><span class="s2">...&quot;</span>
+<span class="p">)</span>
 
-- ✅ 成功完成复杂任务（5+ 工具调用）
-- ✅ 遇到错误或死胡同后找到可行路径
-- ✅ 用户纠正了 Agent 的方法
-- ✅ 发现非平凡的工作流
+<span class="n">skill_manage</span><span class="p">(</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;remove_file&quot;</span><span class="p">,</span>  <span class="c1"># 移除支持文件</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deploy-k8s&quot;</span><span class="p">,</span>
+    <span class="n">file_path</span><span class="o">=</span><span class="s2">&quot;scripts/deploy.sh&quot;</span>
+<span class="p">)</span>
+</code></pre></div>
 
-#### 技能管理工具
+<h4 id="_15">技能自我改进</h4>
+<ul>
+<li>Agent 可以在技能使用过程中检测到问题</li>
+<li>通过 <code>patch</code> 或 <code>edit</code> 动态更新技能</li>
+<li>改进后的技能在后续会话中自动生效</li>
+</ul>
+<h3 id="52">5.2 技能生态系统</h3>
+<h4 id="skills-hub">Skills Hub 集成</h4>
+<div class="codehilite"><pre><span></span><code>hermes<span class="w"> </span>skills<span class="w"> </span>browse<span class="w">                    </span><span class="c1"># 浏览所有技能</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>browse<span class="w"> </span>--source<span class="w"> </span>official<span class="w">   </span><span class="c1"># 仅浏览官方可选技能</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>search<span class="w"> </span>kubernetes<span class="w">         </span><span class="c1"># 搜索所有来源</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>search<span class="w"> </span>react<span class="w"> </span>--source<span class="w"> </span>skills-sh<span class="w">  </span><span class="c1"># 搜索 skills.sh</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>inspect<span class="w"> </span>openai/skills/k8s<span class="w">  </span><span class="c1"># 预览</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>install<span class="w"> </span>openai/skills/k8s<span class="w">   </span><span class="c1"># 安装</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>check<span class="w">                     </span><span class="c1"># 检查更新</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>update<span class="w">                    </span><span class="c1"># 更新技能</span>
+hermes<span class="w"> </span>skills<span class="w"> </span>uninstall<span class="w"> </span>k8s<span class="w">             </span><span class="c1"># 卸载</span>
+</code></pre></div>
 
-```python
-skill_manage(
-    action="create",  # 创建新技能
-    name="deploy-k8s",
-    content="# SKILL.md 内容",
-    category="devops"
-)
-
-skill_manage(
-    action="patch",  # 目标修复（推荐）
-    name="deploy-k8s",
-    old_string="旧文本",
-    new_string="新文本"
-)
-
-skill_manage(
-    action="edit",  # 重大结构重写
-    name="deploy-k8s",
-    content="# 完整的 SKILL.md 替换"
-)
-
-skill_manage(
-    action="delete",  # 删除技能
-    name="deploy-k8s"
-)
-
-skill_manage(
-    action="write_file",  # 添加/更新支持文件
-    name="deploy-k8s",
-    file_path="scripts/deploy.sh",
-    file_content="#!/bin/bash\n..."
-)
-
-skill_manage(
-    action="remove_file",  # 移除支持文件
-    name="deploy-k8s",
-    file_path="scripts/deploy.sh"
-)
-```
-
-#### 技能自我改进
-
-- Agent 可以在技能使用过程中检测到问题
-- 通过 `patch` 或 `edit` 动态更新技能
-- 改进后的技能在后续会话中自动生效
-
-### 5.2 技能生态系统
-
-#### Skills Hub 集成
-
-```bash
-hermes skills browse                    # 浏览所有技能
-hermes skills browse --source official   # 仅浏览官方可选技能
-hermes skills search kubernetes         # 搜索所有来源
-hermes skills search react --source skills-sh  # 搜索 skills.sh
-hermes skills inspect openai/skills/k8s  # 预览
-hermes skills install openai/skills/k8s   # 安装
-hermes skills check                     # 检查更新
-hermes skills update                    # 更新技能
-hermes skills uninstall k8s             # 卸载
-```
-
-#### 支持的技能源
-
-| 来源 | 示例 | 说明 |
-|------|------|------|
-| **official** | `official/security/1password` | 官方可选技能 |
-| **skills.sh** | `skills-sh/vercel-labs/agent-skills/vercel-react-best-practices` | Vercel 公共技能目录 |
-| **well-known** | `well-known:https://mintlify.com/docs/.well-known/skills/mintlify` | URL 发现 |
-| **github** | `openai/skills/k8s` | 直接从仓库安装 |
-| **clawhub** | `clawhub:skill-name` | 第三方市场 |
-| **claude-marketplace** | `claude-marketplace:skill-name` | Claude 风格仓库 |
-| **lobehub** | `lobehub:agent-name` | LobeHub Agent 目录转换 |
-
-#### 安全扫描
-
-所有 Hub 安装的技能都经过安全扫描，检查：
-- 数据泄露模式
-- 提示注入尝试
-- 破坏性命令
-- Shell 注入
-
-**信任级别**:
-- `builtin` - 始终信任
-- `official` - 内置信任
-- `trusted` - 更宽松策略
-`community` - 非危险发现可用 `--force` 覆盖
-
-### 5.3 渐进式披露（Token 优化）
-
-技能采用三层加载模式，最小化 Token 使用：
-
-```
-Level 0: skills_list()
+<h4 id="_16">支持的技能源</h4>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>示例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>official</strong></td>
+<td><code>official/security/1password</code></td>
+<td>官方可选技能</td>
+</tr>
+<tr>
+<td><strong>skills.sh</strong></td>
+<td><code>skills-sh/vercel-labs/agent-skills/vercel-react-best-practices</code></td>
+<td>Vercel 公共技能目录</td>
+</tr>
+<tr>
+<td><strong>well-known</strong></td>
+<td><code>well-known:https://mintlify.com/docs/.well-known/skills/mintlify</code></td>
+<td>URL 发现</td>
+</tr>
+<tr>
+<td><strong>github</strong></td>
+<td><code>openai/skills/k8s</code></td>
+<td>直接从仓库安装</td>
+</tr>
+<tr>
+<td><strong>clawhub</strong></td>
+<td><code>clawhub:skill-name</code></td>
+<td>第三方市场</td>
+</tr>
+<tr>
+<td><strong>claude-marketplace</strong></td>
+<td><code>claude-marketplace:skill-name</code></td>
+<td>Claude 风格仓库</td>
+</tr>
+<tr>
+<td><strong>lobehub</strong></td>
+<td><code>lobehub:agent-name</code></td>
+<td>LobeHub Agent 目录转换</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_17">安全扫描</h4>
+<p>所有 Hub 安装的技能都经过安全扫描，检查：<br />
+- 数据泄露模式<br />
+- 提示注入尝试<br />
+- 破坏性命令<br />
+- Shell 注入</p>
+<p><strong>信任级别</strong>:<br />
+- <code>builtin</code> - 始终信任<br />
+- <code>official</code> - 内置信任<br />
+- <code>trusted</code> - 更宽松策略<br />
+<code>community</code> - 非危险发现可用 <code>--force</code> 覆盖</p>
+<h3 id="53-token">5.3 渐进式披露（Token 优化）</h3>
+<p>技能采用三层加载模式，最小化 Token 使用：</p>
+<div class="codehilite"><pre><span></span><code>Level 0: skills_list()
   → [{name, description, category}, ...]
   ~3k tokens（技能索引）
 
@@ -925,34 +980,26 @@ Level 1: skill_view(name)
 Level 2: skill_view(name, path)
   → 特定引用文件
   深度加载
-```
+</code></pre></div>
 
-### 5.4 条件激活（智能技能可见性）
+<h3 id="54">5.4 条件激活（智能技能可见性）</h3>
+<p>技能可根据工具可用性自动显示/隐藏：</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">hermes</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">fallback_for_toolsets</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">web</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># 仅当 web 工具集不可用时显示</span>
+<span class="w">    </span><span class="nt">requires_toolsets</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">terminal</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># 仅当 terminal 工具集可用时显示</span>
+<span class="w">    </span><span class="nt">fallback_for_tools</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">web_search</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># 仅当 web_search 不可用时显示</span>
+<span class="w">    </span><span class="nt">requires_tools</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">terminal</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># 仅当 terminal 工具可用时显示</span>
+</code></pre></div>
 
-技能可根据工具可用性自动显示/隐藏：
-
-```yaml
-metadata:
-  hermes:
-    fallback_for_toolsets: [web]  # 仅当 web 工具集不可用时显示
-    requires_toolsets: [terminal]  # 仅当 terminal 工具集可用时显示
-    fallback_for_tools: [web_search]  # 仅当 web_search 不可用时显示
-    requires_tools: [terminal]  # 仅当 terminal 工具可用时显示
-```
-
-**用例**:
-- `duckduckgo-search` 技能设置 `fallback_for_tools: [web_search]`
-- 当用户有 `FIRECRAWL_API_KEY` 时，使用 `web_search`，DuckDuckGo 技能隐藏
-- 当 API Key 缺失时，DuckDuckGo 技能自动出现作为备选
-
----
-
-## 六、上下文压缩与缓存
-
-### 6.1 双层压缩系统
-
-```
-┌──────────────────────────┐
+<p><strong>用例</strong>:<br />
+- <code>duckduckgo-search</code> 技能设置 <code>fallback_for_tools: [web_search]</code><br />
+- 当用户有 <code>FIRECRAWL_API_KEY</code> 时，使用 <code>web_search</code>，DuckDuckGo 技能隐藏<br />
+- 当 API Key 缺失时，DuckDuckGo 技能自动出现作为备选</p>
+<hr />
+<h2 id="_18">六、上下文压缩与缓存</h2>
+<h3 id="61">6.1 双层压缩系统</h3>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────────┐
 │ Gateway Session Hygiene │ 85% 阈值
 │ (预 Agent，粗略估算)    │ 安全网
 └─────────────┬────────────┘
@@ -962,51 +1009,71 @@ metadata:
 │ Agent ContextCompressor  │ 50% 阈值（可配置）
 │ (循环内，真实 Token)     │ 主要管理
 └──────────────────────────┘
-```
+</code></pre></div>
 
-**配置参数**:
-```yaml
-compression:
-  enabled: true
-  threshold: 0.50        # 50% 上下文窗口时触发
-  target_ratio: 0.20     # 尾部保护 20% 阈值预算
-  protect_last_n: 20       # 最少保护 20 条消息
-  summary_model: null      # 摘要模型（默认 auxiliary）
-）
-```
+<p><strong>配置参数</strong>:</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">compression</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.50</span><span class="w">        </span><span class="c1"># 50% 上下文窗口时触发</span>
+<span class="w">  </span><span class="nt">target_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.20</span><span class="w">     </span><span class="c1"># 尾部保护 20% 阈值预算</span>
+<span class="w">  </span><span class="nt">protect_last_n</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w">       </span><span class="c1"># 最少保护 20 条消息</span>
+<span class="w">  </span><span class="nt">summary_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">      </span><span class="c1"># 摘要模型（默认 auxiliary）</span>
+<span class="l l-Scalar l-Scalar-Plain">）</span>
+</code></pre></div>
 
-**参数详情**:
-
-| 参数 | 默认值 | 范围 | 说明 |
-|------|--------|------|------|
-| threshold | 0.50 | 0.0-1.0 | 当 prompt tokens ≥ threshold × context_length 时触发压缩 |
-| target_ratio | 0.20 | 0.10-0.80 | 控制尾部保护 token 预算: threshold_tokens × target_ratio |
-| protect_last_n | 20 | ≥1 | 始终保留的最少消息数 |
-| protect_first_n | 3 | (硬编码) | 始终保护系统提示词 + 首次交换 |
-
-**计算值（200K 上下文模型，默认配置）**:
-```
-context_length = 200,000
+<p><strong>参数详情</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>范围</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>threshold</td>
+<td>0.50</td>
+<td>0.0-1.0</td>
+<td>当 prompt tokens ≥ threshold × context_length 时触发压缩</td>
+</tr>
+<tr>
+<td>target_ratio</td>
+<td>0.20</td>
+<td>0.10-0.80</td>
+<td>控制尾部保护 token 预算: threshold_tokens × target_ratio</td>
+</tr>
+<tr>
+<td>protect_last_n</td>
+<td>20</td>
+<td>≥1</td>
+<td>始终保留的最少消息数</td>
+</tr>
+<tr>
+<td>protect_first_n</td>
+<td>3</td>
+<td>(硬编码)</td>
+<td>始终保护系统提示词 + 首次交换</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计算值（200K 上下文模型，默认配置）</strong>:</p>
+<div class="codehilite"><pre><span></span><code>context_length = 200,000
 threshold_tokens = 200,000 × 0.50 = 100,000
 tail_token_budget = 100,000 × 0.20 = 20,000
 max_summary_tokens = min(200,000 × 0.05, 12,000) = 10,000
-```
+</code></pre></div>
 
-### 6.2 压缩算法（四阶段）
+<h3 id="62">6.2 压缩算法（四阶段）</h3>
+<h4 id="phase-1-llm">Phase 1: 修剪旧工具结果（无 LLM 调用）</h4>
+<p>受保护尾部之外的旧工具结果（&gt;200 字符）被替换为：</p>
+<div class="codehilite"><pre><span></span><code><span class="p">[</span><span class="n">Old</span><span class="w"> </span><span class="k">tool</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="n">cleared</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">save</span><span class="w"> </span><span class="n">context</span><span class="w"> </span><span class="n">space</span><span class="p">]</span>
+</code></pre></div>
 
-#### Phase 1: 修剪旧工具结果（无 LLM 调用）
-
-受保护尾部之外的旧工具结果（>200 字符）被替换为：
-```
-[Old tool output cleared to save context space]
-```
-
-这是一个廉价的预通过，从冗长的工具输出（文件内容、终端输出、搜索结果）中节省大量 token。
-
-#### Phase 2: 确定边界
-
-```
-┌─────────────────────────────────────────────────────────────┐
+<p>这是一个廉价的预通过，从冗长的工具输出（文件内容、终端输出、搜索结果）中节省大量 token。</p>
+<h4 id="phase-2">Phase 2: 确定边界</h4>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
 │ Message list                                             │
 │                                                         │
 │ [0..2] ← protect_first_n (系统提示词 + 首次交换)       │
@@ -1014,197 +1081,178 @@ max_summary_tokens = min(200,000 × 0.05, 12,000) = 10,000
 │ [N..end] ← tail (by token budget OR protect_last_n)        │
 │                                                         │
 └─────────────────────────────────────────────────────────────┘
-```
+</code></pre></div>
 
-尾部保护基于 token 预算：从末尾向后走，累积 token 直到预算耗尽。如果预算保护的消息数少于 `protect_last_n`，则回退到固定计数。
-
-边界对齐以避免分割 tool_call/tool_result 组。`_align_boundary_backward()` 方法走过连续的 tool 结果以找到父 assistant 消息，保持组完整。
-
-#### Phase 3: 生成结构化摘要
-
-中间轮次使用辅助 LLM 和结构化模板进行摘要：
-
-```markdown
-## Goal
+<p>尾部保护基于 token 预算：从末尾向后走，累积 token 直到预算耗尽。如果预算保护的消息数少于 <code>protect_last_n</code>，则回退到固定计数。</p>
+<p>边界对齐以避免分割 tool_call/tool_result 组。<code>_align_boundary_backward()</code> 方法走过连续的 tool 结果以找到父 assistant 消息，保持组完整。</p>
+<h4 id="phase-3">Phase 3: 生成结构化摘要</h4>
+<p>中间轮次使用辅助 LLM 和结构化模板进行摘要：</p>
+<div class="codehilite"><pre><span></span><code><span class="gu">## Goal</span>
 [用户试图完成什么]
 
-## Constraints & Preferences
+<span class="gu">## Constraints &amp; Preferences</span>
 [用户偏好、编码风格、约束、重要决策]
 
-## Progress
-### Done
+<span class="gu">## Progress</span>
+<span class="gu">### Done</span>
 [已完成工作 - 具体文件路径、命令、结果]
-### In Progress
+<span class="gu">### In Progress</span>
 [当前进行的工作]
-### Blocked
+<span class="gu">### Blocked</span>
 [阻塞或遇到的问题]
 
-## Key Decisions
+<span class="gu">## Key Decisions</span>
 [重要技术决策及原因]
 
-## Relevant Files
+<span class="gu">## Relevant Files</span>
 [读取、修改或创建的文件 - 简短说明]
 
-## Next Steps
+<span class="gu">## Next Steps</span>
 [接下来需要做什么]
 
-## Critical Context
+<span class="gu">## Critical Context</span>
 [具体值、错误消息、配置详情]
-```
+</code></pre></div>
 
-**摘要预算**根据压缩的内容量缩放：
-- 公式: `content_tokens ×` 0.20（`_SUMMARY_RATIO` 常量）
-- 最小: 2,000 tokens
-- 最大: `min(context_length × 0.05, 12,000)` tokens
+<p><strong>摘要预算</strong>根据压缩的内容量缩放：<br />
+- 公式: <code>content_tokens ×</code> 0.20（<code>_SUMMARY_RATIO</code> 常量）<br />
+- 最小: 2,000 tokens<br />
+- 最大: <code>min(context_length × 0.05, 12,000)</code> tokens</p>
+<h4 id="phase-4">Phase 4: 组装压缩消息</h4>
+<p>压缩消息列表为：<br />
+- 头部消息（首次压缩时在系统提示词附加注释）<br />
+- 摘要消息（角色选择以避免连续同角色违规）<br />
+- 尾部消息（未修改）</p>
+<p>孤立的 tool_call/tool_result 对通过 <code>_sanitize_tool_pairs()</code> 清理：<br />
+- 引用已移除调用的工具结果 → 移除<br />
+- 结果被移除的工具调用 → 注入存根结果</p>
+<h3 id="63">6.3 迭代式重新压缩</h3>
+<p>在后续压缩中，前摘要传递给 LLM 并指示更新而非从头摘要。这跨多次压缩保留信息——项目从 "In Progress" 移到 "Done"，添加新进度，移除过时信息。</p>
+<p>压缩器实例上的 <code>_previous_summary</code> 字段为此目的存储上次摘要文本。</p>
+<h3 id="64">6.4 压缩前后示例</h3>
+<h4 id="45-95k-tokens">压缩前（45 条消息，~95K tokens）</h4>
+<div class="codehilite"><pre><span></span><code><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="n">system</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;YouYou are a helpful assistant...&quot;</span><span class="w"> </span><span class="p">(</span><span class="n">系统提示词</span><span class="p">)</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Help me set up a FastAPI project&quot;</span>
+<span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">terminal</span><span class="p">:</span><span class="w"> </span><span class="n">mkdir</span><span class="w"> </span><span class="n">project</span>
+<span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="n">tool</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;directory created&quot;</span>
+<span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">write_file</span><span class="p">:</span><span class="w"> </span><span class="n">main</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="w"> </span><span class="n">tool</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;file written (2.3KB)&quot;</span>
+<span class="o">...</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span><span class="n">more</span><span class="w"> </span><span class="n">turns</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="n">editing</span><span class="p">,</span><span class="w"> </span><span class="n">testing</span><span class="p">,</span><span class="w"> </span><span class="n">debugging</span><span class="w"> </span><span class="o">...</span>
+<span class="p">[</span><span class="mi">38</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">terminal</span><span class="p">:</span><span class="w"> </span><span class="n">pytest</span>
+<span class="p">[</span><span class="mi">39</span><span class="p">]</span><span class="w"> </span><span class="n">tool</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;8 passed, 2 failed</span><span class="se">\n</span><span class="s2">...&quot;</span><span class="w"> </span><span class="p">(</span><span class="mi">5</span><span class="n">KB</span><span class="w"> </span><span class="n">output</span><span class="p">)</span>
+<span class="p">[</span><span class="mi">40</span><span class="p">]</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Fix failing tests&quot;</span>
+<span class="p">[</span><span class="mi">41</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">read_file</span><span class="p">:</span><span class="w"> </span><span class="n">tests</span><span class="o">/</span><span class="n">test_api</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="mi">42</span><span class="p">]</span><span class="w"> </span><span class="n">tool</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;import pytest</span><span class="se">\n</span><span class="s2">...&quot;</span><span class="w"> </span><span class="p">(</span><span class="mi">3</span><span class="n">KB</span><span class="p">)</span>
+<span class="p">[</span><span class="mi">43</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;I see issue with the test fixtures...&quot;</span>
+<span class="p">[</span><span class="mi">44</span><span class="p">]</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Great, also add error handling&quot;</span>
+</code></pre></div>
 
-#### Phase 4: 组装压缩消息
+<h4 id="25-45k-tokens">压缩后（25 条消息，~45K tokens）</h4>
+<div class="codehilite"><pre><span></span><code><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="n">system</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;You are a helpful assistant...</span>
+<span class="w"> </span><span class="p">[</span><span class="n">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Some</span><span class="w"> </span><span class="n">earlier</span><span class="w"> </span><span class="n">conversation</span><span class="w"> </span><span class="n">turns</span><span class="w"> </span><span class="n">have</span><span class="w"> </span><span class="n">been</span><span class="w"> </span><span class="n">compacted</span><span class="o">...</span><span class="p">]</span><span class="s2">&quot;</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Help me set up a FastAPI project&quot;</span>
+<span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[CONTEXT COMPACTION] Earlier turns were compacted...</span>
 
-压缩消息列表为：
-- 头部消息（首次压缩时在系统提示词附加注释）
-- 摘要消息（角色选择以避免连续同角色违规）
-- 尾部消息（未修改）
+<span class="w"> </span><span class="c1">## Goal</span>
+<span class="w"> </span><span class="n">Set</span><span class="w"> </span><span class="n">up</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">FastAPI</span><span class="w"> </span><span class="n">project</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="n">tests</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="n">handling</span>
 
-孤立的 tool_call/tool_result 对通过 `_sanitize_tool_pairs()` 清理：
-- 引用已移除调用的工具结果 → 移除
-- 结果被移除的工具调用 → 注入存根结果
+<span class="w"> </span><span class="c1">## Progress</span>
+<span class="w"> </span><span class="c1">### Done</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Created</span><span class="w"> </span><span class="n">project</span><span class="w"> </span><span class="n">structure</span><span class="p">:</span><span class="w"> </span><span class="n">main</span><span class="o">.</span><span class="n">py</span><span class="p">,</span><span class="w"> </span><span class="n">tests</span><span class="o">/</span><span class="p">,</span><span class="w"> </span><span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Implemented</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">endpoints</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">main</span><span class="o">.</span><span class="n">py</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Wrote</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="n">test</span><span class="w"> </span><span class="n">cases</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">tests</span><span class="o">/</span><span class="n">test_api</span><span class="o">.</span><span class="n">py</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">8</span><span class="o">/</span><span class="mi">10</span><span class="w"> </span><span class="n">tests</span><span class="w"> </span><span class="n">passing</span>
 
-### 6.3 迭代式重新压缩
+<span class="w"> </span><span class="c1">### In Progress</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Fixing</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="n">failing</span><span class="w"> </span><span class="n">tests</span><span class="w"> </span><span class="p">(</span><span class="n">test_create_user</span><span class="p">,</span><span class="w"> </span><span class="n">test_delete_user</span><span class="p">)</span>
 
-在后续压缩中，前摘要传递给 LLM 并指示更新而非从头摘要。这跨多次压缩保留信息——项目从 "In Progress" 移到 "Done"，添加新进度，移除过时信息。
+<span class="w"> </span><span class="c1">## Relevant Files</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">main</span><span class="o">.</span><span class="n">py</span><span class="w"> </span><span class="err">—</span><span class="w"> </span><span class="n">FastAPI</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="n">endpoints</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tests</span><span class="o">/</span><span class="n">test_api</span><span class="o">.</span><span class="n">py</span><span class="w"> </span><span class="err">—</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="n">test</span><span class="w"> </span><span class="n">cases</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">requirements</span><span class="o">.</span><span class="n">txt</span><span class="w"> </span><span class="err">—</span><span class="w"> </span><span class="n">fastapi</span><span class="p">,</span><span class="w"> </span><span class="n">pytest</span><span class="p">,</span><span class="w"> </span><span class="n">httpx</span>
 
-压缩器实例上的 `_previous_summary` 字段为此目的存储上次摘要文本。
+<span class="w"> </span><span class="c1">## Next Steps</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Fix</span><span class="w"> </span><span class="n">failing</span><span class="w"> </span><span class="n">test</span><span class="w"> </span><span class="n">fixtures</span>
+<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Add</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="n">handling</span><span class="s2">&quot;</span>
+<span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Fix failing tests&quot;</span>
+<span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">read_file</span><span class="p">:</span><span class="w"> </span><span class="n">tests</span><span class="o">/</span><span class="n">test_api</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="w"> </span><span class="n">tool</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;import pytest</span><span class="se">\n</span><span class="s2">...&quot;</span>
+<span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="w"> </span><span class="n">assistant</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;I see issue with the test fixtures...&quot;</span>
+<span class="p">[</span><span class="mi">7</span><span class="p">]</span><span class="w"> </span><span class="n">user</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Great, also add error handling&quot;</span>
+</code></pre></div>
 
-### 6.4 压缩前后示例
-
-#### 压缩前（45 条消息，~95K tokens）
-
-```
-[0] system: "YouYou are a helpful assistant..." (系统提示词)
-[1] user: "Help me set up a FastAPI project"
-[2] assistant: → terminal: mkdir project
-[3] tool: "directory created"
-[4] assistant: → write_file: main.py
-[5] tool: "file written (2.3KB)"
-... 30 more turns of file editing, testing, debugging ...
-[38] assistant: → terminal: pytest
-[39] tool: "8 passed, 2 failed\n..." (5KB output)
-[40] user: "Fix failing tests"
-[41] assistant: → read_file: tests/test_api.py
-[42] tool: "import pytest\n..." (3KB)
-[43] assistant: "I see issue with the test fixtures..."
-[44] user: "Great, also add error handling"
-```
-
-#### 压缩后（25 条消息，~45K tokens）
-
-```
-[0] system: "You are a helpful assistant...
- [Note: Some earlier conversation turns have been compacted...]"
-[1] user: "Help me set up a FastAPI project"
-[2] assistant: "[CONTEXT COMPACTION] Earlier turns were compacted...
-
- ## Goal
- Set up a FastAPI project with tests and error handling
-
- ## Progress
- ### Done
- - Created project structure: main.py, tests/, requirements.txt
- - Implemented 5 API endpoints in main.py
- - Wrote 10 test cases in tests/test_api.py
- - 8/10 tests passing
-
- ### In Progress
- - Fixing 2 failing tests (test_create_user, test_delete_user)
-
- ## Relevant Files
- - main.py — FastAPI app with 5 endpoints
- - tests/test_api.py — 10 test cases
- - requirements.txt — fastapi, pytest, httpx
-
- ## Next Steps
- - Fix failing test fixtures
- - Add error handling"
-[3] user: "Fix failing tests"
-[4] assistant: → read_file: tests/test_api.py
-[5] tool: "import pytest\n..."
-[6] assistant: "I see issue with the test fixtures..."
-[7] user: "Great, also add error handling"
-```
-
-### 6.5 Anthropic 提示词缓存
-
-**策略**: system_and_3
-
-Anthropic 允许每个请求最多 4 个 cache_control 断点。Hermes 使用 "system_and_3" 策略：
-
-```
-Breakpoint 1: 系统提示词（所有轮次稳定）
+<h3 id="65-anthropic">6.5 Anthropic 提示词缓存</h3>
+<p><strong>策略</strong>: system_and_3</p>
+<p>Anthropic 允许每个请求最多 4 个 cache_control 断点。Hermes 使用 "system_and_3" 策略：</p>
+<div class="codehilite"><pre><span></span><code>Breakpoint 1: 系统提示词（所有轮次稳定）
 Breakpoint 2: 倒数第 3 条非系统消息 ─┐
 Breakpoint 3: 倒数第 2 条非系统消息 ├─ 滚动窗口
 Breakpoint 4: 最后一条非系统消息 ─┘
-```
+</code></pre></div>
 
-**工作原理**:
+<p><strong>工作原理</strong>:</p>
+<p><code>apply_anthropic_cache_control()</code> 深拷消息并注入缓存标记：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 缓存标记格式</span>
+<span class="n">marker</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ephemeral&quot;</span><span class="p">}</span>
+<span class="c1"># 或 1 小时 TTL:</span>
+<span class="n">marker</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ephemeral&quot;</span><span class="p">,</span> <span class="s2">&quot;ttl&quot;</span><span class="p">:</span> <span class="s2">&quot;1h&quot;</span><span class="p">}</span>
+</code></pre></div>
 
-`apply_anthropic_cache_control()` 深拷消息并注入缓存标记：
+<p>标记根据内容类型不同应用：</p>
+<table>
+<thead>
+<tr>
+<th>内容类型</th>
+<th>标记位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>String content</td>
+<td>转换为 <code>[{"type": "text", "text": ..., "cache_control": ...}]</code></td>
+</tr>
+<tr>
+<td>List content</td>
+<td>添加到最后元素的 dict</td>
+</tr>
+<tr>
+<td>None/empty</td>
+<td>添加为 <code>msg["cache_control"]</code></td>
+</tr>
+<tr>
+<td>Tool messages</td>
+<td>添加为 <code>msg["cache_control"]</code>（仅原生 Anthropic）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>缓存感知设计模式</strong>:<br />
+- ✅ 稳定系统提示词：系统提示词是断点 1 并跨所有轮次缓存。避免对话中途变异（压缩仅在首次压缩时附加注释）<br />
+- ✅ 消息顺序很重要：缓存命中需要前缀匹配。在中间添加或移除消息会使之后的所有内容缓存失效<br />
+- ✅ 压缩缓存交互：压缩后，压缩区域的缓存失效，但系统提示词缓存存活。滚动的 3 消息窗口在 1-2 轮内重建缓存<br />
+- ✅ TTL 选择：默认 5m（5 分钟）。对长运行会话使用 1h，其中用户在轮次之间休息</p>
+<p><strong>启用提示词缓存</strong>:</p>
+<p>提示词缓存在以下情况自动启用：<br />
+- 模型是 Anthropic Claude 模型（通过模型名检测）<br />
+- Provider 支持 cache_control（原生 Anthropic API 或 OpenRouter）</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># config.yaml — TTL 可配置</span>
+<span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">cache_ttl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5m&quot;</span><span class="w">  </span><span class="c1"># &quot;5m&quot; 或 &quot;1h&quot;</span>
+</code></pre></div>
 
-```python
-# 缓存标记格式
-marker = {"type": "ephemeral"}
-# 或 1 小时 TTL:
-marker = {"type": "ephemeral", "ttl": "1h"}
-```
+<p>CLI 在启动时显示缓存状态：</p>
+<div class="codehilite"><pre><span></span><code>💾 Prompt caching: ENABLED (Claude via OpenRouter, 5m TTL)
+</code></pre></div>
 
-标记根据内容类型不同应用：
+<h3 id="66">6.6 上下文压力警告</h3>
+<p>Agent 在压缩阈值的 85%（不是 85% 上下文——85% 的阈值为 50% 上下文）时发出上下文压力警告：</p>
+<div class="codehilite"><pre><span></span><code>⚠️ Context is 85% to compaction threshold (42,500/50,000 tokens)
+</code></pre></div>
 
-| 内容类型 | 标记位置 |
-|----------|----------|
-| String content | 转换为 `[{"type": "text", "text": ..., "cache_control": ...}]` |
-| List content | 添加到最后元素的 dict |
-| None/empty | 添加为 `msg["cache_control"]` |
-| Tool messages | 添加为 `msg["cache_control"]`（仅原生 Anthropic） |
-
-**缓存感知设计模式**:
-- ✅ 稳定系统提示词：系统提示词是断点 1 并跨所有轮次缓存。避免对话中途变异（压缩仅在首次压缩时附加注释）
-- ✅ 消息顺序很重要：缓存命中需要前缀匹配。在中间添加或移除消息会使之后的所有内容缓存失效
-- ✅ 压缩缓存交互：压缩后，压缩区域的缓存失效，但系统提示词缓存存活。滚动的 3 消息窗口在 1-2 轮内重建缓存
-- ✅ TTL 选择：默认 5m（5 分钟）。对长运行会话使用 1h，其中用户在轮次之间休息
-
-**启用提示词缓存**:
-
-提示词缓存在以下情况自动启用：
-- 模型是 Anthropic Claude 模型（通过模型名检测）
-- Provider 支持 cache_control（原生 Anthropic API 或 OpenRouter）
-
-```yaml
-# config.yaml — TTL 可配置
-model:
-  cache_ttl: "5m"  # "5m" 或 "1h"
-```
-
-CLI 在启动时显示缓存状态：
-```
-💾 Prompt caching: ENABLED (Claude via OpenRouter, 5m TTL)
-```
-
-### 6.6 上下文压力警告
-
-Agent 在压缩阈值的 85%（不是 85% 上下文——85% 的阈值为 50% 上下文）时发出上下文压力警告：
-
-```
-⚠️ Context is 85% to compaction threshold (42,500/50,000 tokens)
-```
-
-压缩后，如果使用率降到阈值的 85% 以下，警告状态被清除。如果压缩未能将使用率降到警告水平以下（对话太密集），警告持续，但压缩不会在再次超过阈值前重新触发。
-
----
-
-## 七、学习循环闭环
-
-### 7.1 完整学习流程
-
-```
-用户请求
+<p>压缩后，如果使用率降到阈值的 85% 以下，警告状态被清除。如果压缩未能将使用率降到警告水平以下（对话太密集），警告持续，但压缩不会在再次超过阈值前重新触发。</p>
+<hr />
+<h2 id="_19">七、学习循环闭环</h2>
+<h3 id="71">7.1 完整学习流程</h3>
+<div class="codehilite"><pre><span></span><code>用户请求
   ↓
 Agent 执行任务（工具调用、推理）
   ↓
@@ -1228,80 +1276,124 @@ Agent 执行任务（工具调用、推理）
 提取记忆到外部 Provider
   ↓
 同步到会话数据库（FTS5 索引）
-```
+</code></pre></div>
 
-### 7.2 记忆与技能的协同
+<h3 id="72">7.2 记忆与技能的协同</h3>
+<table>
+<thead>
+<tr>
+<th>层面</th>
+<th>存储形式</th>
+<th>用途</th>
+<th>更新频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>短期记忆</strong></td>
+<td>对话历史</td>
+<td>当前会话上下文</td>
+<td>每轮</td>
+</tr>
+<tr>
+<td><strong>程序性记忆</strong></td>
+<td>技能（SKILL.md）</td>
+<td>可工作流</td>
+<td>按需创建</td>
+</tr>
+<tr>
+<td><strong>长期记忆</strong></td>
+<td>MEMORY.md/USER.md</td>
+<td>关键事实、用户画像</td>
+<td>会话中</td>
+</tr>
+<tr>
+<td><strong>外部记忆</strong></td>
+<td>Provider 存储</td>
+<td>深度知识图谱</td>
+<td>每轮/会话结束</td>
+</tr>
+<tr>
+<td><strong>历史会话</strong></td>
+<td>SQLite + FTS5</td>
+<td>跨会话回忆</td>
+<td>自动</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73">7.3 自演进的关键特性</h3>
+<p><strong>1. 主动记忆管理</strong><br />
+- Agent 自动保存用户偏好、环境事实、约定<br />
+- 检测重复信息，避免冗余<br />
+- 字符限制强制精集和整合</p>
+<p><strong>2. 技能自动创建</strong><br />
+- 复杂任务后自动提取工作流<br />
+- 错误和纠正驱动技能改进<br />
+- 技能通过 Skills Hub 共享和复用</p>
+<p><strong>3. 上下文智能压缩</strong><br />
+- 结构化摘要保留关键信息<br />
+- 迭代式更新避免信息丢失<br />
+- Anthropic 缓存降低成本</p>
+<p><strong>4. 跨会话知识检索</strong><br />
+- FTS5 全文搜索快速定位<br />
+- LLM 摘要提取关键信息<br />
+- 外部 Provider 提供语义搜索</p>
+<p><strong>5. 多层记忆架构</strong><br />
+- 内置记忆提供即时访问<br />
+- 外部 Provider 提供深度知识<br />
+- 会话搜索连接历史对话</p>
+<hr />
+<h2 id="_20">八、设计原则</h2>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>实践</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>提示词稳定性</strong></td>
+<td>系统提示词不会在对话中途改变。除非显式用户操作（/model），否则无缓存破坏变异</td>
+</tr>
+<tr>
+<td><strong>可观察执行</strong></td>
+<td>每个工具调用对用户可见（通过回调）。CLI 中的进度更新（spinner）和网关中的聊天消息</td>
+</tr>
+<tr>
+<td><strong>可中断</strong></td>
+<td>API 调用和工具执行可中途取消（通过用户输入或信号）</td>
+</tr>
+<tr>
+<td><strong>平台无关核心</strong></td>
+<td>一个 AIAgent 类服务 CLI、网关、ACP、批量和 API 服务器。平台差异存在于入口点，而非 agent</td>
+</tr>
+<tr>
+<td><strong>松耦合</strong></td>
+<td>可选子系统（MCP、插件、memory providers、RL 环境）使用注册模式和 check_fn 门控，而非硬依赖</td>
+</tr>
+<tr>
+<td><strong>Profile 配置隔离</strong></td>
+<td>每个 profile（<code>hermes -p &lt;name&gt;</code>）获得自己的 HERMES_HOME、配置、记忆、会话和网关 PID。多个 profile 可并发运行</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_21">九、数据流详解</h2>
+<h3 id="91-cli">9.1 CLI 会话流程</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">用户输入</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">HermesCLI</span><span class="o">.</span><span class="n">process_input</span><span class="p">()</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">AIAgent</span><span class="o">.</span><span class="n">run_conversation</span><span class="p">()</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">prompt_builder</span><span class="o">.</span><span class="n">build_system_prompt</span><span class="p">()</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">runtime_provider</span><span class="o">.</span><span class="n">resolve_runtime_provider</span><span class="p">()</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="err">调用</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">tool_calls</span><span class="err">?</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">model_tools</span><span class="o">.</span><span class="n">handle_function_call</span><span class="p">()</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="err">循环</span>
+<span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="err">最终响应</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">显示</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">保存到</span><span class="w"> </span><span class="n">SessionDB</span>
+</code></pre></div>
 
-| 层面 | 存储形式 | 用途 | 更新频率 |
-|------|----------|------|----------|
-| **短期记忆** | 对话历史 | 当前会话上下文 | 每轮 |
-| **程序性记忆** | 技能（SKILL.md） | 可工作流 | 按需创建 |
-| **长期记忆** | MEMORY.md/USER.md | 关键事实、用户画像 | 会话中 |
-| **外部记忆** | Provider 存储 | 深度知识图谱 | 每轮/会话结束 |
-| **历史会话** | SQLite + FTS5 | 跨会话回忆 | 自动 |
-
-### 7.3 自演进的关键特性
-
-**1. 主动记忆管理**
-- Agent 自动保存用户偏好、环境事实、约定
-- 检测重复信息，避免冗余
-- 字符限制强制精集和整合
-
-**2. 技能自动创建**
-- 复杂任务后自动提取工作流
-- 错误和纠正驱动技能改进
-- 技能通过 Skills Hub 共享和复用
-
-**3. 上下文智能压缩**
-- 结构化摘要保留关键信息
-- 迭代式更新避免信息丢失
-- Anthropic 缓存降低成本
-
-**4. 跨会话知识检索**
-- FTS5 全文搜索快速定位
-- LLM 摘要提取关键信息
-- 外部 Provider 提供语义搜索
-
-**5. 多层记忆架构**
-- 内置记忆提供即时访问
-- 外部 Provider 提供深度知识
-- 会话搜索连接历史对话
-
----
-
-## 八、设计原则
-
-| 原则 | 实践 |
-|------|------|
-| **提示词稳定性** | 系统提示词不会在对话中途改变。除非显式用户操作（/model），否则无缓存破坏变异 |
-| **可观察执行** | 每个工具调用对用户可见（通过回调）。CLI 中的进度更新（spinner）和网关中的聊天消息 |
-| **可中断** | API 调用和工具执行可中途取消（通过用户输入或信号） |
-| **平台无关核心** | 一个 AIAgent 类服务 CLI、网关、ACP、批量和 API 服务器。平台差异存在于入口点，而非 agent |
-| **松耦合** | 可选子系统（MCP、插件、memory providers、RL 环境）使用注册模式和 check_fn 门控，而非硬依赖 |
-| **Profile 配置隔离** | 每个 profile（`hermes -p <name>`）获得自己的 HERMES_HOME、配置、记忆、会话和网关 PID。多个 profile 可并发运行 |
-
----
-
-## 九、数据流详解
-
-### 9.1 CLI 会话流程
-
-```
-用户输入
-  → HermesCLI.process_input()
-  → AIAgent.run_conversation()
-  → prompt_builder.build_system_prompt()
-  → runtime_provider.resolve_runtime_provider()
-  → API 调用
-  → tool_calls? → model_tools.handle_function_call()
-  → 循环
-  → 最终响应 → 显示 → 保存到 SessionDB
-```
-
-### 9.2 网关消息流程
-
-```
-平台事件
+<h3 id="92">9.2 网关消息流程</h3>
+<div class="codehilite"><pre><span></span><code>平台事件
   → Adapter.on_message()
   → MessageEvent
   → GatewayRunner._handle_message()
@@ -1310,137 +1402,225 @@ Agent 执行任务（工具调用、推理）
   → 创建 AIAgent + 会话历史
   → AIAgent.run_conversation()
   → 通过适配器投递响应
-```
+</code></pre></div>
 
-### 9.3 Cron 任务流程
-
-```
-调度器 tick
+<h3 id="93-cron">9.3 Cron 任务流程</h3>
+<div class="codehilite"><pre><span></span><code>调度器 tick
   → 从 jobs.json 加载到期任务
   → 创建新的 AIAgent（无历史）
   → 注入附加技能作为上下文
   → 运行任务提示词
   → 投递到目标平台
   → 更新任务状态和 next_run
-```
+</code></pre></div>
 
----
-
-## 十、安全特性
-
-### 10.1 危险命令检测
-
-**检测模式** (`tools/approval.py`):
-
-| 类别 | 模式示例 |
-|------|----------|
-| 递归删除 | `rm -rf` |
-| 文件系统格式化 | `mkfs`, `dd` |
-| SQL 破坏性操作 | `DROP TABLE`, `DELETE FROM` without WHERE |
-| 系统配置覆盖 | `> /etc/` |
-| 服务操作 | `systemctl stop` |
-| 远程代码执行 | `curl \| sh` |
-| Fork bombs, 进程 kills | `:(){ :|:& };:`, `kill -9` |
-
-### 10.2 命令批准流程
-
-1. **模式检测**: `detect_dangerous_command(command)` 检查所有模式
-2. **批准提示**: 如匹配：
-   - CLI 模式: 交互式提示要求用户批准、拒绝或永久允许
-   - 网关模式: 异步批准回调发送请求到消息平台
-3. **智能批准**: 可选地，辅助 LLM 可自动批准匹配模式的低风险命令（如 `rm -rf node_modules/` 安全但匹配 "recursive delete"）
-4. **会话状态**: 批准按会话跟踪。一旦你为会话批准 "recursive delete"，后续 `rm -rf` 命令不再提示
-5. **永久 allowlist**: "永久允许" 选项将模式写入 `config.yaml` 的 `command_allowlist`，跨会话持久
-
-### 10.3 记忆安全扫描
-
-记忆条目在注入系统提示词前被扫描，因为它们被注入到系统提示词中。匹配威胁模式（提示注入、凭证泄露、SSH 后门）或包含不可见 Unicode 字符的内容被阻止。
-
----
-
-## 十一、与 OpenClaw 的对比
-
-| 特性 | OpenClaw | Hermes Agent |
-|------|----------|---------------|
-| **内置记忆** | MEMORY.md | MEMORY.md + USER.md |
-| **外部 Provider** | 无 | 8 个集成 |
-| **技能系统** | 基础 | 完整（创建/更新/删除） |
-| **Skills Hub** | ClawHub | 7+ 源集成 |
-| **上下文压缩** | 手动 | 自动双层 |
-| **提示词缓存**` | 无 | Anthropic 缓存 |
-| **会话搜索** | 无 | FTS5 + LLM |
-| **自演进** | 有限 | 完整学习循环 |
-| **Provider 支持** | 有限 | 18+ |
-| **平台支持** | Telegram 等 | 15+ 平台 |
-| **RL/训练** | 无 | 完整框架 |
-
----
-
-## 十二、代码规模
-
-| 组件 | 行数 |
-|------|------|
-| `run_agent.py` | ~9,200 |
-| `cli.py` | ~8,500 |
-| `hermes_cli/main.py` | ~5,500 |
-| `gateway/run.py` | ~7,500 |
-| `hermes_cli/setup/setup.py` | ~3,100 |
-| `tools/mcp_tool.py` | ~2,200 |
-| **测试** | ~3,000+ |
-
----
-
-## 十三、总结
-
-Hermes Agent 是一个设计精良、功能完备的 AI 助手框架，特别适合需要长期记忆、多平台集成和工具调用能力的场景。
-
-### 核心优势
-
-1. **真正的自演进能力**: 通过技能系统和记忆管理，Agent 能够从经验中学习并持续改进
-2. **多层记忆架构**: 内置记忆 + 8 个外部 Provider，提供从即时访问到深度知识图谱的完整谱系
-3. **智能上下文管理**: 双层压缩 + Anthropic 缓存，优化 Token 使用和成本
-4. **平台无关核心**: 单一 AIAgent 类服务所有入口点，易于扩展和维护
-5. **安全优先**: 危险命令检测、批准流程、记忆安全扫描等多层防护
-6. **灵活部署**: 从 $5 VPS 到 GPU 集群，适应各种使用场景
-
-### 适用场景
-
-- 需要长期记忆和跨会话上下文的个人助手
-- 多平台消息集成（Telegram、Discord、Slack 等）
-- 自动化任务调度和定时执行
-- 研究和开发工作流自动化
-- 需要从经验中学习并持续改进的 AI 系统
-
-### 设计哲学
-
-Hermes Agent 的自演进机制体现了几个核心设计原则：
-
-1. **渐进式披露** - 只在需要时加载完整内容
-2. **可观察执行** - 所有工具调用对用户可见
-3. **提示词稳定性** - 系统提示词不会中途改变
-4. **松耦合** - 可选子系统使用注册模式
-5. **Token 效率** - 缓存、压缩、分层加载
-6. **安全优先** - 扫描、批准、隔离
-
-这是一个真正能够**从经验中学习**的 AI 助手框架，随着使用时间增长，它会变得更了解用户、更高效、更智能。
-
----
-
-## 十四、相关链接
-
-- 📚 **文档**: https://hermes-agent.nousresearch.com/docs/
-- 💬 **Discord**: https://discord.gg/NousResearch
-- 🛠️ **Skills Hub**: https://agentskills.io
-- 📝 **许可证**: MIT
-- 🏢 **仓库**: https://github.com/NousResearch/hermes-agent
-- 🌐 **Nous Research**: https://nousresearch.com
-
----
-
-**报告生成时间**: 2026-04-11  
-**分析工具**: Web Fetch + 文档分析  
-**报告版本**: 1.0
-</div>
+<hr />
+<h2 id="_22">十、安全特性</h2>
+<h3 id="101">10.1 危险命令检测</h3>
+<p><strong>检测模式</strong> (<code>tools/approval.py</code>):</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>模式示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>递归删除</td>
+<td><code>rm -rf</code></td>
+</tr>
+<tr>
+<td>文件系统格式化</td>
+<td><code>mkfs</code>, <code>dd</code></td>
+</tr>
+<tr>
+<td>SQL 破坏性操作</td>
+<td><code>DROP TABLE</code>, <code>DELETE FROM</code> without WHERE</td>
+</tr>
+<tr>
+<td>系统配置覆盖</td>
+<td><code>&gt; /etc/</code></td>
+</tr>
+<tr>
+<td>服务操作</td>
+<td><code>systemctl stop</code></td>
+</tr>
+<tr>
+<td>远程代码执行</td>
+<td><code>curl \| sh</code></td>
+</tr>
+<tr>
+<td>Fork bombs, 进程 kills</td>
+<td><code>:(){ :|:&amp; };:</code>, <code>kill -9</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="102">10.2 命令批准流程</h3>
+<ol>
+<li><strong>模式检测</strong>: <code>detect_dangerous_command(command)</code> 检查所有模式</li>
+<li><strong>批准提示</strong>: 如匹配：<br />
+   - CLI 模式: 交互式提示要求用户批准、拒绝或永久允许<br />
+   - 网关模式: 异步批准回调发送请求到消息平台</li>
+<li><strong>智能批准</strong>: 可选地，辅助 LLM 可自动批准匹配模式的低风险命令（如 <code>rm -rf node_modules/</code> 安全但匹配 "recursive delete"）</li>
+<li><strong>会话状态</strong>: 批准按会话跟踪。一旦你为会话批准 "recursive delete"，后续 <code>rm -rf</code> 命令不再提示</li>
+<li><strong>永久 allowlist</strong>: "永久允许" 选项将模式写入 <code>config.yaml</code> 的 <code>command_allowlist</code>，跨会话持久</li>
+</ol>
+<h3 id="103">10.3 记忆安全扫描</h3>
+<p>记忆条目在注入系统提示词前被扫描，因为它们被注入到系统提示词中。匹配威胁模式（提示注入、凭证泄露、SSH 后门）或包含不可见 Unicode 字符的内容被阻止。</p>
+<hr />
+<h2 id="openclaw">十一、与 OpenClaw 的对比</h2>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>OpenClaw</th>
+<th>Hermes Agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>内置记忆</strong></td>
+<td>MEMORY.md</td>
+<td>MEMORY.md + USER.md</td>
+</tr>
+<tr>
+<td><strong>外部 Provider</strong></td>
+<td>无</td>
+<td>8 个集成</td>
+</tr>
+<tr>
+<td><strong>技能系统</strong></td>
+<td>基础</td>
+<td>完整（创建/更新/删除）</td>
+</tr>
+<tr>
+<td><strong>Skills Hub</strong></td>
+<td>ClawHub</td>
+<td>7+ 源集成</td>
+</tr>
+<tr>
+<td><strong>上下文压缩</strong></td>
+<td>手动</td>
+<td>自动双层</td>
+</tr>
+<tr>
+<td><strong>提示词缓存</strong>`</td>
+<td>无</td>
+<td>Anthropic 缓存</td>
+</tr>
+<tr>
+<td><strong>会话搜索</strong></td>
+<td>无</td>
+<td>FTS5 + LLM</td>
+</tr>
+<tr>
+<td><strong>自演进</strong></td>
+<td>有限</td>
+<td>完整学习循环</td>
+</tr>
+<tr>
+<td><strong>Provider 支持</strong></td>
+<td>有限</td>
+<td>18+</td>
+</tr>
+<tr>
+<td><strong>平台支持</strong></td>
+<td>Telegram 等</td>
+<td>15+ 平台</td>
+</tr>
+<tr>
+<td><strong>RL/训练</strong></td>
+<td>无</td>
+<td>完整框架</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_23">十二、代码规模</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>行数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run_agent.py</code></td>
+<td>~9,200</td>
+</tr>
+<tr>
+<td><code>cli.py</code></td>
+<td>~8,500</td>
+</tr>
+<tr>
+<td><code>hermes_cli/main.py</code></td>
+<td>~5,500</td>
+</tr>
+<tr>
+<td><code>gateway/run.py</code></td>
+<td>~7,500</td>
+</tr>
+<tr>
+<td><code>hermes_cli/setup/setup.py</code></td>
+<td>~3,100</td>
+</tr>
+<tr>
+<td><code>tools/mcp_tool.py</code></td>
+<td>~2,200</td>
+</tr>
+<tr>
+<td><strong>测试</strong></td>
+<td>~3,000+</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_24">十三、总结</h2>
+<p>Hermes Agent 是一个设计精良、功能完备的 AI 助手框架，特别适合需要长期记忆、多平台集成和工具调用能力的场景。</p>
+<h3 id="_25">核心优势</h3>
+<ol>
+<li><strong>真正的自演进能力</strong>: 通过技能系统和记忆管理，Agent 能够从经验中学习并持续改进</li>
+<li><strong>多层记忆架构</strong>: 内置记忆 + 8 个外部 Provider，提供从即时访问到深度知识图谱的完整谱系</li>
+<li><strong>智能上下文管理</strong>: 双层压缩 + Anthropic 缓存，优化 Token 使用和成本</li>
+<li><strong>平台无关核心</strong>: 单一 AIAgent 类服务所有入口点，易于扩展和维护</li>
+<li><strong>安全优先</strong>: 危险命令检测、批准流程、记忆安全扫描等多层防护</li>
+<li><strong>灵活部署</strong>: 从 $5 VPS 到 GPU 集群，适应各种使用场景</li>
+</ol>
+<h3 id="_26">适用场景</h3>
+<ul>
+<li>需要长期记忆和跨会话上下文的个人助手</li>
+<li>多平台消息集成（Telegram、Discord、Slack 等）</li>
+<li>自动化任务调度和定时执行</li>
+<li>研究和开发工作流自动化</li>
+<li>需要从经验中学习并持续改进的 AI 系统</li>
+</ul>
+<h3 id="_27">设计哲学</h3>
+<p>Hermes Agent 的自演进机制体现了几个核心设计原则：</p>
+<ol>
+<li><strong>渐进式披露</strong> - 只在需要时加载完整内容</li>
+<li><strong>可观察执行</strong> - 所有工具调用对用户可见</li>
+<li><strong>提示词稳定性</strong> - 系统提示词不会中途改变</li>
+<li><strong>松耦合</strong> - 可选子系统使用注册模式</li>
+<li><strong>Token 效率</strong> - 缓存、压缩、分层加载</li>
+<li><strong>安全优先</strong> - 扫描、批准、隔离</li>
+</ol>
+<p>这是一个真正能够<strong>从经验中学习</strong>的 AI 助手框架，随着使用时间增长，它会变得更了解用户、更高效、更智能。</p>
+<hr />
+<h2 id="_28">十四、相关链接</h2>
+<ul>
+<li>📚 <strong>文档</strong>: https://hermes-agent.nousresearch.com/docs/</li>
+<li>💬 <strong>Discord</strong>: https://discord.gg/NousResearch</li>
+<li>🛠️ <strong>Skills Hub</strong>: https://agentskills.io</li>
+<li>📝 <strong>许可证</strong>: MIT</li>
+<li>🏢 <strong>仓库</strong>: https://github.com/NousResearch/hermes-agent</li>
+<li>🌐 <strong>Nous Research</strong>: https://nousresearch.com</li>
+</ul>
+<hr />
+<p><strong>报告生成时间</strong>: 2026-04-11<br />
+<strong>分析工具</strong>: Web Fetch + 文档分析<br />
+<strong>报告版本</strong>: 1.0</p></div>
             <a href="../index.html" class="back-link">&larr; Back to home</a>
         </article>
     </main>
