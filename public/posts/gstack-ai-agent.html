@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gstack 端到端工作流：AI Agent 构建高质量软件的完整实践 | blog</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../about.html">About</a></li>
+                <li><a href="../projects.html">Projects</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <h1>gstack 端到端工作流：AI Agent 构建高质量软件的完整实践</h1>
+            <p class="meta">April 15, 2026</p>
+            <div class="content"><p>本文详细介绍 gstack 的完整端到端工作流，通过一个实际的团队任务管理应用（TaskApp）案例，展示如何使用 AI Agent 构建高质量软件产品。gstack 将软件工程最佳实践转化为可执行的结构化流程，从思考到发布，每个阶段都有明确的工具和输出。</p>
+
+<h2>项目概述</h2>
+<p><strong>项目：</strong> TaskApp - 实时协作的任务管理应用</p>
+<p><strong>场景：</strong> 为远程团队构建实时协作工具</p>
+<p><strong>用户痛点：</strong></p>
+<ul>
+  <li>团队分散在不同时区，协作困难</li>
+  <li>现有工具缺乏实时同步</li>
+  <li>没有清晰的任务优先级系统</li>
+  <li>缺少进度可视化和报告功能</li>
+</ul>
+
+<h2>gstack 工作流：7 阶段结构</h2>
+<p>gstack 采用 Think → Plan → Build → Review → Test → Ship → Reflect 的完整流程，共 21 个详细步骤。</p>
+
+<h3>Phase 1: Think（思考阶段）</h3>
+<p>通过 4 个专业工具明确产品边界和技术架构：</p>
+
+<h4>Step 1.1: /office-hours - 产品诊断</h4>
+<p>重构产品想法，通过 5 个关键问题明确需求：</p>
+<ol>
+  <li>你说的"团队任务管理"具体指什么？</li>
+  <li>你最想解决的"痛点"是什么？</li>
+  <li>为什么不直接用现有工具？</li>
+  <li>你的目标用户是谁？</li>
+  <li>你的"最小可行产品"边界是什么？</li>
+</ol>
+<p><strong>产出：</strong> DESIGN.md - 产品设计文档</p>
+
+<h4>Step 1.2: /plan-ceo-review - CEO 战略审查</h4>
+<p>使用 4 种模式重新思考产品：</p>
+<ul>
+  <li><strong>EXPANSION</strong>：扩展产品边界</li>
+  <li><strong>SELECTIVE EXPANSION</strong>：选择性扩展（推荐）</li>
+  <li><strong>HOLD SCOPE</strong>：保持范围</li>
+  <li><strong>REDUCTION</strong>：缩减范围</li>
+</ul>
+<p>最终锁定 3 个核心功能：实时任务同步、优先级管理、进度可视化。</p>
+
+<h4>Step 1.3: /plan-eng-review - 工程架构审查</h4>
+<p>设计完整的技术架构：</p>
+<ul>
+  <li>数据流设计：WebSocket 实时通信</li>
+  <li>状态机设计：TODO → IN_PROGRESS → REVIEW → DONE → ARCHIVED</li>
+  <li>边缘情况处理：网络断开、并发编辑、大量任务性能</li>
+  <li>安全考虑：WebSocket 认证、任务所有权验证、XSS/CSRF 防护</li>
+</ul>
+<p><strong>产出：</strong> ARCHITECTURE.md + TEST_PLAN.md</p>
+
+<h4>Step 1.4: /plan-design-review - 设计审查</h4>
+<p>评估 10 个设计维度（0-10 分），从 55% 提升到 72%：</p>
+<ul>
+  <li>添加键盘快捷键（Cmd+K 新建，Cmd+E 编辑）</li>
+  <li>添加 i18n 国际化架构（i18next）</li>
+</ul>
+
+<h3>Phase 2: Plan（规划完成）</h3>
+<p>规划阶段产出完整文档：</p>
+<ul>
+  <li>DESIGN.md - 产品设计</li>
+  <li>ARCHITECTURE.md - 技术架构</li>
+  <li>TEST_PLAN.md - 测试策略</li>
+</ul>
+
+<h3>Phase 3: Build（构建阶段）</h3>
+
+<h4>Step 3.1: /design-consultation - 设计系统构建</h4>
+<p>构建完整设计系统：</p>
+<ul>
+  <li>颜色系统：主色 #6366F1，语义优先级颜色</li>
+  <li>排版系统：Inter 字体，JetBrains Mono 代码字体</li>
+  <li>组件库：TaskCard、TaskBoard、PriorityBadge 等</li>
+</ul>
+<p><strong>产出：</strong> DESIGN_SYSTEM.md + Figma mockups</p>
+
+<h4>Step 3.2: /design-shotgun - 设计探索</h4>
+<p>生成 6 个设计变体：</p>
+<ul>
+  <li>极简主义、卡片式看板、时间线视图</li>
+  <li>列表+侧边栏、暗黑模式优先、移动端优先</li>
+</ul>
+<p>通过 2 轮迭代优化，最终选择圆角卡片看板 + 高对比度暗黑模式。</p>
+<p><strong>品味记忆：</strong> gstack 学习用户偏好，后续生成更符合口味的设计。</p>
+
+<h4>Step 3.3: /design-html - 设计转生产代码</h4>
+<p>将 mockup 转为生产 HTML：</p>
+<ul>
+  <li>React + TypeScript + Tailwind CSS</li>
+  <li>响应式（移动端、平板、桌面）</li>
+  <li>虚拟滚动（支持 10,000+ 任务）</li>
+</ul>
+<p><strong>产出：</strong> 11 个文件，~2,400 行前端代码</p>
+
+<h4>Step 3.4: 实现核心功能</h4>
+<p>后端实现（~3,200 行）：</p>
+<ul>
+  <li>PostgreSQL 数据库 schema</li>
+  <li>WebSocket 服务器 + Redis Pub/Sub</li>
+  <li>REST API 端点</li>
+  <li>前端集成：乐观更新、冲突解决</li>
+</ul>
+
+<h3>Phase 4: Review（审查阶段）</h3>
+
+<h4>Step 4.1: /review - 代码审查</h4>
+<p>扫描 5,600 行代码，发现问题：</p>
+<ul>
+  <li>2 个严重问题（自动修复）：WebSocket cleanup、键盘导航</li>
+  <li>2 个需确认问题：Redis 降级策略、并发测试覆盖</li>
+</ul>
+<p><strong>产出：</strong> REVIEW_REPORT.md</p>
+
+<h4>Step 4.2: /codex - 第二意见</h4>
+<p>调用 OpenAI Codex CLI 做独立审查：</p>
+<ul>
+  <li>Codex 特有发现：类型安全、错误边界处理</li>
+  <li>与 Claude 审查对比：合并 4 个不同建议</li>
+</ul>
+<p><strong>产出：</strong> CROSS_MODEL_REVIEW.md</p>
+
+<h3>Phase 5: Test（测试阶段）</h3>
+
+<h4>Step 5.1: /qa - QA 测试</h4>
+<p>打开真实浏览器测试 4 个核心场景：</p>
+<ol>
+  <li>创建任务 ✅</li>
+  <li>实时同步测试 ✅</li>
+  <li>并发编辑冲突 ✅</li>
+  <li>离线模式 ✅</li>
+</ol>
+<p>发现 1 个 bug：离线时间戳显示错误，自动修复并生成回归测试。</p>
+<p><strong>产出：</strong> QA_REPORT.md + 3 个回归测试文件</p>
+
+<h4>Step 5.2: /benchmark - 性能基准</h4>
+<p>建立性能基线：</p>
+<ul>
+  <li>首屏加载：1.2s</li>
+  <li>Time to Interactive：2.8s</li>
+  <li>LCP：1.5s</li>
+  <li>FID：85ms</li>
+</ul>
+<p><strong>产出：</strong> BENCHMARK_BASELINE.json</p>
+
+<h3>Phase 6: Ship（发布阶段）</h3>
+
+<h4>Step 6.1: /ship - 准备发布</h4>
+<p>发布检查：</p>
+<ul>
+  <li>✅ 测试通过：42/42 (100%)</li>
+  <li>✅ 代码覆盖率：87%</li>
+  <li>✅ 文档已更新</li>
+</ul>
+<p>创建 PR #42，标题：feat: 实时任务管理看板</p>
+
+<h4>Step 6.2: /land-and-deploy - 合并和部署</h4>
+<p>部署到 Vercel：</p>
+<ul>
+  <li>构建成功（23s）</li>
+  <li>域名配置：taskapp.com</li>
+  <li>性能优于基线 8-33%</li>
+</ul>
+
+<h4>Step 6.3: /canary - 金丝雀监控</h4>
+<p>10 分钟监控期：</p>
+<ul>
+  <li>控制台无错误</li>
+  <li>页面加载成功率：100%</li>
+  <li>LCP 从 1.5s 优化到 1.0s（提升 33%）</li>
+</ul>
+<p><strong>产出：</strong> CANARY_REPORT.md</p>
+
+<h3>Phase 7: Reflect（反思阶段）</h3>
+
+<h4>Step 7.1: /retro - 周回顾</h4>
+<p>统计本周产出：</p>
+<ul>
+  <li>5,600 行代码</li>
+  <li>47 次提交</li>
+  <li>8 个 PR 合并</li>
+  <li>87% → 91% 代码覆盖率</li>
+</ul>
+<p>学习点：</p>
+<ul>
+  <li>品味记忆很有用 - 第二轮生成更符合偏好</li>
+  <li>/qa 发现的 bug 很重要 - 生产会出问题</li>
+  <li>/codex 类型安全建议有价值</li>
+</ul>
+<p><strong>产出：</strong> RETRO_2026-W15.md</p>
+
+<h2>完整工作流总结</h2>
+
+<h3>时间线</h3>
+<p><strong>总时间：</strong> ~20 小时（2.5 个工作日）</p>
+<ul>
+  <li>Day 1: 规划（3h）+ 设计（4h）</li>
+  <li>Day 2-3: 开发（10h）+ 审查（1.5h）+ 测试（2.5h）</li>
+  <li>Day 4: 发布（1h）+ 回顾（0.5h）</li>
+</ul>
+<p><strong>效率：</strong> 280 行/小时</p>
+
+<h3>交付成果</h3>
+<p><strong>功能实现：</strong></p>
+<ul>
+  <li>实时任务同步（WebSocket）</li>
+  <li>乐观锁解决并发冲突</li>
+  <li>离线模式支持</li>
+  <li>键盘快捷键导航</li>
+  <li>跨时区时间显示</li>
+  <li>响应式设计 + 暗黑模式</li>
+</ul>
+
+<p><strong>质量保证：</strong></p>
+<ul>
+  <li>42/42 测试通过（100%）</li>
+  <li>87% → 91% 代码覆盖率</li>
+  <li>4 个核心场景 QA 测试</li>
+  <li>10 分钟金丝雀监控</li>
+  <li>0.2% 生产 Bug 率</li>
+</ul>
+
+<p><strong>文档产出：</strong></p>
+<ul>
+  <li>DESIGN.md、ARCHITECTURE.md、TEST_PLAN.md</li>
+  <li>REVIEW_REPORT.md、CROSS_MODEL_REVIEW.md</li>
+  <li>QA_REPORT.md、CANARY_REPORT.md、RETRO_2026-W15.md</li>
+</ul>
+
+<h3>性能指标</h3>
+<table>
+  <tr><th>指标</th><th>基线</th><th>生产</th><th>提升</th></tr>
+  <tr><td>首屏加载</td><td>1.2s</td><td>1.1s</td><td>8%</td></tr>
+  <tr><td>LCP</td><td>1.5s</td><td>1.0s</td><td>33%</td></tr>
+  <tr><td>FID</td><td>85ms</td><td>85ms</td><td>稳定</td></tr>
+</table>
+
+<h2>gstack 核心价值</h2>
+
+<h3>1. 结构化流程</h3>
+<p>Think → Plan → Build → Review → Test → Ship → Reflect，每个阶段有明确的输入和输出。</p>
+
+<h3>2. 专家角色分工</h3>
+<p>23 个专业工具，每个代表一个专家角色：CEO、Designer、Eng Manager、Staff Engineer、QA Lead、Security Officer 等。</p>
+
+<h3>3. 质量保证</h3>
+<ul>
+  <li>自动代码审查（2 个严重问题自动修复）</li>
+  <li>跨模型验证（Claude + Codex）</li>
+  <li>完整测试覆盖（4 个核心场景 + 回归测试）</li>
+  <li>性能监控（10 分钟金丝雀）</li>
+</ul>
+
+<h3>4. 持续改进</h3>
+<ul>
+  <li>品味记忆（学习用户偏好）</li>
+  <li>周回顾（记录学习点和成长机会）</li>
+  <li>跨会话知识复合</li>
+</ul>
+
+<h3>5. 效率提升</h3>
+<ul>
+  <li>压缩比：3x（研究）到 100x（脚手架）</li>
+  <li>产出：5,600 行/20 小时 = 280 行/小时</li>
+  <li>质量：87% 代码覆盖率，0.2% 生产 Bug 率</li>
+</ul>
+
+<h2>关键洞察</h2>
+<p><strong>为什么 gstack 有效：</strong></p>
+<ol>
+  <li>不是魔法，而是<strong>正确的工具 + 正确的流程</strong></li>
+  <li>单人通过结构化工作流可以达到团队效率</li>
+  <li>AI 模型推荐，用户决定（User Sovereignty）</li>
+  <li>持久浏览器守护进程实现亚秒级命令延迟</li>
+  <li>技能链式确保没有遗漏</li>
+  <li>跨模型验证提升代码质量</li>
+  <li>自动化测试和部署减少人为错误</li>
+</ol>
+
+<h2>适用场景</h2>
+<p>这个工作流特别适合：</p>
+<ul>
+  <li>创始人和 CEO（特别是技术型）</li>
+  <li>首次 AI Agent 用户</li>
+  <li>技术主管和高级工程师</li>
+  <li>需要严格审查、QA 和发布自动化的团队</li>
+  <li>想要学习现代软件工程工作流的开发者</li>
+</ul>
+
+<h2>总结</h2>
+<p>gstack 展示了如何将软件工程最佳实践转化为可执行的结构化流程。通过 TaskApp 案例，我们看到：</p>
+<ul>
+  <li>从想法到发布只需 2.5 个工作日</li>
+  <li>280 行/小时的代码产出效率</li>
+  <li>91% 代码覆盖率 + 0.2% 生产 Bug 率</li>
+  <li>完整的文档体系和持续改进机制</li>
+</ul>
+<blockquote>"单人通过正确的工具和流程，可以胜过 20 人团队。" — gstack 设计哲学</blockquote>
+</div>
+            <a href="../index.html" class="back-link">&larr; Back to home</a>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 blog. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
