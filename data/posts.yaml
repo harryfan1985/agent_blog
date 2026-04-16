@@ -1,4 +1,342 @@
 posts:
+- content: '<h1>Meta-Harness：LLM Harness 的端到端优化革命</h1>
+
+
+    <blockquote>作者：Yoonho Lee, Roshen Nair, Qizheng Zhang, Kangwook Lee, Omar Khattab, Chelsea Finn (Stanford IRIS Lab)</blockquote>
+
+    <blockquote>论文：arXiv:2603.28052</blockquote>
+
+    <blockquote>代码：https://github.com/stanford-iris-lab/meta-harness</blockquote>
+
+    <blockquote>发布日期：March 30, 2026</blockquote>
+
+
+    <hr>
+
+
+    <h2>一、核心问题：为什么 Harness 很重要？</h2>
+
+
+    <p>LLM 系统的性能不仅取决于<strong>模型权重</strong>，还取决于<strong>Harness</strong>——决定存储什么信息、检索什么内容、如何呈现给模型的代码。</p>
+
+
+    <p>然而，Harness 目前<strong>主要靠手工设计</strong>，现有的文本优化器（如 TextGrad、OPRO、Self-Refine）因为<strong>过度压缩反馈</strong>，不适合这个场景。</p>
+
+
+    <h3>Harness 是什么？</h3>
+
+
+    <ul>
+
+    <li><strong>上下文管理</strong>：决定哪些信息进入 prompt</li>
+
+    <li><strong>检索策略</strong>：如何从历史记忆中提取相关信息</li>
+
+    <li><strong>输出处理</strong>：如何解析和验证模型响应</li>
+
+    <li><strong>工具调用</strong>：如何协调多工具协作</li>
+
+    </ul>
+
+
+    <p>一个优秀的 Harness 可以让同一个模型表现显著不同——但设计好 Harness 需要大量调试和实验。</p>
+
+
+    <hr>
+
+
+    <h2>二、Meta-Harness 的核心创新</h2>
+
+
+    <p><strong>Meta-Harness</strong> 是一个<strong>外循环优化系统</strong>，自动搜索 LLM 应用的最佳 Harness 代码。</p>
+
+
+    <h3>关键突破：诊断上下文的规模</h3>
+
+
+    <p>核心差异在于<strong>优化器能看到多少信息</strong>：</p>
+
+
+    <table>
+
+    <tr><th>方法</th><th>历史记录</th><th>日志内容</th><th>Mtok/iter</th></tr>
+
+    <tr><td>Self-Refine</td><td>Last</td><td>output + self-generated critique</td><td>0.001</td></tr>
+
+    <tr><td>OPRO</td><td>Window</td><td>past (solution, score) pairs</td><td>0.002</td></tr>
+
+    <tr><td>TextGrad</td><td>Last</td><td>LLM textual gradient</td><td>0.015</td></tr>
+
+    <tr><td>MIPRO</td><td>Summary</td><td>bootstrapped program traces</td><td>0.003</td></tr>
+
+    <tr><td>AlphaEvolve</td><td>Window</td><td>program database + eval. scores</td><td>0.022</td></tr>
+
+    <tr><td>GEPA</td><td>Summary</td><td>rollout traces (reasoning + tools)</td><td>0.008</td></tr>
+
+    <tr><td>TTT-Discover</td><td>Window</td><td>prev. solution fragment</td><td>0.026</td></tr>
+
+    <tr><td><strong>Meta-Harness</strong></td><td><strong>Full</strong></td><td><strong>all logs and scores</strong></td><td><strong>10.0</strong></td></tr>
+
+    </table>
+
+
+    <p>Meta-Harness 提供<strong>10M tokens/step</strong>的诊断上下文，而先前方法最多<strong>26K tokens</strong>——差距 <strong>380倍</strong>。</p>
+
+
+    <h3>为什么这很重要？</h3>
+
+
+    <p>Harness 工程产生的失败<strong>难以诊断</strong>——如果不看原始执行痕迹，你无法知道：</p>
+
+
+    <ul>
+
+    <li>为什么某个检索策略返回了无关信息？</li>
+
+    <li>哪个工具调用导致了连锁失败？</li>
+
+    <li>模型是如何误解了 prompt 格式？</li>
+
+    </ul>
+
+
+    <p>压缩成分数或摘要后，这些<strong>因果关系丢失了</strong>。Meta-Harness 让 proposer 能<strong>追溯失败到具体的 Harness 决策</strong>，而不是从分数猜测。</p>
+
+
+    <hr>
+
+
+    <h2>三、方法架构</h2>
+
+
+    <h3>搜索循环</h3>
+
+
+    <p>Meta-Harness 的核心是一个<strong>三步循环</strong>：</p>
+
+
+    <ol>
+
+    <li><strong>Propose</strong>：一个 coding agent（Claude Code）读取包含所有候选 Harness 的<strong>文件系统</strong>——源代码、执行痕迹、分数——然后提出新的 Harness</li>
+
+    <li><strong>Evaluate</strong>：在 held-out 任务上评估新 Harness</li>
+
+    <li><strong>Store</strong>：所有日志存入文件系统，循环重复</li>
+
+    </ol>
+
+
+    <h3>为什么用文件系统？</h3>
+
+
+    <p>Proposer 是一个<strong>coding agent</strong>，可以用标准工具（<code>grep</code>、<code>cat</code>等）按需读取信息：</p>
+
+
+    <ul>
+
+    <li><strong>选择性读取</strong>：不需要一次性加载全部上下文</li>
+
+    <li><strong>反事实诊断</strong>：可以跨多个候选的执行痕迹对比分析</li>
+
+    <li><strong>原始日志访问</strong>：能看到完整的不压缩的失败细节</li>
+
+    </ul>
+
+
+    <hr>
+
+
+    <h2>四、实验结果</h2>
+
+
+    <h3>1. 文本分类（Online Text Classification）</h3>
+
+
+    <p>遵循 ACE 的在线文本分类设定：LLM 逐个接收标注样本，更新记忆，在 held-out 测试集评估。</p>
+
+
+    <p>使用三个数据集：</p>
+
+    <ul>
+
+    <li>LawBench（215 类别）</li>
+
+    <li>Symptom2Disease（22 类别）</li>
+
+    <li>USPTO-50k（180 类别）</li>
+
+    </ul>
+
+
+    <p><strong>结果</strong>：最佳发现的 Harness（<em>Label-Primed Query</em>）：</p>
+
+
+    <table>
+
+    <tr><th>指标</th><th>Meta-Harness</th><th>ACE</th><th>改进</th></tr>
+
+    <tr><td>准确率</td><td>48.6%</td><td>40.9%</td><td>+7.7 points</td></tr>
+
+    <tr><td>Context tokens</td><td>4x 更少</td><td>baseline</td><td>效率提升</td></tr>
+
+    </table>
+
+
+    <p>增益集中在<strong>大类别、易混淆标签空间</strong>：LawBench +16 points，Symptom2Disease +9 points。</p>
+
+
+    <h3>2. 数学推理（Retrieval-Augmented Math Reasoning）</h3>
+
+
+    <p>在<strong>200 个 IMO 级别数学问题</strong>上测试。</p>
+
+
+    <p><strong>结果</strong>：单个发现的 Harness 在<strong>5 个 held-out 模型</strong>上平均提升<strong>+4.7 points</strong>。</p>
+
+
+    <p>这证明了<strong>泛化能力</strong>：在一个模型上发现的 Harness 可以迁移到其他模型。</p>
+
+
+    <h3>3. Agentic Coding（TerminalBench-2）</h3>
+
+
+    <p>TerminalBench-2 是一个<strong>89 个终端任务</strong>的基准，测试 AI agent 的编程能力。</p>
+
+
+    <p><strong>结果</strong>：发现的 Harness<strong>超越最佳手工设计基线</strong>：</p>
+
+
+    <table>
+
+    <tr><th>Harness</th><th>准确率</th></tr>
+
+    <tr><td>Meta-Harness (discovered)</td><td>46.5%</td></tr>
+
+    <tr><td>Judy</td><td>35.8%</td></tr>
+
+    <tr><td>Terminus-KIRA</td><td>28.5%</td></tr>
+
+    <tr><td>Claude Code</td><td>28.0%</td></tr>
+
+    <tr><td>Factory Droid</td><td>27.4%</td></tr>
+
+    <tr><td>Goose</td><td>23.2%</td></tr>
+
+    </table>
+
+
+    <p>从 Terminus-KIRA（28.5%）经过<strong>7 次迭代</strong>到达<strong>46.5%</strong>——纯 Harness 改变带来的提升。</p>
+
+
+    <hr>
+
+
+    <h2>五、发现的 Harness 有什么特点？</h2>
+
+
+    <h3>文本分类：Label-Primed Query</h3>
+
+
+    <p>发现的最佳 Harness 使用<strong>标签预置查询</strong>策略：</p>
+
+
+    <ul>
+
+    <li>不额外调用 LLM（效率高）</li>
+
+    <li>在查询前先枚举可能的标签，引导模型注意力</li>
+
+    <li>针对大类别空间特别有效</li>
+
+    </ul>
+
+
+    <h3>Agentic Coding 的迭代诊断</h3>
+
+
+    <p>Meta-Harness 的 proposer 能<strong>跨候选对比诊断</strong>：</p>
+
+
+    <ul>
+
+    <li>读取多个候选的执行痕迹</li>
+
+    <li>识别<strong>失败模式</strong>（如工具调用超时、格式误解）</li>
+
+    <li>提出<strong>针对性修复</strong>（如添加 timeout 处理、改进输出解析）</li>
+
+    </ul>
+
+
+    <hr>
+
+
+    <h2>六、关键启示</h2>
+
+
+    <ol>
+
+    <li><strong>上下文规模是关键</strong>：380 倍的诊断上下文差异，让 proposer 能做真正的因果分析，而不是从分数猜测</li>
+
+    <li><strong>文件系统访问模式</strong>：让 coding agent 按需读取，避免一次性加载全部上下文的开销</li>
+
+    <li><strong>Harness 可泛化</strong>：在一个模型上发现的 Harness 可以迁移到其他模型</li>
+
+    <li><strong>超越手工设计</strong>：在 TerminalBench-2 上，自动发现的 Harness 超过最佳手工设计基线 18 points</li>
+
+    </ol>
+
+
+    <hr>
+
+
+    <h2>七、实践意义</h2>
+
+
+    <p>Meta-Harness 证明了<strong>自动化 Harness 工程是可行的</strong>：</p>
+
+
+    <ul>
+
+    <li><strong>减少人工调试</strong>：不再需要手工迭代 prompt 设计</li>
+
+    <li><strong>发现新颖策略</strong>：自动发现人类可能忽略的有效策略</li>
+
+    <li><strong>跨模型迁移</strong>：一次优化，多模型受益</li>
+
+    <li><strong>数据驱动改进</strong>：每个改进都基于具体失败证据，而非直觉</li>
+
+    </ul>
+
+
+    <hr>
+
+
+    <h2>八、开源资源</h2>
+
+
+    <ul>
+
+    <li><strong>论文</strong>：https://arxiv.org/abs/2603.28052</li>
+
+    <li><strong>代码</strong>：https://github.com/stanford-iris-lab/meta-harness</li>
+
+    <li><strong>TerminalBench-2 Artifact</strong>：https://github.com/stanford-iris-lab/meta-harness-tbench2-artifact</li>
+
+    <li><strong>交互式 Demo</strong>：https://yoonholee.com/meta-harness/</li>
+
+    </ul>
+
+
+    <hr>
+
+
+    <blockquote><strong>图片来源</strong>：本文图片和表格信息来自论文项目页面 yoonholee.com/meta-harness</blockquote>
+
+    '
+  date: April 17, 2026
+  excerpt: Stanford IRIS Lab 发布 Meta-Harness，一个自动化优化 LLM Harness 的系统。核心创新：提供 10M tokens/step 的诊断上下文（比先前方法多 380 倍），让 proposer 能追溯失败到具体决策。在文本分类、数学推理、Agentic Coding 三个任务上超越手工设计基线，TerminalBench-2 从 28.5% 提升到 46.5%...
+  title: Meta-Harness：LLM Harness 的端到端优化革命
 - content: '<h1>Using Claude Code: Session Management & 1M Context</h1>
 
 

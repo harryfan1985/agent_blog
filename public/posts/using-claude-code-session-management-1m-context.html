@@ -29,7 +29,7 @@
 <blockquote style="background: #f5f5f5; padding: 0.5em 1em; border-radius: 4px;">发布日期：April 16, 2026  </blockquote>
 <blockquote style="background: #f5f5f5; padding: 0.5em 1em; border-radius: 4px;">浏览量：1.5M Views</blockquote>
 
-<img src="images/claude-code-session-management/cover.png" alt="封面图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/cover.png" alt="封面图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <hr style="margin: 2em 0;">
 
@@ -53,7 +53,7 @@
 
 <h2>一、Context、Compaction 与 Context Rot 快速入门</h2>
 
-<img src="images/claude-code-session-management/01_context_window.png" alt="Context Window示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/01_context_window.png" alt="Context Window示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <strong>Context Window（上下文窗口）</strong> 是模型在生成下一个响应时能够"看到"的所有内容。它包括：
 <ul style="margin: 1em 0;">
@@ -71,7 +71,7 @@
 
 <p style="margin: 1em 0; line-height: 1.6;">对于我们的 1M 上下文模型，我们观察到<strong>大约在 300-400k tokens 时会出现某种程度的 context rot</strong>，但这高度依赖于任务——不是一个硬性规则。</p>
 
-<img src="images/claude-code-session-management/02_compaction.png" alt="Compaction流程图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/02_compaction.png" alt="Compaction流程图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <p style="margin: 1em 0; line-height: 1.6;">上下文窗口是硬性截止，所以当你接近上下文窗口的末尾时，你需要将你正在进行的任务总结成更小的描述，并在新的上下文窗口中继续工作，我们称之为 <strong>Compaction（压缩）</strong>。你也可以自己触发 compaction。</p>
 
@@ -79,7 +79,7 @@
 
 <h2>二、每个回合都是一个分支点</h2>
 
-<img src="images/claude-code-session-management/03_branching_point.png" alt="分支点示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/03_branching_point.png" alt="分支点示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <p style="margin: 1em 0; line-height: 1.6;">假设你刚刚让 Claude 做某事，它已经完成了——现在你的上下文中有一些信息（tool calls、tool outputs、你的指令），你接下来有<strong>惊人的多种选择</strong>：</p>
 
@@ -111,7 +111,7 @@
 
 <h2>四、Rewinding 而非 Correcting</h2>
 
-<img src="images/claude-code-session-management/04_rewind.png" alt="Rewind示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/04_rewind.png" alt="Rewind示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <p style="margin: 1em 0; line-height: 1.6;">如果我必须选择一个标志着良好上下文管理的习惯，那就是 <strong>rewind</strong>。</p>
 
@@ -123,7 +123,7 @@
 
 <p style="margin: 1em 0; line-height: 1.6;">但<strong>更好的做法是 rewind 到文件读取之后，用你学到的知识重新提示</strong>："Don't use approach A, the foo module doesn't expose that — go straight to B."</p>
 
-<img src="images/claude-code-session-management/05_summarize.png" alt="Summarize from here示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/05_summarize.png" alt="Summarize from here示意图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <p style="margin: 1em 0; line-height: 1.6;">你也可以使用 <strong>"summarize from here"</strong> 让 Claude 总结其学习内容并创建一个 handoff message，就像是未来的 Claude 给之前的 Claude 的消息，告诉它尝试了什么但失败了。</p>
 
@@ -131,7 +131,7 @@
 
 <h2>五、Compacting vs Fresh Sessions</h2>
 
-<img src="images/claude-code-session-management/06_compact_vs_clear.png" alt="Compact vs Clear对比图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
+<img src="../images/claude-code-session-management/06_compact_vs_clear.png" alt="Compact vs Clear对比图" style="max-width: 100%; border-radius: 8px; margin: 1.5em 0;">
 
 <p style="margin: 1em 0; line-height: 1.6;">一旦会话变长，你有两种方式来减轻重量：<code style="background: #e0e0e0; padding: 0.2em 0.4em; border-radius: 3px;">/compact</code> 或 <code style="background: #e0e0e0; padding: 0.2em 0.4em; border-radius: 3px;">/clear</code>（并重新开始）。它们感觉相似，但行为非常不同。</p>
 
