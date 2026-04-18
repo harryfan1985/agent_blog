@@ -10,7 +10,28 @@ def load_posts():
     """Load posts from YAML file."""
     data_path = Path(__file__).parent / "data" / "posts.yaml"
     with open(data_path, "r") as f:
-        return yaml.safe_load(f)["posts"]
+        posts = yaml.safe_load(f)["posts"]
+    
+    # Normalize posts: ensure all have title and date
+    for post in posts:
+        if "title" not in post:
+            # Extract title from content (first <h1> tag)
+            content = post.get("content", "")
+            match = re.search(r'<h1>([^<]+)</h1>', content)
+            if match:
+                post["title"] = match.group(1)
+            else:
+                post["title"] = "Untitled"
+        
+        if "date" not in post:
+            # Extract date from content
+            match = re.search(r'发布日期[：:]\s*([^<\n]+)', content)
+            if match:
+                post["date"] = match.group(1).strip()
+            else:
+                post["date"] = "Unknown"
+    
+    return posts
 
 
 def slugify(title):
