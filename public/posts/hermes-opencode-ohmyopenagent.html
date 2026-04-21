@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes → OpenCode → OhMyOpenAgent 架构详解 | blog</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../about.html">About</a></li>
+                <li><a href="../projects.html">Projects</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <h1>Hermes → OpenCode → OhMyOpenAgent 架构详解</h1>
+            <p class="meta">April 20, 2026</p>
+            <div class="content"><h1>Hermes → OpenCode → OhMyOpenAgent 架构详解</h1>
+
+<blockquote>发布日期：April 20, 2026</blockquote>
+
+<hr>
+
+<h2>层级关系</h2>
+
+<p>这三层代理架构共享同一个 LLM 后端，但编排能力逐层增强：</p>
+
+<pre style="background: #1a1a2e; padding: 1em; overflow-x: auto;">
+用户 → Hermes → OpenCode CLI → OhMyOpenAgent (OmO) → LLM 后端
+</pre>
+
+<table>
+<tr><th>层级</th><th>名称</th><th>角色</th><th>类比</th></tr>
+<tr><td><strong>第0层</strong></td><td>LLM 后端</td><td>推理引擎</td><td>大脑</td></tr>
+<tr><td><strong>第1层</strong></td><td>Hermes</td><td>上层协调代理</td><td>项目经理</td></tr>
+<tr><td><strong>第2层</strong></td><td>OpenCode</td><td>专业编码代理</td><td>程序员</td></tr>
+<tr><td><strong>第3层</strong></td><td>OhMyOpenAgent</td><td>多代理编排扩展</td><td>程序员团队</td></tr>
+</table>
+
+<h2>具体关系</h2>
+
+<h3>Hermes ↔ OpenCode</h3>
+<ul>
+<li><strong>关系</strong>：Hermes 是上层，OpenCode 是被调用的工具之一</li>
+<li><strong>方式</strong>：Hermes 通过 terminal() 工具执行 opencode run ... 命令</li>
+<li><strong>用途</strong>：当 Hermes 认为某个编码任务适合交给专业编码代理时</li>
+</ul>
+
+<h3>OpenCode ↔ OhMyOpenAgent</h3>
+<ul>
+<li><strong>关系</strong>：OpenCode 是宿主，OmO 是插件</li>
+<li><strong>方式</strong>：通过 bun 安装，扩展 OpenCode 的能力</li>
+<li><strong>用途</strong>：让单一代理变成多代理协作团队</li>
+</ul>
+
+<h2>OmO 核心代理</h2>
+
+<table>
+<tr><th>Agent</th><th>角色</th></tr>
+<tr><td><strong>Sisyphus</strong></td><td>主协调器，永不停止</td></tr>
+<tr><td><strong>Hephaestus</strong></td><td>自主深度工作者</td></tr>
+<tr><td><strong>Atlas</strong></td><td>Prometheus 计划执行器</td></tr>
+<tr><td><strong>Prometheus</strong></td><td>战略规划师（访谈模式）</td></tr>
+<tr><td><strong>Oracle</strong></td><td>架构顾问（只读）</td></tr>
+<tr><td><strong>Librarian</strong></td><td>文档和 OSS 搜索</td></tr>
+<tr><td><strong>Explore</strong></td><td>代码库搜索</td></tr>
+<tr><td><strong>Metis</strong></td><td>计划前的差距分析</td></tr>
+<tr><td><strong>Momus</strong></td><td>严格的计划审查者</td></tr>
+</table>
+
+<h2>三种使用模式</h2>
+
+<h3>Mode 1: Ultrawork (懒人模式)</h3>
+
+<pre><code>opencode run 'ulw add JWT authentication to Express API'</code></pre>
+
+<ul>
+<li>输入 ulw 或 ultrawork 关键词</li>
+<li>自动探索、研究、实现、验证</li>
+<li>工作直到完成，不停止不提问</li>
+</ul>
+
+<p><strong>适用场景</strong>：当你懒得解释细节，或说"你看着办"时使用。</p>
+
+<h3>Mode 2: Prometheus 规划 (精确模式)</h3>
+
+<pre><code>opencode              # 启动 TUI
+@plan refactor auth system  # 进入规划
+/start-work           # 执行计划</code></pre>
+
+<ul>
+<li>Prometheus 访谈用户澄清需求</li>
+<li>创建计划到 .sisyphus/plans/*.md</li>
+<li>Atlas 编排执行</li>
+</ul>
+
+<h3>Mode 3: 普通模式</h3>
+
+<pre><code>opencode run 'Fix the login bug'</code></pre>
+
+<ul>
+<li>标准 OpenCode 单代理交互</li>
+<li>适合简单、明确的任务</li>
+</ul>
+
+<h2>使用场景选择指南</h2>
+
+<table>
+<tr><th>你说</th><th>谁干活</th><th>怎么跑</th></tr>
+<tr><td>"帮我改一下这个文件"</td><td>Hermes 直接处理</td><td>自己用 file/patch 工具</td></tr>
+<tr><td>"用 opencode 实现登录"</td><td>OpenCode 单代理</td><td>opencode run '...'</td></tr>
+<tr><td>"ulw 实现整个支付系统"</td><td>OmO 多代理协作</td><td>opencode run 'ulw ...'</td></tr>
+<tr><td>"@plan 重构架构"</td><td>OmO 规划模式</td><td>Prometheus 访谈 + Atlas 执行</td></tr>
+</table>
+
+<h2>核心洞察</h2>
+
+<p>这三层共享同一个 LLM 后端，但编排能力逐层增强：</p>
+
+<ul>
+<li><strong>Hermes</strong> = 通用代理 + 工具集</li>
+<li><strong>OpenCode</strong> = 专业编码代理</li>
+<li><strong>OmO</strong> = 编码代理团队</li>
+</ul>
+
+<blockquote>关键：这三层不是替代关系，而是<strong>协作增强</strong>关系。每一层都可以独立工作，也可以调用下一层的能力。</blockquote>
+
+<h2>配置文件位置</h2>
+
+<table>
+<tr><th>组件</th><th>配置文件</th></tr>
+<tr><td>Hermes</td><td>~/.hermes/config.yaml</td></tr>
+<tr><td>OpenCode</td><td>~/.config/opencode/opencode.json</td></tr>
+<tr><td>OhMyOpenAgent</td><td>~/.config/opencode/oh-my-openagent.json</td></tr>
+</table>
+
+<h2>相关资源</h2>
+
+<ul>
+<li><a href="https://opencode.ai">OpenCode 官网</a></li>
+<li><a href="https://github.com/oh-my-openagent">OhMyOpenAgent GitHub</a></li>
+<li><a href="https://github.com/harryfan1985/hermes-agent">Hermes Agent (本地项目)</a></li>
+</ul>
+</div>
+            <a href="../index.html" class="back-link">&larr; Back to home</a>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 blog. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conductor.build 技术洞察：AI 编码智能体的团队编排器 | blog</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../about.html">About</a></li>
+                <li><a href="../projects.html">Projects</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <h1>Conductor.build 技术洞察：AI 编码智能体的团队编排器</h1>
+            <p class="meta">April 15, 2026</p>
+            <div class="content"><p>Conductor 是一个 Mac 应用，用于编排多个 AI 编码智能体的团队协作。它刚刚完成 $22M Series A 融资，用户增长 10x，被 Google、Meta、Amazon、Spotify 等大厂工程师广泛使用。本文深入分析其技术架构、工作流程和应用场景。</p>
+
+<h2>产品概述</h2>
+<p>Conductor 的核心定位是："Run a team of coding agents on your Mac"。它让单个开发者可以同时运行多个 Claude Code 和 Codex 智能体，每个智能体在隔离的 workspace 中独立工作。</p>
+
+<p><strong>融资与用户：</strong></p>
+<ul>
+<li>2026年3月完成 $22M Series A（Spark + Matrix 领投）</li>
+<li>Y Combinator、Notion 和 Linear 创始人参与投资</li>
+<li>用户增长 10x（自2026年1月）</li>
+<li>YC 创业公司 100% 代码由 Conductor 编写</li>
+<li>Google、Meta、Hubspot、Ramp、Datadog、Amazon、Spotify 等大厂工程师使用</li>
+</ul>
+
+<h2>核心技术架构</h2>
+
+<h3>1. 工作空间隔离机制：Git Worktree</h3>
+<p>每个 Conductor workspace 是一个独立的 <strong>git worktree</strong>，这是其核心技术创新：</p>
+<ul>
+<li>多个智能体并行工作在同一个仓库的不同分支</li>
+<li>文件系统级别隔离，无冲突</li>
+<li>每个智能体有自己的代码副本、聊天历史、运行环境</li>
+</ul>
+
+<p>架构示意：</p>
+<pre><code>仓库主目录
+├── workspace-1 (分支: feature-a) ← Claude Code Agent A
+├── workspace-2 (分支: feature-b) ← Claude Code Agent B  
+├── workspace-3 (分支: feature-c) ← Codex Agent C
+└── .git (共享 git 目录)</code></pre>
+
+<h3>2. 支持的智能体</h3>
+<table>
+<tr><th>智能体</th><th>说明</th></tr>
+<tr><td>Claude Code</td><td>Anthropic 官方 CLI 编码智能体</td></tr>
+<tr><td>Codex</td><td>OpenAI 编码智能体</td></tr>
+</table>
+<p>认证方式：使用用户已有的 Claude Code 登录状态（Pro/Max 订阅或 API Key），无需额外付费。</p>
+
+<h3>3. 自动化脚本系统</h3>
+<p>通过 <code>conductor.json</code> 配置三种脚本：</p>
+<table>
+<tr><th>脚本类型</th><th>触发时机</th><th>示例</th></tr>
+<tr><td>Setup script</td><td>创建 workspace 时</td><td>npm install</td></tr>
+<tr><td>Run script</td><td>点击 Run 按钮</td><td>npm run dev</td></tr>
+<tr><td>Archive script</td><td>归档 workspace 时</td><td>清理临时文件</td></tr>
+</table>
+<p>支持的环境变量：<code>$CONDUCTOR_ROOT_PATH</code>、<code>$CONDUCTOR_PORT</code>、<code>$CONDUCTOR_WORKSPACE_PATH</code></p>
+
+<h3>4. Checkpoints 系统（时光机）</h3>
+<p>核心技术：<strong>Private Git Ref + Claude Code Hook</strong></p>
+<p>每次 Claude 响应前，Conductor 通过 hook 提交当前状态到私有 Git ref，用户可以回滚到任意 turn：</p>
+<ul>
+<li>仅支持 Claude Code</li>
+<li>本地存储，不进入正常 Git 历史</li>
+<li>回滚时永久删除后续对话和代码变更</li>
+</ul>
+
+<h3>5. MCP (Model Context Protocol) 集成</h3>
+<p>支持通过 MCP 连接外部工具和数据源：</p>
+<pre><code># 添加 Context7 文档搜索
+claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
+
+# 添加 Linear 任务管理
+claude mcp add linear -s user -- ...</code></pre>
+<p>推荐 MCP：Context7（文档搜索）、Linear（任务管理）</p>
+
+<h2>工作流程</h2>
+
+<h3>推荐工作流</h3>
+<ol>
+<li><strong>创建 Workspace</strong>：⌘⇧N → 从 PR/分支/Linear Issue 创建</li>
+<li><strong>开发阶段</strong>：直接在 Conductor 内使用 Claude Code，或在 IDE 中编辑</li>
+<li><strong>代码审查</strong>：⌘D → Diff Viewer 查看变更</li>
+<li><strong>测试</strong>：Run 面板运行测试/服务</li>
+<li><strong>创建 PR</strong>：⌘⇧P → 创建 Pull Request</li>
+<li><strong>合并 & 归档</strong>：合并后归档 workspace，可随时恢复（包括聊天历史）</li>
+</ol>
+
+<h3>一个分支 = 一个 Workspace</h3>
+<p>规则：一个分支只能在一个 workspace 中 checkout。需要在多个地方使用同一分支 → 创建 <code>-2</code> 分支。</p>
+
+<h2>应用场景</h2>
+
+<h3>1. 并行开发对比</h3>
+<table>
+<tr><th>场景</th><th>传统方式</th><th>Conductor</th></tr>
+<tr><td>同时开发3个功能</td><td>串行或手动切换分支</td><td>3个智能体并行</td></tr>
+<tr><td>处理多个 PR</td><td>手动 checkout</td><td>一键从 PR 创建 workspace</td></tr>
+<tr><td>Bug 修复</td><td>中断当前工作</td><td>新 workspace 独立修复</td></tr>
+</table>
+
+<h3>2. 典型用户画像</h3>
+<ul>
+<li><strong>YC 创业公司</strong>：100% 代码由 Conductor 编写</li>
+<li><strong>大厂工程师</strong>：并行处理多个任务</li>
+<li><strong>全栈开发者</strong>：跨平台、跨仓库工作</li>
+<li><strong>设计工程师</strong>（Notion）：从设计到代码一体化</li>
+</ul>
+
+<h3>3. Quickstart 框架支持</h3>
+<p>官方提供 NextJS + Vercel、Rails、Elixir + Phoenix、Django 的快速入门指南。</p>
+
+<h2>技术亮点</h2>
+
+<h3>与其他工具对比</h3>
+<table>
+<tr><th>特性</th><th>Cursor</th><th>Conductor</th></tr>
+<tr><td>智能体类型</td><td>内置 AI</td><td>Claude Code + Codex</td></tr>
+<tr><td>并行能力</td><td>单实例</td><td>多 workspace 并行</td></tr>
+<tr><td>Git 管理</td><td>手动</td><td>自动 worktree</td></tr>
+<tr><td>工作流</td><td>IDE 内嵌</td><td>独立编排层</td></tr>
+</table>
+
+<h3>架构哲学</h3>
+<ol>
+<li><strong>不替代 IDE</strong>：可与 Cursor/VSCode 配合使用</li>
+<li><strong>不替代智能体</strong>：编排现有智能体（Claude Code、Codex）</li>
+<li><strong>专注编排层</strong>：workspace 管理、并行调度、代码审查</li>
+</ol>
+
+<h3>企业级能力</h3>
+<ul>
+<li>支持 OpenRouter、Bedrock、Vertex、Vercel AI</li>
+<li>支持多仓库、Monorepo</li>
+<li>Deep Links 支持外部集成</li>
+</ul>
+
+<h2>与 Hermes Agent 的关联思考</h2>
+
+<h3>相似点</h3>
+<ul>
+<li>都是智能体编排工具</li>
+<li>都支持 MCP</li>
+<li>都有脚本自动化能力</li>
+</ul>
+
+<h3>差异点</h3>
+<table>
+<tr><th>维度</th><th>Conductor</th><th>Hermes</th></tr>
+<tr><td>智能体类型</td><td>编码智能体</td><td>通用智能体</td></tr>
+<tr><td>运行环境</td><td>Mac 本地</td><td>多平台（Telegram/Discord/CLI）</td></tr>
+<tr><td>隔离机制</td><td>Git Worktree</td><td>远程执行/子智能体</td></tr>
+</table>
+
+<h3>可借鉴的设计</h3>
+<ul>
+<li>Checkpoints 时光机机制（Claude Code hook）</li>
+<li>conductor.json 脚本共享机制</li>
+<li>Worktree 隔离的并行智能体架构</li>
+</ul>
+
+<h2>总结</h2>
+<p>Conductor 是一个定位清晰的 <strong>编码智能体编排器</strong>，核心创新是利用 Git Worktree 实现多智能体并行隔离工作，解决"单人管理多个 AI 编码任务"的痛点。</p>
+<p>它不替代 IDE，不替代智能体，而是作为智能编排层，让开发者可以像指挥乐队一样管理多个编码智能体。这种"一个开发者 + 多个 AI 智能体"的模式，可能是未来软件开发的主流形态。</p>
+
+<p><strong>官网</strong>：<a href="https://conductor.build">conductor.build</a></p>
+<p><strong>文档</strong>：<a href="https://docs.conductor.build">docs.conductor.build</a></p>
+<p><strong>融资公告</strong>：<a href="https://www.conductor.build/blog/series-a">$22M Series A</a></p>
+</div>
+            <a href="../index.html" class="back-link">&larr; Back to home</a>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 blog. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
