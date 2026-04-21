@@ -1,4 +1,403 @@
 posts:
+- title: codebadger：MCP + CPG 语义代码分析引擎深度解析
+  date: April 21, 2026
+  excerpt: codebadger 是 MCP Server + Joern CPG 的语义代码分析引擎，让 LLM 按需获取代码语义信息而非加载全部代码。支持 12 种语言，提供 29 个 MCP 工具（核心 4 + 浏览 8 + 语义 3 + 漏洞检测 14）。实战成果：5 个真实 CVE（libsoup HTTP Smuggling、VLC OOB Read、libxml2 Stack Overflow、php-src Integer Overflow）。架构详解：JoernServerManager LRU 服务池、CPGGenerator 缓存策略、QueryExecutor CPGQL 翻译。污点分析引擎配置：Sources/Sinks/Sanitizers 按语言定制。集成方式：GitHub Copilot / Claude Code / Hermes Agent MCP 配置。
+  content: |
+    <h1>codebadger：MCP + CPG 语义代码分析引擎深度解析</h1>
+    
+    <blockquote>
+    <strong>项目</strong>：https://github.com/lekssays/codebadger<br>
+    <strong>论文</strong>：Bridging Code Property Graphs and Language Models for Program Analysis (SVM '26 @ ICSE 2026)<br>
+    <strong>实战成果</strong>：5 个真实 CVE，含 Bug Bounty
+    </blockquote>
+    
+    <hr>
+    
+    <h2>一、项目概览</h2>
+    
+    <table>
+    <tr><th>维度</th><th>数据</th></tr>
+    <tr><td>Stars</td><td>77</td></tr>
+    <tr><td>Forks</td><td>11</td></tr>
+    <tr><td>License</td><td>GPL-3.0</td></tr>
+    <tr><td>主要语言</td><td>Python</td></tr>
+    <tr><td>代码量</td><td>8,680 行</td></tr>
+    <tr><td>测试量</td><td>7,480 行, 25 个测试文件</td></tr>
+    <tr><td>支持语言</td><td>12 种（C/C++/Java/Python/JS/Go/C#/PHP/Ruby/Swift/Kotlin/Ghidra）</td></tr>
+    <tr><td>创建时间</td><td>2025-10-01</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>二、核心架构</h2>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    ┌─────────────────────────────────────────────────────────────┐
+    │                    MCP Client (LLM)                          │
+    │         Claude Code / GitHub Copilot / Hermes               │
+    └─────────────────────┬───────────────────────────────────────┘
+                          │ MCP Protocol (HTTP)
+                          ↓
+    ┌─────────────────────────────────────────────────────────────┐
+    │              codebadger MCP Server (FastMCP)                 │
+    │                    http://localhost:4242/mcp                 │
+    ├─────────────────────────────────────────────────────────────┤
+    │  Tools Layer                                                 │
+    │  ├── core_tools (generate_cpg, run_cpgql_query)             │
+    │  ├── code_browsing_tools (list_methods, get_call_graph)     │
+    │  ├── taint_analysis_tools (find_taint_flows, ...)           │
+    │  └── custom_tools (可扩展探测器)                             │
+    ├─────────────────────────────────────────────────────────────┤
+    │  Services Layer                                              │
+    │  ├── JoernServerManager (LRU 池, 端口分配)                   │
+    │  ├── CPGGenerator (Joern CLI → CPG.bin)                     │
+    │  ├── QueryExecutor (CPGQL → 结构化结果)                      │
+    │  ├── CodebaseTracker (状态追踪)                              │
+    │  └── GitManager (GitHub URL clone)                          │
+    ├─────────────────────────────────────────────────────────────┤
+    │  Storage Layer                                               │
+    │  ├── SQLite (codebadger.db)                                 │
+    │  ├── File Cache (playground/cpgs/*.bin)                     │
+    │  └── Redis (可选, 会话状态)                                  │
+    └─────────────────────┬───────────────────────────────────────┘
+                          │ Docker API
+                          ↓
+    ┌─────────────────────────────────────────────────────────────┐
+    │            Joern Container (Docker)                          │
+    │         codebadger-joern-server                              │
+    │  ├── Joern CLI (CPG 生成)                                   │
+    │  ├── Joern Server (查询执行, 多实例)                         │
+    │  └── Scala CPGQL 引擎                                        │
+    └─────────────────────────────────────────────────────────────┘
+    </pre>
+    
+    <hr>
+    
+    <h2>三、核心组件详解</h2>
+    
+    <h3>3.1 JoernServerManager（服务池管理）</h3>
+    
+    <p><strong>关键设计</strong>：</p>
+    <ul>
+    <li><strong>LRU 池</strong>：最多 max_active_servers (默认 3) 个活跃 Joern 实例</li>
+    <li><strong>端口分配</strong>：动态分配端口，避免冲突</li>
+    <li><strong>Watchdog</strong>：定期检查服务器健康状态</li>
+    <li><strong>自动驱逐</strong>：超出上限时驱逐最久未使用的实例</li>
+    </ul>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    # LRU 驱动逻辑
+    def _evict_lru_if_needed(self):
+        if len(self._ports) < self._max_active:
+            return None
+        lru_hash = next(iter(self._lru.items()))[0]
+        self.terminate_server(lru_hash)
+        self._lru_eviction_count += 1
+    </pre>
+    
+    <h3>3.2 CPGGenerator（CPG 生成引擎）</h3>
+    
+    <p><strong>流程</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    GitHub URL / Local Path → Clone → Joern CLI → CPG.bin → Cache
+    </pre>
+    
+    <p><strong>缓存策略</strong>：</p>
+    <ul>
+    <li>按 source_type:source_path:language:commit_hash 生成 SHA256[:16] 作为缓存键</li>
+    <li>CPG 文件存储在 playground/cpgs/{cache_key}/cpg.bin</li>
+    </ul>
+    
+    <p><strong>关键配置</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    CPG_GENERATION_TIMEOUT=600  # 10 分钟超时
+    MAX_REPO_SIZE_MB=500        # 最大仓库大小
+    </pre>
+    
+    <h3>3.3 QueryExecutor（查询执行器）</h3>
+    
+    <p><strong>功能</strong>：</p>
+    <ul>
+    <li>将高层工具调用翻译为 CPGQL 查询</li>
+    <li>执行查询 → 返回结构化 JSON 结果</li>
+    <li>查询缓存 + TTL</li>
+    </ul>
+    
+    <p><strong>配置</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    QUERY_TIMEOUT=30           # 查询超时
+    QUERY_CACHE_ENABLED=true   # 启用缓存
+    QUERY_CACHE_TTL=300        # 缓存 5 分钟
+    </pre>
+    
+    <hr>
+    
+    <h2>四、工具集详解</h2>
+    
+    <h3>4.1 Core Tools（4 个）</h3>
+    
+    <table>
+    <tr><th>工具</th><th>功能</th><th>使用场景</th></tr>
+    <tr><td>generate_cpg</td><td>生成 CPG</td><td>初始化代码库分析</td></tr>
+    <tr><td>get_cpg_status</td><td>检查 CPG 状态</td><td>确认 CPG 是否已生成</td></tr>
+    <tr><td>run_cpgql_query</td><td>执行原生 CPGQL</td><td>高级用户自定义查询</td></tr>
+    <tr><td>get_cpgql_syntax_help</td><td>CPGQL 语法帮助</td><td>查询调试</td></tr>
+    </table>
+    
+    <h3>4.2 Code Browsing Tools（8 个）</h3>
+    
+    <table>
+    <tr><th>工具</th><th>功能</th><th>返回内容</th></tr>
+    <tr><td>list_methods</td><td>查找函数</td><td>函数名、签名、文件位置</td></tr>
+    <tr><td>list_files</td><td>文件树</td><td>分页文件列表</td></tr>
+    <tr><td>get_method_source</td><td>获取函数源码</td><td>完整函数实现</td></tr>
+    <tr><td>list_calls</td><td>调用点列表</td><td>caller → callee 映射</td></tr>
+    <tr><td>get_call_graph</td><td>调用图</td><td>入向/出向调用关系</td></tr>
+    <tr><td>list_parameters</td><td>参数列表</td><td>参数名、类型、顺序</td></tr>
+    <tr><td>get_codebase_summary</td><td>代码库概览</td><td>文件数、方法数、调用数</td></tr>
+    <tr><td>get_code_snippet</td><td>代码片段</td><td>指定行范围的代码</td></tr>
+    </table>
+    
+    <h3>4.3 Semantic Analysis Tools（3 个）</h3>
+    
+    <table>
+    <tr><th>工具</th><th>功能</th><th>用途</th></tr>
+    <tr><td>get_cfg</td><td>控制流图</td><td>理解函数内部流程</td></tr>
+    <tr><td>get_type_definition</td><td>类型定义</td><td>结构体/类成员</td></tr>
+    <tr><td>get_macro_expansion</td><td>宏展开检测</td><td>C/C++ 宏分析</td></tr>
+    </table>
+    
+    <h3>4.4 Taint & Vulnerability Analysis Tools（14 个）</h3>
+    
+    <table>
+    <tr><th>工具</th><th>功能</th><th>CWE</th></tr>
+    <tr><td>find_taint_sources</td><td>定位污点源</td><td>—</td></tr>
+    <tr><td>find_taint_sinks</td><td>定位危险操作点</td><td>—</td></tr>
+    <tr><td>find_taint_flows</td><td>source→sink 数据流</td><td>—</td></tr>
+    <tr><td>get_program_slice</td><td>程序切片</td><td>—</td></tr>
+    <tr><td>get_variable_flow</td><td>变量数据依赖</td><td>—</td></tr>
+    <tr><td>find_bounds_checks</td><td>边界检查验证</td><td>—</td></tr>
+    <tr><td>find_use_after_free</td><td>释放后使用检测</td><td>CWE-416</td></tr>
+    <tr><td>find_double_free</td><td>双重释放检测</td><td>CWE-415</td></tr>
+    <tr><td>find_null_pointer_deref</td><td>空指针解引用</td><td>CWE-476</td></tr>
+    <tr><td>find_integer_overflow</td><td>整数溢出</td><td>CWE-190</td></tr>
+    <tr><td>find_format_string_vulns</td><td>格式字符串漏洞</td><td>CWE-134</td></tr>
+    <tr><td>find_heap_overflow</td><td>堆溢出</td><td>CWE-122</td></tr>
+    <tr><td>find_stack_overflow</td><td>栈溢出</td><td>CWE-121</td></tr>
+    <tr><td>find_toctou</td><td>TOCTOU 竞态</td><td>CWE-367</td></tr>
+    <tr><td>find_uninitialized_reads</td><td>未初始化读取</td><td>CWE-457</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>五、污点分析引擎配置</h2>
+    
+    <h3>5.1 Taint Sources（按语言）</h3>
+    
+    <p><strong>C/C++</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["getenv", "fgets", "scanf", "read", "recv", "fread", "gets", 
+     "getchar", "fscanf", "recvfrom", "socket", "accept", "fopen", 
+     "getline", "realpath", "getaddrinfo"]
+    </pre>
+    
+    <p><strong>Python</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["input", "sys.argv", "os.environ", "request.args", "request.form",
+     "request.json", "request.cookies", "request.headers"]
+    </pre>
+    
+    <p><strong>JavaScript</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["req.body", "req.query", "req.params", "process.env", "fetch"]
+    </pre>
+    
+    <h3>5.2 Taint Sinks（按语言）</h3>
+    
+    <p><strong>C/C++</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["system", "popen", "execl", "sprintf", "strcpy", "strcat", 
+     "memcpy", "malloc", "free", "printf", "fopen", "write"]
+    </pre>
+    
+    <p><strong>Python</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["eval", "exec", "os.system", "subprocess.Popen", "pickle.load"]
+    </pre>
+    
+    <h3>5.3 Sanitizers（清洁器）</h3>
+    
+    <p><strong>C/C++</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["strlcpy", "strlcat", "snprintf", "strtol", "atoi"]
+    </pre>
+    
+    <p><strong>PHP</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    ["htmlspecialchars", "htmlentities", "mysqli_real_escape_string"]
+    </pre>
+    
+    <hr>
+    
+    <h2>六、实战成果（TROPHIES）</h2>
+    
+    <table>
+    <tr><th>CVE</th><th>项目</th><th>漏洞类型</th><th>严重性</th><th>日期</th></tr>
+    <tr><td><strong>CVE-2026-1801</strong></td><td>libsoup</td><td>HTTP Request Smuggling</td><td>High</td><td>2026-02-11</td></tr>
+    <tr><td><strong>CVE-2025-51602</strong></td><td>VLC</td><td>Out-of-Bounds Read</td><td>Medium</td><td>2026-02-11</td></tr>
+    <tr><td><strong>CVE-2025-6170</strong></td><td>libxml2</td><td>Stack Buffer Overflow (xmllint)</td><td>Medium</td><td>2026-02-02</td></tr>
+    <tr><td><strong>CVE-2025-6021</strong></td><td>libxml2</td><td>Integer Overflow → Stack Overflow</td><td>High</td><td>2026-02-02</td></tr>
+    <tr><td><strong>CVE-2025-6491</strong></td><td>php-src</td><td>Integer Overflow (SoapVar)</td><td>High</td><td>2026-02-02</td></tr>
+    </table>
+    
+    <p><strong>关键成果</strong>：</p>
+    <ul>
+    <li>5 个真实 CVE（含 Bug Bounty）</li>
+    <li>libxml2 补丁首次尝试生成正确修复</li>
+    </ul>
+    
+    <hr>
+    
+    <h2>七、测试覆盖</h2>
+    
+    <table>
+    <tr><th>测试文件</th><th>覆盖内容</th></tr>
+    <tr><td>test_double_free.py</td><td>双重释放检测</td></tr>
+    <tr><td>test_format_string.py</td><td>格式字符串漏洞</td></tr>
+    <tr><td>test_heap_overflow.py</td><td>堆溢出检测</td></tr>
+    <tr><td>test_integer_overflow.py</td><td>整数溢出检测</td></tr>
+    <tr><td>test_null_pointer_deref.py</td><td>空指针解引用</td></tr>
+    <tr><td>test_stack_overflow.py</td><td>栈溢出检测</td></tr>
+    <tr><td>test_toctou.py</td><td>TOCTOU 竞态</td></tr>
+    <tr><td>test_use_after_free.py</td><td>释放后使用</td></tr>
+    <tr><td>test_uninitialized_read.py</td><td>未初始化读取</td></tr>
+    <tr><td>test_program_slice.py</td><td>程序切片算法</td></tr>
+    <tr><td>test_taint_tools.py</td><td>污点分析工具</td></tr>
+    <tr><td>test_mcp_tools.py</td><td>MCP 协议集成</td></tr>
+    </table>
+    
+    <p><strong>测试密度</strong>：src 代码量 : tests 代码量 ≈ 1:0.86（高覆盖）</p>
+    
+    <hr>
+    
+    <h2>八、集成方式</h2>
+    
+    <h3>8.1 GitHub Copilot</h3>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    // ~/.config/Code/User/mcp.json
+    {
+      "servers": {
+        "codebadger": {
+          "url": "http://localhost:4242/mcp",
+          "type": "http"
+        }
+      }
+    }
+    </pre>
+    
+    <h3>8.2 Claude Code</h3>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    // Claude → Settings → Developer → claude_desktop_config.json
+    {
+      "mcpServers": {
+        "codebadger": {
+          "url": "http://localhost:4242/mcp",
+          "type": "http"
+        }
+      }
+    }
+    </pre>
+    
+    <h3>8.3 Hermes Agent</h3>
+    
+    <p>通过 native-mcp 技能配置：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    # ~/.hermes/config.yaml
+    mcp_servers:
+      - name: codebadger
+        url: http://localhost:4242/mcp
+        transport: http
+    </pre>
+    
+    <hr>
+    
+    <h2>九、关键技术亮点</h2>
+    
+    <table>
+    <tr><th>亮点</th><th>说明</th></tr>
+    <tr><td>语义导航架构</td><td>LLM 不读全部代码，按需调用工具获取语义信息</td></tr>
+    <tr><td>LRU 服务池</td><td>动态管理 Joern 实例，自动驱逐最久未用</td></tr>
+    <tr><td>缓存策略</td><td>按 commit hash 缓存 CPG，代码变更自动失效</td></tr>
+    <tr><td>跨语言支持</td><td>12 种语言的 sources/sinks/sanitizers 配置</td></tr>
+    <tr><td>可扩展探测器</td><td>用户可添加自定义 Scala 查询 + Python 工具</td></tr>
+    <tr><td>OpenTelemetry</td><td>可选分布式追踪，集成 Jaeger</td></tr>
+    <tr><td>真实漏洞发现</td><td>5 个 CVE，含 Bug Bounty</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>十、部署流程</h2>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+    # 1. 安装依赖
+    pip install -r requirements.txt
+    
+    # 2. 启动 Joern Docker
+    docker compose up -d
+    
+    # 3. 启动 MCP Server
+    python main.py &
+    
+    # 4. 验证服务
+    curl http://localhost:4242/health
+    </pre>
+    
+    <hr>
+    
+    <h2>十一、与 Hermes Agent 集成建议</h2>
+    
+    <table>
+    <tr><th>集成点</th><th>建议</th></tr>
+    <tr><td>MCP 配置</td><td>在 config.yaml 添加 codebadger MCP server</td></tr>
+    <tr><td>代码审查增强</td><td>在 github-code-review 技能中调用 find_taint_flows</td></tr>
+    <tr><td>漏洞扫描流程</td><td>创建新技能 codebadger-vulnerability-scan</td></tr>
+    <tr><td>自定义探测器</td><td>为 Hermes 项目添加 Hermes-specific 漏洞检测</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>十二、总结</h2>
+    
+    <h3>三句话总结</h3>
+    
+    <ol>
+    <li><strong>架构创新</strong>：MCP Server + Joern CPG，让 LLM 语义导航大型代码库</li>
+    <li><strong>实战验证</strong>：5 个真实 CVE，含首次尝试生成正确补丁</li>
+    <li><strong>可扩展</strong>：支持 12 种语言，用户可添加自定义探测器</li>
+    </ol>
+    
+    <h3>核心价值</h3>
+    
+    <table>
+    <tr><th>价值</th><th>说明</th></tr>
+    <tr><td>解决 Token 困境</td><td>不加载全部代码，按需获取语义信息</td></tr>
+    <tr><td>跨函数漏洞检测</td><td>污点追踪 + 程序切片，发现跨边界漏洞</td></tr>
+    <tr><td>MCP 协议兼容</td><td>可被 Claude Code / Copilot / Hermes 直接调用</td></tr>
+    <tr><td>开源 + 可扩展</td><td>GPL-3.0，支持自定义 Scala 查询 + Python 工具</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>参考文献</h2>
+    
+    <ul>
+    <li><a href="https://github.com/lekssays/codebadger">codebadger GitHub 仓库</a></li>
+    <li><a href="https://arxiv.org/abs/2603.24837">Bridging Code Property Graphs and Language Models for Program Analysis</a></li>
+    <li><a href="https://joern.io">Joern 官方文档</a></li>
+    </ul>
+
 - title: Oh My OpenAgent：为什么它不是另一个 Boilerplate
   date: April 21, 2026
   excerpt: Anthropic 因它封禁 OpenCode。核心定位：生产级多 Agent 编排引擎，不是模板。五大特征：Hashline 编辑工具（6.7%→68.3%成功率）、Discipline Agents（永不停止）、Category-Based Model Routing（自动路由）、Skill-Embedded MCPs（按需启动）、LSP+AST-Grep（IDE级精度）。三种模式：Ultrawork懒人模式、Prometheus规划模式、Hephaestus深度模式。架构图+流程图详解。
