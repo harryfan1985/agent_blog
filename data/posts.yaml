@@ -1,4 +1,423 @@
 posts:
+- title: Oh My OpenAgent：为什么它不是另一个 Boilerplate
+  date: April 21, 2026
+  excerpt: Anthropic 因它封禁 OpenCode。核心定位：生产级多 Agent 编排引擎，不是模板。五大特征：Hashline 编辑工具（6.7%→68.3%成功率）、Discipline Agents（永不停止）、Category-Based Model Routing（自动路由）、Skill-Embedded MCPs（按需启动）、LSP+AST-Grep（IDE级精度）。三种模式：Ultrawork懒人模式、Prometheus规划模式、Hephaestus深度模式。架构图+流程图详解。
+  content: |
+    <h1>Oh My OpenAgent：为什么它不是另一个 Boilerplate</h1>
+    
+    <blockquote>
+    <strong>项目</strong>：https://github.com/code-yeongyu/oh-my-openagent<br>
+    <strong>热度</strong>：Anthropic 因它封禁 OpenCode<br>
+    <strong>核心定位</strong>：生产级多 Agent 编排引擎，不是模板
+    </blockquote>
+    
+    <hr>
+    
+    <h2>一、核心论断</h2>
+    
+    <p><strong>这不是模板，是运行时编排引擎。</strong></p>
+    
+    <table>
+    <tr><th>维度</th><th>Boilerplate</th><th>Oh My OpenAgent</th></tr>
+    <tr><td>本质</td><td>预配置模板（复制即用）</td><td>运行时编排引擎（动态决策）</td></tr>
+    <tr><td>模型选择</td><td>硬编码单模型</td><td>Category 系统自动路由</td></tr>
+    <tr><td>编辑工具</td><td>标准 patch/replace</td><td>Hashline（行哈希校验）</td></tr>
+    <tr><td>Agent 协作</td><td>单 Agent</td><td>Sisyphus + 5+ 子 Agent 并行</td></tr>
+    <tr><td>状态追踪</td><td>无</td><td>.sisyphus/ wisdom 积累</td></tr>
+    <tr><td>MCP 管理</td><td>全局加载</td><td>Skill-Embedded 按需启动</td></tr>
+    <tr><td>LSP/AST</td><td>无</td><td>IDE 级精度</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>二、架构总览</h2>
+    
+    <h3>层级关系图</h3>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    ┌─────────────────────────────────────────────────────────┐
+    │                      Hermes Agent                        │
+    │          (上层编排器，管理终端/进程/会话)                   │
+    └─────────────────────┬───────────────────────────────────┘
+                          │ terminal / process
+                          ↓
+    ┌─────────────────────────────────────────────────────────┐
+    │                     OpenCode CLI                         │
+    │       (基础 AI 编码代理，TUI + CLI，工具调用)              │
+    └─────────────────────┬───────────────────────────────────┘
+                          │ 插件系统
+                          ↓
+    ┌─────────────────────────────────────────────────────────┐
+    │              Oh My OpenAgent (OmO) 插件                  │
+    │       (多 Agent 编排层，Sisyphus/Prometheus/Atlas等)     │
+    └─────────────────────────────────────────────────────────┘
+    </pre>
+    
+    <h3>定位说明</h3>
+    
+    <table>
+    <tr><th>组件</th><th>定位</th><th>类比</th></tr>
+    <tr><td>OpenCode</td><td>基础执行引擎</td><td>单兵作战</td></tr>
+    <tr><td>OmO</td><td>编排插件</td><td>团队协作</td></tr>
+    <tr><td>Hermes</td><td>上层控制器</td><td>项目经理</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>三、OmO 内部架构流程图</h2>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    用户请求 → IntentGate（意图识别）
+                  ↓
+             Sisyphus（永不停止的主编排器）
+                  ↓
+        ┌─────────┼─────────┬─────────┐
+        ↓         ↓         ↓         ↓
+    Prometheus   Atlas   Hephaestus  Librarian
+    (规划师)    (执行者)  (深度工)   (文档搜索)
+        ↓         ↓         ↓         ↓
+     Metis      Category   自主研究   Explore
+    (差距分析)   Agents    +验证
+        ↓         ↓
+     Momus      visual/deep/quick
+    (无情评审)
+    </pre>
+    
+    <h3>核心 Agent 角色</h3>
+    
+    <table>
+    <tr><th>Agent</th><th>模型推荐</th><th>职责</th></tr>
+    <tr><td>Sisyphus</td><td>GLM-5 / Claude Opus</td><td>主编排器，永不停止</td></tr>
+    <tr><td>Prometheus</td><td>GLM-5 / Kimi K2.5</td><td>战略规划，访谈澄清需求</td></tr>
+    <tr><td>Atlas</td><td>Claude/GPT/Gemini</td><td>执行 Prometheus 计划</td></tr>
+    <tr><td>Hephaestus</td><td>GPT-5.4 xhigh</td><td>自主深度工</td></tr>
+    <tr><td>Metis</td><td>—</td><td>规划前差距分析</td></tr>
+    <tr><td>Momus</td><td>—</td><td>无情评审计划</td></tr>
+    <tr><td>Oracle</td><td>GLM-5</td><td>架构顾问（只读）</td></tr>
+    <tr><td>Librarian</td><td>MiniMax / Haiku</td><td>OSS 文档搜索</td></tr>
+    <tr><td>Explore</td><td>快模型</td><td>代码库 grep</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>四、五大非 Boilerplate 特征</h2>
+    
+    <h3>1. Hash-Anchored Edit Tool（解决 Harness Problem）</h3>
+    
+    <blockquote>
+    <strong>"Most agent failures aren't the model. It's the edit tool."</strong> — Can Bölük
+    </blockquote>
+    
+    <p><strong>问题根源</strong>：传统 edit tool 要求模型复现已读内容，模型做不到 → 用户怪模型。</p>
+    
+    <p><strong>OmO 解决方案（Hashline）</strong>：</p>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    # 传统编辑（模型需复现内容）
+    patch(old="function hello() {", new="function greet() {")
+    
+    # Hashline 编辑（引用哈希标签）
+    11#VK| function hello() {
+    22#XJ|   return "world";
+    33#MB| }
+    
+    # Agent 只需引用标签，不复现内容
+    edit(line=11, hash=VK, new_content="function greet() {")
+    </pre>
+    
+    <p><strong>机制</strong>：</p>
+    <ul>
+    <li>每行带哈希标签 #VK</li>
+    <li>Agent 编辑时引用标签</li>
+    <li>文件变更 → 哈希不匹配 → 编辑被拒绝</li>
+    <li>零 whitespace 复现错误，零 stale-line 错误</li>
+    </ul>
+    
+    <p><strong>实测数据</strong>：Grok Code Fast 1 成功率 <strong>6.7% → 68.3%</strong>（仅换编辑工具）</p>
+    
+    <hr>
+    
+    <h3>2. Discipline Agents（永不停止的编排器）</h3>
+    
+    <p><strong>Sisyphus = "永不停止"的主 Agent</strong>：</p>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    用户任务 → Sisyphus 接管
+        ↓
+    监控子 Agent 进度
+        ↓
+    阻塞 → 自动重试 → 换策略 → 再试
+        ↓
+    任务完成才退出
+    </pre>
+    
+    <h3>效率对比</h3>
+    
+    <table>
+    <tr><th>系统</th><th>完成时间</th><th>原因</th></tr>
+    <tr><td>Human</td><td>3 months</td><td>手动迭代</td></tr>
+    <tr><td>Claude Code</td><td>7 days</td><td>单 Agent，每步需确认</td></tr>
+    <tr><td><strong>Sisyphus</strong></td><td><strong>1 hour</strong></td><td>多 Agent 并行，自动闭环</td></tr>
+    </table>
+    
+    <blockquote>
+    <strong>"If Claude Code does in 7 days what a human does in 3 months, Sisyphus does it in 1 hour."</strong> — B, Quant Researcher
+    </blockquote>
+    
+    <hr>
+    
+    <h3>3. Category-Based Model Routing（任务→模型自动映射）</h3>
+    
+    <p><strong>Boilerplate 做法</strong>：硬编码 "model": "claude-opus-4"</p>
+    
+    <p><strong>OmO 做法</strong>：Agent 声明 category → Harness 自动选模型</p>
+    
+    <table>
+    <tr><th>Category</th><th>默认模型</th><th>适用场景</th></tr>
+    <tr><td>visual-engineering</td><td>Gemini 3.1 Pro</td><td>前端/UI/UX</td></tr>
+    <tr><td>ultrabrain</td><td>GPT-5.4 xhigh</td><td>深度推理/架构</td></tr>
+    <tr><td>deep</td><td>GPT-5.4 medium</td><td>自主执行</td></tr>
+    <tr><td>quick</td><td>GPT-5.4-mini</td><td>单文件修改</td></tr>
+    <tr><td>unspecified-high</td><td>Claude Opus 4.7</td><td>通用高投入</td></tr>
+    <tr><td>writing</td><td>Kimi K2.5</td><td>文档/博客</td></tr>
+    </table>
+    
+    <p><strong>动态优势</strong>：</p>
+    <ul>
+    <li>Agent 不需要知道模型名</li>
+    <li>模型成本下降 → 自动换更便宜的</li>
+    <li>新模型发布 → 更新映射表 → 无需改代码</li>
+    </ul>
+    
+    <hr>
+    
+    <h3>4. Skill-Embedded MCPs（Context 预算管理）</h3>
+    
+    <p><strong>传统 MCP 问题</strong>：全局加载所有 MCP servers → 吃掉 context window → 长任务失败</p>
+    
+    <p><strong>OmO 解决方案</strong>：</p>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    Skill 携带自己的 MCP server
+        ↓
+    任务触发 Skill → MCP 按需启动
+        ↓
+    Scoped 到任务
+        ↓
+    任务结束 → MCP 关闭 → context 释放
+    </pre>
+    
+    <table>
+    <tr><th>方案</th><th>Context 占用</th><th>适用场景</th></tr>
+    <tr><td>传统全局 MCP</td><td>持续占用</td><td>短任务</td></tr>
+    <tr><td>Skill-Embedded</td><td>按需分配</td><td>长任务/多任务并行</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h3>5. LSP + AST-Grep（IDE 级精度）</h3>
+    
+    <p><strong>传统 Agent 编辑</strong>：grep 找文本 → patch 替换 → whitespace 错误 → 破坏代码</p>
+    
+    <p><strong>OmO 工具集</strong>：</p>
+    
+    <table>
+    <tr><th>工具</th><th>功能</th><th>精度</th></tr>
+    <tr><td>lsp_rename</td><td>Workspace 级重命名</td><td>IDE 级（跨文件同步）</td></tr>
+    <tr><td>lsp_goto_definition</td><td>跨文件跳转</td><td>IDE 级（AST 解析）</td></tr>
+    <tr><td>lsp_diagnostics</td><td>预构建诊断</td><td>IDE 级（实时错误检测）</td></tr>
+    <tr><td>ast_grep</td><td>25 语言 AST-aware 搜索</td><td>AST 级（语义匹配）</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>五、三种工作模式流程图</h2>
+    
+    <h3>Mode 1: Ultrawork（懒人模式）</h3>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    opencode run 'ulw add JWT auth to Express'
+    
+    IntentGate 识别 ulw 关键词
+        ↓
+    Sisyphus 启动编排
+        ↓
+    Explore Agent 扫描代码库
+        ↓
+    Librarian 搜索 JWT 最佳实践
+        ↓
+    Category Agent (deep) 实现核心逻辑
+        ↓
+    Category Agent (quick) 添加测试
+        ↓
+    验证 → 发现问题 → 自动修复循环
+        ↓
+    完成，无需用户干预
+    </pre>
+    
+    <p><strong>特点</strong>：一句话触发，自动完成全流程</p>
+    
+    <hr>
+    
+    <h3>Mode 2: Prometheus Planning（精确控制模式）</h3>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    opencode                        # 启动 TUI
+    @plan migrate MongoDB to PostgreSQL  # 进入规划
+    
+    Prometheus 访谈用户
+        ↓
+    生成详细计划 → .sisyphus/plans/migrate-db.md
+        ↓
+    Metis 分析差距（缺失信息、风险）
+        ↓
+    Momus 评审计划（拒绝不靠谱部分）
+        ↓
+    /start-work
+        ↓
+    Atlas 执行计划，记录 wisdom
+        ↓
+    .sisyphus/notepads/migrate-db/
+        ├── learnings.md
+        ├── decisions.md
+        └── issues.md
+    </pre>
+    
+    <p><strong>特点</strong>：决策留痕，跨会话连续执行</p>
+    
+    <hr>
+    
+    <h3>Mode 3: Hephaestus Deep Work（深度推理模式）</h3>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    opencode --agent hephaestus
+    
+    Hephaestus (GPT-5.4 xhigh)
+        ↓
+    自主探索代码库
+        ↓
+    跨域综合、架构决策
+        ↓
+    复杂调试、系统性重构
+    </pre>
+    
+    <p><strong>特点</strong>：最高推理能力，自主执行</p>
+    
+    <hr>
+    
+    <h2>六、状态持久化结构</h2>
+    
+    <p>OmO 创建 <code>.sisyphus/</code> 目录追踪执行状态：</p>
+    
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    .sisyphus/
+    ├── plans/
+    │   └── migrate-db.md          # Prometheus 计划文件
+    ├── boulder.json               # Atlas 执行状态（进度、阻塞点）
+    ├── notepads/
+    │   └── migrate-db/
+    │       ├── learnings.md       # 成功经验、发现模式
+    │       ├── decisions.md       # 架构决策记录
+    │       ├── issues.md          # 遇到的问题、阻塞点
+    │       └── verification.md    # 测试结果、验证步骤
+    </pre>
+    
+    <p><strong>作用</strong>：</p>
+    <ul>
+    <li>跨会话恢复执行</li>
+    <li>Wisdom 积累（成功经验复用）</li>
+    <li>问题追踪（阻塞点不丢失）</li>
+    </ul>
+    
+    <hr>
+    
+    <h2>七、Anthropic 为什么封禁 OpenCode</h2>
+    
+    <blockquote>
+    <strong>"Anthropic blocked OpenCode because of us. They want you locked in."</strong>
+    </blockquote>
+    
+    <p><strong>核心冲突</strong>：</p>
+    
+    <table>
+    <tr><th>系统</th><th>立场</th><th>模型策略</th></tr>
+    <tr><td>Claude Code</td><td>Anthropic 生态闭环</td><td>只推 Claude 模型</td></tr>
+    <tr><td><strong>OmO</strong></td><td><strong>多供应商开放</strong></td><td>Claude/Kimi/GLM + GPT + Gemini</td></tr>
+    </table>
+    
+    <p><strong>技术洞察</strong>：</p>
+    <pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+    Claude Code = 精装修的监狱
+    OmO = 骑所有模型，不绑定供应商
+    </pre>
+    
+    <p>作者将 Hephaestus 命名为 "The Legitimate Craftsman" —— 讽刺 Anthropic 的封锁行为。</p>
+    
+    <hr>
+    
+    <h2>八、真实用户证据</h2>
+    
+    <table>
+    <tr><th>用户</th><th>评价</th><th>来源</th></tr>
+    <tr><td>Arthur Guiot</td><td>"取消 Cursor订阅，开源太疯狂"</td><td>X</td></tr>
+    <tr><td>Jacob Ferrari</td><td>"一天消灭 8000 eslint warnings"</td><td>X</td></tr>
+    <tr><td>James Hargis</td><td>"45k 行 Tauri App → SaaS 一夜完成"</td><td>X</td></tr>
+    <tr><td>Henning Kilset</td><td>"应该拉进 core 并招募他"</td><td>反馈</td></tr>
+    <tr><td>mysticaltech</td><td>"hire 作者，他革命了 opencode"</td><td>X</td></tr>
+    </table>
+    
+    <hr>
+    
+    <h2>九、开发者动机</h2>
+    
+    <blockquote>
+    <strong>"I burned through $24K in LLM tokens on personal projects. Tried every tool. OpenCode won."</strong>
+    </blockquote>
+    
+    <p><strong>这不是为了卖模板，是解决自己的痛点</strong>：</p>
+    
+    <table>
+    <tr><th>问题</th><th>OmO 答案</th></tr>
+    <tr><td>哪个模型逻辑最锐利？</td><td>GPT-5.4 xhigh</td></tr>
+    <tr><td>谁是调试之神？</td><td>Hephaestus</td></tr>
+    <tr><td>谁写散文最好？</td><td>Kimi K2.5</td></tr>
+    <tr><td>谁统治前端？</td><td>Gemini 3.1 Pro</td></tr>
+    <tr><td>日常驾驶最快的？</td><td>GPT-5.4-mini</td></tr>
+    </table>
+    
+    <p><strong>OmO = 这些问题的答案集合，持续更新。</strong></p>
+    
+    <hr>
+    
+    <h2>十、结论</h2>
+    
+    <h3>三句话总结</h3>
+    
+    <ol>
+    <li><strong>不是模板，是引擎</strong>：runtime 决策，动态路由，自动恢复</li>
+    <li><strong>解决 Harness Problem</strong>：Hashline 把编辑成功率从 6.7% 拉到 68.3%</li>
+    <li><strong>多模型编排</strong>：Claude/Kimi/GLM 编排 + GPT 推理 + Gemini 前端，不绑定供应商</li>
+    </ol>
+    
+    <h3>关键引用</h3>
+    
+    <blockquote>
+    <strong>"Anthropic blocked OpenCode because of us. That's why Hephaestus is called 'The Legitimate Craftsman.' The irony is intentional."</strong>
+    </blockquote>
+    
+    <blockquote>
+    <strong>"If OpenCode is Debian/Arch, OmO is Ubuntu/Omarchy."</strong>
+    </blockquote>
+    
+    <hr>
+    
+    <h2>参考文献</h2>
+    
+    <ul>
+    <li><a href="https://github.com/code-yeongyu/oh-my-openagent">OmO GitHub 仓库</a></li>
+    <li><a href="https://blog.can.ac/2026/02/12/the-harness-problem/">The Harness Problem — Can Bölük</a></li>
+    <li><a href="https://x.com/thdxr/status/2010149530486911014">Anthropic 封禁 OpenCode 证据</a></li>
+    </ul>
 - title: OpenMythos：解构 Claude Mythos 的循环深度 Transformer 架构
   date: April 21, 2026
   excerpt: GitHub 热度 4161⭐（仅3天）的理论重建项目。核心假设：Mythos = Recurrent-Depth Transformer (RDT)。六大创新：LTI-stable Injection、ACT Halting、MLA（KV减少10-20x）、DeepSeekMoE FFN（~5%激活）、Loop-Index Embedding、Depth-wise LoRA。应用场景：深度推理、实时交互、大规模部署、边缘设备、研究实验。关键洞察：相同权重多次循环实现深度推理，参数不增长。
