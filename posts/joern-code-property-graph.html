@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joern：Code Property Graph 静态分析引擎深度解析 | Agent Blog</title>
+    <meta name="description" content="Joern 是基于 Code Property Graph (CPG) 的静态代码分析引擎。CPG = AST + CFG + PDG 三图融合，提供完整代码语义。支持 12 种语言（C/C++/Java/Python/JS/Go/C#/PHP/Ruby/Swift/Kotlin/Ghidra）。查询语言 CPGQL ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Joern：Code Property Graph 静态分析引擎深度解析">
+    <meta property="og:description" content="Joern 是基于 Code Property Graph (CPG) 的静态代码分析引擎。CPG = AST + CFG + PDG 三图融合，提供完整代码语义。支持 12 种语言（C/C++/Java/Python/JS/Go/C#/PHP/Ruby/Swift/Kotlin/Ghidra）。查询语言 CPGQL ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="April 21, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Joern：Code Property Graph 静态分析引擎深度解析</h1>
+                <div class="meta">
+                    <span class="date">April 21, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h1>Joern：Code Property Graph 静态分析引擎深度解析</h1>
+
+<blockquote>
+<strong>类型</strong>：静态代码分析框架<br>
+<strong>核心概念</strong>：Code Property Graph (CPG) = AST + CFG + PDG<br>
+<strong>语言</strong>：Scala<br>
+<strong>查询语言</strong>：CPGQL<br>
+<strong>官网</strong>：<a href="https://joern.io">https://joern.io</a><br>
+<strong>GitHub</strong>：<a href="https://github.com/joernio/joern">https://github.com/joernio/joern</a>
+</blockquote>
+
+<hr>
+
+<h2>一、Code Property Graph (CPG) 核心概念</h2>
+
+<p><strong>CPG = AST + CFG + PDG</strong></p>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+┌─────────────────────────────────────────────────────────────┐
+│              Code Property Graph (CPG)                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   ┌─────────────┐                                           │
+│   │  AST        │  抽象语法树                                │
+│   │ (语法结构)   │  if/while/赋值/函数调用...                 │
+│   └─────────────┘                                           │
+│         +                                                    │
+│   ┌─────────────┐                                           │
+│   │  CFG        │  控制流图                                  │
+│   │ (执行路径)   │  程序执行的分支路径                        │
+│   └─────────────┘                                           │
+│         +                                                    │
+│   ┌─────────────┐                                           │
+│   │  PDG        │  程序依赖图                                │
+│   │ (数据依赖)   │  变量定义→使用 的数据流关系                │
+│   └─────────────┘                                           │
+│                                                              │
+│   = 一个统一图结构，支持跨函数数据流追踪                       │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>三张图的融合</h3>
+
+<table>
+<tr><th>图类型</th><th>表示内容</th><th>漏洞分析用途</th></tr>
+<tr><td><strong>AST</strong></td><td>语法结构（语法树节点）</td><td>定位函数、变量、表达式</td></tr>
+<tr><td><strong>CFG</strong></td><td>控制流（分支跳转路径）</td><td>分析 if/switch/循环 执行路径</td></tr>
+<tr><td><strong>PDG</strong></td><td>数据依赖（变量流向）</td><td>污点追踪：source → sink</td></tr>
+</table>
+
+<hr>
+
+<h2>二、Joern 在 codebadger 中的架构</h2>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+codebadger MCP Server
+         │
+         │ Docker API
+         ↓
+┌─────────────────────────────────────────────────────────────┐
+│            Joern Docker Container                            │
+│         (codebadger-joern-server)                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   ┌─────────────────┐                                       │
+│   │  Joern CLI      │  CPG 生成                             │
+│   │  joern-parse    │  源码 → CPG.bin                       │
+│   └─────────────────┘                                       │
+│         │                                                    │
+│         ↓                                                    │
+│   ┌─────────────────┐                                       │
+│   │  CPG 文件       │  playground/cpgs/{hash}/cpg.bin       │
+│   │  (二进制图)      │  包含完整的 AST+CFG+PDG               │
+│   └─────────────────┘                                       │
+│         │                                                    │
+│         ↓                                                    │
+│   ┌─────────────────┐                                       │
+│   │  Joern Server   │  查询执行                             │
+│   │  (Scala REPL)   │  加载 CPG → 执行 CPGQL 查询            │
+│   └─────────────────┘                                       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+
+<hr>
+
+<h2>三、Joern 工作流程</h2>
+
+<h3>3.1 CPG 生成</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+// Joern CLI 命令
+joern-parse --language c /path/to/codebase
+
+// 输出
+生成 cpg.bin（二进制 CPG 文件）
+</pre>
+
+<p><strong>生成过程</strong>：</p>
+<ol>
+<li>解析源码 → AST</li>
+<li>构建 CFG（控制流分析）</li>
+<li>构建 PDG（数据依赖分析）</li>
+<li>合并为 CPG → 序列化为 cpg.bin</li>
+</ol>
+
+<h3>3.2 CPGQL 查询执行</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+// 加载 CPG
+importCode("path/to/cpg.bin")
+
+// 查询所有函数
+cpg.method.name.l
+
+// 查询所有调用点
+cpg.call.code.l
+
+// 污点追踪：从 getenv 到 system
+val sources = cpg.call.name("getenv")
+val sinks = cpg.call.name("system")
+sink.reachableByFlows(source).l
+</pre>
+
+<hr>
+
+<h2>四、CPGQL 查询示例</h2>
+
+<h3>4.1 查找所有外部函数调用</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+cpg.call
+  .where(_.methodName.not(".*internal.*"))
+  .code.l
+</pre>
+
+<h3>4.2 查找缓冲区操作</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+cpg.call
+  .name("strcpy", "memcpy", "sprintf")
+  .code.l
+</pre>
+
+<h3>4.3 污点追踪</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+// 定义污点源
+val sources = cpg.call.name("getenv", "fgets", "read")
+
+// 定义污点汇
+val sinks = cpg.call.name("system", "strcpy", "sprintf")
+
+// 追踪数据流
+sinks.reachableByFlows(sources).map(_.elements).l
+</pre>
+
+<h3>4.4 程序切片</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+// 从某个调用点向后切片
+cpg.call.name("malloc")
+  .newSink
+  .reachableBy(cpg.method.astNodes)
+  .l
+</pre>
+
+<h3>4.5 查找危险函数调用</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+// 查找所有 system() 调用
+cpg.call.name("system").code.l
+
+// 查找参数来源
+cpg.call.name("system")
+  .argument.code.l
+</pre>
+
+<h3>4.6 查找整数溢出模式</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+// 查找乘法运算后用于内存分配
+cpg.call.name("malloc")
+  .where(_.argument.isCall.name("mul", "*"))
+  .code.l
+</pre>
+
+<hr>
+
+<h2>五、codebadger 对 Joern 的封装</h2>
+
+<table>
+<tr><th>codebadger 工具</th><th>Joern 底层调用</th></tr>
+<tr><td>generate_cpg</td><td>joern-parse --language {lang} {path}</td></tr>
+<tr><td>list_methods</td><td>cpg.method.name.l</td></tr>
+<tr><td>get_call_graph</td><td>cpg.method.callIn.l + cpg.method.callOut.l</td></tr>
+<tr><td>find_taint_sources</td><td>cpg.call.name(getenv, fgets, ...)</td></tr>
+<tr><td>find_taint_flows</td><td>sink.reachableByFlows(source)</td></tr>
+<tr><td>get_program_slice</td><td>sink.reachableBy(cpg.method.astNodes)</td></tr>
+<tr><td>find_use_after_free</td><td>free() → 后续引用追踪</td></tr>
+<tr><td>find_double_free</td><td>多个 free() 调用点检测</td></tr>
+<tr><td>find_null_pointer_deref</td><td>空指针解引用模式匹配</td></tr>
+<tr><td>find_integer_overflow</td><td>malloc 参数溢出检测</td></tr>
+<tr><td>find_format_string_vulns</td><td>printf 非字面量格式参数</td></tr>
+<tr><td>find_heap_overflow</td><td>堆缓冲区写入越界</td></tr>
+<tr><td>find_stack_overflow</td><td>栈缓冲区写入越界</td></tr>
+<tr><td>find_toctou</td><td>access/stat + open 分离操作</td></tr>
+<tr><td>find_uninitialized_reads</td><td>变量未初始化使用</td></tr>
+</table>
+
+<hr>
+
+<h2>六、Joern 技术优势</h2>
+
+<table>
+<tr><th>优势</th><th>说明</th></tr>
+<tr><td><strong>跨函数分析</strong></td><td>PDG 支持跨函数数据流追踪（突破 LLM token 限制）</td></tr>
+<tr><td><strong>多语言支持</strong></td><td>C/C++/Java/Python/JS/Go/C#/PHP/Ruby/Swift/Kotlin (12 种)</td></tr>
+<tr><td><strong>可扩展查询</strong></td><td>CPGQL 是 Scala DSL，可写任意复杂查询</td></tr>
+<tr><td><strong>高效缓存</strong></td><td>CPG.bin 可持久化，代码不变无需重新生成</td></tr>
+<tr><td><strong>精确语义</strong></td><td>三图融合提供完整语义信息（AST+CFG+PDG）</td></tr>
+<tr><td><strong>开源免费</strong></td><td>Apache 2.0 许可证，社区活跃</td></tr>
+</table>
+
+<hr>
+
+<h2>七、与其他静态分析工具对比</h2>
+
+<table>
+<tr><th>工具</th><th>类型</th><th>跨函数分析</th><th>污点追踪</th><th>LLM 集成</th></tr>
+<tr><td><strong>Joern</strong></td><td>CPG</td><td>✓ 精确</td><td>✓ 原生</td><td>✗ 需封装</td></tr>
+<tr><td><strong>CodeQL</strong></td><td>Datalog</td><td>✓ 精确</td><td>✓ 原生</td><td>✗ 需封装</td></tr>
+<tr><td><strong>Semgrep</strong></td><td>Pattern</td><td>✗ 单函数</td><td>✗ 无</td><td>✓ 直接</td></tr>
+<tr><td><strong>Clang Static Analyzer</strong></td><td>Path-sensitive</td><td>✓ 精确</td><td>✓ 原生</td><td>✗ 需封装</td></tr>
+<tr><td><strong>RAG/grep</strong></td><td>文本</td><td>✗ 无</td><td>✗ 无</td><td>✓ 直接</td></tr>
+</table>
+
+<p><strong>codebadger 的独特价值</strong>：Joern 的精确语义分析 + MCP 协议 LLM 集成。</p>
+
+<hr>
+
+<h2>八、Joern 核心数据结构</h2>
+
+<h3>8.1 CPG 节点类型</h3>
+
+<table>
+<tr><th>节点类型</th><th>说明</th><th>示例</th></tr>
+<tr><td>Method</td><td>函数/方法定义</td><td>int foo(int x) {...}</td></tr>
+<tr><td>Call</td><td>函数调用</td><td>foo(42)</td></tr>
+<tr><td>Local</td><td>局部变量</td><td>int x = 10;</td></tr>
+<tr><td>Identifier</td><td>标识符引用</td><td>x, y, foo</td></tr>
+<tr><td>Literal</td><td>字面量</td><td>42, "hello", true</td></tr>
+<tr><td>Block</td><td>代码块</td><td>{ ... }</td></tr>
+<tr><td>If/Else/While/For</td><td>控制结构</td><td>if (x > 0) {...}</td></tr>
+<tr><td>Return</td><td>返回语句</td><td>return x;</td></tr>
+<tr><td>Member</td><td>类成员</td><td>class.field</td></tr>
+<tr><td>TypeDecl</td><td>类型声明</td><td>struct Foo {...}</td></tr>
+</table>
+
+<h3>8.2 CPG 边类型</h3>
+
+<table>
+<tr><th>边类型</th><th>说明</th><th>用途</th></tr>
+<tr><td>AST 边</td><td>语法父子关系</td><td>结构遍历</td></tr>
+<tr><td>CFG 边</td><td>控制流跳转</td><td>执行路径分析</td></tr>
+<tr><td>DDG 边</td><td>数据依赖（定义→使用）</td><td>污点追踪</td></tr>
+<tr><td>CDG 边</td><td>控制依赖</td><td>条件影响分析</td></tr>
+<tr><td>CALL 边</td><td>函数调用关系</td><td>调用图构建</td></tr>
+<tr><td>EVAL_TYPE 边</td><td>类型信息</td><td>类型推断</td></tr>
+</table>
+
+<hr>
+
+<h2>九、部署 Joern</h2>
+
+<h3>9.1 codebadger Docker（推荐）</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+# 启动预配置的 Joern 容器
+docker compose up -d
+
+# 验证服务
+docker ps | grep joern
+</pre>
+
+<h3>9.2 独立安装</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+# 安装 Joern
+curl -L "https://github.com/joernio/joern/releases/latest/download/joern-install.sh" | sh
+
+# 生成 CPG
+joern-parse /path/to/code
+
+# 启动交互式查询
+joern
+
+# 在 REPL 中查询
+importCode("cpg.bin")
+cpg.method.name.l
+</pre>
+
+<h3>9.3 配置选项</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+# Java 堆内存（大代码库需要更多内存）
+JOERN_JAVA_OPTS="-Xmx16G -Xms8G"
+
+# CPG 生成超时
+CPG_GENERATION_TIMEOUT=600  # 10 分钟
+
+# 最大仓库大小
+MAX_REPO_SIZE_MB=500
+</pre>
+
+<hr>
+
+<h2>十、CPG 论文背景</h2>
+
+<p><strong>原始论文</strong>：</p>
+<blockquote>
+<strong>The Code Property Graph — A New Program Representation for Security Analysis</strong><br>
+Fabian Yamaguchi, Nico Golde, Daniel Arp, Konrad Rieck<br>
+NDSS 2014 (Network and Distributed System Security Symposium)<br>
+<a href="https://www.usenix.org/conference/ndss14">https://www.usenix.org/conference/ndss14</a>
+</blockquote>
+
+<p><strong>论文贡献</strong>：</p>
+<ul>
+<li>提出 Code Property Graph 统一表示（AST + CFG + PDG）</li>
+<li>设计 CPGQL 查询语言</li>
+<li>验证在漏洞检测中的有效性（分析 6 个真实 CVE）</li>
+<li>奠定 Joern 的理论基础</li>
+</ul>
+
+<hr>
+
+<h2>十一、Joern 应用场景</h2>
+
+<table>
+<tr><th>场景</th><th>用途</th></tr>
+<tr><td>漏洞扫描</td><td>检测 UAF/Double-Free/Overflow/TOCTOU 等</td></tr>
+<tr><td>代码审计</td><td>理解大型代码库结构和数据流</td></tr>
+<tr><td>安全研究</td><td>发现未公开漏洞（如 codebadger 的 5 个 CVE）</td></tr>
+<tr><td>补丁验证</td><td>确认修复是否完整覆盖漏洞路径</td></tr>
+<tr><td>逆向分析</td><td>Ghidra 二进制 CPG 支持</td></tr>
+<tr><td>LLM 增强</td><td>为 AI Agent 提供精确语义导航</td></tr>
+</table>
+
+<hr>
+
+<h2>十二、总结</h2>
+
+<h3>三句话总结</h3>
+
+<ol>
+<li><strong>理论基础</strong>：CPG = AST + CFG + PDG，三图融合提供完整代码语义</li>
+<li><strong>技术优势</strong>：跨函数数据流追踪、12 种语言支持、可扩展 CPGQL 查询</li>
+<li><strong>应用价值</strong>：codebadger 封装后成为 LLM Agent 的漏洞检测引擎，发现 5 个真实 CVE</li>
+</ol>
+
+<h3>核心价值表</h3>
+
+<table>
+<tr><th>价值</th><th>说明</th></tr>
+<tr><td>精确语义分析</td><td>三图融合提供完整语义信息，超越纯文本分析</td></tr>
+<tr><td>跨函数追踪</td><td>PDG 支持跨边界数据流追踪，突破 LLM token 限制</td></tr>
+<tr><td>开源生态</td><td>Apache 2.0 许可证，活跃社区，持续迭代</td></tr>
+<tr><td>LLM 集成桥梁</td><td>codebadger MCP Server 让 Joern 能被 AI Agent 直接调用</td></tr>
+</table>
+
+<hr>
+
+<h2>参考文献</h2>
+
+<ul>
+<li><a href="https://joern.io">Joern 官方文档</a></li>
+<li><a href="https://github.com/joernio/joern">Joern GitHub 仓库</a></li>
+<li><a href="https://www.usenix.org/conference/ndss14">The Code Property Graph 论文 (NDSS 2014)</a></li>
+<li><a href="https://arxiv.org/abs/2603.24837">Bridging CPG and LLM 论文 (SVM '26)</a></li>
+<li><a href="https://github.com/lekssays/codebadger">codebadger 项目</a></li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+</body>
+</html>
