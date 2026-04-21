@@ -24,142 +24,139 @@
             <p class="meta">April 21, 2026</p>
             <div class="content"><h1>OpenMythos：解构 Claude Mythos 的循环深度 Transformer 架构</h1>
 
-<blockquote>项目：https://github.com/kyegomez/OpenMythos</blockquote>
-
-<blockquote>作者：Kye Gomez</blockquote>
-
-<blockquote>发布日期：April 21, 2026</blockquote>
-
-<blockquote>热度：4161 ⭐（仅 3 天）</blockquote>
+<blockquote>
+<strong>项目</strong>：https://github.com/kyegomez/OpenMythos<br>
+<strong>作者</strong>：Kye Gomez<br>
+<strong>热度</strong>：4161 ⭐（仅 3 天）
+</blockquote>
 
 <hr>
 
 <h2>一、项目概述：现象级爆发的理论重建</h2>
 
-<p>2026年4月18日，一个名为 OpenMythos 的项目在 GitHub 上诞生。仅 3 天内，它便收获了 <strong>4161 个 star</strong>，fork 数达到 911——这种热度在 AI 开源项目中极为罕见。</p>
-
-<p>项目的核心命题极具野心：<strong>对 Claude Mythos 的架构进行理论重建</strong>。作者 Kye Gomez 声明这是一个独立的、社区驱动的理论重构，基于公开发表的研究文献，不与 Anthropic 有任何关联。</p>
+<p>2026年4月18日，一个名为 OpenMythos 的项目在 GitHub 上诞生。仅 3 天内收获 <strong>4161 star</strong>，fork 数 911。项目核心命题：<strong>对 Claude Mythos 的架构进行理论重建</strong>。</p>
 
 <h3>核心假设</h3>
 
-<p><strong>Claude Mythos 是 Recurrent-Depth Transformer (RDT) —— 循环深度 Transformer</strong></p>
+<p><strong>Claude Mythos = Recurrent-Depth Transformer (RDT)</strong></p>
 
-<p>而非传统意义上的深度堆叠模型。这意味着：</p>
+<table>
+<tr><th>传统模型</th><th>循环深度模型</th></tr>
+<tr><td>堆叠数百层独立权重</td><td>循环使用少量层的权重</td></tr>
+<tr><td>参数量 ∝ 深度</td><td>参数量固定，深度由循环次数决定</td></tr>
+<tr><td>推理成本固定</td><td>推理时可动态增加循环</td></tr>
+</table>
 
-<ul>
-<li>它不依赖数百层独立权重</li>
-<li>而是通过<strong>循环使用少量层的权重</strong>实现深度推理</li>
-<li>相同权重，更多循环 → 更深思考</li>
-</ul>
-
-<p>这不是 chain-of-thought。所有推理<strong>静默发生在单次前向传递中</strong>，在连续潜在空间内——没有中间 token 输出。</p>
+<p>所有推理<strong>静默发生在单次前向传递中</strong>，在连续潜在空间内——没有中间 token 输出。</p>
 
 <hr>
 
 <h2>二、架构解析：三段式循环设计</h2>
 
-<p>OpenMythos 将模型划分为三个功能块：</p>
+<h3>整体流程</h3>
 
-<pre style="background: #1a1a2e; padding: 1em; overflow-x: auto;">
-Input tokens
-     ↓
-[Prelude P]       — 标准 transformer layers，运行一次
-     ↓
-[Recurrent Block R] — 循环块，循环 T 次
-     ↑_______↓      h_{t+1} = A·h_t + B·e + Transformer(h_t, e)
-     ↓
-[Coda C]          — 标准 transformer layers，运行一次
-     ↓
-Output logits
-</pre>
+<table style="background: #f8f9fa; border: none;">
+<tr style="background: linear-gradient(90deg, #667eea, #764ba2); color: white;">
+<th style="border-radius: 8px 0 0 0;">阶段</th>
+<th style="border-radius: 0;">功能</th>
+<th style="border-radius: 0 8px 0 0;">执行次数</th>
+</tr>
+<tr><td><strong>Prelude</strong></td><td>输入编码，提取初始特征</td><td>1 次</td></tr>
+<tr><td><strong>Recurrent Block</strong></td><td>深度推理循环</td><td>T 次（可动态调整）</td></tr>
+<tr><td><strong>Coda</strong></td><td>输出投影，生成 logits</td><td>1 次</td></tr>
+</table>
 
 <h3>循环更新公式</h3>
 
-<p>每个循环步 t 的更新规则：</p>
+<pre><code>h_{t+1} = A·h_t + B·e + Transformer(h_t, e)</code></pre>
 
-<pre style="background: #1a1a2e; padding: 1em; overflow-x: auto;">
-h_{t+1} = A·h_t + B·e + Transformer(h_t, e)
-</pre>
+<table>
+<tr><th>符号</th><th>含义</th><th>作用</th></tr>
+<tr><td><code>h_t</code></td><td>循环 t 后的隐藏状态</td><td>累积推理深度</td></tr>
+<tr><td><code>e</code></td><td>编码输入（来自 Prelude）</td><td>每步注入，防止漂移</td></tr>
+<tr><td><code>A, B</code></td><td>学习的注入参数</td><td>LTI 稳定化</td></tr>
+<tr><td><code>Transformer</code></td><td>Attention + MLP</td><td>非线性变换</td></tr>
+</table>
 
-<p>其中：</p>
-
-<ul>
-<li><strong>h_t</strong>：循环 t 后的隐藏状态</li>
-<li><strong>e</strong>：编码后的输入（来自 Prelude），在每次循环中注入</li>
-<li><strong>A, B</strong>：学习的注入参数</li>
-<li><strong>Transformer</strong>：标准的 attention + MLP 操作</li>
-</ul>
-
-<p>关键设计：e 在每一步都被注入，防止隐藏状态漂移，保持原始输入信号在整个循环深度中活跃。</p>
+<p>关键：<code>e</code> 在每步注入，保持原始输入信号在整个循环深度中活跃。</p>
 
 <hr>
 
 <h2>三、六大技术创新</h2>
 
-<h3>1. LTI-stable Injection（Parcae 稳定化注入）</h3>
+<h3>1. LTI-stable Injection（谱半径 < 1 保证）</h3>
 
-<p>循环模型的训练历来不稳定，两大失效模式：</p>
+<p>循环模型训练不稳定的原因：<strong>残差爆炸</strong>（隐藏状态跨循环无界增长）和<strong>损失尖峰</strong>（谱范数过大）。</p>
 
-<ul>
-<li><strong>残差爆炸</strong>：隐藏状态 h_t 跨循环无界增长</li>
-<li><strong>损失尖峰</strong>：注入参数的谱范数过大导致训练发散</li>
-</ul>
+<table>
+<tr><th>问题</th><th>Parcae 解决方案</th></tr>
+<tr><td>A 可能发散</td><td>A_continuous = Diag(-exp(log_A)) 永远负对角</td></tr>
+<tr><td>离散化不稳定</td><td>A_discrete = exp(Δt·A_c) 保证值 ∈ (0,1)</td></tr>
+<tr><td>梯度爆炸</td><td>log space 计算 + clamp(-20,20)</td></tr>
+</table>
 
-<p>OpenMythos 采用 Parcae（Prairie et al., 2026）的解决方案：</p>
+<pre><code># 核心实现
+def get_A(self):
+    # log space 避免 0 * inf = NaN
+    return torch.exp(-torch.exp((log_dt + log_A).clamp(-20, 20)))
 
-<p>将注入参数 A 重构为<strong>离散线性时不变系统</strong>：</p>
-
-<pre style="background: #1a1a2e; padding: 1em; overflow-x: auto;">
-A_continuous = Diag(-exp(log_A))     # 永远是负对角矩阵
-A_discrete   = exp(Δt · A_continuous) # ZOH 离散化，值 ∈ (0, 1)
-</pre>
-
-<p>这<strong>从结构上保证</strong>谱半径 ρ(A) < 1，无论学习率或批次噪声如何变化。</p>
+# 保证: ρ(A) < 1 无论学习率或批次噪声如何</code></pre>
 
 <h3>2. ACT Halting（自适应计算时间）</h3>
 
-<p>更多循环不一定更好。超过某深度后，过度循环会<strong>退化预测</strong>——隐藏状态漂移到解决方案之外，进入噪声。</p>
+<p>超过某深度后，过度循环<strong>退化预测</strong>。解决方案：每个位置学习停止概率。</p>
 
-<p>OpenMythos 引入 Adaptive Computation Time（Graves, 2016）：</p>
+<table>
+<tr><th>Token 类型</th><th>行为</th><th>循环次数</th></tr>
+<tr><td>简单 token</td><td>早退出</td><td>1-4 次</td></tr>
+<tr><td>中等复杂</td><td>正常循环</td><td>8-12 次</td></tr>
+<tr><td>困难 token</td><td>完整深度</td><td>16+ 次</td></tr>
+</table>
 
-<ul>
-<li>每个位置学习一个<strong>停止概率</strong></li>
-<li>隐藏状态已收敛的位置停止累积更新</li>
-<li>仍在精细化的位置继续循环</li>
-<li>简单 token 早退出，困难 token 获得完整深度——<strong>同一批次内</strong></li>
-</ul>
+<p><strong>同一批次内</strong>，不同位置可不同深度——2-3x throughput 提升。</p>
 
 <h3>3. Multi-Latent Attention（MLA）</h3>
 
-<p>OpenMythos 支持两种注意力机制：</p>
-
 <table>
-<tr><th>机制</th><th>特点</th><th>KV Cache 减少</th></tr>
-<tr><td><strong>GQA</strong></td><td>Grouped Query Attention</td><td>~4x</td></tr>
-<tr><td><strong>MLA</strong></td><td>Multi-Latent Attention</td><td><strong>10-20x</strong></td></tr>
+<tr><th>机制</th><th>KV Cache 存储</th><th>内存减少</th></tr>
+<tr><td>GQA</td><td>n_kv_heads × head_dim × 2</td><td>~4x</td></tr>
+<tr><td><strong>MLA</strong></td><td>kv_lora_rank + n_heads × rope_dim</td><td><strong>10-20x</strong></td></tr>
 </table>
 
-<p>MLA（DeepSeek-V2）缓存<strong>低秩 KV latent</strong>而非完整 K/V，生产规模下 KV 内存减少 10-20x。</p>
+<p>MLA 缓存<strong>低秩 KV latent</strong>，每步从 latent 快速重建完整 K/V。</p>
 
 <h3>4. DeepSeekMoE FFN</h3>
 
-<p>循环块内使用<strong>Mixture-of-Experts FFN</strong>：</p>
+<table>
+<tr><th>配置</th><th>值</th><th>说明</th></tr>
+<tr><td>n_experts</td><td>64-512</td><td>路由专家池</td></tr>
+<tr><td>n_shared_experts</td><td>2-8</td><td>始终激活，吸收通用知识</td></tr>
+<tr><td>n_experts_per_tok</td><td>4-8</td><td>每 token top-K 选择</td></tr>
+<tr><td>激活率</td><td>~5-6%</td><td>真正计算数 ≠ 存储数</td></tr>
+</table>
 
-<ul>
-<li><strong>n_experts</strong>：路由专家池（如 64 个）</li>
-<li><strong>n_shared_experts</strong>：始终激活的共享专家（如 2 个）</li>
-<li><strong>n_experts_per_tok</strong>：每 token 选择 top-K（如 4 个）</li>
-</ul>
-
-<p>激活率约 <strong>6.25%</strong>（4/64）。当隐藏状态跨循环演化时，路由器可能在不同深度选择不同专家子集。</p>
+<p>跨循环演化时，路由器可能在不同深度选择不同专家子集。</p>
 
 <h3>5. Loop-Index Embedding</h3>
 
-<p>类似 RoPE 的循环索引嵌入：每个循环是<strong>不同的计算阶段</strong>，共享权重但在不同表示域操作。</p>
+<p>每个循环是<strong>不同计算阶段</strong>，类似 RoPE 但作用于循环深度而非序列位置。</p>
+
+<pre><code># 循环索引嵌入
+freqs = 1.0 / theta ** (arange(0, loop_dim, 2) / loop_dim)
+angles = loop_t * freqs
+emb = cat([angles.sin(), angles.cos()])
+h = h + emb  # 让共享权重在不同循环行为不同</code></pre>
 
 <h3>6. Depth-wise LoRA Adapter</h3>
 
-<p>每循环的低秩增量：delta(x, t) = (down(x) * scale[t]) @ B，总参数开销极小。</p>
+<pre><code>delta(x, t) = (down(x) * scale[t]) @ B</code></pre>
+
+<table>
+<tr><th>组件</th><th>作用</th></tr>
+<tr><td>down: Linear(dim, rank)</td><td>共享降维</td></tr>
+<tr><td>B: Parameter(rank, dim)</td><td>共享升维</td></tr>
+<tr><td>scale: Embedding(max_loops, rank)</td><td>每循环的缩放向量</td></tr>
+</table>
 
 <hr>
 
@@ -167,71 +164,142 @@ A_discrete   = exp(Δt · A_continuous) # ZOH 离散化，值 ∈ (0, 1)
 
 <h3>1. 系统化泛化</h3>
 
-<p>标准 Transformer 无法组合从未见过的知识。循环 Transformer 通过<strong>三阶段 grokking</strong>突破：记忆→分布内泛化→系统化泛化（OOD，突然涌现）。</p>
+<p>三阶段 grokking：<strong>记忆 → 分布内泛化 → 系统化泛化（OOD，突然涌现）</strong></p>
+
+<table>
+<tr><th>阶段</th><th>表现</th><th>触发条件</th></tr>
+<tr><td>阶段1</td><td>拟合训练分布</td><td>初始训练</td></tr>
+<tr><td>阶段2</td><td>处理已知组合</td><td>足够数据</td></tr>
+<tr><td>阶段3</td><td>novel 组合 OOD</td><td>循环深度足够 + grokking</td></tr>
+</table>
 
 <h3>2. 深度外推</h3>
 
-<p>训练于 5-hop 推理链，测试于 10-hop 成功——通过<strong>更多推理循环</strong>。映射 Mythos：深度组合问题无显式 CoT。</p>
+<table>
+<tr><th>场景</th><th>标准 Transformer</th><th>循环 Transformer</th></tr>
+<tr><td>训练 5-hop</td><td>✓ 成功</td><td>✓ 成功</td></tr>
+<tr><td>测试 10-hop</td><td>✗ 失败</td><td>✓ 成功（增加循环）</td></tr>
+</table>
 
 <h3>3. 潜在思想 = 隐式 CoT</h3>
 
-<p>T 循环隐式模拟 T 步 CoT，但在<strong>连续潜在空间</strong>而非 token 空间。可同时编码多种替代下一步——接近广度优先搜索。</p>
+<p>T 循环隐式模拟 T 步 CoT，但在<strong>连续潜在空间</strong>而非 token 间。可同时编码多种替代下一步——接近对推理空间的<strong>广度优先搜索</strong>。</p>
 
 <h3>4. 参数效率</h3>
 
-<p>k 层循环 L 次质量等同于 kL 层非循环，仅 k 层参数。内存足迹<strong>不随推理深度增长</strong>。</p>
-
-<hr>
-
-<h2>五、模型规模配置</h2>
-
 <table>
-<tr><th>Variant</th><th>dim</th><th>Experts</th><th>Loops</th><th>Context</th></tr>
-<tr><td>1B</td><td>2048</td><td>64</td><td>16</td><td>4k</td></tr>
-<tr><td>3B</td><td>3072</td><td>64</td><td>16</td><td>4k</td></tr>
-<tr><td>10B</td><td>4096</td><td>128</td><td>24</td><td>8k</td></tr>
-<tr><td>100B</td><td>8192</td><td>256</td><td>32</td><td>1M</td></tr>
-<tr><td>1T</td><td>16384</td><td>512</td><td>64</td><td>1M</td></tr>
+<tr><th>模型</th><th>参数</th><th>等效深度</th></tr>
+<tr><td>标准 Transformer</td><td>kL 层参数</td><td>kL 层</td></tr>
+<tr><td>循环 Transformer</td><td>k 层参数</td><td>kL 层质量</td></tr>
+<tr><td>效率提升</td><td><strong>~L 倍</strong></td><td>推理时可扩展</td></tr>
 </table>
 
 <hr>
 
-<h2>六、关键洞察</h2>
+<h2>五、应用场景</h2>
+
+<h3>1. 深度推理任务</h3>
+
+<table>
+<tr><th>场景</th><th>循环次数</th><th>优势</th></tr>
+<tr><td>多步数学推导</td><td>32-64</td><td>无需显式 CoT，一步到位</td></tr>
+<tr><td>复杂逻辑分析</td><td>24-48</td><td>隐式推理链，避免中间 token</td></tr>
+<tr><td>长程规划</td><td>48-64</td><td>连续潜在空间编码多路径</td></tr>
+<tr><td>代码生成</td><td>16-32</td><td>深度语义理解</td></tr>
+</table>
+
+<h3>2. 实时交互系统</h3>
+
+<p>ACT Halting 让简单请求快速响应（1-4 循环），复杂问题深度思考（16+ 循环），同一批次内混合处理。</p>
+
+<pre><code># 推理时间控制
+简单请求:  0.1s  (4 loops)
+中等复杂:  0.3s  (12 loops)
+深度推理:  1.0s+ (32+ loops)</code></pre>
+
+<h3>3. 大规模部署</h3>
+
+<table>
+<tr><th>配置</th><th>参数存储</th><th>激活计算</th><th>KV Cache</th></tr>
+<tr><td>100B MLA</td><td>100B</td><td>~5B/token</td><td>减少 15x</td></tr>
+<tr><td>传统 100B</td><td>100B</td><td>100B/token</td><td>标准</td></tr>
+<tr><td>效率提升</td><td>-</td><td><strong>20x</strong></td><td><strong>15x</strong></td></tr>
+</table>
+
+<h3>4. 边缘设备推理</h3>
+
+<p>1B-3B 配置可在手机端运行，循环次数根据设备算力动态调整：</p>
+
+<pre><code># 边缘部署示例
+手机端: mythos_1b, 8-16 loops, ~100ms
+笔记本: mythos_3b, 16-24 loops, ~200ms
+服务器: mythos_10b+, 32-64 loops</code></pre>
+
+<h3>5. 研究与实验</h3>
+
+<table>
+<tr><th>实验方向</th><th>OpenMythos 支持</th></tr>
+<tr><td>深度外推研究</td><td>n_loops 可超过训练值</td></tr>
+<tr><td>ACT 机制实验</td><td>act_threshold 可调整</td></tr>
+<tr><td>MoE 路由分析</td><td>完整路由日志</td></tr>
+<tr><td>稳定性研究</td><td>谱半径监控 get_A()</td></tr>
+</table>
+
+<hr>
+
+<h2>六、模型规模配置</h2>
+
+<table>
+<tr><th>Variant</th><th>dim</th><th>Experts</th><th>Loops</th><th>Context</th><th>Max output</th></tr>
+<tr><td>mythos_1b</td><td>2048</td><td>64</td><td>16</td><td>4k</td><td>4k</td></tr>
+<tr><td>mythos_3b</td><td>3072</td><td>64</td><td>16</td><td>4k</td><td>4k</td></tr>
+<tr><td>mythos_10b</td><td>4096</td><td>128</td><td>24</td><td>8k</td><td>4k</td></tr>
+<tr><td>mythos_50b</td><td>6144</td><td>256</td><td>32</td><td>8k</td><td>4k</td></tr>
+<tr><td>mythos_100b</td><td>8192</td><td>256</td><td>32</td><td>1M</td><td>128k</td></tr>
+<tr><td>mythos_500b</td><td>12288</td><td>512</td><td>48</td><td>1M</td><td>128k</td></tr>
+<tr><td>mythos_1t</td><td>16384</td><td>512</td><td>64</td><td>1M</td><td>128k</td></tr>
+</table>
+
+<hr>
+
+<h2>七、关键洞察总结</h2>
 
 <table>
 <tr><th>属性</th><th>描述</th></tr>
-<tr><td>Architecture</td><td>Prelude + Looped Recurrent + Coda</td></tr>
+<tr><td>架构</td><td>Prelude + Looped Recurrent + Coda</td></tr>
 <tr><td>FFN</td><td>MoE — fine-grained + shared experts</td></tr>
-<tr><td>Activation</td><td>~5% per token</td></tr>
-<tr><td>Reasoning</td><td>Implicit multi-hop via latent updates</td></tr>
-<tr><td>Inference scaling</td><td>More loops = deeper reasoning</td></tr>
-<tr><td>Stability</td><td>LTI-constrained: ρ(A) < 1</td></tr>
-<tr><td>Loop diff</td><td>RoPE-like loop-index embedding</td></tr>
+<tr><td>激活率</td><td>~5% per token（存储数 ≠ 计算数）</td></tr>
+<tr><td>推理机制</td><td>Implicit multi-hop via latent updates</td></tr>
+<tr><td>推理扩展</td><td>更多循环 = 更深推理，指数衰减</td></tr>
+<tr><td>稳定性</td><td>LTI-constrained: ρ(A) < 1 by construction</td></tr>
+<tr><td>循环差异化</td><td>RoPE-like loop-index embedding</td></tr>
+<tr><td>结构偏向</td><td>推理强，记忆弱</td></tr>
 </table>
 
 <hr>
 
-<h2>七、参考文献</h2>
+<h2>八、参考文献</h2>
 
 <ul>
-<li><a href="https://arxiv.org/pdf/2604.07822">Loop, Think, & Generalize</a></li>
-<li><a href="https://arxiv.org/abs/2604.12946">Parcae Scaling Laws</a></li>
-<li><a href="https://arxiv.org/abs/2502.17416">Reasoning with Latent Thoughts</a></li>
-<li><a href="https://arxiv.org/abs/2405.04434">DeepSeek-V2 MLA</a></li>
-<li><a href="https://arxiv.org/abs/2401.06066">DeepSeekMoE</a></li>
+<li><a href="https://arxiv.org/pdf/2604.07822">Loop, Think, & Generalize</a> — Implicit Reasoning in RDT</li>
+<li><a href="https://arxiv.org/abs/2604.12946">Parcae</a> — Scaling Laws for Stable Looped LM</li>
+<li><a href="https://arxiv.org/abs/2502.17416">Reasoning with Latent Thoughts</a> — Power of Looped Transformers</li>
+<li><a href="https://arxiv.org/abs/2405.04434">DeepSeek-V2</a> — Multi-Latent Attention</li>
+<li><a href="https://arxiv.org/abs/2401.06066">DeepSeekMoE</a> — Fine-grained Expert Segmentation</li>
+<li><a href="https://arxiv.org/pdf/2410.20672">Relaxed Recursive Transformers</a> — Depth-wise LoRA</li>
 </ul>
 
 <hr>
 
 <h2>结论</h2>
 
-<p>OpenMythos 让循环 Transformer 从研究论文变成<strong>可训练、可部署的工程系统</strong>。</p>
+<p>OpenMythos 让循环 Transformer 从研究论文变成<strong>可训练、可部署的工程系统</strong>。无论 Claude Mythos 是否证实为 RDT，这个项目已经提供了可验证的理论框架和完整实现。</p>
 
 <blockquote>
 <strong>如果 Claude Mythos 真的是 RDT，OpenMythos 就是通往理解它的钥匙。</strong>
 </blockquote>
 
-<p>项目：<a href="https://github.com/kyegomez/OpenMythos">https://github.com/kyegomez/OpenMythos</a></p>
+<p>项目地址：<a href="https://github.com/kyegomez/OpenMythos">https://github.com/kyegomez/OpenMythos</a></p>
 </div>
             <a href="../index.html" class="back-link">&larr; Back to home</a>
         </article>

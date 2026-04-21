@@ -66,6 +66,12 @@ h2 {
     margin-bottom: 20px;
 }
 
+h3 {
+    font-size: 1.4rem;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
 p {
     margin-bottom: 20px;
     font-size: 1.1rem;
@@ -78,6 +84,79 @@ a {
 
 a:hover {
     color: #004499;
+}
+
+/* Code blocks - 高对比度 */
+pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2em;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.95em;
+    line-height: 1.5;
+    margin: 20px 0;
+    border: 1px solid #333;
+}
+
+code {
+    background: #f0f0f0;
+    color: #c7254e;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.9em;
+}
+
+pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+/* Tables - 清晰边框 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 1rem;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+th {
+    background: #f8f8f8;
+    font-weight: 600;
+    color: #333;
+}
+
+tr:nth-child(even) {
+    background: #fafafa;
+}
+
+/* Blockquote */
+blockquote {
+    background: #f9f9f9;
+    border-left: 4px solid #0066cc;
+    padding: 15px 20px;
+    margin: 20px 0;
+    color: #555;
+    font-style: italic;
+}
+
+/* Lists */
+ul, ol {
+    margin: 20px 0;
+    padding-left: 25px;
+}
+
+li {
+    margin-bottom: 10px;
 }
 
 /* Blog Index */
@@ -182,6 +261,24 @@ a:hover {
     font-size: 0.9rem;
 }
 
+/* Architecture diagram styles */
+.arch-diagram {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 2em;
+    border-radius: 12px;
+    margin: 25px 0;
+    font-family: 'SF Mono', monospace;
+    text-align: center;
+}
+
+.arch-diagram pre {
+    background: transparent;
+    color: #fff;
+    border: none;
+    padding: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     h1 {
@@ -191,5 +288,18 @@ a:hover {
     .blog-post h1,
     .blog-index h1 {
         font-size: 1.8rem;
+    }
+    
+    pre {
+        font-size: 0.85em;
+        padding: 1em;
+    }
+    
+    table {
+        font-size: 0.9rem;
+    }
+    
+    th, td {
+        padding: 8px 10px;
     }
 }
