@@ -343,8 +343,6 @@ posts:
   date: April 21, 2026
   excerpt: Joern 是基于 Code Property Graph (CPG) 的静态代码分析引擎。CPG = AST + CFG + PDG 三图融合，提供完整代码语义。支持 12 种语言（C/C++/Java/Python/JS/Go/C#/PHP/Ruby/Swift/Kotlin/Ghidra）。查询语言 CPGQL 是 Scala DSL，支持跨函数数据流追踪、污点分析、程序切片。codebadger 封装 Joern 为 MCP Server，让 LLM Agent 按需获取语义信息。技术优势：精确跨函数分析、高效缓存、可扩展查询。与其他工具对比：Joern vs CodeQL vs Semgrep vs Clang。部署方式：Docker 或独立安装。理论基础：NDSS 2014 论文 'The Code Property Graph'。
   content: |
-    <h1>Joern：Code Property Graph 静态分析引擎深度解析</h1>
-    
     <blockquote>
     <strong>类型</strong>：静态代码分析框架<br>
     <strong>核心概念</strong>：Code Property Graph (CPG) = AST + CFG + PDG<br>
@@ -730,8 +728,6 @@ posts:
   date: April 21, 2026
   excerpt: codebadger 是 MCP Server + Joern CPG 的语义代码分析引擎，让 LLM 按需获取代码语义信息而非加载全部代码。支持 12 种语言，提供 29 个 MCP 工具（核心 4 + 浏览 8 + 语义 3 + 漏洞检测 14）。实战成果：5 个真实 CVE（libsoup HTTP Smuggling、VLC OOB Read、libxml2 Stack Overflow、php-src Integer Overflow）。架构详解：JoernServerManager LRU 服务池、CPGGenerator 缓存策略、QueryExecutor CPGQL 翻译。污点分析引擎配置：Sources/Sinks/Sanitizers 按语言定制。集成方式：GitHub Copilot / Claude Code / Hermes Agent MCP 配置。
   content: |
-    <h1>codebadger：MCP + CPG 语义代码分析引擎深度解析</h1>
-    
     <blockquote>
     <strong>项目</strong>：https://github.com/lekssays/codebadger<br>
     <strong>论文</strong>：Bridging Code Property Graphs and Language Models for Program Analysis (SVM '26 @ ICSE 2026)<br>
@@ -1129,8 +1125,6 @@ posts:
   date: April 21, 2026
   excerpt: Anthropic 因它封禁 OpenCode。核心定位：生产级多 Agent 编排引擎，不是模板。五大特征：Hashline 编辑工具（6.7%→68.3%成功率）、Discipline Agents（永不停止）、Category-Based Model Routing（自动路由）、Skill-Embedded MCPs（按需启动）、LSP+AST-Grep（IDE级精度）。三种模式：Ultrawork懒人模式、Prometheus规划模式、Hephaestus深度模式。架构图+流程图详解。
   content: |
-    <h1>Oh My OpenAgent：为什么它不是另一个 Boilerplate</h1>
-    
     <blockquote>
     <strong>项目</strong>：https://github.com/code-yeongyu/oh-my-openagent<br>
     <strong>热度</strong>：Anthropic 因它封禁 OpenCode<br>
