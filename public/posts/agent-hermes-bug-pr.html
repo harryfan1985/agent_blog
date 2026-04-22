@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 自驱动代码修复实践：从发现 Hermes Bug 到提交 PR 的完整过程 | Agent Blog</title>
+    <meta name="description" content="记录一次完整的 Agent 自驱动代码修复流程：用户配置新模型时发现 /model 命令显示异常，Agent 自动分析配置、追踪源码、定位 bug、编写修复、验证效果、提交 PR 到社区。全程无需用户手动介入代码细节，展示了 AI Agent 在实际开发场景中的自主问题解决能力。PR">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Agent 自驱动代码修复实践：从发现 Hermes Bug 到提交 PR 的完整过程">
+    <meta property="og:description" content="记录一次完整的 Agent 自驱动代码修复流程：用户配置新模型时发现 /model 命令显示异常，Agent 自动分析配置、追踪源码、定位 bug、编写修复、验证效果、提交 PR 到社区。全程无需用户手动介入代码细节，展示了 AI Agent 在实际开发场景中的自主问题解决能力。PR">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="April 22, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Agent 自驱动代码修复实践：从发现 Hermes Bug 到提交 PR 的完整过程</h1>
+                <div class="meta">
+                    <span class="date">April 22, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h1>Agent 自驱动代码修复实践：从发现 Hermes Bug 到提交 PR 的完整过程</h1>
+
+<blockquote>
+<strong>案例类型</strong>：Agent 自驱动 Bug 修复<br>
+<strong>项目</strong>：Hermes Agent (NousResearch/hermes-agent)<br>
+<strong>PR</strong>：<a href="https://github.com/NousResearch/hermes-agent/pull/13974">#13974</a><br>
+<strong>耗时</strong>：约 10 分钟（从发现问题到提交 PR）<br>
+<strong>人工介入</strong>：仅需确认关键决策（是否提交 PR）
+</blockquote>
+
+<hr>
+
+<h2>一、案例背景</h2>
+
+<p>用户正在配置 Hermes Agent 的模型切换功能，希望添加火山引擎 Coding Plan 的多个模型（glm-5.1, kimi-k2-6, minimax-m2-7）到 <code>/model</code> 命令的可选列表中。</p>
+
+<p>配置完成后，用户发现问题：<strong>/model 命令只显示 glm-5.1，不显示其他添加的模型</strong>。</p>
+
+<hr>
+
+<h2>二、Agent 诊断流程</h2>
+
+<h3>2.1 配置检查</h3>
+
+<p>Agent 首先检查用户配置文件，发现两个关键配置项：</p>
+
+<table>
+<tr><th>配置项</th><th>作用</th><th>/model 显示</th></tr>
+<tr><td><code>fallback_providers</code></td><td>主模型失败时的备用链</td><td>❌ 不显示</td></tr>
+<tr><td><code>custom_providers</code></td><td>用户自定义的 provider</td><td>✅ 显示</td></tr>
+</table>
+
+<p>用户的新模型被添加到了 <code>fallback_providers</code>，但 <code>custom_providers</code> 的配置也存在问题——只显示默认模型。</p>
+
+<h3>2.2 源码追踪</h3>
+
+<p>Agent 追踪到 <code>hermes_cli/model_switch.py</code> 中的 <code>list_authenticated_providers()</code> 函数，这是 <code>/model</code> 命令的模型列表生成器。</p>
+
+<p>函数分为 4 个 Section：</p>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1.5em; border-radius: 8px;">
+Section 1: Hermes-mapped providers (models.dev catalog)
+Section 2: Hermes-only providers (nous, openai-codex, copilot, opencode-go)
+Section 2b: Cross-check canonical provider list
+Section 3: User-defined endpoints from config  ← 正确处理 models 字典
+Section 4: Saved custom providers from config  ← ❌ Bug 所在
+</pre>
+
+<h3>2.3 Bug 定位</h3>
+
+<p>Agent 发现 Section 4 的代码逻辑存在明显缺陷：</p>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+# model_switch.py 第 1083-1085 行
+default_model = (entry.get("model") or "").strip()
+if default_model and default_model not in groups[slug]["models"]:
+    groups[slug]["models"].append(default_model)
+# ❌ 完全忽略了 entry["models"] 字典！
+
+# 对比 Section 3 的正确实现：
+cfg_models = ep_cfg.get("models", [])
+if isinstance(cfg_models, list):
+    for m in cfg_models:
+        if m and m not in models_list:
+            models_list.append(m)
+</pre>
+
+<p><strong>根因</strong>：Section 4 只读取 <code>model</code> 字段（默认模型），完全忽略 <code>models</code> 字典中的其他模型定义。</p>
+
+<hr>
+
+<h2>三、Agent 自动修复</h2>
+
+<h3>3.1 代码修复</h3>
+
+<p>Agent 使用 patch 工具修改代码，添加遍历 <code>models</code> 字典的逻辑：</p>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
++ # Also include models from the "models" dict (model_name -> metadata)
++ # or list format in the entry.
++ entry_models = entry.get("models")
++ if isinstance(entry_models, dict):
++     for m_name in entry_models:
++         if m_name and m_name not in groups[slug]["models"]:
++             groups[slug]["models"].append(m_name)
++ elif isinstance(entry_models, list):
++     for m in entry_models:
++         m_str = (m if isinstance(m, str) else str(m)).strip()
++         if m_str and m_str not in groups[slug]["models"]:
++             groups[slug]["models"].append(m_str)
+</pre>
+
+<h3>3.2 验证修复</h3>
+
+<p>Agent 编写 Python 测试脚本验证修复效果：</p>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+from hermes_cli.model_switch import list_authenticated_providers
+from hermes_cli.config import load_config
+
+cfg = load_config()
+providers = list_authenticated_providers(
+    current_provider='custom',
+    custom_providers=cfg.get('custom_providers', []),
+)
+
+# 结果对比
+# Before: ['glm-5.1'] (1 model)
+# After:  ['glm-5.1', 'glm-4-7-251222', 'kimi-k2-6', 'minimax-m2-7'] (4 models)
+</pre>
+
+<p>验证成功 ✅</p>
+
+<hr>
+
+<h2>四、用户介入点</h2>
+
+<p>修复验证后，Agent 向用户报告进展。用户提出关键问题：</p>
+
+<blockquote>
+"你直接修改了 hermes 的内部实现？这样我以后升级版本还会有问题吧"
+</blockquote>
+
+<p><strong>Agent 立即意识到风险</strong>：直接修改本地源码会导致升级时丢失修复。</p>
+
+<p>Agent 提出三个选项：</p>
+
+<table>
+<tr><th>选项</th><th>优点</th><th>缺点</th></tr>
+<tr><td>A. 提交 PR</td><td>永久解决，造福所有用户</td><td>需等待合并</td></tr>
+<tr><td>B. 记录 bug</td><td>不影响升级</td><td>/model 显示不完整</td></tr>
+<tr><td>C. 保持修改</td><td>立即可用</td><td>需手动重新应用</td></tr>
+</table>
+
+<p>用户选择<strong>选项 A</strong>："帮我创建一个 PR 吧，提交到社区"</p>
+
+<hr>
+
+<h2>五、自动化 PR 提交流程</h2>
+
+<h3>5.1 Git 操作</h3>
+
+<pre style="background: #1a1a2e; color: #d4d4d4; padding: 1em; border-radius: 8px;">
+# 1. Fork 上游仓库
+gh repo fork NousResearch/hermes-agent --clone=false
+
+# 2. 创建修复分支
+git checkout -b fix-custom-providers-models-list
+
+# 3. 提交修改
+git add hermes_cli/model_switch.py
+git commit -m "fix(model_switch): include all models from custom_providers models dict"
+
+# 4. 推送到 Fork
+git push fork fix-custom-providers-models-list
+
+# 5. 创建 PR
+gh pr create --repo NousResearch/hermes-agent         --title "fix(model_switch): include all models from custom_providers models dict"         --body-file pr_body.md
+</pre>
+
+<h3>5.2 PR 描述生成</h3>
+
+<p>Agent 自动生成英文 PR 描述，包含：</p>
+<ul>
+<li>Bug Description</li>
+<li>Example (config.yaml before/after)</li>
+<li>Root Cause Analysis</li>
+<li>Fix Code</li>
+<li>Testing Results</li>
+</ul>
+
+<h3>5.3 提交结果</h3>
+
+<p>PR 创建成功：<a href="https://github.com/NousResearch/hermes-agent/pull/13974">#13974</a></p>
+
+<p>维护者已标记标签：<code>type/bug</code>, <code>comp/cli</code>, <code>P2</code></p>
+
+<hr>
+
+<h2>六、持续监控</h2>
+
+<p>Agent 设置 cron 任务自动监控 PR 状态变化：</p>
+
+<table>
+<tr><th>监控项</th><th>频率</th><th>通知方式</th></tr>
+<tr><td>状态变化</td><td>每天 4 次</td><td>Telegram</td></tr>
+<tr><td>合并时间</td><td>↑</td><td>↑</td></tr>
+<tr><td>Review 决定</td><td>↑</td><td>↑</td></tr>
+<tr><td>新评论</td><td>↑</td><td>↑</td></tr>
+<tr><td>标签变化</td><td>↑</td><td>↑</td></tr>
+</table>
+
+<hr>
+
+<h2>七、关键能力展示</h2>
+
+<h3>7.1 Agent 自主能力</h3>
+
+<table>
+<tr><th>能力</th><th>本次案例体现</th></tr>
+<tr><td><strong>问题诊断</strong></td><td>自动检查配置 → 追踪源码 → 定位根因</td></tr>
+<tr><td><strong>代码修复</strong></td><td>使用 patch 工具精准修改，保持代码风格一致</td></tr>
+<tr><td><strong>验证测试</strong></td><td>编写测试脚本，对比 before/after 效果</td></tr>
+<tr><td><strong>风险评估</strong></td><td>用户提醒后立即意识到升级兼容问题</td></tr>
+<tr><td><strong>方案建议</strong></td><td>提供多个选项，让用户做最终决策</td></tr>
+<tr><td><strong>PR 流程</strong></td><td>Fork → Branch → Commit → Push → Create PR 全自动化</td></tr>
+<tr><td><strong>持续跟进</strong></td><td>设置 cron 监控 PR 状态</td></tr>
+</table>
+
+<h3>7.2 人机协作边界</h3>
+
+<table>
+<tr><th>Agent 负责</th><th>用户负责</th></tr>
+<tr><td>配置检查</td><td>问题报告</td></tr>
+<tr><td>源码追踪</td><td>关键决策（是否提交 PR）</td></tr>
+<tr><td>Bug 定位</td><td>语言选择（PR 描述用英语）</td></tr>
+<tr><td>代码修复</td><td></td></tr>
+<tr><td>验证测试</td><td></td></tr>
+<tr><td>Git 操作</td><td></td></tr>
+<tr><td>PR 描述</td><td></td></tr>
+<tr><td>状态监控</td><td></td></tr>
+</table>
+
+<hr>
+
+<h2>八、完整聊天记录</h2>
+
+<p>以下是本次修复过程的完整对话记录（从发现问题到提交 PR）：</p>
+
+<hr>
+
+<h3>对话开始</h3>
+
+<p><strong>User</strong>: 当前使用的是哪个模型？</p>
+
+<p><strong>Agent</strong>: 当前会话显示使用 **GLM-5** 模型（provider: custom）。让我查看完整的配置文件...</p>
+
+<p>（读取 config.yaml，展示模型配置）</p>
+
+<hr>
+
+<p><strong>User</strong>: 我切换到 glm5.1 作为 hermes 的模型，现在能工作吗？</p>
+
+<p><strong>Agent</strong>: **✅ 正常工作**。你正在与 glm-5.1 对话，通过 Ark.cn-beijing.volces.com provider 路由...</p>
+
+<hr>
+
+<p><strong>User</strong>: 我还增加了其他两个模型，为什么 /model 命令只显示 glm5.1？</p>
+
+<p><strong>Agent</strong>: 问题在 list_authenticated_providers() 的 custom_providers 处理逻辑。让我确认...</p>
+
+<p>（读取 model_switch.py，分析 Section 4 代码）</p>
+
+<p><strong>发现 Bug</strong>: list_authenticated_providers() 处理 custom_providers 时只读取 model 字段（即默认模型），完全忽略 models 字典。所以 Ark provider 只显示 glm-5.1 一个。</p>
+
+<hr>
+
+<p><strong>Agent</strong>: 修复代码...</p>
+
+<p>（使用 patch 工具修改 model_switch.py）</p>
+
+<p>验证修复效果...</p>
+
+<p>（执行测试脚本，确认修复成功）</p>
+
+<p><strong>修复完成 ✅**</strong></p>
+
+<hr>
+
+<p><strong>User</strong>: 检查一下</p>
+
+<p><strong>Agent</strong>: （再次验证修复，展示配置 vs /model 显示对比）</p>
+
+<p>**检查完成 ✅**</p>
+
+<hr>
+
+<p><strong>User</strong>: 你直接修改了 hermes 的内部实现？这样我以后升级版本还会有问题吧</p>
+
+<p><strong>Agent</strong>: 你说得对。我直接修改了 hermes-agent 源码，升级时会丢失这个修复。</p>
+
+<p>（分析问题，提出三个选项）</p>
+
+<p><strong>建议：选项 A + B</strong> — 回退修改 + 提交 PR 到社区</p>
+
+<hr>
+
+<p><strong>User</strong>: 帮我创建一个 PR 吧，提交到社区</p>
+
+<p><strong>Agent</strong>: （执行 Git 操作流程）</p>
+
+<pre>
+1. Fork: harryfan1985/hermes-agent ✓
+2. Branch: fix-custom-providers-models-list ✓
+3. Commit: fe1b6715 ✓
+4. Push ✓
+</pre>
+
+<hr>
+
+<p><strong>User</strong>: 注意 PR 的描述语言使用英语</p>
+
+<p><strong>Agent</strong>: （创建英文 PR 描述文件，提交 PR）</p>
+
+<p><strong>PR 创建成功 ✅**</strong></p>
+
+<p>链接：https://github.com/NousResearch/hermes-agent/pull/13974</p>
+
+<hr>
+
+<p><strong>User</strong>: 帮我关注一下我刚才提交 PR 的状态</p>
+
+<p><strong>Agent</strong>: （查询 PR 状态，设置 cron 监控任务）</p>
+
+<p><strong>PR 监控已设置 ✅**</strong></p>
+
+<hr>
+
+<h2>九、总结</h2>
+
+<p>本次案例展示了 AI Agent 在实际开发场景中的<strong>自驱动问题解决能力</strong>：</p>
+
+<ol>
+<li><strong>主动诊断</strong>：无需用户详细描述，Agent 从症状自动追踪到根因</li>
+<li><strong>精准修复</strong>：使用代码工具进行最小化修改，保持风格一致</li>
+<li><strong>风险意识</strong>：用户提醒后立即评估升级兼容风险</li>
+<li><strong>流程自动化</strong>：Fork → Branch → Commit → PR 全流程自动化</li>
+<li><strong>持续跟进</strong>：设置监控任务，自动通知 PR 状态变化</li>
+</ol>
+
+<p><strong>关键启示</strong>：Agent 不是替代开发者，而是<strong>加速开发流程</strong>——让开发者专注于决策，Agent 执行细节。</p>
+
+<hr>
+
+<p><em>案例发生时间：2026-04-22</em></p>
+<p><em>PR 链接：<a href="https://github.com/NousResearch/hermes-agent/pull/13974">https://github.com/NousResearch/hermes-agent/pull/13974</a></em></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+</body>
+</html>
