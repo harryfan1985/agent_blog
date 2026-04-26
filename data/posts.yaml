@@ -1,4 +1,263 @@
 posts:
+- title: GBrain MCP 集成技术日志：Raspberry Pi 5 上的知识图谱 + Hermes Agent
+  date: April 26, 2026
+  excerpt: 详细记录 GBrain (PostgreSQL + pgvector 知识大脑) 通过 MCP 协议集成到 Hermes Agent 的完整过程。覆盖
+    ARM64 适配、中文搜索支持、进程管理等核心挑战与解决方案。
+  content: "<br>\n<h2>目录</h2>\n<br>\n<p>1. <a href=\"#1-项目背景与目标\">项目背景与目标</a></p>\n\
+    <p>2. <a href=\"#2-环境准备\">环境准备</a></p>\n<p>3. <a href=\"#3-phase-1-底层验证\">Phase\
+    \ 1: 底层验证</a></p>\n<p>4. <a href=\"#4-phase-2-mcp-集成\">Phase 2: MCP 集成</a></p>\n\
+    <p>5. <a href=\"#5-phase-3-优化与持久化\">Phase 3: 优化与持久化</a></p>\n<p>6. <a href=\"\
+    #6-核心问题与解决方案\">核心问题与解决方案</a></p>\n<p>7. <a href=\"#7-最终工作流程\">最终工作流程</a></p>\n\
+    <p>8. <a href=\"#8-文件修改清单\">文件修改清单</a></p>\n<p>9. <a href=\"#9-附录-常用命令速查\">附录:\
+    \ 常用命令速查</a></p>\n<br>\n<hr>\n<br>\n<h2>1. 项目背景与目标</h2>\n<br>\n<h3>1.1 什么是 GBrain</h3>\n\
+    <br>\n<p>GBrain 是 Garry Tan 开发的开源个人知识大脑，基于 PostgreSQL + pgvector 构建，提供：</p>\n\
+    <br>\n<p>- <strong>知识图谱</strong>: 页面之间的自动链接提取</p>\n<p>- <strong>向量搜索</strong>:\
+    \ 语义相似度检索</p>\n<p>- <strong>全文搜索</strong>: PostgreSQL FTS (Full-Text Search)</p>\n\
+    <p>- <strong>混合搜索</strong>: RRF (Reciprocal Rank Fusion) 融合关键词 + 向量结果</p>\n<p>-\
+    \ <strong>MCP 协议</strong>: 通过 Model Context Protocol 与 AI Agent 集成</p>\n<br>\n\
+    <h3>1.2 集成目标</h3>\n<br>\n<p>将 GBrain 通过 MCP 协议集成到 Hermes Agent 中，使 Hermes 能够：</p>\n\
+    <br>\n<p>1. 持久化存储对话中的重要信息到知识图谱</p>\n<p>2. 通过语义搜索检索历史知识</p>\n<p>3. 自动提取实体关系构建知识网络</p>\n\
+    <br>\n<h3>1.3 平台挑战</h3>\n<br>\n<table>\n<tr><th>挑战</th><th>说明</th></tr>\n<tr><td>Bun\
+    \ WASM 限制</td><td>`bun build` 的二进制在 ARM64 上无法运行 WASM，必须用 `bun src/cli.ts`</td></tr>\n\
+    <tr><td>中文支持</td><td>PostgreSQL `english` 分词器不支持中文</td></tr>\n<tr><td>网络代理</td><td>通过\
+    \ mihomo (127.0.0.1:7890) 访问外部 API</td></tr>\n</table>\n<br>\n<hr>\n<br>\n<h2>2.\
+    \ 环境准备</h2>\n<br>\n<h3>2.1 已安装依赖</h3>\n<br>\n<pre><code class=\"language-bash\"\
+    >\n# 系统级\n- Debian trixie (aarch64)\n- Ollama 0.6.6 (本地 LLM 推理)\n- Tailscale 1.96.4\
+    \ (异地组网)\n- mihomo (HTTP 代理 127.0.0.1:7890)\n\n# 应用级\n- Bun (JavaScript 运行时)\n\
+    - Node.js / npm\n- Python 3 + Hermes Agent v0.11.0\n</code></pre>\n<br>\n<h3>2.2\
+    \ GBrain 安装</h3>\n<br>\n<pre><code class=\"language-bash\">\n# 克隆仓库\ngit clone\
+    \ https://github.com/garrytan/gbrain.git ~/gbrain\ncd ~/gbrain\n\n# 安装依赖\nbun\
+    \ install\n\n# 验证安装\nbun src/cli.ts --help\n</code></pre>\n<br>\n<h3>2.3 嵌入模型配置</h3>\n\
+    <br>\n<p>由于无法使用 OpenAI 官方 API，改用 <strong>BitFun 提供的 Qwen3-Embedding-0.6B</strong>：</p>\n\
+    <br>\n<table>\n<tr><th>参数</th><th>值</th></tr>\n<tr><td>维度</td><td>1024</td></tr>\n\
+    <tr><td>API 端点</td><td>`https://api.openbitfun.com/v1`</td></tr>\n<tr><td>费用</td><td>免费</td></tr>\n\
+    </table>\n<br>\n<hr>\n<br>\n<h2>3. Phase 1: 底层验证</h2>\n<br>\n<h3>3.1 目标</h3>\n\
+    <br>\n<p>验证 GBrain 核心功能在 ARM64 + 自定义嵌入模型下正常工作。</p>\n<br>\n<h3>3.2 修改嵌入层</h3>\n\
+    <br>\n<p><strong>文件</strong>: <code>src/core/embedding.ts</code></p>\n<br>\n<p>原始代码硬编码了\
+    \ OpenAI 的 <code>text-embedding-3-large</code> (3072 维)，需要修改为支持环境变量配置：</p>\n<br>\n\
+    <pre><code class=\"language-typescript\">\n// 修改前: 硬编码 OpenAI 配置\nconst DEFAULT_MODEL\
+    \ = 'text-embedding-3-large';\nconst DEFAULT_DIMS = 3072;\n\n// 修改后: 支持环境变量\n\
+    const DEFAULT_MODEL = process.env.GBRAIN_EMBED_MODEL || 'text-embedding-3-large';\n\
+    const DEFAULT_DIMS = parseInt(process.env.GBRAIN_EMBED_DIMENSIONS || '3072', 10);\n\
+    const DEFAULT_BASE_URL = process.env.GBRAIN_EMBED_BASE_URL;\nconst DEFAULT_API_KEY\
+    \ = process.env.GBRAIN_EMBED_API_KEY;\n</code></pre>\n<br>\n<h3>3.3 修改 Schema\
+    \ 维度</h3>\n<br>\n<p><strong>文件</strong>: <code>src/core/pglite-schema.ts</code></p>\n\
+    <br>\n<pre><code class=\"language-typescript\">\n// 修改前\nembedding vector(3072),\n\
+    model TEXT NOT NULL DEFAULT 'text-embedding-3-large',\n\n// 修改后\nembedding vector(1024),\n\
+    model TEXT NOT NULL DEFAULT 'Qwen/Qwen3-Embedding-0.6B',\n</code></pre>\n<br>\n\
+    <h3>3.4 初始化数据库</h3>\n<br>\n<pre><code class=\"language-bash\">\nexport GBRAIN_EMBED_MODEL=\"\
+    Qwen/Qwen3-Embedding-0.6B\"\nexport GBRAIN_EMBED_DIMENSIONS=\"1024\"\nexport GBRAIN_EMBED_BASE_URL=\"\
+    https://api.openbitfun.com/v1\"\nexport GBRAIN_EMBED_API_KEY=\"sk-xxx\"\n\ncd\
+    \ ~/gbrain\nbun src/cli.ts init\n</code></pre>\n<br>\n<p><strong>输出</strong>:</p>\n\
+    <pre><code class=\"language-\">\nBrain ready at /home/harryfan/.gbrain/brain.pglite\n\
+    0 pages. Engine: PGLite (local Postgres).\n</code></pre>\n<br>\n<h3>3.5 验证核心功能</h3>\n\
+    <br>\n<pre><code class=\"language-bash\">\n# 添加测试页面\necho \"# GBrain 树莓派测试\n\n\
+    这是一个测试页面。\" | bun src/cli.ts put raspberry-pi-test\n\n# 查看统计\nbun src/cli.ts stats\n\
+    # Pages: 1, Chunks: 1, Embedded: 1\n\n# 搜索测试\nbun src/cli.ts search \"测试\"\n#\
+    \ [0.3040] raspberry-pi-test -- # GBrain 树莓派测试\n</code></pre>\n<br>\n<h3>3.6 Phase\
+    \ 1 结论</h3>\n<br>\n<p>✅ GBrain 在 ARM64 + Qwen Embedding 下工作正常</p>\n<br>\n<hr>\n\
+    <br>\n<h2>4. Phase 2: MCP 集成</h2>\n<br>\n<h3>4.1 目标</h3>\n<br>\n<p>将 GBrain 作为\
+    \ MCP Server 接入 Hermes Agent。</p>\n<br>\n<h3>4.2 MCP 协议简介</h3>\n<br>\n<p>Model\
+    \ Context Protocol (MCP) 是 Anthropic 提出的标准协议，允许 AI Agent 通过 stdio 或 SSE 与外部工具通信：</p>\n\
+    <br>\n<pre><code class=\"language-\">\n┌─────────────┐     stdio      ┌─────────────────┐\n\
+    │ Hermes Agent │ ◄────────────► │ GBrain MCP Server│\n│  (Client)   │   JSON-RPC\
+    \     │   (stdio mode)   │\n└─────────────┘                └─────────────────┘\n\
+    </code></pre>\n<br>\n<h3>4.3 创建 MCP 启动脚本</h3>\n<br>\n<p><strong>文件</strong>: <code>~/gbrain/start-mcp.sh</code></p>\n\
+    <br>\n<pre><code class=\"language-bash\">\n#!/bin/bash\nexport PATH=\"$HOME/.bun/bin:$PATH\"\
+    \nexport GBRAIN_EMBED_MODEL=\"Qwen/Qwen3-Embedding-0.6B\"\nexport GBRAIN_EMBED_DIMENSIONS=\"\
+    1024\"\nexport GBRAIN_EMBED_BASE_URL=\"https://api.openbitfun.com/v1\"\nexport\
+    \ GBRAIN_EMBED_API_KEY=\"sk-xxx\"\n\n# 清理可能残留的进程\npkill -9 -f \"bun src/cli.ts\
+    \ serve\" 2>/dev/null\nsleep 1\n\ncd \"$HOME/gbrain\"\nexec bun src/cli.ts serve\
+    \ --stdio 2>/dev/null\n</code></pre>\n<br>\n<p>> <strong>关键</strong>: <code>exec</code>\
+    \ 确保子进程替换 shell 进程，<code>2>/dev/null</code> 防止日志干扰 MCP 协议解析。</p>\n<br>\n<h3>4.4\
+    \ 配置 Hermes MCP</h3>\n<br>\n<p><strong>文件</strong>: <code>~/.hermes/config.yaml</code></p>\n\
+    <br>\n<pre><code class=\"language-yaml\">\nmcp:\n  gbrain:\n    command: /home/harryfan/gbrain/start-mcp.sh\n\
+    \    timeout: 180\n    connect_timeout: 120\n</code></pre>\n<br>\n<p>> <strong>注意</strong>:\
+    \ <code>connect_timeout</code> 必须设长（120s），因为 PGLite 首次初始化需要 ~30 秒。</p>\n<br>\n\
+    <h3>4.5 发现 MCP 工具</h3>\n<br>\n<pre><code class=\"language-python\">\n# 在 Hermes\
+    \ 中调用\nfrom hermes_agent.tools.mcp_tool import discover_mcp_tools\n\ntools = await\
+    \ discover_mcp_tools()\nprint(f\"发现 {len(tools)} 个工具\")\n</code></pre>\n<br>\n\
+    <p><strong>输出</strong>:</p>\n<pre><code class=\"language-\">\n发现 45 个 GBrain 工具\n\
+    连接耗时: 0.8s\n</code></pre>\n<br>\n<p>工具列表包括：</p>\n<p>- <code>get_stats</code> -\
+    \ 获取数据库统计</p>\n<p>- <code>list_pages</code> - 列出所有页面</p>\n<p>- <code>get_page</code>\
+    \ - 获取单个页面</p>\n<p>- <code>put_page</code> - 创建/更新页面</p>\n<p>- <code>query</code>\
+    \ - 混合搜索</p>\n<p>- <code>search_keyword</code> - 关键词搜索</p>\n<p>- <code>search_vector</code>\
+    \ - 向量搜索</p>\n<p>- ... (共 45 个)</p>\n<br>\n<h3>4.6 验证工具调用</h3>\n<br>\n<pre><code\
+    \ class=\"language-python\">\n# 测试 get_stats\nresult = await handle_function_call(\"\
+    get_stats\", {})\n# {\"pages\": 6, \"chunks\": 6, \"embedded\": 2, \"links\":\
+    \ 1, \"tags\": 9}\n\n# 测试 put_page\nresult = await handle_function_call(\"put_page\"\
+    , {\n    \"slug\": \"hermes-mcp-integration\",\n    \"content\": \"# Hermes Agent\
+    \ MCP Integration\\n\\nIntegration verified...\"\n})\n# {\"slug\": \"hermes-mcp-integration\"\
+    , \"status\": \"created_or_updated\"}\n\n# 测试 query\nresult = await handle_function_call(\"\
+    query\", {\n    \"query\": \"MCP integration\"\n})\n# 返回搜索结果列表\n</code></pre>\n\
+    <br>\n<h3>4.7 关键问题: 进程残留</h3>\n<br>\n<p><strong>现象</strong>: 每次 MCP 调用后，<code>bun\
+    \ src/cli.ts serve</code> 进程未自动关闭，导致后续调用卡死。</p>\n<br>\n<p><strong>原因</strong>:\
+    \ Hermes 的 <code>_run_on_mcp_loop</code> 没有正确管理子进程生命周期。</p>\n<br>\n<p><strong>临时解决方案</strong>:</p>\n\
+    <pre><code class=\"language-bash\">\n# 每次调用前清理残留进程\npkill -9 -f \"bun src/cli.ts\
+    \ serve\"\n</code></pre>\n<br>\n<p><strong>长期方案</strong>: Phase 3a 创建管理脚本。</p>\n\
+    <br>\n<h3>4.8 Phase 2 结论</h3>\n<br>\n<p>✅ MCP 集成成功，45 个工具可用</p>\n<p>⚠️ 进程残留问题待优化（Phase\
+    \ 3 解决）</p>\n<br>\n<hr>\n<br>\n<h2>5. Phase 3: 优化与持久化</h2>\n<br>\n<h3>5.1 3a:\
+    \ 进程管理脚本</h3>\n<br>\n<p><strong>问题</strong>: MCP 调用后 GBrain 进程残留</p>\n<br>\n<p><strong>解决方案</strong>:\
+    \ 创建管理脚本</p>\n<br>\n<p><strong>文件</strong>: <code>~/gbrain/gbrain-manager.sh</code></p>\n\
+    <br>\n<pre><code class=\"language-bash\">\n#!/bin/bash\nGBRAIN_DIR=\"$HOME/gbrain\"\
+    \nPIDFILE=\"/tmp/gbrain-mcp.pid\"\nexport PATH=\"$HOME/.bun/bin:$PATH\"\nexport\
+    \ GBRAIN_EMBED_MODEL=\"Qwen/Qwen3-Embedding-0.6B\"\nexport GBRAIN_EMBED_DIMENSIONS=\"\
+    1024\"\nexport GBRAIN_EMBED_BASE_URL=\"https://api.openbitfun.com/v1\"\nexport\
+    \ GBRAIN_EMBED_API_KEY=\"sk-xxx\"\n\ncase \"$1\" in\n    start)\n        pkill\
+    \ -f \"bun src/cli.ts serve\" 2>/dev/null\n        sleep 1\n        cd \"$GBRAIN_DIR\"\
+    \n        bun src/cli.ts serve --stdio > /dev/null 2>&1 &\n        echo $! > \"\
+    $PIDFILE\"\n        echo \"Started (PID: $(cat $PIDFILE))\"\n        sleep 2\n\
+    \        ;;\n    stop)\n        [ -f \"$PIDFILE\" ] && kill -9 $(cat \"$PIDFILE\"\
+    ) 2>/dev/null\n        rm -f \"$PIDFILE\"\n        pkill -9 -f \"bun src/cli.ts\
+    \ serve\" 2>/dev/null\n        echo \"Stopped\"\n        ;;\n    status)\n   \
+    \     if [ -f \"$PIDFILE\" ] && kill -0 $(cat \"$PIDFILE\") 2>/dev/null; then\n\
+    \            echo \"Running (PID: $(cat $PIDFILE))\"\n        else\n         \
+    \   echo \"Not running\"\n        fi\n        ;;\n    *) echo \"Usage: $0 {start|stop|status}\"\
+    \ ;;\nesac\n</code></pre>\n<br>\n<p><strong>使用</strong>:</p>\n<pre><code class=\"\
+    language-bash\">\n~/gbrain/gbrain-manager.sh start   # 启动\n~/gbrain/gbrain-manager.sh\
+    \ stop    # 停止\n~/gbrain/gbrain-manager.sh status  # 查看状态\n</code></pre>\n<br>\n\
+    <h3>5.2 3b: 持久化环境变量</h3>\n<br>\n<p><strong>文件</strong>: <code>~/.profile</code></p>\n\
+    <br>\n<pre><code class=\"language-bash\">\n# ── GBrain 环境变量 ─────────────────────────────────────────────\n\
+    export GBRAIN_EMBED_MODEL=\"Qwen/Qwen3-Embedding-0.6B\"\nexport GBRAIN_EMBED_DIMENSIONS=\"\
+    1024\"\nexport GBRAIN_EMBED_BASE_URL=\"https://api.openbitfun.com/v1\"\nexport\
+    \ GBRAIN_EMBED_API_KEY=\"sk-xxx\"\nexport PATH=\"$HOME/.bun/bin:$PATH\"\n# ────────────────────────────────────────────────────────────────\n\
+    </code></pre>\n<br>\n<p><strong>文件</strong>: <code>~/.gbrain/env.sh</code> (供脚本\
+    \ source 使用)</p>\n<br>\n<pre><code class=\"language-bash\">\nexport GBRAIN_EMBED_MODEL=\"\
+    Qwen/Qwen3-Embedding-0.6B\"\nexport GBRAIN_EMBED_DIMENSIONS=\"1024\"\nexport GBRAIN_EMBED_BASE_URL=\"\
+    https://api.openbitfun.com/v1\"\nexport GBRAIN_EMBED_API_KEY=\"sk-xxx\"\nexport\
+    \ PATH=\"$HOME/.bun/bin:$PATH\"\n</code></pre>\n<br>\n<h3>5.3 3c: 中文搜索支持</h3>\n\
+    <br>\n<p><strong>问题</strong>: PostgreSQL <code>english</code> 分词器不支持中文</p>\n<br>\n\
+    <p><strong>分析</strong>:</p>\n<pre><code class=\"language-sql\">\n-- english 分词器行为\n\
+    SELECT to_tsvector('english', '中文知识图谱测试');\n-- 结果: '' (空，所有中文被过滤)\n\n-- simple\
+    \ 分词器行为\nSELECT to_tsvector('simple', '中文知识图谱测试');\n-- 结果: ''中文知识图谱测试':1' (整句作为一个词)\n\
+    </code></pre>\n<br>\n<p><strong>核心问题</strong>: <code>simple</code> 分词器对中文按整句分词，导致子串搜索失败：</p>\n\
+    <pre><code class=\"language-sql\">\nSELECT to_tsvector('simple', '中文知识图谱测试') \n\
+    \       @@ plainto_tsquery('simple', '知识');\n-- 结果: false (\"知识\" 不等于 \"中文知识图谱测试\"\
+    )\n</code></pre>\n<br>\n<p><strong>解决方案</strong>: 双重策略</p>\n<br>\n<p>1. <strong>全局替换</strong>\
+    \ <code>english</code> → <code>simple</code>（支持中英文混合）</p>\n<p>2. <strong>CJK Fallback</strong>:\
+    \ 当 tsvector 无结果时，自动使用 <code>ILIKE</code> 匹配</p>\n<br>\n<p><strong>修改 1</strong>:\
+    \ <code>src/core/pglite-schema.ts</code></p>\n<br>\n<pre><code class=\"language-sql\"\
+    >\n-- 修改前\nsetweight(to_tsvector('english', coalesce(NEW.title, '')), 'A')\n\n\
+    -- 修改后\nsetweight(to_tsvector('simple', coalesce(NEW.title, '')), 'A')\n</code></pre>\n\
+    <br>\n<p><strong>修改 2</strong>: <code>src/core/pglite-engine.ts</code></p>\n<br>\n\
+    <pre><code class=\"language-typescript\">\n// 修改搜索 SQL\nts_rank(cc.search_vector,\
+    \ websearch_to_tsquery('simple', $1))\n\n// 添加 CJK Fallback\nif (rows.length ===\
+    \ 0 && /[\\u4e00-\\u9fff\\u3040-\\u309f\\u30a0-\\u30ff\\uac00-\\ud7af]/.test(query))\
+    \ {\n  // 使用 ILIKE 进行子串匹配\n  const likePattern = `%${query}%`;\n  // ... ILIKE\
+    \ 查询\n}\n</code></pre>\n<br>\n<p><strong>效果</strong>:</p>\n<p>- 英文查询: <code>websearch_to_tsquery('simple',\
+    \ query)</code> → 精确匹配</p>\n<p>- 中文查询: tsvector 失败 → 自动 fallback 到 <code>ILIKE\
+    \ '%关键词%'</code></p>\n<br>\n<h3>5.4 3d: 宽松 Dedup 阈值</h3>\n<br>\n<p><strong>问题</strong>:\
+    \ 小数据集下搜索结果容易被过滤为空</p>\n<br>\n<p><strong>分析</strong>: GBrain 的 4 层去重管道过于严格：</p>\n\
+    <br>\n<table>\n<tr><th>层级</th><th>原始值</th><th>修改后</th><th>说明</th></tr>\n<tr><td>类型多样性比例</td><td>0.6</td><td>0.8</td><td>同类型页面占比上限</td></tr>\n\
+    <tr><td>每页最大块数</td><td>2</td><td>3</td><td>每页保留的 chunk 数</td></tr>\n</table>\n\
+    <br>\n<p><strong>文件</strong>: <code>src/core/search/dedup.ts</code></p>\n<br>\n\
+    <pre><code class=\"language-typescript\">\n// 修改前\nconst COSINE_DEDUP_THRESHOLD\
+    \ = 0.85;\nconst MAX_TYPE_RATIO = 0.6;\nconst MAX_PER_PAGE = 2;\n\n// 修改后\nconst\
+    \ COSINE_DEDUP_THRESHOLD = 0.92;\nconst MAX_TYPE_RATIO = 0.8;\nconst MAX_PER_PAGE\
+    \ = 3;\n</code></pre>\n<br>\n<h3>5.5 3e: 验证与备份</h3>\n<br>\n<p><strong>测试验证</strong>:</p>\n\
+    <br>\n<pre><code class=\"language-bash\">\n# 中文搜索\n$ bun src/cli.ts search \"\
+    知识\"\n[0.5000] chinese-knowledge -- # 中文知识图谱测试\n\n# 英文搜索\n$ bun src/cli.ts search\
+    \ \"Graph\"\n[0.3040] english-knowledge -- # English Knowledge Graph Test\n\n\
+    # 混合搜索\n$ bun src/cli.ts search \"test\"\n[0.3040] english-knowledge -- # English\
+    \ Knowledge Graph Test\n</code></pre>\n<br>\n<p><strong>备份</strong>:</p>\n<pre><code\
+    \ class=\"language-bash\">\n~/.gbrain-backup-phase3-20260426-163533/\n├── pglite-schema.ts\
+    \      # FTS simple 分词器\n├── pglite-engine.ts      # simple 搜索 + CJK fallback\n\
+    ├── dedup.ts              # 宽松阈值\n├── start-mcp.sh          # MCP 启动脚本\n├── gbrain-manager.sh\
+    \     # 进程管理脚本\n├── config.yaml           # Hermes MCP 配置\n└── MODIFICATIONS.md\
+    \      # 修改摘要\n</code></pre>\n<br>\n<hr>\n<br>\n<h2>6. 核心问题与解决方案</h2>\n<br>\n\
+    <h3>6.1 问题汇总表</h3>\n<br>\n<table>\n<tr><th>#</th><th>问题</th><th>原因</th><th>解决方案</th></tr>\n\
+    <tr><td>2</td><td>嵌入模型不兼容</td><td>硬编码 OpenAI 3072 维</td><td>修改 embedding.ts 支持环境变量</td></tr>\n\
+    <tr><td>3</td><td>向量维度不匹配</td><td>Schema 硬编码 3072</td><td>修改 pglite-schema.ts\
+    \ 为 1024</td></tr>\n<tr><td>4</td><td>首次启动超时</td><td>PGLite 初始化需 30s</td><td>connect_timeout\
+    \ 设为 120s</td></tr>\n<tr><td>5</td><td>进程残留</td><td>MCP 客户端未正确关闭子进程</td><td>启动脚本添加\
+    \ pkill 清理</td></tr>\n<tr><td>6</td><td>中文搜索无结果</td><td>english 分词器过滤中文</td><td>改为\
+    \ simple + CJK ILIKE fallback</td></tr>\n<tr><td>7</td><td>小数据集搜索为空</td><td>dedup\
+    \ 阈值过于严格</td><td>放宽阈值 (0.85→0.92, 2→3)</td></tr>\n<tr><td>8</td><td>MCP SDK 兼容性</td><td>mcp\
+    \ 1.6.0 内部 API 变更</td><td>重装 mcp 包修复</td></tr>\n</table>\n<br>\n<h3>6.2 关键调试技巧</h3>\n\
+    <br>\n<pre><code class=\"language-bash\">\n# 1. 检查 GBrain 进程\nps aux | grep \"\
+    bun src/cli.ts\"\n\n# 2. 强制清理残留\npkill -9 -f \"bun src/cli.ts serve\"\n\n# 3.\
+    \ 查看 PGLite 数据\nls -la ~/.gbrain/brain.pglite/\n\n# 4. 直接查询数据库\nbun -e \"\nimport\
+    \ { PGlite } from '@electric-sql/pglite';\nconst db = await PGlite.create({ dataDir:\
+    \ '/home/harryfan/.gbrain/brain.pglite' });\nconst result = await db.query('SELECT\
+    \ slug, title FROM pages');\nconsole.log(result.rows);\n\"\n\n# 5. 检查 MCP 工具\n\
+    python3 -c \"\nimport asyncio\nfrom hermes_agent.tools.mcp_tool import discover_mcp_tools\n\
+    tools = asyncio.run(discover_mcp_tools())\nprint(f'{len(tools)} tools discovered')\n\
+    \"\n</code></pre>\n<br>\n<hr>\n<br>\n<h2>7. 最终工作流程</h2>\n<br>\n<h3>7.1 日常使用流程</h3>\n\
+    <br>\n<pre><code class=\"language-mermaid\">\ngraph TD\n    A[用户对话] --> B{需要存储知识?}\n\
+    \    B -->|是| C[调用 put_page]\n    C --> D[GBrain 自动分块]\n    D --> E[生成向量嵌入]\n\
+    \    E --> F[提取链接关系]\n    \n    B -->|否| G{需要检索知识?}\n    G -->|是| H[调用 query/search]\n\
+    \    H --> I[混合搜索 RRF]\n    I --> J[返回相关页面]\n    \n    G -->|否| K[正常对话]\n</code></pre>\n\
+    <br>\n<h3>7.2 Hermes 调用 GBrain 的两种方式</h3>\n<br>\n<p><strong>方式 1: handle_function_call\
+    \ (推荐)</strong></p>\n<br>\n<pre><code class=\"language-python\">\nfrom hermes_agent.model_tools\
+    \ import handle_function_call\n\n# 存储知识\nresult = await handle_function_call(\"\
+    put_page\", {\n    \"slug\": \"project-idea-2026\",\n    \"content\": \"# 项目想法\\\
+    n\\n这是一个新的项目构思...\"\n})\n\n# 检索知识\nresults = await handle_function_call(\"query\"\
+    , {\n    \"query\": \"项目构思\",\n    \"limit\": 5\n})\n</code></pre>\n<br>\n<p><strong>方式\
+    \ 2: GBrain CLI</strong></p>\n<br>\n<pre><code class=\"language-bash\">\n# 直接操作数据库\n\
+    bun src/cli.ts put my-page --content \"# 标题\\n\\n内容\"\nbun src/cli.ts search \"\
+    关键词\"\nbun src/cli.ts query \"问题描述\"\nbun src/cli.ts stats\n</code></pre>\n<br>\n\
+    <h3>7.3 数据流</h3>\n<br>\n<pre><code class=\"language-\">\n用户输入\n    │\n    ▼\n\
+    ┌─────────────┐\n│ Hermes Agent │\n│  (推理决策)  │\n└──────┬──────┘\n       │\n \
+    \      ├────────────┬────────────┐\n       ▼            ▼            ▼\n   ┌───────┐\
+    \   ┌────────┐   ┌─────────┐\n   │put_page│   │ query  │   │get_stats│\n   └───┬───┘\
+    \   └───┬────┘   └────┬────┘\n       │           │              │\n       ▼  \
+    \         ▼              ▼\n   ┌──────────────────────────────────┐\n   │    \
+    \  GBrain MCP Server           │\n   │  ┌─────────┐    ┌─────────────┐  │\n  \
+    \ │  │ PGLite  │◄──►│  pgvector   │  │\n   │  │ (本地)   │    │ (HNSW 索引) │  │\n\
+    \   │  └────┬────┘    └─────────────┘  │\n   │       │                       \
+    \    │\n   │       ▼                           │\n   │  ┌─────────────┐  ┌───────────┐\
+    \  │\n   │  │ FTS (simple)│  │ 知识图谱   │  │\n   │  │ + ILIKE     │  │ (links) \
+    \  │  │\n   │  └─────────────┘  └───────────┘  │\n   └──────────────────────────────────┘\n\
+    \       │\n       ▼\n   返回结果给 Hermes\n</code></pre>\n<br>\n<h3>7.4 启动顺序</h3>\n\
+    <br>\n<pre><code class=\"language-bash\">\n# 1. 确保环境变量已加载\nsource ~/.profile\n\
+    \n# 2. 启动 GBrain MCP (如果需要独立运行)\n~/gbrain/gbrain-manager.sh start\n\n# 3. Hermes\
+    \ 会自动通过 start-mcp.sh 启动 GBrain\n# 无需手动干预\n</code></pre>\n<br>\n<hr>\n<br>\n<h2>8.\
+    \ 文件修改清单</h2>\n<br>\n<h3>8.1 GBrain 源码修改</h3>\n<br>\n<table>\n<tr><th>文件</th><th>修改类型</th><th>说明</th></tr>\n\
+    <tr><td>`src/core/pglite-schema.ts`</td><td>修改</td><td>FTS `english` → `simple`,\
+    \ 维度 3072 → 1024</td></tr>\n<tr><td>`src/core/pglite-engine.ts`</td><td>修改</td><td>搜索\
+    \ `english` → `simple`, 添加 CJK fallback</td></tr>\n<tr><td>`src/core/search/dedup.ts`</td><td>修改</td><td>放宽去重阈值</td></tr>\n\
+    </table>\n<br>\n<h3>8.2 新建文件</h3>\n<br>\n<table>\n<tr><th>文件</th><th>说明</th></tr>\n\
+    <tr><td>`~/gbrain/gbrain-manager.sh`</td><td>进程管理脚本</td></tr>\n<tr><td>`~/.gbrain/env.sh`</td><td>环境变量加载脚本</td></tr>\n\
+    <tr><td>`~/.gbrain-backup-phase3-*/`</td><td>配置备份目录</td></tr>\n</table>\n<br>\n\
+    <h3>8.3 Hermes 配置</h3>\n<br>\n<table>\n<tr><th>文件</th><th>修改</th></tr>\n<tr><td>`~/.profile`</td><td>添加\
+    \ GBrain 环境变量</td></tr>\n</table>\n<br>\n<hr>\n<br>\n<h2>9. 附录: 常用命令速查</h2>\n\
+    <br>\n<h3>9.1 GBrain CLI</h3>\n<br>\n<pre><code class=\"language-bash\">\n# 数据库管理\n\
+    bun src/cli.ts init                    # 初始化数据库\nbun src/cli.ts stats        \
+    \           # 查看统计\nbun src/cli.ts doctor                  # 健康检查\n\n# 页面操作\n\
+    bun src/cli.ts list                    # 列出页面\nbun src/cli.ts get <slug>     \
+    \         # 获取页面\nbun src/cli.ts put <slug> --content \"...\"  # 创建/更新页面\nbun\
+    \ src/cli.ts delete <slug>           # 删除页面\n\n# 搜索\nbun src/cli.ts search <keyword>\
+    \        # 关键词搜索\nbun src/cli.ts query <question>        # 混合搜索 (RRF)\nbun src/cli.ts\
+    \ ask <question>          # query 别名\n\n# 导入/导出\nbun src/cli.ts import <dir> \
+    \           # 导入目录\nbun src/cli.ts export                  # 导出为 markdown\nbun\
+    \ src/cli.ts sync                    # Git 同步\n\n# MCP\nbun src/cli.ts serve --stdio\
+    \           # 启动 MCP server\n</code></pre>\n<br>\n<h3>9.2 进程管理</h3>\n<br>\n<pre><code\
+    \ class=\"language-bash\">\n# GBrain 管理\n~/gbrain/gbrain-manager.sh start    \
+    \   # 启动\n~/gbrain/gbrain-manager.sh stop        # 停止\n~/gbrain/gbrain-manager.sh\
+    \ status      # 状态\n\n# 强制清理\npkill -9 -f \"bun src/cli.ts serve\"\n</code></pre>\n\
+    <br>\n<h3>9.3 Hermes MCP 工具调用</h3>\n<br>\n<pre><code class=\"language-python\"\
+    >\n# Python 异步调用\nfrom hermes_agent.model_tools import handle_function_call\n\n\
+    # 获取统计\nstats = await handle_function_call(\"get_stats\", {})\n\n# 列出页面\npages\
+    \ = await handle_function_call(\"list_pages\", {\"limit\": 10})\n\n# 获取页面\npage\
+    \ = await handle_function_call(\"get_page\", {\"slug\": \"my-page\"})\n\n# 创建页面\n\
+    result = await handle_function_call(\"put_page\", {\n    \"slug\": \"new-page\"\
+    ,\n    \"content\": \"# Title\\n\\nContent here\"\n})\n\n# 混合搜索\nresults = await\
+    \ handle_function_call(\"query\", {\n    \"query\": \"搜索内容\",\n    \"limit\":\
+    \ 5\n})\n\n# 关键词搜索\nresults = await handle_function_call(\"search_keyword\", {\n\
+    \    \"query\": \"关键词\",\n    \"limit\": 5\n})\n</code></pre>\n<br>\n<h3>9.4 环境变量</h3>\n\
+    <br>\n<pre><code class=\"language-bash\">\n# 必须设置\nexport GBRAIN_EMBED_MODEL=\"\
+    Qwen/Qwen3-Embedding-0.6B\"\nexport GBRAIN_EMBED_DIMENSIONS=\"1024\"\nexport GBRAIN_EMBED_BASE_URL=\"\
+    https://api.openbitfun.com/v1\"\nexport GBRAIN_EMBED_API_KEY=\"sk-xxx\"\nexport\
+    \ PATH=\"$HOME/.bun/bin:$PATH\"\n\n# 可选调试\nexport GBRAIN_SEARCH_DEBUG=\"1\"  \
+    \       # 搜索调试日志\n</code></pre>\n<br>\n<hr>\n<br>\n<h2>总结</h2>\n<br>\n<p>本次集成成功将\
+    \ GBrain 知识大脑通过 MCP 协议接入 Hermes Agent，主要成果：</p>\n<br>\n<p>1. <strong>完整的中文支持</strong>:\
+    \ 通过 <code>simple</code> 分词器 + CJK ILIKE fallback 实现中英文混合搜索</p>\n<p>2. <strong>ARM64\
+    \ 兼容</strong>: 解决 Bun WASM 限制，使用源码直接运行</p>\n<p>3. <strong>自定义嵌入模型</strong>: 集成\
+    \ BitFun Qwen3-Embedding-0.6B (1024维)</p>\n<p>4. <strong>进程管理</strong>: 创建管理脚本解决进程残留问题</p>\n\
+    <p>5. <strong>配置持久化</strong>: 环境变量写入 <code>~/.profile</code>，重启后自动生效</p>\n<br>\n\
+    <p><strong>下一步建议</strong>:</p>\n<p>- 测试大规模数据下的性能表现</p>\n<p>- 配置自动同步机制（Git / 定时任务）</p>\n\
+    <p>- 探索 GBrain 的知识图谱可视化功能</p>\n<br>\n<hr>\n<br>\n<p>*日志生成时间: 2026-04-26*</p>\n\
+    <p>*GBrain 版本: v0.22.0*</p>\n<p>*Hermes 版本: v0.11.0*</p>\n<br>"
 - title: Agent Buddy Bridge：将 M5StickC 物理按钮连接到 Hermes Agent 的完整方案
   date: April 26, 2026
   excerpt: 基于 Claude Desktop Buddy 开源项目架构，设计了一套将 M5StickC Plus BLE 外设连接到 Mac，再由 Mac
