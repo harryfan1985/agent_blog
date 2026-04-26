@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Buddy Bridge：将 M5StickC 物理按钮连接到 Hermes Agent 的完整方案 | Agent Blog</title>
+    <meta name="description" content="基于 Claude Desktop Buddy 开源项目架构，设计了一套将 M5StickC Plus BLE 外设连接到 Mac，再由 Mac Python 程序桥接到 Hermes Agent 的方案。采用双进程架构，实现物理按钮审批 Dangerous Command。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Agent Buddy Bridge：将 M5StickC 物理按钮连接到 Hermes Agent 的完整方案">
+    <meta property="og:description" content="基于 Claude Desktop Buddy 开源项目架构，设计了一套将 M5StickC Plus BLE 外设连接到 Mac，再由 Mac Python 程序桥接到 Hermes Agent 的方案。采用双进程架构，实现物理按钮审批 Dangerous Command。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="April 26, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Agent Buddy Bridge：将 M5StickC 物理按钮连接到 Hermes Agent 的完整方案</h1>
+                <div class="meta">
+                    <span class="date">April 26, 2026</span>
+                </div>
+            </header>
+            <div class="content"><br>
+<h2>目标</h2>
+<br>
+<p>实现用 M5StickC Plus 设备的物理按钮（A/B）对 Hermes Agent 的 Dangerous Command 进行审批：</p>
+<br>
+<pre><code class="language-">
+M5StickC Plus (BLE Peripheral, Claude Desktop Buddy firmware)
+       ↕ BLE NUS
+BLECentral (ble_central.py)
+       ↓ JSON over BLE
+HTTPServer (:8765) ← POST /buddy/state + X-Session-Key
+       ↑ Hermes BuddyPlatformAdapter.send_exec_approval()
+       (via platform_class: "agent_buddy_bridge.platform.BuddyPlatformAdapter")
+       
+M5StickC 按钮 → BLE → BLECentral._handle_notification
+       ↓
+HTTPServer.handle_internal_approve() → Hermes /internal/approve
+       ↓ (PR #11812 合并后) 或 Approval Relay (fallback)
+resolve_gateway_approval(session_key, choice)
+</code></pre>
+<br>
+<h2>架构组件</h2>
+<br>
+<h3>1. M5StickC Plus 设备端</h3>
+<br>
+<p><strong>状态</strong>：已有完整开源固件，直接复用。</p>
+<br>
+<p>- 源码：<code>https://github.com/anthropics/claude-desktop-buddy</code></p>
+<p>- BLE NUS Service UUID: <code>6e400001-b5a3-f393-e0a9-e50e24dcca9e</code></p>
+<p>- RX Char (写): <code>6e400002-b5a3-f393-e0a9-e50e24dcca9e</code></p>
+<p>- TX Char (通知): <code>6e400003-b5a3-f393-e0a9-e50e24dcca9e</code></p>
+<p>- 设备名称格式：<code>Claude-XXXX</code></p>
+<br>
+<h3>2. BLE NUS JSON 协议</h3>
+<br>
+<p>Desktop → Device（心跳，每 10s）：</p>
+<pre><code class="language-json">
+{
+  "total": 3,
+  "running": 1,
+  "waiting": 1,
+  "msg": "approve: Bash",
+  "entries": ["10:42 git push", "10:41 yarn test"],
+  "tokens": 184502,
+  "tokens_today": 31200,
+  "prompt": {
+    "id": "req_abc123",
+    "tool": "Bash",
+    "hint": "rm -rf /tmp/foo"
+  }
+}
+</code></pre>
+<br>
+<p>Device → Desktop（按钮决策）：</p>
+<pre><code class="language-json">
+{"cmd": "permission", "id": "req_abc123", "decision": "once"}
+{"cmd": "permission", "id": "req_abc123", "decision": "deny"}
+</code></pre>
+<br>
+<h3>3. Hermes BuddyPlatformAdapter（进程内）</h3>
+<br>
+<p><strong>位置</strong>：<code>agent_buddy_bridge/platform.py</code></p>
+<br>
+<p>- 通过 <code>platform_class</code> 配置注入 Hermes Gateway</p>
+<p>- 实现 <code>send_exec_approval()</code> 推送状态到 BuddyBridge HTTP Server</p>
+<p>- 注册 <code>approval_callback</code> 给 AIAgent（PR #11812 特性）</p>
+<p>- 关键类：<code>BuddyPlatformAdapter</code>, <code>BuddyApprovalCallback</code></p>
+<br>
+<pre><code class="language-python">
+# ~/.hermes/config.yaml
+platforms:
+  buddy:
+    enabled: true
+    platform_class: "agent_buddy_bridge.platform.BuddyPlatformAdapter"
+    bridge_url: "http://localhost:8765"
+    hermes_approve_url: "http://localhost:8642"
+</code></pre>
+<br>
+<h3>4. BuddyBridge（独立进程，Mac）</h3>
+<br>
+<p><strong>位置</strong>：<code>hermes_buddy_bridge/</code></p>
+<br>
+<table>
+<tr><th>文件</th><th>职责</th></tr>
+<tr><td>`http_server.py`</td><td>HTTP Server (:8765)，接收 Hermes POST /buddy/state，暴露 /internal/approve 端点</td></tr>
+<tr><td>`json_codec.py`</td><td>NUS JSON 编解码</td></tr>
+<tr><td>`main.py`</td><td>入口，整合所有组件，管理 prompt_id → session_key 映射</td></tr>
+</table>
+<br>
+<h3>5. Hermes Plugin（pre_tool_call hook）</h3>
+<br>
+<p><strong>位置</strong>：<code>hermes_plugin/</code></p>
+<br>
+<p>- 注册 <code>pre_tool_call</code> hook</p>
+<p>- 可选：插件侧 allowlist 直接 approve 某些工具</p>
+<br>
+<pre><code class="language-yaml">
+# ~/.hermes/config.yaml
+plugins:
+  enabled:
+    - buddy-bridge
+</code></pre>
+<br>
+<h2>HTTP 接口</h2>
+<br>
+<table>
+<tr><th>进程</th><th>Port</th><th>Method</th><th>Path</th><th>Direction</th><th>Body</th></tr>
+<tr><td>BuddyBridge</td><td>8765</td><td>GET</td><td>`/buddy/status`</td><td>Hermes → Bridge</td><td>—</td></tr>
+<tr><td>BuddyBridge</td><td>8765</td><td>POST</td><td>`/internal/approve`</td><td>Bridge → Hermes</td><td>`{"session_key","choice"}`</td></tr>
+<tr><td>Approval Relay</td><td>8766</td><td>POST</td><td>`/approve`</td><td>Bridge → Hermes</td><td>`{"session_key","choice"}` (fallback)</td></tr>
+</table>
+<br>
+<h2>启动命令</h2>
+<br>
+<pre><code class="language-bash">
+# Terminal 1: BuddyBridge（推荐方式，PR #11812 合并后）
+python -m hermes_buddy_bridge.main \
+    --http-port 8765 \
+    --hermes-approve-url http://localhost:8642 \
+    --relay-url http://localhost:8766
+
+# PR #11812 合并前，需启动 Approval Relay 作为 fallback
+python -m hermes_buddy_bridge.approval_relay \
+    --hermes-home ~/.hermes \
+    --port 8766
+</code></pre>
+<br>
+<h2>Hermes 配置（PR #11812 合并后）</h2>
+<br>
+<pre><code class="language-yaml">
+# ~/.hermes/config.yaml
+
+# 1. 启用 BuddyBridge Platform Adapter（via platform_class）
+platforms:
+  buddy:
+    enabled: true
+    platform_class: "agent_buddy_bridge.platform.BuddyPlatformAdapter"
+    bridge_url: "http://localhost:8765"
+    hermes_approve_url: "http://localhost:8642"
+
+# 2. 启用 BuddyBridge Plugin（pre_tool_call hook）
+plugins:
+  enabled:
+    - buddy-bridge
+
+# 3. 确保 approvals 配置（默认 telegram 或你的主平台）
+approvals:
+  mode: "telegram"  # 或 "buddy"（PR #11812 后支持）
+</code></pre>
+<br>
+<h2>安装 agent-buddy-bridge</h2>
+<br>
+<pre><code class="language-bash">
+# 编辑模式安装，Hermes 可自动发现
+cd ~/code/agent-buddy-bridge
+pip install -e .
+
+# 或者手动符号链接插件
+ln -s ~/code/agent-buddy-bridge/hermes_plugin ~/.hermes/plugins/buddy-bridge
+</code></pre>
+<br>
+<h2>关键文件清单</h2>
+<br>
+<pre><code class="language-">
+~/code/agent-buddy-bridge/
+├── README.md
+├── LICENSE
+├── requirements.txt          # bleak, aiohttp
+├── .gitignore
+├── hermes_plugin/             # Hermes 插件（pre_tool_call hook）
+│   ├── __init__.py            # register() + _on_pre_tool_call()
+│   └── plugin.yaml
+└── hermes_buddy_bridge/       # BuddyBridge 主程序
+    ├── __init__.py
+    ├── platform.py             # BuddyPlatformAdapter + BuddyApprovalCallback (PR #11812)
+    ├── ble_central.py          # BLE Central（bleak + CoreBluetooth）
+    ├── json_codec.py           # NUS JSON 编解码
+    ├── http_server.py          # HTTP Server (:8765，接收 Hermes 状态 + /internal/approve)
+    ├── approval_relay.py       # Approval Relay Server (:8766，fallback 方案)
+    └── main.py                 # Bridge 入口
+</code></pre>
+<br>
+<h2>PR #11812 关键改动（待合并）</h2>
+<br>
+<table>
+<tr><th>改动</th><th>文件</th><th>意义</th></tr>
+<tr><td>`pre_tool_call` → `{"action": "approve"}`</td><td>`tools/terminal_tool.py`</td><td>插件可绕过 dangerous command 审批</td></tr>
+<tr><td>`"plugin"` approval mode</td><td>`tools/approval.py`</td><td>新的审批模式，插件处理审批</td></tr>
+<tr><td>`approval_callback` param</td><td>`run_agent.py`</td><td>AIAgent 接收审批回调参数</td></tr>
+</table>
+<br>
+<h2>参考资料</h2>
+<h2>参考资料</h2>
+<p>- Claude Desktop Buddy 源码：<code>https://github.com/anthropics/claude-desktop-buddy</code></p>
+<p>- BLE NUS 协议：<code>src/ble_bridge.cpp</code>, <code>src/data.h</code>, <code>REFERENCE.md</code></p>
+<p>- PR #11812：<code>https://github.com/NousResearch/hermes-agent/pull/11812</code></p>
+<p>- PR #11816（实现）：<code>https://github.com/NousResearch/hermes-agent/pull/11816</code></p>
+<p>- Hermes Plugin 系统：<code>AGENTS.md</code> → Plugin 部分</p>
+<p>- bleak 文档：<code>https://bleak.readthedocs.io/</code></p>
+<br>
+<h2>开发日志</h2>
+<br>
+<table>
+<tr><th>日期</th><th>阶段</th><th>内容</th><th>产出</th></tr>
+<tr><td>2026-04-26</td><td>项目初始化</td><td>创建 GitHub 仓库 `harryfan1985/agent-buddy-bridge`，编写代码骨架</td><td>`ble_central.py`, `http_server.py`, `http_client.py`, `json_codec.py`, `main.py`, `approval_relay.py`</td></tr>
+<tr><td>2026-04-26</td><td>Hermes 调研</td><td>分析 Hermes 扩展机制（Plugin、Webhook、Platform Adapter），确认 Hermes 没有内置 HTTP 审批回调端点</td><td>结论：需要 PR #11812</td></tr>
+<tr><td>2026-04-26</td><td>PR #11812 研究</td><td>详细查看 Issue 和 PR #11816 代码，理解 `platform_class`、`pre_tool_call approve`、`approval_callback` 三大改动</td><td>明确基于 PR #11812 的新架构</td></tr>
+<tr><td>2026-04-26</td><td>集成开发</td><td>基于 PR #11812 设计实现 BuddyPlatformAdapter + Hermes Plugin + 双路径 fallback</td><td>`platform.py`, `hermes_plugin/`, `http_server.py` 更新，`main.py` 重构</td></tr>
+</table>
+<br>
+<h2>后续任务计划</h2>
+<br>
+<h3>Phase 1: BuddyBridge 独立测试（不依赖 Hermes）</h3>
+<br>
+<p>- [ ] <strong>BLE Central 扫描测试</strong></p>
+<p>  - 测试 <code>bleak</code> 能否在 Mac 上扫描到 M5StickC 设备（设备名 <code>Claude-XXXX</code>）</p>
+<p>  - 验证 CoreBluetooth 权限</p>
+<br>
+<p>- [ ] <strong>BLE 连接测试</strong></p>
+<p>  - 建立 BLE 连接，启用 NUS TX notify</p>
+<p>  - 测试 JSON 心跳收发</p>
+<br>
+<p>- [ ] <strong>NUS 协议验证</strong></p>
+<p>  - 对比 Claude Desktop Buddy 固件的 NUS 协议与 <code>json_codec.py</code> 实现是否完全匹配</p>
+<p>  - 必要时调整编解码格式</p>
+<br>
+<h3>Phase 2: Hermes 侧桩代码（不等 PR 合并）</h3>
+<br>
+<p>- [ ] <strong>手动注册 BuddyAdapter 到 Platform 枚举</strong></p>
+<p>  - 修改 <code>gateway/config.py</code> 的 <code>Platform</code> 枚举添加 <code>BUDDY</code></p>
+<p>  - 在 <code>gateway/platforms/</code> 创建 <code>buddy.py</code></p>
+<p>  - 绕过 <code>platform_class</code>，直接走 Hermes 内置加载机制</p>
+<p>  - ⚠️ 违反"不修改 Hermes 核心代码"约束，仅用于原型验证</p>
+<br>
+<p>- [ ] <strong>添加 Hermes /internal/approve 端点</strong></p>
+<p>  - 在 <code>gateway/platforms/api_server.py</code> 添加 <code>/internal/approve</code> POST 端点</p>
+<p>  - 调用 <code>resolve_gateway_approval(session_key, choice)</code></p>
+<p>  - ⚠️ 同样需要修改 Hermes</p>
+<br>
+<h3>Phase 3: 端到端集成（需硬件 + Hermes 改动）</h3>
+<br>
+<p>- [ ] <strong>完整审批流程测试</strong></p>
+<p>  - Hermes 检测 dangerous command → <code>send_exec_approval()</code> → POST /buddy/state</p>
+<p>  - BuddyBridge 接收 → BLE → M5StickC 显示</p>
+<p>  - M5StickC 按钮 A/B → BLE 回传 → POST /internal/approve</p>
+<p>  - Hermes <code>resolve_gateway_approval()</code> → Agent 线程解锁</p>
+<br>
+<p>- [ ] <strong>超时和错误处理</strong></p>
+<p>  - M5StickC 无响应超时（60s Hermes 默认超时）</p>
+<p>  - BLE 断线重连</p>
+<p>  - Hermes 端点不可用 fallback 到 Approval Relay</p>
+<br>
+<h3>Phase 4: 硬件与固件</h3>
+<br>
+<p>- [ ] <strong>M5StickC 固件适配</strong></p>
+<p>  - 确认 Claude Desktop Buddy 固件是否需要修改</p>
+<p>  - 验证 NUS 心跳间隔、permission 消息格式兼容性</p>
+<br>
+<p>- [ ] <strong>设备配对流程</strong></p>
+<p>  - macOS BLE 配对对话框处理</p>
+<p>  - 首次配对后的自动重连</p>
+<br>
+<h3>Phase 5: PR #11812 合并后</h3>
+<br>
+<p>- [ ] <strong>移除桩代码</strong></p>
+<p>  - 删除 Phase 2 的 Hermes 临时修改</p>
+<p>  - 切换到正式的 <code>platform_class</code> 配置方式</p>
+<br>
+<p>- [ ] <strong>正式部署</strong></p>
+<p>  - <code>pip install -e .</code> 安装 agent-buddy-bridge</p>
+<p>  - 配置 <code>~/.hermes/config.yaml</code> 的 <code>platforms.buddy</code> 和 <code>plugins.buddy-bridge</code></p>
+<p>  - 验证 Hermes 自动加载 BuddyPlatformAdapter</p>
+<br>
+<h2>阻塞项</h2>
+<br>
+<table>
+<tr><th>阻塞</th><th>依赖</th><th>解决方案</th></tr>
+<tr><td>`platform_class` 不存在</td><td>PR #11812 未合并</td><td>Phase 2 桩代码 或 等待 PR 合并</td></tr>
+<tr><td>无法真机测试 BLE</td><td>需要 M5StickC Plus 硬件</td><td>Phase 1 扫描测试验证 bleak 是否正常工作</td></tr>
+<tr><td>NUS 协议兼容性未知</td><td>需要抓包或查看 Claude Buddy 固件源码</td><td>Phase 1 协议验证</td></tr>
+</table>
+<br></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+</body>
+</html>
