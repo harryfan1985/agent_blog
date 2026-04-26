@@ -1,2 +1,3 @@
 # BitFun snapshot data - auto managed
 .bitfun/
+__pycache__/

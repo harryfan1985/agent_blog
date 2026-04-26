@@ -24,7 +24,7 @@ def load_posts():
                 post["title"] = "Untitled"
         
         if "date" not in post:
-            match = re.search(r'发布日期[：:]\\s*([^<\\n]+)', content)
+            match = re.search(r'发布日期[：:]\s*([^<\n]+)', content)
             if match:
                 post["date"] = match.group(1).strip()
             else:
