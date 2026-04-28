@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harness Engineering：AI 编码智能体的置信度工程实践 | Agent Blog</title>
+    <meta name="description" content="Martin Fowler 最新文章深度解读。Birgitta Böckeler 提出「Harness Engineering」框架：如何通过前馈控制（Guide）和反馈控制（Sensor）让 AI 编码智能体在更少监督下交付高质量代码。Agent = Model + Harness，代码即工程。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Harness Engineering：AI 编码智能体的置信度工程实践">
+    <meta property="og:description" content="Martin Fowler 最新文章深度解读。Birgitta Böckeler 提出「Harness Engineering」框架：如何通过前馈控制（Guide）和反馈控制（Sensor）让 AI 编码智能体在更少监督下交付高质量代码。Agent = Model + Harness，代码即工程。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="April 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Harness Engineering：AI 编码智能体的置信度工程实践</h1>
+                <div class="meta">
+                    <span class="date">April 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p><em>作者：Birgitta Böckeler，Thoughtworks 杰出工程师，AI 辅助交付专家（20+ 年开发经验）。原文发表于 2026 年 4 月 2 日，Martin Fowler 网站。</em></p>
+
+<h2>一、背景：为什么需要 Harness Engineering？</h2>
+
+<p>AI 编码智能体（coding agent）带来了一个根本性信任问题：LLM 是<strong>非确定性的</strong>，它不理解你的代码上下文，它以 token 的方式思考。作为软件工程师，我们天然对 AI 生成的代码存在信任屏障。</p>
+
+<p>Birgitta Böckeler 在本文中提出了一个心智模型，核心公式：</p>
+
+<blockquote>
+<p><strong>Agent = Model + Harness</strong></p>
+</blockquote>
+
+<p>Harness（中文可译为「挽具」或「控制系统」）指的是智能体中<strong>除了模型本身之外的一切</strong>——系统提示词、代码检索机制、编排系统，以及用户为自己用例构建的外部 harness。</p>
+
+<p><img src="../images/harness-engineering/harness-bounded-contexts.png" alt="不同上下文中 Harness 的含义" loading="lazy" style="max-width:100%;border-radius:8px;margin:2em 0;" /></p>
+<p style="color:var(--color-text-muted);font-size:0.9rem;text-align:center;margin-top:-1em;">图 1：术语「Harness」在不同上下文中的含义各不相同</p>
+
+<h2>二、核心框架：前馈 + 反馈 = 自我纠正</h2>
+
+<p>Harness 的设计围绕两个核心机制：</p>
+
+<h3>Guide（前馈控制）</h3>
+
+<p><strong>在智能体行动之前</strong>进行引导，提前预判并预防不良行为。前馈控制提高智能体<strong>第一次就做对</strong>的概率。</p>
+
+<h3>Sensor（反馈控制）</h3>
+
+<p><strong>在智能体行动之后</strong>观察结果，帮助其自我纠正。高效的 sensor 会输出专门为 LLM 优化过的信号——例如自定义 linter 消息包含自我纠正指令，这是一种<strong>正向的 prompt injection</strong>。</p>
+
+<blockquote>
+<p>只有反馈没有前馈 → 智能体会不断重复相同错误<br/>
+只有前馈没有反馈 → 智能体会制定规则但从不知道这些规则是否有效</p>
+</blockquote>
+
+<p><img src="../images/harness-engineering/harness-overview.png" alt="Harness 工程总览" loading="lazy" style="max-width:100%;border-radius:8px;margin:2em 0;" /></p>
+<p style="color:var(--color-text-muted);font-size:0.9rem;text-align:center;margin-top:-1em;">图 2：Harness 工程总览——前馈（Guide）、反馈（Sensor）与 Steering Loop</p>
+
+<h2>三、计算的 vs 推断的：两种执行类型</h2>
+
+<p>Guide 和 Sensor 各有两种执行类型：</p>
+
+<table>
+<tr><th>类型</th><th>特性</th><th>示例</th></tr>
+<tr><td><strong>Computational（计算的）</strong></td><td>确定性，CPU 执行，毫秒级，结果可靠</td><td>测试、linter、类型检查、结构分析</td></tr>
+<tr><td><strong>Inferential（推断的）</strong></td><td>语义分析，GPU/NPU 执行，较慢且非确定性</td><td>AI 代码评审、「LLM as judge」</td></tr>
+</table>
+
+<p>计算型 Sensor 足够便宜，可以在每次变更时运行。推断型 Sensor 虽然更贵且非确定性，但在使用足够强的模型时，可以显著提高信任度。</p>
+
+<h2>四、时序策略：保持质量左移</h2>
+
+<p>持续集成的团队面临的挑战是如何根据成本、速度和关键性，将测试、检查和人工审查分布到开发时间线上。当目标是<strong>持续交付</strong>时，每一个提交状态最好都是可部署的——你希望检查尽可能左移，发现问题越早，修复成本越低。</p>
+
+<p><img src="../images/harness-engineering/harness-change-lifecycle-examples.png" alt="变更生命周期中的前馈与反馈" loading="lazy" style="max-width:100%;border-radius:8px;margin:2em 0;" /></p>
+<p style="color:var(--color-text-muted);font-size:0.9rem;text-align:center;margin-top:-1em;">图 3：变更生命周期中的前馈与反馈分布</p>
+
+<h3>持续漂移与健康 Sensor</h3>
+
+<p>除了变更生命周期，还需要持续运行的 Sensor 来监控累积性漂移：</p>
+
+<ul>
+<li>死代码检测</li>
+<li>测试覆盖质量分析</li>
+<li>依赖漏洞扫描</li>
+<li>运行时反馈：监控 SLO 降级并提出改进建议</li>
+</ul>
+
+<p><img src="../images/harness-engineering/harness-continuous-feedback-examples.png" alt="持续反馈传感器示例" loading="lazy" style="max-width:100%;border-radius:8px;margin:2em 0;" /></p>
+<p style="color:var(--color-text-muted);font-size:0.9rem;text-align:center;margin-top:-1em;">图 4：持续反馈传感器示例</p>
+
+<h2>五、Harness 的三种类型</h2>
+
+<p><img src="../images/harness-engineering/harness-types.png" alt="Harness 类型" loading="lazy" style="max-width:100%;border-radius:8px;margin:2em 0;" /></p>
+<p style="color:var(--color-text-muted);font-size:0.9rem;text-align:center;margin-top:-1em;">图 5：Harness 的三种类型</p>
+
+<h3>1. Maintainability Harness（可维护性 Harness）</h3>
+
+<p>这是目前<strong>最容易构建</strong>的 harness 类型，因为有大量现成的工具可用。</p>
+
+<p>Birgitta 将常见编码智能体失败模式映射到了不同 Sensor 上：</p>
+
+<ul>
+<li><strong>计算型 Sensor 可靠捕获</strong>：重复代码、循环复杂度、缺失测试覆盖、架构漂移、风格违规</li>
+<li><strong>LLM 可部分解决</strong>（但成本高、非确定性）：语义重复代码、冗余测试、暴力修复、过度工程</li>
+<li><strong>两者都难以可靠捕获</strong>：问题误诊、过度工程、不必要的功能、对指令的误解——这些需要在人工监督下解决</li>
+</ul>
+
+<h3>2. Architecture Fitness Harness（架构 Fitness Harness）</h3>
+
+<p>定义和检查应用架构特性的 Guide 和 Sensor，本质上是 <strong>Fitness Functions</strong>：</p>
+
+<ul>
+<li>前馈：Skills 传递性能需求 → 性能测试反馈性能改善或退化</li>
+<li>前馈：描述可观测性编码规范（日志标准）→ 调试时要求智能体反思日志质量</li>
+</ul>
+
+<h3>3. Behaviour Harness（行为 Harness）</h3>
+
+<p>这是最难的部分——如何引导和感知应用的功能行为是否符合预期？</p>
+
+<blockquote>
+<p>当前大多数高自主性编码智能体的做法：前馈用功能规格说明，反馈靠 AI 生成的测试套件是否通过。这种方法对 AI 生成测试的信任还不够。</p>
+</blockquote>
+
+<p>Thoughtworks 一些同事在特定领域使用 <strong>approved fixtures</strong> 模式取得了不错效果，但适用范围有限。</p>
+
+<h2>六、Steering Loop：人在循环中的角色</h2>
+
+<p>人类在 harness 系统中的角色是<strong>持续迭代和改进 harness</strong>——每当某个问题多次出现，就改进前馈或反馈控制，使其在未来减少发生概率甚至完全预防。</p>
+
+<p>Steering loop 中也可以用 AI 来改进 harness：</p>
+
+<ul>
+<li>智能体可以帮助编写结构性测试</li>
+<li>从观察到的模式生成规则草案</li>
+<li>搭建自定义 linter 的脚手架</li>
+<li>从代码库考古中创建操作指南</li>
+</ul>
+
+<h2>七、Ashby 定律与 Harness 模板</h2>
+
+<p><img src="../images/harness-engineering/harness-templates.png" alt="Harness 模板" loading="lazy" style="max-width:100%;border-radius:8px;margin:2em 0;" /></p>
+<p style="color:var(--color-text-muted);font-size:0.9rem;text-align:center;margin-top:-1em;">图 6：企业常见的 80% 服务拓扑 → 未来的 Harness 模板</p>
+
+<p><strong>Ashby 必要多样性定律</strong>：调节器的多样性必须至少与被调节系统一样多。LLM 可以产生几乎任何东西，但承诺一个拓扑会收窄这个空间，使全面的 harness 更容易实现。</p>
+
+<p>企业级团队通常有覆盖 80% 需求的服务拓扑（API 业务服务、事件处理服务、数据仪表盘）。这些拓扑未来可能演化为 <strong>Harness 模板</strong>——一组捆绑的 Guide 和 Sensor，将编码智能体约束到特定拓扑的结构、规范和技术栈上。</p>
+
+<h2>八、核心洞察与实践建议</h2>
+
+<blockquote>
+<p><strong>「好的 harness 的目标不一定是完全消除人类输入，而是将人类输入引导到最需要人类判断的地方。」</strong></p>
+</blockquote>
+
+<p>人类开发者带来的隐性 harness：吸收了规范和良好实践、感受到复杂性的认知痛苦、知道自己的名字会出现在提交记录上、理解团队正在努力实现什么。</p>
+
+<p>编码智能体没有这些：没有社会责任感、没有对 300 行函数的厌恶感、没有「我们这里不这样做」的直觉、没有组织记忆。</p>
+
+<h2>九、行业案例</h2>
+
+<ul>
+<li><strong>OpenAI 团队</strong>：用自定义 linter 和结构性测试强制执行分层架构，定期「垃圾回收」扫描漂移并让智能体建议修复</li>
+<li><strong>Stripe</strong>：pre-push hooks 基于启发式运行相关 linter，「shift feedback left」是关键策略，blueprints 将反馈传感器集成到智能体工作流中</li>
+<li><strong>Mutation testing 和结构性测试</strong>：之前未被充分利用，现在正在复兴的计算型反馈传感器</li>
+</ul>
+
+<h2>十、开放问题</h2>
+
+<ul>
+<li>如何保持 harness 的内聚性，避免 Guide 和 Sensor 相互矛盾？</li>
+<li>当指令和反馈信号指向不同方向时，智能体能做出合理的权衡吗？</li>
+<li>如果 Sensor 从不触发，这是高质量的信号还是检测机制不足？</li>
+<li>我们需要一个类似于代码覆盖率的方法来评估 harness 的覆盖率和质量</li>
+<li>构建这个外部 harness 正在成为一项<strong>持续的工程实践</strong>，而非一次性配置</li>
+</ul>
+
+<h2>附录：论文信息</h2>
+
+<table>
+<tr><th>项目</th><th>内容</th></tr>
+<tr><td>标题</td><td>Harness engineering for coding agent users</td></tr>
+<tr><td>作者</td><td>Birgitta Böckeler</td></tr>
+<tr><td>机构</td><td>Thoughtworks</td></tr>
+<tr><td>发表</td><td>Martin Fowler Articles，2026-04-02</td></tr>
+<tr><td>标签</td><td>generative AI</td></tr>
+</table>
+
+<h2>一点思考</h2>
+
+<p>这篇文章最有价值的地方在于它将工程思维（测试、linter、Fitness Functions）与 AI 时代的新问题（非确定性、自我纠正）做了一个系统性整合。</p>
+
+<p>「Agent = Model + Harness」这个公式简洁但深刻：模型的能力有上限，但 harness 的工程改进空间几乎是无限的。随着更多团队积累经验，harness engineering 很可能成为软件工程的一个正式子领域。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
