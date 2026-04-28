@@ -1,4 +1,196 @@
 posts:
+- title: "GoalAct 论文解读：全局规划 + 分层执行，LLM Agent 的 SOTA 框架"
+  date: "April 28, 2026"
+  excerpt: 深入解读清华大学 GoalAct 论文（NCIIP 2025 Best Paper）。通过持续更新的全局规划和查询/编程/写作三层执行策略，在 LegalAgentBench 上实现 12.22% 平均成功率提升。包含完整代码架构分析。
+  content: |
+      <p>今天来聊一篇来自清华大学的最新工作 —— <strong>GoalAct</strong>，一个通过<strong>全局规划</strong>和<strong>分层执行</strong>来增强 LLM Agent 的框架。论文在 LegalAgentBench 上取得了 SOTA，平均成功率提升 <strong>12.22%</strong>，并获得了 NCIIP 2025 Best Paper。</p>
+      
+      <h2>一、现有 Agent 框架的两大痛点</h2>
+      
+      <p>当前 LLM-based Agent 在规划和执行层面都存在明显短板：</p>
+      
+      <h3>1. 规划层面：缺乏全局视野</h3>
+      
+      <ul>
+      <li><strong>ReAct</strong> 采用增量式推理（Thought → Action → Observation），没有全局目标指引，容易在多分支任务中陷入局部死胡同</li>
+      <li><strong>Plan-and-Execute</strong> 虽然生成全局计划，但计划往往不可执行（超出 Agent 的动作空间）</li>
+      </ul>
+      
+      <h3>2. 执行层面：复杂度与稳定性难以平衡</h3>
+      
+      <ul>
+      <li><strong>纯文本/JSON 执行</strong>（如 ReAct）：简单稳定，但表达能力有限，无法处理循环、分支等复杂逻辑</li>
+      <li><strong>代码执行</strong>（如 CodeAct）：动作空间大，能处理复杂逻辑，但在不可预测环境中更容易出错，且不适用于法律写作等生成任务</li>
+      </ul>
+      
+      <h2>二、GoalAct 的核心设计</h2>
+      
+      <p>GoalAct 引入了两个关键创新：</p>
+      
+      <h3>创新 1：持续更新的全局规划</h3>
+      
+      <p>GoalAct 维护一个动态演化的全局计划 G_t = (P₁A₁, P₂A₂, ..., PₙAₙ)，其中 Pᵢ 是计划步骤，Aᵢ 是对应的高层级技能（而非底层细节）。最终步骤永远是 <strong>Finish</strong>。</p>
+      
+      <p>关键特性：</p>
+      <ul>
+      <li>计划基于实时执行反馈动态调整</li>
+      <li>同时保证战略连贯性和可执行性</li>
+      <li>避免静态计划的僵化和 ReAct 的局部最优</li>
+      </ul>
+      
+      <h3>创新 2：分层执行策略</h3>
+      
+      <p>GoalAct 将任务执行分解为<strong>高层级技能</strong>，模拟人类工作方式：先识别技能类型，再选择工具，最后配置参数。</p>
+      
+      <table>
+      <tr><th>技能</th><th>执行格式</th><th>优势</th><th>局限</th></tr>
+      <tr><td><strong>查询 (Searching)</strong></td><td>Text/JSON 工具调用</td><td>简单稳定，适合不可预测环境，便于错误分析</td><td>表达能力有限，无法处理循环/分支</td></tr>
+      <tr><td><strong>编程 (Coding)</strong></td><td>Python 代码</td><td>支持复杂逻辑（分支、循环、排序、聚合），大幅扩展动作空间</td><td>复杂度高，在不可预测环境中更易出错</td></tr>
+      <tr><td><strong>写作 (Writing)</strong></td><td>领域专用推理 + 内容生成</td><td>解决法律文档起草等代码/查询无法完成的任务</td><td>需要领域知识，多阶段处理（信息收集→起草→润色）</td></tr>
+      </table>
+      
+      <p>技能集是<strong>可扩展的</strong>（如推理、创意、研究等技能），可根据任务动态选择。</p>
+      
+      <h2>三、实验验证：LegalAgentBench</h2>
+      
+      <h3>基准测试</h3>
+      
+      <ul>
+      <li><strong>LegalAgentBench</strong>：300 个任务，无法律数据泄露风险</li>
+      <li>6 种任务类型：1-hop 到 5-hop 逻辑推理（解决方案路径长度递增）+ <strong>写作</strong>（答辩书生成）</li>
+      <li>任务需要法律知识和外部工具调用</li>
+      </ul>
+      
+      <h3>实验设置</h3>
+      
+      <ul>
+      <li>测试模型：GPT-4o-mini、Qwen-max、GLM-4-Plus（temperature=0）</li>
+      <li>基线方法：Plan-and-Solve、Plan-and-Execute、ReAct、CodeAct</li>
+      <li>评估指标：Success Rate（关键词匹配率）</li>
+      </ul>
+      
+      <h3>核心结果</h3>
+      
+      <table>
+      <tr><th>模型</th><th>GoalAct</th><th>最佳基线</th><th>提升幅度</th></tr>
+      <tr><td>GPT-4o-mini</td><td>0.7720</td><td>0.6275 (CodeAct)</td><td><strong>+14.45%</strong></td></tr>
+      <tr><td>Qwen-max</td><td>0.8603</td><td>0.7594 (CodeAct)</td><td><strong>+10.09%</strong></td></tr>
+      <tr><td>GLM-4-Plus</td><td>0.8710</td><td>0.7499 (ReAct)</td><td><strong>+12.11%</strong></td></tr>
+      </table>
+      
+      <p><strong>平均提升：12.22%</strong></p>
+      
+      <h3>关键发现</h3>
+      
+      <ul>
+      <li>任务难度越高，GoalAct 优势越明显：1-hop 提升 3.26%，3-hop 提升 20%，5-hop 提升 15.5%</li>
+      <li>写作任务相对提升 <strong>12.74%</strong>，证明分层执行对生成任务同样有效</li>
+      <li>CodeAct 在写作任务上表现极差（无法生成法律文档），而 GoalAct 通过专用 Writing 技能完美解决</li>
+      </ul>
+      
+      <h2>四、代码实现解析</h2>
+      
+      <p>GoalAct 的代码实现非常简洁（约 4,500 行 Python），核心架构清晰：</p>
+      
+      <h3>文件结构</h3>
+      
+      <table>
+      <tr><th>文件</th><th>职责</th><th>行数</th></tr>
+      <tr><td><code>GoalAct.py</code></td><td>项目入口，问题预处理 + 并行执行</td><td>~230</td></tr>
+      <tr><td><code>act.py</code></td><td>核心执行循环：全局规划 + 行动路由</td><td>~153</td></tr>
+      <tr><td><code>action.py</code></td><td>三大技能实现：查询 / 编程 / 写作</td><td>~108</td></tr>
+      <tr><td><code>prompt.py</code></td><td>所有 Prompt 模板（全局规划、技能分类、示例）</td><td>~528</td></tr>
+      <tr><td><code>LLM.py</code></td><td>LLM 接口封装</td><td>~50</td></tr>
+      <tr><td><code>memory.py</code></td><td>记忆管理（few-shot 示例检索）</td><td>~80</td></tr>
+      <tr><td><code>api.py</code></td><td>工具集定义（法律数据库 API）</td><td>~200</td></tr>
+      <tr><td><code>eval.py</code></td><td>评估脚本（关键词匹配）</td><td>~93</td></tr>
+      </table>
+      
+      <h3>核心执行流程（act.py）</h3>
+      
+      <p>执行循环采用经典的 ReAct 结构，但增加了<strong>全局规划层</strong>和<strong>技能路由层</strong>：</p>
+      
+      <ol>
+      <li><strong>全局规划生成</strong>：每步通过 LLM 生成「思考 + 行动」，行动必须是四种类型之一（查询/编程/写作/结束）</li>
+      <li><strong>行动去重</strong>：维护 action_list 避免重复执行相同行动，若重复则通过 LLM 重新规划</li>
+      <li><strong>技能路由</strong>：根据行动类型路由到对应执行器
+      <ul>
+      <li>「查询」→ <code>Retrive()</code>：Text/JSON 工具调用</li>
+      <li>「编程」→ <code>Code()</code>：Python 代码生成 + 子进程执行</li>
+      <li>「写作」→ <code>Write()</code>：检索法条/类案/知识后生成文档</li>
+      </ul></li>
+      <li><strong>观察反馈</strong>：执行结果写入 scratchpad，作为下一步规划的历史上下文</li>
+      </ol>
+      
+      <h3>编程技能的巧妙设计</h3>
+      
+      <p>Code 技能不是简单的代码生成，而是包含完整的<strong>错误恢复机制</strong>：</p>
+      
+      <ul>
+      <li>代码通过 <code>subprocess.run</code> 在独立进程中执行，避免污染主进程</li>
+      <li>执行失败时自动捕获 stderr，将错误信息反馈给 LLM 要求重新编程（最多 5 次重试）</li>
+      <li>临时文件使用秒级时间戳 + 随机数命名，避免冲突</li>
+      </ul>
+      
+      <h3>Prompt 工程亮点</h3>
+      
+      <ul>
+      <li><strong>问题改写</strong>：预处理阶段对查询进行去噪、标准化（如案号格式统一、公司名称补全省份）</li>
+      <li><strong>表格筛选</strong>：通过 LLM 判断问题涉及哪些数据表，减少上下文噪音</li>
+      <li><strong>Few-shot 记忆</strong>：从 memory.json 中检索相似问题的解决方案作为示例，提升规划质量</li>
+      <li><strong>编程示例</strong>：Prompt 中包含 3 个详细的 Python 代码示例，覆盖筛选、排序、统计等常见操作</li>
+      </ul>
+      
+      <h2>五、论文 vs 代码：一致性评估</h2>
+      
+      <table>
+      <tr><th>论文声明</th><th>代码验证</th><th>状态</th></tr>
+      <tr><td>全局规划机制</td><td><code>act.py</code> 每步调用 LLM 生成规划，scratchpad 维护历史</td><td>✅ 已实现</td></tr>
+      <tr><td>分层执行（查询/编程/写作）</td><td><code>action.py</code> 中三个独立函数实现</td><td>✅ 已实现</td></tr>
+      <tr><td>LegalAgentBench 评估</td><td><code>eval.py</code> 关键词匹配 + BERTScore 双指标</td><td>✅ 已实现</td></tr>
+      <tr><td>12.22% 平均提升</td><td>可复现（代码完整，数据集需申请）</td><td>✅ 可验证</td></tr>
+      <tr><td>技能可扩展</td><td>Prompt 中硬编码 3 种技能，扩展需修改 <code>act.py</code> 路由逻辑</td><td>⚠️ 需手动扩展</td></tr>
+      </table>
+      
+      <h2>六、实用洞察与集成建议</h2>
+      
+      <h3>GoalAct 适合什么场景？</h3>
+      
+      <ul>
+      <li><strong>多步推理任务</strong>：需要跨多个数据源查询、筛选、聚合的复杂工作流</li>
+      <li><strong>混合任务类型</strong>：同时包含信息检索、数据处理和内容生成的场景</li>
+      <li><strong>领域专用 Agent</strong>：法律、医疗、金融等有明确工具集和输出格式的领域</li>
+      </ul>
+      
+      <h3>集成到 Hermes 的潜在路径</h3>
+      
+      <ol>
+      <li><strong>MCP Server 化</strong>：将 GoalAct 的查询/编程/写作技能封装为 MCP Tools，Hermes 通过 MCP 协议调用</li>
+      <li><strong>Prompt 层借鉴</strong>：将 GoalAct 的全局规划 Prompt 和技能路由逻辑融入 Hermes 的 agent 配置</li>
+      <li><strong>法律领域扩展</strong>：GoalAct 的法律工具集（LegalDoc、CourtInfo、CompanyInfo 等）可作为垂直领域 MCP Server 参考</li>
+      </ol>
+      
+      <h3>局限性</h3>
+      
+      <ul>
+      <li><strong>领域耦合</strong>：当前实现深度绑定中国法律数据库，通用化需要重构 api.py 和 schema</li>
+      <li><strong>单 Agent 架构</strong>：没有多 Agent 协作，复杂任务完全依赖单实例的 10 步循环</li>
+      <li><strong>硬编码技能</strong>：新增技能需要修改 act.py 的路由逻辑和 prompt.py 的模板</li>
+      <li><strong>中文特化</strong>：问题改写、法条检索等模块对中文法律文本有强依赖</li>
+      </ul>
+      
+      <h2>七、总结</h2>
+      
+      <p>GoalAct 的核心价值在于证明了<strong>「全局规划 + 分层执行」</strong>这一设计范式在复杂 Agent 任务中的有效性。它不是通过更复杂的架构取胜，而是通过更合理的任务分解和更灵活的执行策略，在已有 LLM 能力基础上榨取更多性能。</p>
+      
+      <p>对于构建垂直领域 Agent 的开发者来说，GoalAct 提供了一个极具参考价值的实现模板：如何用不到 5,000 行代码，在特定领域实现 SOTA 性能。</p>
+      
+      <blockquote>
+      <p><strong>论文</strong>: <a href="https://arxiv.org/abs/2504.16563">arXiv:2504.16563</a><br>
+      <strong>代码</strong>: <a href="https://github.com/cjj826/GoalAct">github.com/cjj826/GoalAct</a><br>
+      <strong>作者</strong>: Junjie Chen, Haitao Li, Jingli Yang, Yiqun Liu, Qingyao Ai (清华大学)<br>
+      <strong>奖项</strong>: NCIIP 2025 Best Paper</p>
+      </blockquote>
 - title: GBrain MCP 集成技术日志：Raspberry Pi 5 上的知识图谱 + Hermes Agent
   date: April 26, 2026
   excerpt: 详细记录 GBrain (PostgreSQL + pgvector 知识大脑) 通过 MCP 协议集成到 Hermes Agent 的完整过程。覆盖
