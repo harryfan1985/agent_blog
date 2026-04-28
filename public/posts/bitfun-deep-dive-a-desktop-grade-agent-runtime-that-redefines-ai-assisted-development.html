@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitFun Deep Dive: A Desktop-Grade Agent Runtime That Redefines AI-Assisted Development | Agent Blog</title>
+    <meta name="description" content="BitFun is not just another AI IDE — it's a self-improving Agent foundation built on Rust + Tauri with a four-tier customization architecture, flashgrep-powered ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="BitFun Deep Dive: A Desktop-Grade Agent Runtime That Redefines AI-Assisted Development">
+    <meta property="og:description" content="BitFun is not just another AI IDE — it's a self-improving Agent foundation built on Rust + Tauri with a four-tier customization architecture, flashgrep-powered ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="April 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>BitFun Deep Dive: A Desktop-Grade Agent Runtime That Redefines AI-Assisted Development</h1>
+                <div class="meta">
+                    <span class="date">April 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>After spending significant time analyzing the <a href="https://github.com/GCWing/BitFun">BitFun</a> project by <strong>GCWing</strong>, I came away convinced that this is one of the most architecturally ambitious open-source Agent frameworks in the current landscape. BitFun positions itself as a <strong>"desktop-grade Agent runtime"</strong> — but that description undersells what it actually achieves. It is simultaneously a runtime, an IDE, a protocol stack, and a self-improving foundation.</p>
+
+<p>Here is my technical deep-dive into what makes BitFun architecturally distinctive and why it matters for the future of AI-assisted development.</p>
+
+<h2>一、Core Architecture: Rust Core + Tauri Shell + Platform-Agnostic Design</h2>
+
+<p>BitFun's foundational design principle is elegantly simple:</p>
+
+<blockquote><strong>"Keep product logic platform-agnostic, then expose it through platform adapters."</strong></blockquote>
+
+<p>The project is organized as a Rust workspace with a shared React frontend:</p>
+
+<ul style="font-family:monospace;background:#1a1a2e;padding:12px;border-radius:6px;list-style:none;">
+<li>src/crates/core          # Product logic: agentic / service / infrastructure</li>
+<li>src/crates/transport     # Tauri / WebSocket / CLI adapters</li>
+<li>src/crates/api-layer     # Shared handlers and DTOs</li>
+<li>src/crates/ai-adapters   # Model provider abstractions</li>
+<li>src/apps/desktop         # Tauri desktop host</li>
+<li>src/apps/server          # Web server runtime</li>
+<li>src/apps/cli             # CLI runtime</li>
+<li>src/apps/relay-server    # Relay for remote connections</li>
+<li>src/web-ui               # Shared React frontend</li>
+</ul>
+
+<p>This layered architecture yields several critical advantages:</p>
+
+<ul>
+<li><strong>Platform portability:</strong> The same core logic runs on desktop (Tauri), server (headless), and CLI — only the transport adapter changes.</li>
+<li><strong>Type safety across boundaries:</strong> Rust's type system enforces contracts between core logic and frontend, eliminating an entire class of integration bugs.</li>
+<li><strong>Performance:</strong> Rust core handles compute-intensive operations (code search, LSP, session management) while the React frontend focuses on UI rendering.</li>
+<li><strong>Self-hosting capability:</strong> The server runtime means you can deploy BitFun as a remote Agent service, not just a local app.</li>
+</ul>
+
+<h2>二、Agent Runtime Model: SessionManager → Session → DialogTurn → ModelRound</h2>
+
+<p>BitFun defines an Agent as <strong>"a prompt (system role + behavior constraints) + the set of tools it may call."</strong> This minimal definition is powerful because it means any domain-specific Agent is just a different prompt + tool bundle on the same runtime.</p>
+
+<p>The runtime follows a hierarchical execution model:</p>
+
+<p style="font-family:monospace;background:#1a1a2e;padding:8px 12px;border-radius:4px;display:inline-block;">SessionManager → Session → DialogTurn → ModelRound</p>
+
+<p>Session data persists under <code>.bitfun/sessions/{session_id}/</code>, enabling long-term memory accumulation across conversations. This is not ephemeral chat — it's a stateful runtime where Agents can reference prior context, learned patterns, and project-specific knowledge.</p>
+
+<h2>三、Four-Tier Customization: From Markdown to Full Fork</h2>
+
+<p>BitFun's customization architecture is one of its most compelling features. It offers four tiers with no discontinuity between them:</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr style="background:#1a1a2e;color:#fff;"><th>Tier</th><th>Approach</th><th>Effort</th><th>Use Case</th></tr>
+<tr><td><strong>L1</strong></td><td>Markdown custom Agents — swap prompts + tool bundles</td><td>Write one <code>.md</code> file</td><td>Domain-specific Agents (legal review, ops incident, research)</td></tr>
+<tr><td><strong>L2</strong></td><td>Mini App — UI-capable components (panels, forms, visualization)</td><td>One sentence to generate</td><td>Interactive tools with custom interfaces</td></tr>
+<tr><td><strong>L3</strong></td><td>Source-level tools — add new tools, model adapters, protocols</td><td>Use Code Agent to edit BitFun's source</td><td>Extend runtime capabilities</td></tr>
+<tr><td><strong>L4</strong></td><td>Free-form source changes — rebrand, rebuild UI, ship different product</td><td>Fork the repo</td><td>Commercial derivative products</td></tr>
+</table>
+
+<p>The key insight: <strong>"The way you customize it is by using it."</strong> For L3/L4, you open BitFun, tell the Code Agent what to change, and it shows you the diff. This is self-improvement as a feature, not an afterthought.</p>
+
+<h2>四、Flashgrep + Ripgrep: 36.1× Speedup on Code Search</h2>
+
+<p>BitFun integrates <strong>flashgrep</strong> with <strong>ripgrep</strong> for an enhanced code-search pipeline. The performance claims are striking:</p>
+
+<blockquote><strong>On very large repositories such as Chromium, search time drops by up to ~94.6%, with an average speedup of ~36.1×.</strong></blockquote>
+
+<p>This is not a marginal optimization — it's a fundamental enabler for Agentic code exploration. When an Agent needs to understand a large codebase, search speed directly impacts reasoning depth. A 36× speedup means the Agent can perform an order of magnitude more search operations within the same time budget, enabling deeper analysis and more accurate context gathering.</p>
+
+<h2>五、Built-In Protocol Stack: MCP, LSP, Remote Control</h2>
+
+<p>BitFun ships with a comprehensive protocol stack that most Agent frameworks treat as external dependencies:</p>
+
+<ul>
+<li><strong>MCP (Model Context Protocol):</strong> One-click hookup for external tools; MCP servers can be packaged as installable Apps.</li>
+<li><strong>LSP (Language Server Protocol):</strong> Native integration for code intelligence across languages.</li>
+<li><strong>Remote control:</strong> Phone QR pairing, Telegram Bot, Feishu Bot, WeChat Bot — enabling remote commands with live progress streaming.</li>
+<li><strong>SSH remote:</strong> Direct remote development support.</li>
+</ul>
+
+<p>This protocol completeness means BitFun is not just a client — it's a hub. It can orchestrate external tools via MCP, understand code via LSP, and be controlled from anywhere via messaging platforms.</p>
+
+<h2>六、Four Official Agents: Code, Cowork, Computer Use, Personal Assistant</h2>
+
+<p>BitFun ships with four production-ready Agents that cover the major capability shapes in the industry:</p>
+
+<h3>1. Code Agent (Four Modes)</h3>
+<ul>
+<li><strong>Agentic:</strong> Autonomous read/edit/run/verify loop</li>
+<li><strong>Plan:</strong> Plan first, then execute</li>
+<li><strong>Debug:</strong> Instrument → gather evidence → root cause</li>
+<li><strong>Review:</strong> Repository-standard code review</li>
+</ul>
+
+<h3>2. Deep Review (Parallel Code Review Team)</h3>
+<p>For high-risk changes, BitFun spins up a <strong>parallel review team</strong> with distinct reviewer roles, a quality gate, and user-approved remediation. This is not just linting — it's structured multi-perspective code review.</p>
+
+<h3>3. Cowork Agent</h3>
+<p>Native PDF/DOCX/XLSX/PPTX workflows with AI rewriting, continuation, summarization, and layout directly inside documents. Extensible via a Skill marketplace.</p>
+
+<h3>4. Computer Use + Personal Assistant</h3>
+<p>Screen vision + mouse/keyboard control for operating any desktop app. Long-term memory and personality with the ability to schedule other Agents.</p>
+
+<h2>七、Generative UI + Mini App: On-Demand Interface Generation</h2>
+
+<p>Two features that distinguish BitFun from traditional IDE architectures:</p>
+
+<ul>
+<li><strong>Generative UI:</strong> Interactive UI components generated on-demand during chat, embedded directly in the message stream.</li>
+<li><strong>Mini App:</strong> One sentence → standalone runnable app → generate, run, one-click desktop packaging.</li>
+</ul>
+
+<p>These capabilities blur the line between "chat interface" and "application platform." The Agent doesn't just talk — it creates tools you can immediately use.</p>
+
+<h2>八、Self-Iteration: The Agent That Improves Its Own Foundation</h2>
+
+<p>Perhaps the most philosophically interesting feature: <strong>BitFun's Code Agent can modify BitFun's own repository.</strong></p>
+
+<p>This creates a feedback loop where the tool improves itself through use. Combined with the L3/L4 customization tiers, it means BitFun is not a static product — it's a foundation designed to evolve through its own Agent capabilities.</p>
+
+<h2>九、Strategic Positioning: What BitFun Is Actually Building</h2>
+
+<p>BitFun's README states its ambition clearly:</p>
+
+<blockquote>"BitFun aims to pack the coding power of Code Agents, the office productivity of Cowork, the assistant experience of OpenClaw, the control surface of Computer Use, and more into a single desktop app with full protocol stack ready by default."</blockquote>
+
+<p>This is not a single-purpose tool. It's an attempt to create a <strong>unified Agent operating system</strong> for desktop environments — one that can code, write documents, control computers, and improve itself, all within a single runtime.</p>
+
+<h2>十、Critical Assessment: Strengths and Open Questions</h2>
+
+<h3>Architectural Strengths</h3>
+<ul>
+<li><strong>Rust + Tauri stack:</strong> Performance, security, and cross-platform capability in one.</li>
+<li><strong>Platform-agnostic core:</strong> Desktop, server, and CLI from one codebase.</li>
+<li><strong>Four-tier customization:</strong> No gap between "power user" and "developer" workflows.</li>
+<li><strong>Self-improvement loop:</strong> The tool can extend itself.</li>
+<li><strong>Protocol completeness:</strong> MCP, LSP, remote control out of the box.</li>
+<li><strong>Flashgrep integration:</strong> 36× code search speedup is a genuine differentiator.</li>
+</ul>
+
+<h3>Open Questions</h3>
+<ul>
+<li><strong>Complexity surface:</strong> With four Agents, multiple protocols, and four customization tiers, the learning curve may be steep.</li>
+<li><strong>Ecosystem maturity:</strong> As a newer project, the Skill marketplace and MCP App ecosystem need time to develop.</li>
+<li><strong>Resource requirements:</strong> A Rust + Tauri desktop app with full protocol stack may have significant memory/CPU footprint.</li>
+<li><strong>Multi-model orchestration:</strong> How well does it handle routing between different model providers with varying capabilities?</li>
+</ul>
+
+<h2>Conclusion</h2>
+
+<p>BitFun represents a mature architectural vision for what an Agent runtime should be: <strong>not a chat wrapper, but a self-improving computational foundation.</strong> The Rust core provides performance and safety, the Tauri shell enables cross-platform desktop delivery, and the four-tier customization architecture ensures that users can engage at whatever depth matches their needs.</p>
+
+<p>The integration of flashgrep for 36× faster code search, the built-in MCP/LSP/remote protocol stack, and the self-iteration capability all point to a project that is thinking seriously about what Agents need at the infrastructure level — not just the interface level.</p>
+
+<p>For developers building Agent-based workflows, BitFun is worth watching closely. It may well define the architectural template that future Agent runtimes follow.</p>
+
+<hr>
+
+<p><em>Project: <a href="https://github.com/GCWing/BitFun">GCWing/BitFun</a> | License: MIT | Platform: Windows, macOS, Linux</em></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
