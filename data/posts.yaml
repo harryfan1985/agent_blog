@@ -2,9 +2,9 @@ posts:
 - title: 'Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链'
   date: April 30, 2026
   excerpt: 深度分析 triton-agent 项目，解析其基于 AI Agent 的自动化算子测试、迁移与性能优化全流程，以及详细的硬件和工具链依赖清单。
-  content: "<h1>Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链</h1>\n\n<p>在昇腾（Ascend）NPU\
-    \ 的生态建设中，算子（Operator）开发是一个高门槛、高重复劳动的环节。最近发现了一个名为 <code>triton-agent</code> 的开源项目（gitcode.com/midwinter1993/triton-agent），它提出了一种全新的开发范式：利用\
-    \ AI Agent 和本地 Skills 知识库，自动化完成算子的迁移、测试生成和性能调优。</p>\n\n<p>本文将对该项目进行深度分析，并整理一份包含外部依赖、硬件环境和测试工具链的完整使用指导。</p>\n\
+  content: "<p>在昇腾（Ascend）NPU 的生态建设中，算子（Operator）开发是一个高门槛、高重复劳动的环节。最近发现了一个名为 <code>triton-agent</code>\
+    \ 的开源项目（gitcode.com/midwinter1993/triton-agent），它提出了一种全新的开发范式：利用 AI Agent 和本地\
+    \ Skills 知识库，自动化完成算子的迁移、测试生成和性能调优。</p>\n\n<p>本文将对该项目进行深度分析，并整理一份包含外部依赖、硬件环境和测试工具链的完整使用指导。</p>\n\
     \n<hr>\n\n<h2>1. 项目定位与核心架构</h2>\n\n<p><code>triton-agent</code> 本质上是一个 <strong>基于\
     \ CLI 的编排器</strong>，它不直接生成代码，而是负责任务拆解、上下文注入（Skills）和调用外部 AI Agent（如 OpenCode,\
     \ Codex, OpenHands 等）。</p>\n\n<ul>\n    <li><strong>设计模式</strong>：编排器 + 技能库 (Orchestrator\
@@ -60,7 +60,73 @@ posts:
     \ Agent 中途中断，下次运行会自动读取状态，从中断的轮次继续优化。</li>\n    <li><strong>远程执行 (<code>--remote</code>)</strong>：如果本地没有\
     \ NPU，可以通过 SSH 调用远程服务器：\n        <code>uv run triton-agent optimize --input my_op.py\
     \ --remote user@npu-server</code>\n    </li>\n</ul>\n\n<p>这个工程将传统的“手动写算子 -> 手动跑\
-    \ profile -> 手动改代码”流程，彻底自动化为 <strong>“输入代码 -> AI 自动迭代 -> 输出最优算子”</strong> 的闭环，极大降低了昇腾算子的开发门槛。</p>"
+    \ profile -> 手动改代码”流程，彻底自动化为 <strong>“输入代码 -> AI 自动迭代 -> 输出最优算子”</strong> 的闭环，极大降低了昇腾算子的开发门槛。</p>\n\
+    <hr>\n\n<h2>6. 本地 OpenCode 集成配置运行指南</h2>\n\n<p>本指南适用于本地开发环境，假设你已经安装了 <strong>OpenCode\
+    \ CLI</strong>、<strong>Python + uv</strong>，如果需要本地运行算子还需要配置好 <strong>昇腾 CANN 环境\
+    \ + torch_npu</strong>（没有本地NPU可以通过SSH调用远程机器）。</p>\n\n<h3>6.1 前置准备</h3>\n\n<ol>\n\
+    \    <li>克隆 Triton Agent 仓库\n        <pre><code class=\"language-bash\">git clone\
+    \ git@gitcode.com:midwinter1993/triton-agent.git ~/code/triton-agent\ncd ~/code/triton-agent\n\
+    </code></pre>\n    </li>\n    <li>安装依赖\n        <pre><code class=\"language-bash\"\
+    ># 用 uv 安装依赖\nuv sync\n\n# 验证 CLI 可执行\nuv run triton-agent --version\n</code></pre>\n\
+    \    </li>\n    <li>(可选) 配置全局调用，不需要每次都用 <code>uv run</code>：\n        <pre><code\
+    \ class=\"language-bash\">echo 'export PATH=\"$HOME/code/triton-agent/.venv/bin:$PATH\"\
+    ' >> ~/.zshrc\nsource ~/.zshrc\n\n# 验证\ntriton-agent --version\n</code></pre>\n\
+    \    </li>\n</ol>\n\n<h3>6.2 两种集成方式选择</h3>\n\n<p>根据你的使用场景选择一种即可：</p>\n\n<h4>方式1：OpenCode\
+    \ 直接调用 Triton Agent CLI（推荐，轻量）</h4>\n<p>Triton Agent 本身是CLI工具，OpenCode可以直接调用它完成算子开发全流程，不需要额外配置技能。</p>\n\
+    <ol>\n    <li>打开 OpenCode 配置文件 <code>~/.opencode/config.yaml</code></li>\n   \
+    \ <li>加入自定义工具配置：\n        <pre><code class=\"language-yaml\">tools:\n  - name:\
+    \ triton-agent\n    description: \"Triton 算子自动化开发工具链，支持算子测试生成、迁移、性能优化、验证\"\n \
+    \   command: \"uv run --cwd ~/code/triton-agent triton-agent {{args}}\"\n    parameters:\n\
+    \      - name: args\n        description: \"triton-agent 命令参数，比如 optimize --input\
+    \ my_op.py\"\n        required: true\n</code></pre>\n    </li>\n    <li>直接使用示例：在OpenCode对话中直接输入：<br>\n\
+    \        <blockquote>调用 triton-agent 帮我优化当前目录下的 `add_op.py` 算子，至少迭代3轮，用差分测试验证正确性</blockquote>\n\
+    \    </li>\n</ol>\n\n<h4>方式2：导入 Triton Agent Skills 到 OpenCode 技能库（进阶，可二次开发）</h4>\n\
+    <p>Triton Agent的 <code>skills/</code> 目录下包含了16个算子开发专项技能，可以直接导入到OpenCode中，让OpenCode复用这些沉淀的知识：</p>\n\
+    <ol>\n    <li>复制技能到OpenCode技能目录：\n        <pre><code class=\"language-bash\">cp\
+    \ -r ~/code/triton-agent/skills/* ~/.opencode/skills/\n</code></pre>\n    </li>\n\
+    \    <li>给每个技能增加OpenCode格式的元数据（<code>skill.yaml</code>），比如 <code>triton-npu-optimize/skill.yaml</code>：\n\
+    \        <pre><code class=\"language-yaml\">name: triton-npu-optimize\ndescription:\
+    \ \"昇腾 NPU Triton 算子性能优化技能，自动识别性能瓶颈，生成优化后的算子代码\"\nparameters:\n  - name: op_path\n\
+    \    description: \"算子文件路径\"\n    required: true\n  - name: min_rounds\n    description:\
+    \ \"最少优化轮次，默认3\"\n    default: 3\n</code></pre>\n    </li>\n    <li>重启OpenCode后即可在对话中直接调用：<br>\n\
+    \        <blockquote>用 triton-npu-optimize 技能优化 `conv_op.py` 算子，重点优化内存访问效率</blockquote>\n\
+    \    </li>\n</ol>\n\n<h3>6.3 完整算子优化流程示例</h3>\n\n<p>假设你有一个待优化的算子文件 <code>my_add.py</code>：</p>\n\
+    <pre><code class=\"language-python\">import torch\nimport triton\nimport triton.language\
+    \ as tl\n\n@triton.jit\ndef add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE:\
+    \ tl.constexpr):\n    pid = tl.program_id(axis=0)\n    block_start = pid * BLOCK_SIZE\n\
+    \    offsets = block_start + tl.arange(0, BLOCK_SIZE)\n    mask = offsets < n_elements\n\
+    \    x = tl.load(x_ptr + offsets, mask=mask)\n    y = tl.load(y_ptr + offsets,\
+    \ mask=mask)\n    output = x + y\n    tl.store(output_ptr + offsets, output, mask=mask)\n\
+    \ndef add(x: torch.Tensor, y: torch.Tensor):\n    output = torch.empty_like(x)\n\
+    \    n_elements = output.numel()\n    grid = lambda meta: (triton.cdiv(n_elements,\
+    \ meta['BLOCK_SIZE']), )\n    add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)\n\
+    \    return output\n</code></pre>\n\n<h4>步骤1：生成差分测试用例</h4>\n<pre><code class=\"\
+    language-bash\">triton-agent gen-test --input my_add.py --test-mode differential\
+    \ --agent opencode\n</code></pre>\n<p>会生成 <code>differential_test_my_add.py</code>，自动对比CPU\
+    \ PyTorch和NPU Triton的输出一致性。</p>\n\n<h4>步骤2：运行测试验证正确性</h4>\n<pre><code class=\"\
+    language-bash\">triton-agent run-test --test-file differential_test_my_add.py\
+    \ --operator-file my_add.py\n</code></pre>\n<p>如果测试失败，会自动生成修复建议。</p>\n\n<h4>步骤3：性能优化</h4>\n\
+    <pre><code class=\"language-bash\">triton-agent optimize --input my_add.py \\\n\
+    \  --min-rounds 3 \\\n  --bench-mode msprof \\ # 硬件级性能分析，需要msprof工具\n  --agent\
+    \ opencode \\\n  --resume auto\n</code></pre>\n<p>每轮优化都会生成性能对比报告，自动保留最优版本。</p>\n\
+    \n<h4>步骤4：验证最优版本</h4>\n<pre><code class=\"language-bash\">triton-agent verify\
+    \ --input . --phase all\n</code></pre>\n<p>会重新运行测试和性能基准，确认优化后的算子正确性和性能提升。</p>\n\
+    \n<h4>批量处理多个算子：</h4>\n<p>如果有一整个目录的算子需要迁移优化：</p>\n<pre><code class=\"language-bash\"\
+    ># 配置可用NPU设备（这里用0-3号卡，4卡并行）\nexport TRITON_AGENT_BATCH_NPU_DEVICES=0-3\n\n# 批量优化，4并发\n\
+    triton-agent optimize-batch --input ./operators_dir \\\n  --max-concurrency 4\
+    \ \\\n  --agent opencode\n</code></pre>\n<p>会自动给每个算子分配独立的NPU设备，并行优化。</p>\n\n<h3>6.4\
+    \ 远程 NPU 配置（本地没有昇腾卡）</h3>\n\n<p>如果本地没有NPU，可以通过SSH调用远程昇腾机器运行算子：</p>\n<ol>\n   \
+    \ <li>配置SSH免密登录：\n        <pre><code class=\"language-bash\">ssh-copy-id user@npu-server-ip\n\
+    </code></pre>\n    </li>\n    <li>所有命令都加上 <code>--remote</code> 和 <code>--remote-workdir</code>\
+    \ 参数：\n        <pre><code class=\"language-bash\">triton-agent optimize --input\
+    \ my_add.py \\\n  --remote user@npu-server-ip \\\n  --remote-workdir /tmp/triton_agent_workspace\n\
+    </code></pre>\n    </li>\n</ol>\n<p>文件会自动同步到远程机器，运行完成后结果自动拉回本地。</p>\n\n<h3>6.5\
+    \ 常见问题排查</h3>\n\n<ul>\n    <li><strong>CANN 环境变量找不到</strong>：在 <code>~/.zshrc</code>\
+    \ 中配置好CANN环境：\n        <pre><code class=\"language-bash\">source /usr/local/Ascend/ascend-toolkit/set_env.sh\n\
+    </code></pre>\n    </li>\n    <li><strong>msprof 找不到</strong>：安装 MindStudio 工具包，并把\
+    \ msprof 加入 PATH。</li>\n    <li><strong>优化速度慢</strong>：增加 <code>--max-concurrent-workers</code>\
+    \ 参数，配置更多并行Worker。</li>\n    <li><strong>差分测试精度不通过</strong>：添加 <code>--tolerance\
+    \ 1e-3</code> 放宽精度校验阈值（适合浮点算子）。</li>\n</ul>\n"
 - title: 'BitFun Deep Dive: A Desktop-Grade Agent Runtime That Redefines AI-Assisted
     Development'
   date: April 28, 2026
