@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链 | Agent Blog</title>
+    <meta name="description" content="深度分析 triton-agent 项目，解析其基于 AI Agent 的自动化算子测试、迁移与性能优化全流程，以及详细的硬件和工具链依赖清单。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链">
+    <meta property="og:description" content="深度分析 triton-agent 项目，解析其基于 AI Agent 的自动化算子测试、迁移与性能优化全流程，以及详细的硬件和工具链依赖清单。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="April 30, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链</h1>
+                <div class="meta">
+                    <span class="date">April 30, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h1>Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链</h1>
+
+<p>在昇腾（Ascend）NPU 的生态建设中，算子（Operator）开发是一个高门槛、高重复劳动的环节。最近发现了一个名为 <code>triton-agent</code> 的开源项目（gitcode.com/midwinter1993/triton-agent），它提出了一种全新的开发范式：利用 AI Agent 和本地 Skills 知识库，自动化完成算子的迁移、测试生成和性能调优。</p>
+
+<p>本文将对该项目进行深度分析，并整理一份包含外部依赖、硬件环境和测试工具链的完整使用指导。</p>
+
+<hr>
+
+<h2>1. 项目定位与核心架构</h2>
+
+<p><code>triton-agent</code> 本质上是一个 <strong>基于 CLI 的编排器</strong>，它不直接生成代码，而是负责任务拆解、上下文注入（Skills）和调用外部 AI Agent（如 OpenCode, Codex, OpenHands 等）。</p>
+
+<ul>
+    <li><strong>设计模式</strong>：编排器 + 技能库 (Orchestrator + Skills)</li>
+    <li><strong>核心组件</strong>：
+        <ul>
+            <li><strong>CLI (Python)</strong>：轻量级入口，负责解析命令、准备 Workspace、注入 Skills 并调用 Agent。</li>
+            <li><strong>Agent Backends</strong>：支持多种代码生成工具（<code>codex</code>, <code>opencode</code>, <code>pi</code>, <code>claude</code>, <code>openhands</code>, <code>traecli</code>）。</li>
+            <li><strong>Skills (Local)</strong>：位于 <code>skills/</code> 目录的 16 个专项技能（如 <code>triton-npu-optimize</code>、<code>triton-npu-profile-operator</code>），以 Markdown 形式指导 Agent 如何处理特定的算子开发任务。</li>
+        </ul>
+    </li>
+</ul>
+
+<hr>
+
+<h2>2. 外部依赖清单 (关键)</h2>
+
+<p>该项目高度依赖昇腾 NPU 硬件生态和特定的 Agent 工具链。以下是运行环境的最小依赖集：</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>组件</th>
+            <th>必需性</th>
+            <th>说明</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Huawei Ascend NPU</strong></td>
+            <td>🔴 核心</td>
+            <td>支持 910B/910C 等系列（昇腾 AI 处理器）。</td>
+        </tr>
+        <tr>
+            <td><strong>CANN Toolkit</strong></td>
+            <td>🔴 核心</td>
+            <td>华为异构计算架构，提供算子编译和运行环境。</td>
+        </tr>
+        <tr>
+            <td><strong>Triton Compiler (Ascend Fork)</strong></td>
+            <td>🔴 核心</td>
+            <td>昇腾适配的 Triton 编译器（通常随 CANN 或单独安装）。</td>
+        </tr>
+        <tr>
+            <td><strong>PyTorch + torch_npu</strong></td>
+            <td>🔴 核心</td>
+            <td>用于差分测试（Differential Testing）的对照组。</td>
+        </tr>
+        <tr>
+            <td><strong>msprof</strong></td>
+            <td>🟡 推荐</td>
+            <td>用于 <code>--bench-mode msprof</code> 模式下的硬件级性能分析。</td>
+        </tr>
+        <tr>
+            <td><strong>uv</strong></td>
+            <td>🟢 工具</td>
+            <td>高性能 Python 包管理器，项目使用 <code>uv</code> 管理环境和依赖。</td>
+        </tr>
+    </tbody>
+</table>
+
+<hr>
+
+<h2>3. Agent 工具链选择</h2>
+
+<p>项目支持多种 Agent 后端，你可以根据现有环境选择：</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>工具</th>
+            <th>配置方式</th>
+            <th>适用场景</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>OpenCode CLI</strong></td>
+            <td>已安装 (<code>opencode</code>)</td>
+            <td>本地终端 Agent，推荐集成。</td>
+        </tr>
+        <tr>
+            <td><strong>OpenAI Codex CLI</strong></td>
+            <td><code>codex</code></td>
+            <td>OpenAI 官方代码 Agent。</td>
+        </tr>
+        <tr>
+            <td><strong>OpenHands</strong></td>
+            <td>SDK + <code>LLM_API_KEY</code></td>
+            <td>适合复杂任务规划，需配置 API Key。</td>
+        </tr>
+        <tr>
+            <td><strong>Claude / Trae / Pi</strong></td>
+            <td>CLI 命令</td>
+            <td>其他支持的 Agent 后端。</td>
+        </tr>
+    </tbody>
+</table>
+
+<hr>
+
+<h2>4. 核心使用指导</h2>
+
+<h3>4.1 算子优化 (核心场景)</h3>
+<p>假设你有一个算子文件 <code>my_op.py</code>：</p>
+
+<pre><code class="language-bash"># 1. 一键开始优化 (默认使用 opencode 或 codex)
+uv run triton-agent optimize --input my_op.py --min-rounds 3
+
+# 2. 指定使用 OpenHands Agent 并开启 msprof 硬件级分析
+uv run triton-agent optimize --input my_op.py \
+  --agent openhands \
+  --bench-mode msprof \
+  --resume auto
+
+# 3. 开启编译器源码分析 (用于疑难杂症)
+uv run triton-agent optimize --input my_op.py \
+  --enable-compiler-source-analysis
+</code></pre>
+
+<h3>4.2 批量处理 (大规模迁移)</h3>
+<p>如果你有一整个目录的算子 <code>ops_dir/</code>：</p>
+
+<pre><code class="language-bash"># 1. 并行处理，自动分配 NPU 设备 (假设你有 8 张卡)
+export TRITON_AGENT_BATCH_NPU_DEVICES=0-7
+
+uv run triton-agent optimize-batch --input ops_dir \
+  --max-concurrency 8 \
+  --agent opencode
+</code></pre>
+
+<h3>4.3 结果验证</h3>
+<pre><code class="language-bash"># 验证最优算子的正确性和性能
+uv run triton-agent verify --input . --phase all
+</code></pre>
+
+<hr>
+
+<h2>5. 进阶特性</h2>
+
+<ul>
+    <li><strong>差分测试 (Differential Testing)</strong>：默认模式下，工具会自动生成对比代码，在 CPU/NPU 上分别运行原始 PyTorch 算子和生成的 Triton 算子，校验输出精度。</li>
+    <li><strong>Resume 机制 (断点续传)</strong>：<code>optimize</code> 命令默认开启 <code>--resume auto</code>。如果 Agent 中途中断，下次运行会自动读取状态，从中断的轮次继续优化。</li>
+    <li><strong>远程执行 (<code>--remote</code>)</strong>：如果本地没有 NPU，可以通过 SSH 调用远程服务器：
+        <code>uv run triton-agent optimize --input my_op.py --remote user@npu-server</code>
+    </li>
+</ul>
+
+<p>这个工程将传统的“手动写算子 -> 手动跑 profile -> 手动改代码”流程，彻底自动化为 <strong>“输入代码 -> AI 自动迭代 -> 输出最优算子”</strong> 的闭环，极大降低了昇腾算子的开发门槛。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
