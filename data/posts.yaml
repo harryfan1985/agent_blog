@@ -1,4 +1,174 @@
 posts:
+- title: Ascend Triton 技术栈全景图：华为昇腾 NPU 的 Triton 编译器生态
+  date: May 1, 2026
+  excerpt: 深入解析华为 Ascend NPU 上的 Triton 技术栈全景：Triton-Ascend、triton-ascend-ops、AscendNPU-IR
+    (bishengir)、TileLang-Ascend 的项目定位、依赖关系，以及从用户 Python 代码到 NPU 可执行文件的完整编译流水线。
+  content: "<p><em>作者：Harry Fan | 技术栈：Triton · Ascend NPU · MLIR · CANN</em></p>\n\
+    \n<h2>一、为什么需要 Ascend Triton 技术栈？</h2>\n\n<p><strong>Triton</strong> 是 OpenAI 出品的\
+    \ DSL（领域特定语言），用于编写高效 GPU/NPU 内核。其核心理念是：让研究者和工程师用 Pythonic 的方式写并行计算内核，而编译器负责生成硬件友好的底层代码。</p>\n\
+    \n<p>华为昇腾（Ascend）NPU 在国内拥有大量部署，但 Triton 原生只支持 NVIDIA GPU 和 AMD GPU。华为要承接 Triton\
+    \ 生态，需要自行维护一套从 Triton 前端到 Ascend 硬件的完整编译器栈。</p>\n\n<p>这就是今天要梳理的 <strong>Ascend\
+    \ Triton 技术栈</strong>——从用户写的 <code>@triton.jit</code> 到 Ascend NPU 可执行文件，中间涉及哪些项目、它们之间什么关系、依赖是如何组织的。</p>\n\
+    \n<h2>二、全景架构图</h2>\n\n<div style=\"background:#1a1a2e;color:#a8dadc;font-family:monospace;font-size:0.72rem;padding:1em;overflow-x:auto;border-radius:8px;line-height:1.4;text-align:left;white-space:pre;\"\
+    >用户层 (User Space)\n================================================================================\n\
+    \n  @triton.jit kernel                          PyTorch (@torch.npu)\n       \
+    \ |                                           |\n================== 框架接入层 (Framework\
+    \ Integration) ==================\n\n  Triton-Ascend                         \
+    \    torch_npu\n  gitcode.com/Ascend/triton-ascend          pip install torch_npu\n\
+    \         |                                      |\n         |         +---------------------------+\n\
+    \         |         |\n         |    TileLang-Ascend (TVM-based DSL)\n       \
+    \  |    gitcode.com/Ascend/tilelang-ascend\n         |         |\n========+=========+=============================================================\n\
+    \        |         |\n        v         v\n================== IR 降级层 (MLIR Compilation)\
+    \ =========================\n\n  TTAdapter (.ttadapter.mlir)        Torch IR \
+    \   Linalg/HFusion IR\n         |                              |             \
+    \ |\n         +---------------+--------------+              |\n              \
+    \       v                              |\n         +------------------------------------+---+\n\
+    \         |     AscendNPU-IR (bishengir)         |\n         |  gitcode.com/Ascend/AscendNPU-IR\
+    \     |\n         |  github.com/Ascend/AscendNPU-IR      |\n         |       \
+    \                                 |\n         |  TTAdapter -- Linalg -- HFusion\
+    \ -- HIVM -- .o\n         |                                        |\n       \
+    \  |  HFusion Dialect | HIVM Dialect | HACC\n         |                      \
+    \                  |\n         |  bishengir-opt / bishengir-compile    |\n   \
+    \      |  --> Ascend NPU Binary (.o)        |\n         +----------------------------------------+\n\
+    ================== 硬件运行层 (Runtime) =================================\n\n  CANN\
+    \ (Compute Architecture for Neural Networks)\n  AscendCL (算子调用抽象) | ACLNN (神经网络算子库)\
+    \ | HCCL (多卡通信)\n\n  Ascend 910B (A3 ops) | Atlas A2 (A3 ops) | Atlas 300I Pro\
+    \ (A2 ops)\n</div>\n\n<h2>三、核心项目逐一解析</h2>\n\n<h3>3.1 Triton-Ascend</h3>\n\n<p><strong>地址：</strong><a\
+    \ href=\"https://gitcode.com/Ascend/triton-ascend\">gitcode.com/Ascend/triton-ascend</a></p>\n\
+    \n<p><strong>定位：</strong>Triton 的 Ascend 分支。华为从 Triton 上游 fork 而来，在保持 Triton Python\
+    \ API 兼容的前提下，添加 Ascend 后端支持。</p>\n\n<p><strong>核心职责：</strong></p>\n<ul>\n<li>提供\
+    \ Ascend 版本的 Triton 编译器（<code>triton.ascend</code>）</li>\n<li>将用户写的 <code>@triton.jit</code>\
+    \ 编译为 TTIR / TTGIR</li>\n<li>将 TTGIR 转换为 TTAdapter 格式（.ttadapter.mlir）</li>\n\
+    <li>添加 Ascend 特有的 Python 扩展 API（<code>triton.language.extra.cann.extension</code>）</li>\n\
+    </ul>\n\n<p><strong>版本注意：</strong></p>\n<pre>triton-ascend 3.2.0 之前:  tl.compile_hint(...)\
+    \          # 旧 API\ntriton-ascend 3.4.0 之后:  tl.extra.cann.extension.compile_hint(...)\
+    \  # 新 API</pre>\n\n<p><strong>Ascend 扩展 API 示例：</strong></p>\n<pre>import triton.language.extra.cann.extension\
+    \ as al\n\n@triton.jit\ndef kernel():\n    # 同步控制\n    al.debug_barrier(al.SYNC_IN_VF.VV_ALL)\n\
+    \    al.sync_block_set(\"cube\", \"vector\", event_id, ...)\n    al.sync_block_all(\"\
+    all_cube\", event_id)\n\n    # 硬件查询\n    sub_vec_id = al.sub_vec_id()\n    sub_vec_num\
+    \ = al.sub_vec_num()\n\n    # 作用域控制\n    with al.scope(core_mode=\"cube\"):  \
+    \  # Cube 核计算\n        ...\n    with al.scope(core_mode=\"vector\"):  # Vector\
+    \ 核计算\n        ...\n\n    # 切片操作\n    x_sub = al.extract_slice(x, offsets, sizes,\
+    \ strides)\n    al.insert_slice(dst, src, offsets, sizes, strides)</pre>\n\n<h3>3.2\
+    \ AscendNPU-IR (bishengir)</h3>\n\n<p><strong>地址：</strong><a href=\"https://gitcode.com/Ascend/AscendNPU-IR\"\
+    >gitcode.com/Ascend/AscendNPU-IR</a> / <a href=\"https://github.com/Ascend/AscendNPU-IR\"\
+    >github.com/Ascend/AscendNPU-IR</a></p>\n\n<p><strong>定位：</strong>华为基于 MLIR 的昇腾编译器基础设施。bishengir\
+    \ 是项目内的编译器名称，源自\"笔声\"（取音译）。</p>\n\n<p><strong>核心职责：</strong></p>\n<ul>\n<li>接收\
+    \ Triton-Ascend 输出的 TTAdapter (.ttadapter.mlir)</li>\n<li>执行多级 MLIR dialect 降级：Linalg\
+    \ -- HFusion -- HIVM</li>\n<li>自动算子融合、Tiling、Scheduling</li>\n<li>生成 Ascend NPU\
+    \ 可执行二进制 (.o)</li>\n</ul>\n\n<p><strong>核心 Dialect：</strong></p>\n\n<table>\n\
+    <tr><th>Dialect</th><th>层级</th><th>职责</th></tr>\n<tr><td><strong>HFusion</strong></td><td>高层</td><td>硬件感知融合调度层，自动将多个算子融合成\
+    \ Ascend 友好 kernel</td></tr>\n<tr><td><strong>HIVM</strong></td><td>低层</td><td>NPU\
+    \ 指令层，显式控制 GM/UB/L1/L0 内存和 Vector/Cube/MTE 流水线</td></tr>\n<tr><td><strong>HACC</strong></td><td>硬件访问</td><td>硬件访问类别注解</td></tr>\n\
+    <tr><td><strong>MemRefExt</strong></td><td>内存操作</td><td>扩展内存操作</td></tr>\n</table>\n\
+    \n<h3>3.3 triton-ascend-ops</h3>\n\n<p><strong>地址：</strong><a href=\"https://github.com/Ascend/triton-ascend-ops\"\
+    >github.com/Ascend/triton-ascend-ops</a></p>\n\n<p><strong>定位：</strong>Ascend\
+    \ 定制 Triton 算子库，包含 Triton Ascend 特有的算子实现（sort、flip、gather 等），以及开发教程。</p>\n\n<h3>3.4\
+    \ TileLang-Ascend</h3>\n\n<p><strong>地址：</strong>gitcode.com/Ascend/tilelang-ascend</p>\n\
+    \n<p><strong>定位：</strong>基于 TVM 的 DSL，面向昇腾 NPU 的领域特定语言，支持 GEMM、向量运算、注意力机制等算子开发。</p>\n\
+    \n<h3>3.5 torch_npu</h3>\n\n<p><strong>安装方式：</strong><code>pip install torch_npu==2.7.1</code></p>\n\
+    \n<p><strong>定位：</strong>PyTorch 与 Ascend NPU 的对接插件。提供 <code>.npu()</code> 方法将\
+    \ PyTorch tensor 迁移到 Ascend 设备，并桥接 CANN 算子库（ACLNN）。</p>\n\n<h3>3.6 CANN</h3>\n\
+    \n<p><strong>下载地址：</strong><a href=\"https://www.hiascend.com/cann/download\"\
+    >昇腾社区 CANN 下载页</a></p>\n\n<p><strong>定位：</strong>Compute Architecture for Neural\
+    \ Networks，昇腾 NPU 的驱动和运行时层。</p>\n\n<p><strong>CANN 核心组件：</strong></p>\n<table>\n\
+    <tr><th>组件</th><th>全称</th><th>职责</th></tr>\n<tr><td>AscendCL</td><td>Ascend Common\
+    \ Library</td><td>算子调用抽象，Host 侧 API</td></tr>\n<tr><td>ACLNN</td><td>ACL Neural\
+    \ Network</td><td>神经网络高频算子库</td></tr>\n<tr><td>HCCL</td><td>Huawei Collective\
+    \ Communication Library</td><td>多卡集合通信（AllReduce 等）</td></tr>\n</table>\n\n<h3>3.7\
+    \ AscendNPU-IR-Dev</h3>\n\n<p><strong>地址：</strong>gitcode.com/Ascend/AscendNPU-IR-Dev</p>\n\
+    \n<p><strong>定位：</strong>AscendNPU-IR 的构建依赖合集，包含 LLVM 和 Torch-MLIR 子模块的特定 commit\
+    \ 快照。</p>\n\n<h2>四、IR 降级流水线详解</h2>\n\n<p>这是整个技术栈最核心的部分。当用户执行一个 Triton kernel 时，代码经历了以下编译阶段：</p>\n\
+    \n<div style=\"background:#f8f9fa;font-family:monospace;font-size:0.78rem;padding:1em;overflow-x:auto;border-radius:8px;border-left:4px\
+    \ solid #007acc;line-height:1.7;text-align:left;white-space:pre;\">阶段 1: Triton\
+    \ 前端\n================================================================================\n\
+    Python @triton.jit\n        |\n        v  [Triton-Ascend] triton compile\nTTIR\
+    \ (Triton IR)\n        |\n        v  [Triton-Ascend] backend compile\nTTGIR (Triton\
+    \ Generic IR)\n        |\n        v  [Triton-Ascend] 产出\n.ttadapter.mlir  ---\
+    \ TTAdapter 格式，昇腾专用适配器\n\n阶段 2: MLIR 降级\n================================================================================\n\
+    .ttadapter.mlir\n        |\n        +--- bishengir-opt (torch-backend-to-named-op-backend-pipeline)\n\
+    \        |         |\n        |         v\n        |   Linalg / Tensor Dialect\n\
+    \        |         |\n        +--- bishengir-opt (-enable-triton-kernel-compile)\n\
+    \                  |\n                  v\n            HFusion Dialect  --- 自动融合\
+    \ / Tiling / Scheduling\n                  |\n                  v  [HFusionToHIVM\
+    \ Pass]\n            HIVM Dialect  --- 显式 GM/UB/L1/L0 内存 + Vector/Cube/MTE 流水线\n\
+    \                  |\n                  v  [bishengir-compile]\n            .o\
+    \ (NPU Binary)\n\n阶段 3: 运行时\n================================================================================\n\
+    .o (NPU Binary)\n        |\n        v  [CANN Runtime: AscendCL / ACLNN]\nAscend\
+    \ NPU Hardware\n</div>\n\n<h3>Triton Op -- AscendNPU-IR Op 映射表</h3>\n\n<p>这是理解两端对接的关键。Triton\
+    \ 的高层抽象在降级过程中会映射到 AscendNPU-IR 的具体操作：</p>\n\n<table>\n<tr><th>Triton Op</th><th>AscendNPU-IR\
+    \ Op</th><th>说明</th></tr>\n<tr><td><code>triton::DotOp</code></td><td><code>linalg::MatmulOp</code></td><td>矩阵乘</td></tr>\n\
+    <tr><td><code>triton::LoadOp</code></td><td><code>memref::copy</code></td><td>内存加载</td></tr>\n\
+    <tr><td><code>triton::StoreOp</code></td><td><code>memref::copy</code></td><td>内存存储</td></tr>\n\
+    <tr><td><code>triton::BroadcastOp</code></td><td><code>linalg::BroadcastOp</code></td><td>广播</td></tr>\n\
+    <tr><td><code>triton::TransOp</code></td><td><code>linalg::TransposeOp</code></td><td>转置</td></tr>\n\
+    <tr><td><code>triton::ReduceOp</code></td><td><code>linalg::ReduceOp</code></td><td>归约</td></tr>\n\
+    <tr><td><code>triton::GatherOp</code></td><td><code>hfusion::GatherOp</code></td><td>聚集</td></tr>\n\
+    <tr><td><code>triton::AtomicRMWOp</code></td><td><code>hivm::StoreOp</code></td><td>原子操作</td></tr>\n\
+    <tr><td><code>triton::AddPtrOp</code></td><td><code>memref::ReinterpretCast</code></td><td>指针偏移</td></tr>\n\
+    <tr><td><code>triton::ReshapeOp</code></td><td><code>tensor::ReshapeOp</code></td><td>形状变换</td></tr>\n\
+    <tr><td><code>triton::SplitOp</code></td><td><code>tensor::ExtractSliceOp</code></td><td>张量分割</td></tr>\n\
+    <tr><td><code>triton::SplatOp</code></td><td><code>linalg::FillOp</code></td><td>标量填充</td></tr>\n\
+    <tr><td><code>triton::SortOp</code></td><td><code>hfusion::SortOp</code></td><td>排序</td></tr>\n\
+    </table>\n\n<h2>五、项目依赖关系</h2>\n\n<div style=\"background:#1a1a2e;color:#a8dadc;font-family:monospace;font-size:0.78rem;padding:1em;overflow-x:auto;border-radius:8px;line-height:1.8;text-align:left;white-space:pre;\"\
+    >用户代码 (@triton.jit)\n        |\n        v  pip install triton-ascend\nTriton-Ascend\
+    \ (编译前端)\n        |  -----------------------------------------------------------------\n\
+    \        |  依赖: triton (上游)                                               |\n\
+    \        |  依赖: torch_npu (PyTorch 对接)                                    |\n\
+    \        |  依赖: CANN (运行时)                                               |\n \
+    \       v\n.ttadapter.mlir (TTAdapter)\n        |\n        v  bishengir-compile\n\
+    AscendNPU-IR / bishengir (编译后端)\n        |  -----------------------------------------------------------------\n\
+    \        |  依赖: AscendNPU-IR-Dev (构建阶段)                                |\n   \
+    \     |  依赖: LLVM (子模块)                                               |\n    \
+    \    |  依赖: Torch-MLIR (子模块)                                         |\n     \
+    \   |  依赖: CANN (运行时)                                               |\n      \
+    \  v\n.o (NPU Binary)\n        |\n        v  CANN Runtime\nAscend NPU Hardware\
+    \ --- torch_npu 运行时对接\n</div>\n\n<h2>六、最小依赖集合</h2>\n\n<p><strong>场景 1：只想写 Triton\
+    \ kernel 并在 Ascend 上跑</strong></p>\n<pre>1. pip install triton-ascend       #\
+    \ Triton Ascend 前端\n2. pip install torch_npu==2.7.1     # PyTorch NPU 插件\n3. CANN\
+    \ (昇腾驱动+工具链+ops包)      # 昇腾运行时环境</pre>\n\n<p><strong>场景 2：需要调试 IR 降级或分析编译问题</strong></p>\n\
+    <pre>4. AscendNPU-IR                     # MLIR 编译器 (bishengir-opt/compile)\n\
+    5. msprof                            # 华为性能分析工具</pre>\n\n<p><strong>场景 3：需要修改\
+    \ AscendNPU-IR 编译器本身</strong></p>\n<pre>6. AscendNPU-IR-Dev                 #\
+    \ 构建依赖 (LLVM/Torch-MLIR 子模块)\n7. CMake >= 3.28, Ninja >= 1.12.0  # 构建工具链\n8. Clang\
+    \ >= 10, LLD >= 10          # 编译器</pre>\n\n<h2>七、编译命令速查</h2>\n\n<pre>########\
+    \ Triton Kernel 编译 ########\n# Triton-Ascend 自动处理，用户只需:\n@triton.jit\ndef kernel(x,\
+    \ y, z, ...):\n    ...\n# 运行时自动调用 bishengir-compile\n\n######## 端到端编译 (TTAdapter\
+    \ -- .o) ########\nbishengir-compile kernel.ttadapter.mlir -o kernel.o\n\n########\
+    \ Torch IR 端到端编译 ########\nbishengir-compile -enable-torch-compile=true \\\n \
+    \ -enable-hfusion-compile=true \\\n  -enable-hivm-compile=true \\\n  -target=Ascend910B1\
+    \ torch.mlir -o torch_kernel.o\n\n######## HFusion 层级编译 ########\nbishengir-compile\
+    \ -enable-hfusion-compile=true \\\n  -enable-hivm-compile=true \\\n  -target=Ascend910B1\
+    \ hfusion.mlir -o hfusion_kernel.o\n\n######## HIVM 层级编译 (最底层) ########\nbishengir-compile\
+    \ -enable-hfusion-compile=false \\\n  -enable-hivm-compile=true \\\n  -target=Ascend910B1\
+    \ hivm.mlir -o hivm_kernel.o\n\n######## 逐级查看 IR 降级结果 ########\nbishengir-opt\
+    \ -torch-backend-to-named-op-backend-pipeline torch.mlir \\\n  -o torch_to_hfusion.mlir</pre>\n\
+    \n<h2>八、多级 IR 抽象详解</h2>\n\n<p>AscendNPU-IR 的核心价值在于提供了多层抽象，让不同需求的开发者选择合适的接入层：</p>\n\
+    \n<h3>8.1 Torch IR 层</h3>\n\n<p>直接摄入 PyTorch ATen 算子。适合 PyTorch 用户，不需要写 Triton，通过\
+    \ <code>convert-torch-to-hfusion</code> Pass 降级到 Linalg/HFusion。</p>\n\n<h3>8.2\
+    \ Linalg / HFusion 层</h3>\n\n<p>通用张量代数层。HFusion 提供昇腾感知的 Named Op，并自动完成算子融合、Tiling、Scheduling。</p>\n\
+    \n<h3>8.3 HIVM 层</h3>\n\n<p>最低层，直接映射 NPU 硬件指令。通过 <code>#hivm.address_space</code>\
+    \ 注解内存层级（gm/ub/l1/l0a/l0b/l0c），需要显式管理 DMA 传输和 Vector/Cube/MTE 流水线同步。</p>\n\n<h2>九、开发调试工具链</h2>\n\
+    \n<table>\n<tr><th>工具</th><th>用途</th></tr>\n<tr><td><code>TRITON_ALL_PARALLEL</code></td><td>环境变量，激活\
+    \ Auto Blockify 逻辑（自动 tiling）</td></tr>\n<tr><td><code>bishengir-opt</code></td><td>MLIR\
+    \ pass 调试，逐级查看 IR 降级</td></tr>\n<tr><td><code>bishengir-compile</code></td><td>端到端编译\
+    \ TTAdapter -- .o</td></tr>\n<tr><td><code>npu-smi info</code></td><td>查询 Ascend\
+    \ 设备信息</td></tr>\n<tr><td><code>msprof</code></td><td>华为 profiling 工具</td></tr>\n\
+    <tr><td>DFX (Debug Feature eXtract)</td><td>打印调试</td></tr>\n<tr><td><code>pytest\
+    \ -sv test_xxx.py</code></td><td>triton-ascend 内置验证</td></tr>\n</table>\n\n<h2>十、总结：技术栈全景</h2>\n\
+    \n<p>华为 Ascend Triton 技术栈可以概括为「两层 + 两级」：</p>\n\n<ul>\n<li><strong>两层：</strong>Triton-Ascend（前端接入）+\
+    \ AscendNPU-IR（后端编译）</li>\n<li><strong>两级：</strong>HFusion（高层融合调度）+ HIVM（低层硬件指令）</li>\n\
+    </ul>\n\n<p>整个技术栈的设计思路非常清晰：Triton-Ascend 负责对接 Triton 生态，让用户用熟悉的 <code>@triton.jit</code>\
+    \ 方式写 kernel；AscendNPU-IR 负责把 Triton 的高层抽象逐步降级到 Ascend 硬件友好的低层 IR，最终通过 CANN 在昇腾\
+    \ NPU 上执行。</p>\n\n<p>对于想在 Ascend NPU 上开发高性能算子的工程师，建议从 <strong>Triton-Ascend +\
+    \ torch_npu + CANN</strong> 的最小集合开始入手，感受端到端的工作流；当需要深入优化时，再逐步引入 <strong>AscendNPU-IR</strong>\
+    \ 的 IR 调试能力和 <strong>msprof</strong> 的性能分析能力。</p>\n\n<hr/>\n<p><strong>相关项目地址汇总：</strong></p>\n\
+    <ul>\n<li>Triton-Ascend: <a href=\"https://gitcode.com/Ascend/triton-ascend\"\
+    >gitcode.com/Ascend/triton-ascend</a></li>\n<li>AscendNPU-IR: <a href=\"https://gitcode.com/Ascend/AscendNPU-IR\"\
+    >gitcode.com/Ascend/AscendNPU-IR</a> / <a href=\"https://github.com/Ascend/AscendNPU-IR\"\
+    >github.com/Ascend/AscendNPU-IR</a></li>\n<li>triton-ascend-ops: <a href=\"https://github.com/Ascend/triton-ascend-ops\"\
+    >github.com/Ascend/triton-ascend-ops</a></li>\n<li>CANN 下载: <a href=\"https://www.hiascend.com/cann/download\"\
+    >昇腾社区 CANN 下载页</a></li>\n</ul>"
 - title: 'Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链'
   date: April 30, 2026
   excerpt: 深度分析 triton-agent 项目，解析其基于 AI Agent 的自动化算子测试、迁移与性能优化全流程，以及详细的硬件和工具链依赖清单。
