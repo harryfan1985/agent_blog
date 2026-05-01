@@ -169,6 +169,162 @@ posts:
     >github.com/Ascend/AscendNPU-IR</a></li>\n<li>triton-ascend-ops: <a href=\"https://github.com/Ascend/triton-ascend-ops\"\
     >github.com/Ascend/triton-ascend-ops</a></li>\n<li>CANN 下载: <a href=\"https://www.hiascend.com/cann/download\"\
     >昇腾社区 CANN 下载页</a></li>\n</ul>"
+- title: Ascend Triton 新手开发指南：手把手实现第一个 NPU 算子
+  date: May 1, 2026
+  excerpt: 面向零基础学习者，通过完整的矢量加法（Vector Add）Triton 算子开发案例，覆盖环境准备、CANN/torch_npu/triton-ascend
+    安装、代码编写、编译运行、调试验证全流程。包含 PyTorch 集成、梯度反传、msprof 性能分析等进阶内容。
+  content: "<p><em>作者：Harry Fan | 技术栈：Triton · Ascend NPU · CANN · torch_npu</em></p>\n\
+    \n<h2>1. 技术栈全景回顾</h2>\n\n<p>在开始之前，先建立整体概念。从 Python 代码到昇腾 NPU 可执行文件，完整流水线如下：</p>\n\
+    \n<pre>\nPython/Triton 代码\n       |\n       v\nTriton IR (TTIR)       &lt;-- 你写的\
+    \ @triton.jit 内核\n       |  triton-ascend 编译\n       v\nTTGIR (Triton GPU IR)\n\
+    \       |  GPUToHFusion Pass\n       v\nHFusion Dialect         &lt;-- 昇腾高级 IR（融合操作）\n\
+    \       |  HFusionToHIVM Pass\n       v\nHIVM Dialect            &lt;-- 昇腾中级 IR（向量化核心指令）\n\
+    \       |  bishengir-compile\n       v\nAscend 指令 (二进制)\n       |\n       v\n\
+    NPU Runtime (CANN)     &lt;-- 昇腾驱动 + 工具链\n       |\n       v\n昇腾物理硬件\n</pre>\n\
+    \n<p>涉及的核心项目：</p>\n\n<table>\n<tr><th>项目</th><th>作用</th><th>定位</th></tr>\n<tr><td><strong>Triton-Ascend</strong></td><td>Triton\
+    \ 的昇腾后端</td><td>Python PyPI 包</td></tr>\n<tr><td><strong>triton-ascend-ops</strong></td><td>昇腾定制算子库</td><td>Triton\
+    \ 扩展</td></tr>\n<tr><td><strong>AscendNPU-IR (bishengir)</strong></td><td>TTGIR\
+    \ → 昇腾 IR 编译器</td><td>GitCode 源码</td></tr>\n<tr><td><strong>CANN</strong></td><td>昇腾异构计算架构</td><td>驱动\
+    \ + 工具链</td></tr>\n</table>\n\n<hr/>\n\n<h2>2. 环境准备</h2>\n\n<h3>2.1 硬件与操作系统要求</h3>\n\
+    \n<ul>\n<li>昇腾 910 系列或 310 系列 NPU</li>\n<li>Ubuntu 18.04+ / CentOS 7.6+</li>\n\
+    <li>Python 3.9 ~ 3.11（<strong>不支持 3.12</strong>）</li>\n</ul>\n\n<h3>2.2 安装 CANN（昇腾计算架构）</h3>\n\
+    \n<p>CANN 是所有昇腾开发的基础环境，必须首先安装。</p>\n\n<pre>\n# 1. 下载 CANN 工具包（从昇腾社区）\n# 访问 https://www.hiascend.com/cann/download\n\
+    # 下载 toolkit 包 + ops 包（对应你的硬件型号）\n\n# 2. 安装（以 9.0.0 版本为例）\nchmod +x Ascend-cann_9.0.0_linux-x86_64.run\n\
+    chmod +x Ascend-cann-A3-ops_9.0.0_linux-x86_64.run\n\n# 安装工具链\n./Ascend-cann_9.0.0_linux-x86_64.run\
+    \ --full --install-path=/opt/ascend\n\n# 安装 ops 包\n./Ascend-cann-A3-ops_9.0.0_linux-x86_64.run\
+    \ --install --install-path=/opt/ascend\n\n# 3. 设置环境变量\nsource /opt/ascend/cann/set_env.sh\n\
+    \n# 4. 验证\necho $ASCEND_HOME_PATH  # 应输出 /opt/ascend\n</pre>\n\n<p><strong>注意</strong>：CANN\
+    \ 版本与 torch_npu 版本必须匹配，跨版本组合可能导致内核编译失败。</p>\n\n<h3>2.3 安装 torch_npu 和 triton-ascend</h3>\n\
+    \n<pre>\n# 确认 Python 版本\npython --version  # 必须是 3.9-3.11\n\n# 安装 PyTorch（昇腾定制版）\n\
+    pip install torch==2.7.1\n\n# 安装 torch_npu（核心依赖）\npip install torch_npu==2.7.1\n\
+    \n# 安装 triton-ascend（昇腾后端）\npip install triton-ascend\n\n# 验证安装\npython -c \"\
+    import torch; import torch_npu; print('torch_npu:', torch_npu.__version__)\"\n\
+    python -c \"import triton; print('triton:', triton.__version__)\"\npython -c \"\
+    import triton.language.extra.cann.extension as al; print('Ascend extension OK')\"\
+    \n</pre>\n\n<h3>2.4 环境变量汇总</h3>\n\n<p>将以下内容加入 <code>~/.bashrc</code>：</p>\n\n\
+    <pre>\n# CANN 环境\nexport ASCEND_HOME_PATH=/opt/ascend\nsource $ASCEND_HOME_PATH/cann/set_env.sh\n\
+    \n# Python 路径\nexport PATH=$PATH:$HOME/.local/bin\n</pre>\n\n<hr/>\n\n<h2>3. 第一个\
+    \ Triton 算子：矢量加法</h2>\n\n<h3>3.1 为什么从矢量加法开始？</h3>\n\n<p>矢量加法（<code>y = a + b</code>）是所有并行计算的基石：</p>\n\
+    <ul>\n<li>计算模式简单，易于理解</li>\n<li>完美契合 NPU SIMT 执行模型</li>\n<li>调试工具齐全，容易验证正确性</li>\n\
+    <li>后续复杂算子（MatMul、Softmax）都是它的扩展</li>\n</ul>\n\n<h3>3.2 完整代码</h3>\n\n<p>创建文件 <code>vector_add.py</code>：</p>\n\
+    \n<pre>\nimport torch\nimport triton\nimport triton.language as tl\n\n# ============================================================\n\
+    # 第一部分：Triton Kernel 定义\n# ============================================================\n\
+    \n@triton.jit                           # JIT 编译装饰器\ndef vector_add_kernel(\n\
+    \    a_ptr,                            # 输入指针（可以是任意类型）\n    b_ptr,\n    output_ptr,\n\
+    \    n_elements: tl.constexpr,         # constexpr = 编译时常量\n    BLOCK_SIZE: tl.constexpr,\
+    \         # 每个 thread block 处理的数据量\n):\n    # program_id：当前 thread block 的全局索引\n\
+    \    block_start = tl.program_id(0) * BLOCK_SIZE\n    \n    # offsets：当前 block\
+    \ 内所有线程的偏移量\n    offsets = block_start + tl.arange(0, BLOCK_SIZE)\n    \n    #\
+    \ mask：防止越界访问\n    mask = offsets < n_elements\n    \n    # 从 global memory 加载数据\n\
+    \    a = tl.load(a_ptr + offsets, mask=mask, other=0.0)\n    b = tl.load(b_ptr\
+    \ + offsets, mask=mask, other=0.0)\n    \n    # 计算\n    output = a + b\n    \n\
+    \    # 将结果写回 global memory\n    tl.store(output_ptr + offsets, output, mask=mask)\n\
+    \n\n# ============================================================\n# 第二部分：PyTorch\
+    \ 封装（Python API）\n# ============================================================\n\
+    \ndef vector_add(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:\n    assert\
+    \ a.shape == b.shape, \"a 和 b 必须有相同的 shape\"\n    \n    # 确保数据在 NPU 上连续排列\n  \
+    \  a = a.contiguous()\n    b = b.contiguous()\n    \n    # 分配输出张量\n    n_elements\
+    \ = a.numel()\n    output = torch.empty_like(a)\n    \n    # 定义 Block 大小（编译时常量）\n\
+    \    BLOCK_SIZE = 128\n    \n    # 定义 grid（thread block 的数量）\n    grid = lambda\
+    \ meta: ((n_elements + meta['BLOCK_SIZE'] - 1) // meta['BLOCK_SIZE'],)\n    \n\
+    \    # 启动 kernel\n    vector_add_kernel[grid](\n        a, b, output, n_elements,\
+    \ BLOCK_SIZE=BLOCK_SIZE\n    )\n    \n    return output\n\n\n# ============================================================\n\
+    # 第三部分：测试代码\n# ============================================================\n\n\
+    if __name__ == \"__main__\":\n    N = 1024\n    a = torch.randn(N, device=\"npu\"\
+    , dtype=torch.float32)\n    b = torch.randn(N, device=\"npu\", dtype=torch.float32)\n\
+    \    \n    output_triton = vector_add(a, b)\n    output_torch = a + b\n    \n\
+    \    torch.testing.assert_close(output_triton, output_torch, rtol=1e-4, atol=1e-4)\n\
+    \    print(\"PASS: 矢量加法测试通过！\")\n</pre>\n\n<h3>3.3 运行</h3>\n\n<pre>\npython vector_add.py\n\
+    </pre>\n\n<p><strong>正常输出</strong>：</p>\n\n<pre>\nPASS: 矢量加法测试通过！\n   输入 shape:\
+    \ (1024,)\n   Block 大小: 128\n   Grid 大小: 8\n</pre>\n\n<hr/>\n\n<h2>4. 编译流程详解</h2>\n\
+    \n<h3>4.1 四层 IR 变换</h3>\n\n<p>当你调用 <code>vector_add_kernel[grid](...)</code> 时，Triton-Ascend\
+    \ 实际上执行了以下编译流水线：</p>\n\n<table>\n<tr><th>步骤</th><th>IR 层</th><th>说明</th></tr>\n\
+    <tr><td>1</td><td>TTIR</td><td>Triton IR -- 你的 Python @triton.jit 代码</td></tr>\n\
+    <tr><td>2</td><td>TTGIR</td><td>Triton GPU IR -- device-specific 类型推导</td></tr>\n\
+    <tr><td>3</td><td>HFusion</td><td>高级融合 IR -- GPUToHFusion Pass</td></tr>\n<tr><td>4</td><td>HIVM</td><td>向量化核心\
+    \ IR -- HFusionToHIVM Pass</td></tr>\n<tr><td>5</td><td>Binary</td><td>Ascend\
+    \ 指令 -- bishengir-compile 编译</td></tr>\n</table>\n\n<h3>4.2 捕获中间 IR（调试用）</h3>\n\
+    \n<pre>\nimport triton.language.extra.cann.extension as al\n\n@triton.jit\ndef\
+    \ vector_add_kernel_debug(a_ptr, b_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):\n\
+    \    al.print(a, \"a before add\")\n    al.debug_barrier(al.SYNC_IN_VF.VV_ALL)\n\
+    \    # ...\n</pre>\n\n<hr/>\n\n<h2>5. PyTorch 集成：torch.autograd 兼容</h2>\n\n<h3>5.1\
+    \ 带梯度的矢量加法</h3>\n\n<pre>\nfrom torch.autograd import Function\n\n@triton.jit\n\
+    def vector_add_fwd_kernel(a_ptr, b_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):\n\
+    \    block_start = tl.program_id(0) * BLOCK_SIZE\n    offsets = block_start +\
+    \ tl.arange(0, BLOCK_SIZE)\n    mask = offsets < n_elements\n    a = tl.load(a_ptr\
+    \ + offsets, mask=mask, other=0.0)\n    b = tl.load(b_ptr + offsets, mask=mask,\
+    \ other=0.0)\n    tl.store(output_ptr + offsets, a + b, mask=mask)\n\n@triton.jit\n\
+    def vector_add_bwd_kernel(grad_out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):\n\
+    \    block_start = tl.program_id(0) * BLOCK_SIZE\n    offsets = block_start +\
+    \ tl.arange(0, BLOCK_SIZE)\n    mask = offsets < n_elements\n    grad = tl.load(grad_out_ptr\
+    \ + offsets, mask=mask, other=0.0)\n    tl.store(grad_out_ptr + offsets, grad,\
+    \ mask=mask)\n\nclass VectorAddFn(Function):\n    @staticmethod\n    def forward(ctx,\
+    \ a, b):\n        output = torch.empty_like(a)\n        n_elements = a.numel()\n\
+    \        grid = lambda meta: ((n_elements + meta['BLOCK_SIZE'] - 1) // meta['BLOCK_SIZE'],)\n\
+    \        vector_add_fwd_kernel[grid](a, b, output, n_elements, BLOCK_SIZE=128)\n\
+    \        ctx.save_for_backward(a, b)\n        return output\n\n    @staticmethod\n\
+    \    def backward(ctx, grad_output):\n        return grad_output, grad_output\n\
+    \nclass VectorAdd(torch.nn.Module):\n    def forward(self, a, b):\n        return\
+    \ VectorAddFn.apply(a, b)\n</pre>\n\n<h3>5.2 验证梯度</h3>\n\n<pre>\nfrom torch.autograd\
+    \ import gradcheck\n\nmodel = VectorAdd().to(\"npu\")\na = torch.randn(256, device=\"\
+    npu\", dtype=torch.float64, requires_grad=True)\nb = torch.randn(256, device=\"\
+    npu\", dtype=torch.float64, requires_grad=True)\n\nassert gradcheck(model, (a,\
+    \ b), rtol=1e-4, atol=1e-4)\nprint(\"PASS: 梯度验证通过！\")\n</pre>\n\n<hr/>\n\n<h2>6.\
+    \ 进阶案例：融合矢量加法</h2>\n\n<p>在真实模型中，<code>y = (a + b) * scale</code> 场景：</p>\n\n<pre>\n\
+    @triton.jit\ndef fused_add_scale_kernel(\n    a_ptr, b_ptr, scale_val,\n    output_ptr,\
+    \ n_elements, BLOCK_SIZE: tl.constexpr\n):\n    block_start = tl.program_id(0)\
+    \ * BLOCK_SIZE\n    offsets = block_start + tl.arange(0, BLOCK_SIZE)\n    mask\
+    \ = offsets < n_elements\n    a = tl.load(a_ptr + offsets, mask=mask, other=0.0)\n\
+    \    b = tl.load(b_ptr + offsets, mask=mask, other=0.0)\n    output = (a + b)\
+    \ * scale_val\n    tl.store(output_ptr + offsets, output, mask=mask)\n\ndef fused_add_scale(a,\
+    \ b, scale):\n    output = torch.empty_like(a)\n    n_elements = a.numel()\n \
+    \   grid = lambda meta: ((n_elements + meta['BLOCK_SIZE'] - 1) // meta['BLOCK_SIZE'],)\n\
+    \    fused_add_scale_kernel[grid](a, b, scale, output, n_elements, BLOCK_SIZE=128)\n\
+    \    return output\n</pre>\n\n<p><strong>为什么融合更好？</strong></p>\n<ul>\n<li>减少 global\
+    \ memory 访问（只 load 两次，store 一次）</li>\n<li>减少 kernel launch 开销</li>\n<li>编译器可以在\
+    \ block 级别做更好的指令调度</li>\n</ul>\n\n<hr/>\n\n<h2>7. 调试与性能分析</h2>\n\n<h3>7.1 常见报错与解决方案</h3>\n\
+    \n<table>\n<tr><th>报错信息</th><th>原因</th><th>解决方案</th></tr>\n<tr><td>No module named\
+    \ 'triton'</td><td>未安装 triton-ascend</td><td>pip install triton-ascend</td></tr>\n\
+    <tr><td>device-side assert triggered</td><td>内存越界访问</td><td>检查 mask 和 BLOCK_SIZE</td></tr>\n\
+    <tr><td>浮点异常</td><td>除零或 NaN</td><td>检查输入数据</td></tr>\n<tr><td>NPU not found</td><td>CANN\
+    \ 未正确安装</td><td>source $ASCEND_HOME_PATH/cann/set_env.sh</td></tr>\n<tr><td>block\
+    \ size too large</td><td>BLOCK_SIZE 超过硬件限制</td><td>减小到 128 或 256</td></tr>\n</table>\n\
+    \n<h3>7.2 msprof 性能分析</h3>\n\n<pre>\n# 设置 msprof 环境\nexport TOOLCHAIN_HOME=$ASCEND_HOME_PATH/latest\n\
+    source $ASCEND_HOME_PATH/latest/set_env.sh\n\n# 运行带 profiling 的测试\npython -m torch_npu.npu.profile\
+    \ --save-profile=./profile_output vector_add.py\n\n# 查看 profile 结果\nmsprof --export\
+    \ ./profile_output --output-dir ./profile_report\n</pre>\n\n<h3>7.3 Triton 调试技巧</h3>\n\
+    \n<pre>\n# 1. 打印中间值\n@triton.jit\ndef debug_kernel(...):\n    al.print(a, \"a\
+    \ values:\")\n    al.debug_barrier(al.SYNC_IN_VF.VV_ALL)\n    \n# 2. 断言条件\n@triton.jit\n\
+    def safe_kernel(...):\n    assert n_elements > 0, \"n_elements must be positive\"\
+    \n    assert BLOCK_SIZE <= 1024, \"BLOCK_SIZE too large\"\n\n# 3. 快速验证\nBLOCK_SIZE\
+    \ = 4\nN = 16\n</pre>\n\n<hr/>\n\n<h2>8. 从 Triton 算子到 PyTorch 自动化转换</h2>\n\n<p>当你有现成的\
+    \ PyTorch 算子想迁移到 Triton NPU 时，可以使用 triton-agent 工具链自动化转换：</p>\n\n<pre>\n# 克隆 triton-agent\n\
+    cd ~/code\ngit clone https://github.com/your-org/triton-agent.git\n\n# 转换 PyTorch\
+    \ 算子\npython -m triton_agent convert \\\n    --input ~/path/to/your/pytorch_operator.py\
+    \ \\\n    --output ~/path/to/output.py \\\n    --backend ascend\n\n# 生成差异测试\n\
+    python -m triton_agent gen-test \\\n    --operator ~/path/to/output.py \\\n  \
+    \  --reference ~/path/to/your/pytorch_operator.py\n\n# 运行测试验证\npython -m triton_agent\
+    \ run-eval \\\n    --test tests/differential_test.py\n</pre>\n\n<hr/>\n\n<h2>9.\
+    \ 完整项目结构建议</h2>\n\n<p>对于实际开发，推荐以下目录结构：</p>\n\n<pre>\nmy_triton_project/\n|-- kernels/\
+    \                  # Triton kernel 定义\n|   |-- __init__.py\n|   |-- vector_ops.py\
+    \        # 矢量操作（add, sub, scale...）\n|   |-- matmul.py            # 矩阵乘法\n|  \
+    \ |-- reduction.py         # 归约操作\n|-- ops/                      # PyTorch 封装\n\
+    |   |-- __init__.py\n|   |-- triton_ops.py\n|-- tests/                    # 测试\n\
+    |   |-- test_vector_ops.py\n|   |-- test_matmul.py\n|-- profiles/            \
+    \     # 性能分析结果\n|   |-- .gitkeep\n|-- scripts/\n|   |-- profile_ops.py       #\
+    \ 性能测试脚本\n|   |-- benchmark.py\n|-- requirements.txt\n</pre>\n\n<hr/>\n\n<h2>10.\
+    \ 下一步学习路径</h2>\n\n<p>学完本文后，建议按以下顺序继续深入：</p>\n\n<table>\n<tr><th>阶段</th><th>主题</th><th>学习目标</th></tr>\n\
+    <tr><td>进阶 1</td><td>Triton MatMul 算子</td><td>理解 Tile、2D Block、shared memory 优化</td></tr>\n\
+    <tr><td>进阶 2</td><td>Softmax / Layernorm</td><td>掌握 warp-reduce、online softmax\
+    \ 算法</td></tr>\n<tr><td>进阶 3</td><td>Attention 算子</td><td>融合 QKV 投影 + FlashAttention\
+    \ 模式</td></tr>\n<tr><td>进阶 4</td><td>Ascend CustomOp</td><td>使用 al.register_custom_op\
+    \ 注册设备端函数</td></tr>\n<tr><td>进阶 5</td><td>IR 调优</td><td>分析 TTGIR -> HFusion ->\
+    \ HIVM 中间产物</td></tr>\n<tr><td>进阶 6</td><td>msprof 调优</td><td>使用硬件计数器定位瓶颈</td></tr>\n\
+    </table>\n\n<hr/>\n\n<h2>参考资料</h2>\n\n<ul>\n<li><a href=\"https://gitcode.com/Ascend/triton-ascend\"\
+    >Triton Ascend 官方文档</a></li>\n<li><a href=\"https://gitcode.com/Ascend/AscendNPU-IR\"\
+    >AscendNPU-IR (bishengir) 开发者指南</a></li>\n<li><a href=\"https://triton-lang.org/\"\
+    >Triton 语言参考</a></li>\n<li><a href=\"https://www.hiascend.com/cann/download\"\
+    >昇腾社区 CANN 下载</a></li>\n</ul>\n"
 - title: 'Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链'
   date: April 30, 2026
   excerpt: 深度分析 triton-agent 项目，解析其基于 AI Agent 的自动化算子测试、迁移与性能优化全流程，以及详细的硬件和工具链依赖清单。
