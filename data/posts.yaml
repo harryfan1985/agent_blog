@@ -163,24 +163,143 @@ posts:
     <li>beam 中所有 kernel 连续两轮无改进 → <code>PASS_STOP</code></li>\n<li>否则 → <code>PASS_CONTINUE</code></li>\n\
     </ul>\n\n<p><strong>改动量估算</strong>：新增 ~200 行 Python（BeamSearchOptimizeAdapter\
     \ + BeamSearchConfig + merge/gate 逻辑）+ 并行调度 ~50 行 + skill 指令扩展 ~40 行 + bottleneck_candidates.json\
-    \ 契约。</p>\n\n<h2>实施优先级和风险</h2>\n\n<h3>为什么不先做 Beam Search？</h3>\n\n<p>Beam Search\
-    \ 的正确性依赖一个好的终止条件。没有 Roofline，beam search 要么跑满 max_rounds（浪费算力），要么凭感觉停（不可靠）。Roofline\
-    \ 是 Beam Search 的前提——先有\"何时停\"的答案，再谈\"如何并行探索\"。</p>\n\n<h3>风险点</h3>\n\n<ul>\n\
-    <li><strong>Ascend msprof 的 SOL 指标</strong>：NCU 直接提供 <code>pct_of_peak_sustained_elapsed</code>\
-    \ 指标，Ascend msprof 需要确认是否有等效指标。如果没有，需要从 raw counters 反算（achieved_flops / peak_flops）。</li>\n\
-    <li><strong>Code Agent 的不确定性</strong>：KernelAgent 直接调 LLM API，结果相对可控。triton-agent\
-    \ 依赖 code agent（Codex/OpenCode）做实际优化，beam search 的 N×M 个 worker 各自启动一次完整的 agent\
-    \ session——token 消耗和 latency 都会显著增加。</li>\n<li><strong>设备资源竞争</strong>：在单卡环境（只有\
-    \ 1 个 Ascend NPU），beam search 的并行无法真正并行。需要 fallback 到串行批次执行。</li>\n</ul>\n\n<h2>总结</h2>\n\
-    \n<p>两个能力的导入路径清晰：</p>\n\n<ul>\n<li><strong>P0 Roofline</strong>：新增 skill 指令 +\
-    \ 硬件 spec 卡 + CLI 侧 roofline check 函数，改动量 ~150 行，不改变 round 目录契约</li>\n<li><strong>P1\
-    \ Beam Search</strong>：新增 BeamSearchOptimizeAdapter + 设备亲和性调度 + 瓶颈方向多样性输出，改动量\
-    \ ~300 行，复用现有 supervised loop 架构</li>\n</ul>\n\n<p>两者的共同前提是：让 triton-agent 的 optimize\
-    \ 循环从\"纯 code agent 自主决策\"转向\"CLI 编排 + 数据驱动 gate\"。这不是削弱 code agent 的能力，而是给它提供更精确的航向信息——就像给一个优秀的程序员配上性能\
-    \ profiler 和明确的优化目标。</p>\n\n<h2>相关仓库</h2>\n\n<ul>\n<li><a href=\"https://github.com/meta-pytorch/KernelAgent\"\
+    \ 契约。</p>\n\n\n<h2>P2：LLM Trace 完整持久化</h2>\n\n<h3>问题</h3>\n\n<p>triton-agent 的\
+    \ optimize 循环依赖 code agent（Codex/OpenCode）执行实际优化。当前 <code>attempts.md</code> 只记录高层决策（hypothesis、performance\
+    \ delta、pass/fail），不保存 code agent 的完整 prompt 和回复。这意味着：</p>\n\n<ul>\n<li>无法复现某一轮的具体优化过程</li>\n\
+    <li>无法分析 code agent 为什么做了某个优化决策</li>\n<li>无法从成功的优化中提炼出可复用的 pattern</li>\n</ul>\n\
+    \n<h3>KernelAgent 的做法</h3>\n\n<p>KernelAgent 的 <code>OptimizationOrchestrator</code>\
+    \ 每轮保存：</p>\n\n<ul>\n<li><code>round{N:03d}_opt_prompt.txt</code> — 完整的优化 prompt（包含\
+    \ kernel 代码、性能数据、瓶颈分析结果）</li>\n<li><code>round{N:03d}_opt_reply.txt</code> — LLM\
+    \ 原始响应</li>\n<li><code>round{N:03d}_strategy.json</code> — 瓶颈分析的结构化结果</li>\n<li><code>round{N:03d}_reflexion.txt</code>\
+    \ — LLM 反思响应</li>\n</ul>\n\n<p>这些文件全部存在 round artifact 目录下，可独立重放。</p>\n\n<h3>引入方案</h3>\n\
+    \n<p>这是优先级最低但实现最简单的改进——纯增量，不改变任何契约：</p>\n\n<p><strong>Step 1：在 <code>opt-round-N/</code>\
+    \ 下新增 <code>trace/</code> 子目录</strong></p>\n\n<p>不改变现有 <code>contract.json</code>\
+    \ 的 required fields，trace 是可选附加品：</p>\n\n<pre><code>opt-round-N/\n  state.json\
+    \          # 保持现有 contract\n  benchmark_result.json\n  perf-analysis.md\n  trace/\
+    \              # 新增：可选 trace 目录\n    prompt.txt        # code agent 收到的完整 prompt\n\
+    \    response.md       # code agent 的响应（含 tool calls）\n    session_id.txt    #\
+    \ agent session ID（用于关联到会话历史）\n</code></pre>\n\n<p><strong>Step 2：在 optimize execution\
+    \ 中记录 trace</strong></p>\n\n<p>triton-agent 的 code agent 调用经过 <code>RecoveryRunnerAdapter.run()</code>\
+    \ 和 <code>SupervisedOptimizeAdapter.run_worker()</code>。在 <code>AgentRequest</code>\
+    \ 中新增一个可选的 <code>trace_dir</code> 参数，<code>AgentRunner</code> 如果支持 trace 模式，就在执行前保存\
+    \ prompt、执行后保存 response。</p>\n\n<pre><code>@dataclass(frozen=True)\nclass AgentRequest:\n\
+    \    # ... existing fields ...\n    trace_dir: Path | None = None  # 如果设置，agent\
+    \ backend 应保存 trace</code></pre>\n\n<p><strong>Step 3：在 run_loop 中启用 trace</strong></p>\n\
+    \n<p>如果 <code>--trace</code> flag 被设置，每个 round 的 worker request 携带 trace_dir 指向当前\
+    \ round 目录的 trace/ 子目录：</p>\n\n<pre><code># 在 orchestration.py 中\nif request.enable_trace:\n\
+    \    trace_dir = request.workdir / f\"opt-round-{round_num}\" / \"trace\"\n  \
+    \  trace_dir.mkdir(parents=True, exist_ok=True)\n    worker_request = replace(request,\
+    \ trace_dir=trace_dir)</code></pre>\n\n<p><strong>Step 4（可选）：提炼为 pattern</strong></p>\n\
+    \n<p>当 trace 积累足够多后，可以定期扫描成功的 trace，让 code agent 提炼出新的 pattern card，自动补充到 <code>triton-npu-optimize-knowledge</code>\
+    \ 知识库。这是未来的增强方向。</p>\n\n<p><strong>改动量</strong>：~60 行 Python + <code>AgentRequest</code>\
+    \ 新增 1 个 optional 字段 + <code>--trace</code> CLI 参数</p>\n\n<h2>P3：AutoRouter —\
+    \ AST 级算子分类与自动路由</h2>\n\n<h3>问题</h3>\n\n<p>triton-agent 当前要求用户手动选择命令：</p>\n\n\
+    <ul>\n<li><code>convert</code>：PyTorch → Triton NPU 转换</li>\n<li><code>optimize</code>：已有\
+    \ Triton 算子的性能优化</li>\n<li><code>gen-test</code>：生成测试</li>\n</ul>\n\n<p>用户需要自行判断该走哪条路径。对于新手使用者，这是障碍。</p>\n\
+    \n<h3>KernelAgent 的做法</h3>\n\n<p><code>Fuser/auto_agent.py</code> 实现了三层路由决策：</p>\n\
+    \n<p><strong>第一层：AST 静态分析</strong>（~200 行，零 LLM 调用）</p>\n\n<pre><code>class Complexity:\n\
+    \    has_control_flow: bool\n    has_attention_like: bool\n    has_conv_transpose:\
+    \ bool\n    has_group_norm: bool\n    has_conv: bool\n    chain_len_estimate:\
+    \ int\n\n    def route_to_fuser(self) -> bool:\n        # 触发 fuser pipeline 的条件（任一满足）：\n\
+    \        # 1. 包含 attention-like 模式（softmax + QK、multihead attention、einsum+bmm）\n\
+    \        #    BUT：如果是短链（≤3 步）且无 gn/transpose/control，走轻量路径\n        # 2. conv_transpose2d\
+    \ 存在\n        # 3. 显式控制流（if/for/while）\n        # 4. group_norm + conv + 长链 ≥4\
+    \ 步\n        # 否则走 KernelAgent 直接生成</code></pre>\n\n<p><strong>第二层：LLM 辅助决策</strong>（可选）</p>\n\
+    \n<p>当静态分析无法确定时，调用一个小型 LLM（浅层 reasoning），输出 JSON：<code>{\"route_strategy\": \"\
+    kernelagent\", \"confidence\": 0.85}</code>。支持四种策略：<code>kernelagent</code>、<code>fuser</code>、<code>kernel_then_fuser</code>（先轻量、失败则回退）、<code>fuser_then_kernel</code>。</p>\n\
+    \n<p><strong>第三层：缓存 + 自动回退</strong></p>\n\n<p>决策结果按文件 SHA256 缓存到 <code>.fuse/router_cache.json</code>。如果首选路径失败，自动尝试备选路径。</p>\n\
+    \n<h3>引入方案：新增 triton-npu-autoroute skill</h3>\n\n<p><strong>Step 1：AST 分析器</strong></p>\n\
+    \n<p>复用 triton-agent 已有的 <code>triton-npu-optimize/scripts/extract_code_facts.py</code>（已经在\
+    \ optimize 的 pattern triage 阶段用于代码结构分析），扩展它以输出算子分类：</p>\n\n<pre><code># 扩展 extract_code_facts.py\
+    \ 输出中添加 classification\npython3 scripts/extract_code_facts.py a.py --format json\n\
+    \n# 新增输出字段：\n{\n  \"code_facts\": {...},        # 现有字段\n  \"classification\":\
+    \ {          # 新增\n    \"operator_type\": \"matmul\",  # elementwise | reduction\
+    \ | matmul | attention | custom\n    \"has_control_flow\": false,\n    \"op_chain_depth\"\
+    : 3,\n    \"estimated_complexity\": \"medium\",\n    \"suggested_action\": \"\
+    convert\",   # convert | optimize | convert_then_optimize\n    \"relevant_patterns\"\
+    : [\"classic-matmul\", \"tiling\", \"cache_use\"]\n  }\n}</code></pre>\n\n<p><strong>Step\
+    \ 2：新增 triton-npu-autoroute skill</strong></p>\n\n<pre><code># SKILL.md 核心流程\n\
+    ## Auto Route Decision\n\n1. Run `python3 scripts/extract_code_facts.py <input>\
+    \ --format json` \n   on the input operator file.\n\n2. Read `classification.suggested_action`:\n\
+    \   - `convert`: the operator hasn't been converted to Triton NPU yet → use triton-npu-convert-pytorch-operator\n\
+    \   - `optimize`: the operator is already Triton → use triton-npu-optimize  \n\
+    \   - `convert_then_optimize`: complex multi-op module → convert first, then optimize\n\
+    \n3. If `classification.relevant_patterns` is non-empty, pre-read those \n   pattern\
+    \ cards before starting the actual conversion/optimization.\n\n4. If static analysis\
+    \ confidence is low, escalate to LLM-based routing:\n   - Send the operator code\
+    \ + static analysis results to the user's configured model\n   - Ask for JSON:\
+    \ {\"action\": \"convert|optimize\", \"confidence\": 0.0-1.0, \"reasoning\": \"\
+    ...\"}\n   - Apply the decision</code></pre>\n\n<p><strong>Step 3：CLI 集成</strong></p>\n\
+    \n<p>新增 <code>triton-agent autoroute --input a.py</code> 命令，自动选择最优路径并执行：</p>\n\
+    \n<pre><code>uv run triton-agent autoroute --input a.py --verify</code></pre>\n\
+    \n<p>等价于自动判定后执行 <code>convert</code> 或 <code>optimize</code>。</p>\n\n<p><strong>改动量</strong>：extend\
+    \ <code>extract_code_facts.py</code> ~40 行 + 新 skill SKILL.md ~80 行 + CLI 命令 ~30\
+    \ 行</p>\n\n<h2>P4：Subgraph 拆解 + 并行转换</h2>\n\n<h3>问题</h3>\n\n<p>triton-agent 的\
+    \ <code>convert</code> 命令一次只能处理一个算子文件。当面对一个包含多个子模块的 PyTorch module（例如 encoder-decoder\
+    \ 结构），用户必须手动拆解后分别调用 <code>convert</code>，再手动组合。这是最复杂但也最有挑战性的能力导入。</p>\n\n<h3>KernelAgent\
+    \ 的做法</h3>\n\n<p>KernelAgent 的 Fuser pipeline 是一个完整的子图拆解→并行生成→端到端组合流程：</p>\n\n\
+    <p><strong>Stage 1: Fuser Orchestrator</strong>（<code>Fuser/orchestrator.py</code>）</p>\n\
+    \n<p>把 PyTorch module 的 <code>__init__</code> 和 <code>forward</code> 重写为可融合模块，打包成\
+    \ tar.gz 存档。</p>\n\n<p><strong>Stage 2: Subgraph Extractor</strong>（<code>Fuser/subgraph_extractor.py</code>，~414\
+    \ 行）</p>\n\n<p>LLM 分析 fused code，输出 <code>subgraphs.json</code>：</p>\n\n<pre><code>[\n\
+    \  {\n    \"id\": \"sg_0\",\n    \"description\": \"Conv2d 3→64, kernel=3, stride=2\"\
+    ,\n    \"ops\": [\"conv2d\", \"relu\"],\n    \"inputs\": [{\"name\": \"x\", \"\
+    shape\": [1, 3, 224, 224], \"dtype\": \"float32\"}],\n    \"outputs\": [{\"shape\"\
+    : [1, 64, 112, 112], \"dtype\": \"float32\"}],\n    \"weights\": {\"weight\":\
+    \ [64, 3, 3, 3], \"bias\": [64]}\n  },\n  {\n    \"id\": \"sg_1\",\n    \"description\"\
+    : \"BatchNorm2d 64 + ReLU\",\n    \"ops\": [\"batch_norm\", \"relu\"],\n    \"\
+    inputs\": [{\"shape\": [1, 64, 112, 112], \"dtype\": \"float32\"}],\n    ...\n\
+    \  }\n]</code></pre>\n\n<p>关键设计：<strong>按 shape signature 去重</strong>。如果两个子图的输入/输出/权重\
+    \ shape 完全一致，只生成一次 kernel，减少重复工作。</p>\n\n<p><strong>Stage 3: Dispatcher</strong>（<code>Fuser/dispatch_kernel_agent.py</code>，~511\
+    \ 行）</p>\n\n<p>把每个 unique subgraph 转换为具体的 Triton kernel 生成任务，使用 <code>concurrent.futures</code>\
+    \ 并行调用 <code>TritonKernelAgent</code>：</p>\n\n<pre><code>with concurrent.futures.ProcessPoolExecutor(max_workers=jobs)\
+    \ as pool:\n    futures = {pool.submit(_run_one, item, ...): item[\"id\"] for\
+    \ item in items}\n    for fut in concurrent.futures.as_completed(futures):\n \
+    \       results.append(fut.result())</code></pre>\n\n<p><strong>Stage 4: Composer</strong>（<code>Fuser/compose_end_to_end.py</code>，~537\
+    \ 行）</p>\n\n<p>LLM 把验证通过的 kernel 拼回一个完整的端到端 Triton 程序：</p>\n\n<ul>\n<li>输入：原始\
+    \ PyTorch problem + <code>subgraphs.json</code> + 各 subgraph 的 kernel + <code>summary.json</code></li>\n\
+    <li>输出：单个 <code>composed_kernel.py</code>，包含所有 <code>@triton.jit</code> kernel\
+    \ + <code>kernel_function(...)</code> wrapper + 自测试</li>\n<li>可选 <code>--verify</code>：生成后立即执行自测试验证数值正确性</li>\n\
+    </ul>\n\n<h3>引入方案：分阶段实施</h3>\n\n<p>P4 改动量大，建议分两个 milestone 实施：</p>\n\n<h4>Milestone\
+    \ 1：Subgraph 拆解 + 并行 convert（最小可行方案）</h4>\n\n<p><strong>Step 1：新增 <code>triton-npu-convert-module</code>\
+    \ skill</strong></p>\n\n<pre><code>## Module Decomposition\n\n1. Read the multi-op\
+    \ PyTorch module file.\n2. Analyze the `forward()` method and `__init__()` to\
+    \ identify distinct \n   computational subgraphs.\n3. For each subgraph, record:\n\
+    \   - Operations and their order\n   - Input/output shapes and dtypes\n   - Parameter\
+    \ tensors (from __init__)\n4. Output `subgraphs.json`:\n   [\n     {\"id\": \"\
+    sg_0\", \"ops\": [...], \"inputs\": [...], \"outputs\": [...], \"weights\": {...}},\n\
+    \     ...\n   ]\n5. Deduplicate by shape signature: if two subgraphs have identical\
+    \ \n   (input_shapes, output_shapes, weight_shapes), keep only one.\n6. For each\
+    \ unique subgraph, spawn a parallel convert worker using \n   the existing `triton-npu-convert-pytorch-operator`\
+    \ skill.\n7. Workers run concurrently, each in its own `subgraphs/sg_N/` directory.\n\
+    8. Compose verified kernels into `composed_kernel.py`.</code></pre>\n\n<p><strong>Step\
+    \ 2：CLI 并行调度</strong></p>\n\n<p>复用 <code>convert-batch</code> 的并发架构和 <code>TRITON_AGENT_BATCH_NPU_DEVICES</code>\
+    \ 设备分配：</p>\n\n<pre><code>uv run triton-agent convert-module --input model.py\
+    \ --max-concurrency 4</code></pre>\n\n<p><strong>Step 3：Compose 阶段</strong></p>\n\
+    \n<p>生成 <code>composed_kernel.py</code>：把 subgraph 描述 + 各 kernel 代码喂给 code agent，让它生成一个统一的\
+    \ Triton module，包含所有 <code>@triton.jit</code> kernel 和调用逻辑。</p>\n\n<h4>Milestone\
+    \ 2：Compose 验证 + 自动优化（后续）</h4>\n\n<p>Compose 完成后自动运行 correctness test 和 benchmark——这部分可以完全复用现有的\
+    \ <code>triton-npu-gen-test</code> + <code>triton-npu-run-eval</code> skill。</p>\n\
+    \n<p><strong>改动量</strong>：新 skill ~150 行 + CLI 协调器 ~100 行 + 并行调度复用现有批量架构 ~30 行。Compose\
+    \ 阶段是最不稳定的部分，依赖 code agent 对多 kernel 拼接的正确理解。</p>\n\n<h3>风险警告</h3>\n\n<ul>\n<li><strong>LLM\
+    \ 的子图拆解质量</strong>：KernelAgent 用 GPT-5/o4-mini 直接调 API，可控性高。triton-agent 依赖 code\
+    \ agent 做拆解，code agent 本身的决策质量会影响拆解结果。</li>\n<li><strong>Compose 正确性</strong>：把多个\
+    \ Triton kernel 拼成一个正确的端到端程序是 LLM 最容易出错的步骤——shape 对齐、内存布局、调用顺序都可能出错。</li>\n<li><strong>建议</strong>：先从简单场景开始（sequential\
+    \ operators, known shapes），逐步扩展到动态 shape 和复杂拓扑。</li>\n</ul>\n\n<h2>能力导入总览</h2>\n\
+    \n<table>\n<tr><th>优先级</th><th>能力</th><th>改动量</th><th>新文件</th><th>破坏现有契约？</th><th>核心价值</th></tr>\n\
+    <tr><td>P0</td><td>Roofline 自动终止</td><td>~150 行</td><td>hardware_specs.md + roofline.json\
+    \ 契约</td><td>否</td><td>让优化循环有客观终止条件</td></tr>\n<tr><td>P1</td><td>Beam Search</td><td>~300\
+    \ 行</td><td>BeamSearchOptimizeAdapter + bottleneck_candidates.json</td><td>否（复用\
+    \ supervised loop）</td><td>多方向并行探索，大幅提升优化效率</td></tr>\n<tr><td>P2</td><td>LLM\
+    \ Trace 持久化</td><td>~60 行</td><td>trace/ 子目录</td><td>否（增量可选）</td><td>可复现、可调试、可提炼\
+    \ pattern</td></tr>\n<tr><td>P3</td><td>AutoRouter AST 路由</td><td>~150 行</td><td>triton-npu-autoroute\
+    \ skill + 扩展 extract_code_facts.py</td><td>否</td><td>降低使用门槛，自动选择最优路径</td></tr>\n\
+    <tr><td>P4</td><td>Subgraph 拆解</td><td>~300 行</td><td>triton-npu-convert-module\
+    \ skill + subgraphs.json 契约</td><td>否（新命令）</td><td>解决 multi-op module 的真实痛点</td></tr>\n\
+    </table>\n\n\n<h2>相关仓库</h2>\n\n<ul>\n<li><a href=\"https://github.com/meta-pytorch/KernelAgent\"\
     \ target=\"_blank\">meta-pytorch/KernelAgent</a> — GPU Kernel 自主生成与优化</li>\n<li><a\
     \ href=\"https://gitcode.com/midwinter1993/triton-agent\" target=\"_blank\">midwinter1993/triton-agent</a>\
-    \ — Ascend NPU Triton 算子优化 CLI</li>\n</ul>"
+    \ — Ascend NPU Triton 算子优化 CLI</li>\n</ul>\n"
 - title: 'Agent Buddy Bridge: Physical Button Approval System for AI Agents'
   date: May 01, 2026
   excerpt: Building a "hardware kill switch" for AI Agent dangerous commands using
