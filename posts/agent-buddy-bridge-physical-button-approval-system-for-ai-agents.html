@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Buddy Bridge: Physical Button Approval System for AI Agents | Agent Blog</title>
+    <meta name="description" content="Building a "hardware kill switch" for AI Agent dangerous commands using M5StickC Plus — a BLE-based physical button approval system built on Hermes hooks and du">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Agent Buddy Bridge: Physical Button Approval System for AI Agents">
+    <meta property="og:description" content="Building a "hardware kill switch" for AI Agent dangerous commands using M5StickC Plus — a BLE-based physical button approval system built on Hermes hooks and du">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 01, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Agent Buddy Bridge: Physical Button Approval System for AI Agents</h1>
+                <div class="meta">
+                    <span class="date">May 01, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>In the AI Agent space, approval of dangerous commands has always been a dilemma: fully autonomous execution is risky, while manual approval is tedious. The Agent Buddy Bridge project offers a hardware-level solution — using the physical button on an M5StickC Plus dev board as a "hardware kill switch" for dangerous commands.</p>
+
+<h2>Motivation</h2>
+
+<p>Once you grant an AI Agent shell execution privileges, the attack surface expands instantly. <code>rm -rf /data</code>, <code>DROP TABLE users</code> — these commands can cause catastrophic damage with a moment's inattention.</p>
+
+<p>Existing approval mechanisms (Telegram's <code>/approve</code>, terminal interactive confirmation) share a common weakness: <strong>they depend on the same device's UI interaction</strong>. If you step away from your computer, the Agent blocks indefinitely or times out and auto-denies. A physical button provides an independent, air-gapped approval channel — press it anywhere, and the Agent unblocks immediately.</p>
+
+<h2>Technical Architecture</h2>
+
+<h3>Overall Architecture</h3>
+
+<pre>
+M5StickC Plus (BLE Peripheral)
+    ↕ BLE NUS (Nordic UART Service)
+BLECentral (bleak / macOS CoreBluetooth)
+    ↓ JSON over BLE
+HTTPServer (:8765)
+    ↑ POST /buddy/state (Hermes → Bridge, from pre_approval_request hook)
+    ↓ POST /internal/approve (Bridge → Hermes, on button press)
+    ↓
+Approval Relay (:8766) → resolve_gateway_approval(session_key, choice)
+    ↑
+    Hermes tools/approval.py
+</pre>
+
+<h3>Approval Flow</h3>
+
+<pre>
+Dangerous command detected (e.g. rm -rf /data)
+    │
+    ▼
+tools/approval.py: prompt_dangerous_approval()
+    │
+    ├─→ 🔔 pre_approval_request hook
+    │       → Plugin receives {command, session_key, surface="gateway"}
+    │       → BuddyPlatformAdapter pushes to Bridge (:8765)
+    │       → BLE → M5StickC screen shows approval prompt
+    │
+    ├─→ 📱 Telegram notification (simultaneous)
+    │       "⚠️ Dangerous command: rm -rf /data
+    │        Reply /approve, /always, or /cancel"
+    │
+    └─→ ⏸️ Agent thread blocks (threading.Event.wait)
+            │
+    ┌───────┴───────┐
+    ▼               ▼
+ M5StickC button   Telegram /approve
+ (BLE notify)      (slash command)
+    │               │
+    ▼               ▼
+ Approval Relay    gateway._handle_approve_command()
+    │               │
+    └───────┬───────┘
+            ▼
+ resolve_gateway_approval(session_key, "once")
+            │
+            ▼
+    event.set() → Agent unblocked
+            │
+            ▼
+    🔔 post_approval_response hook
+        → Clean up M5StickC screen
+        → Command executes
+</pre>
+
+<p><strong>Dual-channel approval, first-come-first-served.</strong> Users can approve from Telegram (at desk) or via the M5StickC button (away from desk). When both arrive simultaneously, the first one wins; the other returns 0 (idempotent).</p>
+
+<h2>Core Technical Details</h2>
+
+<h3>1. pre_approval_request Hook — Push Mechanism for Approval Requests</h3>
+
+<p>This is a key capability introduced in Hermes v0.12.0 (PR #16776). When the Agent encounters a dangerous command, approval.py fires the <code>pre_approval_request</code> hook with the following payload:</p>
+
+<ul>
+  <li><code>command</code> — the command text pending approval</li>
+  <li><code>session_key</code> — current session identifier (used for approval callback)</li>
+  <li><code>pattern_key</code> — command pattern matching key</li>
+  <li><code>surface</code> — trigger source ("gateway" / "cli")</li>
+</ul>
+
+<p>This hook solves the biggest gap in the previous approach: <strong>how does the M5StickC know when Hermes is waiting for approval?</strong> Now the hook pushes proactively — no polling needed.</p>
+
+<h3>2. post_approval_response Hook — Cleanup Mechanism for Approval Results</h3>
+
+<p>After approval completes (whether via button or Telegram), the hook callback carries a <code>choice</code> field ("once" / "always" / "deny" / "timeout"). The Plugin can use this to clean up the M5StickC screen, record audit logs, etc.</p>
+
+<h3>3. platform_registry — Pluggable Platform Adapters</h3>
+
+<p>Hermes's built-in <code>platform_registry</code> allows plugins to register custom platform adapters (see the IRC/Teams plugins for reference). BuddyPlatformAdapter is registered as a Hermes "platform" through this mechanism — no core code modifications required.</p>
+
+<h3>4. Approval Relay — HTTP-to-Python Function Bridge</h3>
+
+<p>Button press events travel via BLE → HTTP Server (:8765) → Approval Relay (:8766) → Hermes. <code>resolve_gateway_approval()</code> is a Python function, not an HTTP endpoint, so a Relay process is needed to bridge the gap. The Relay uses Hermes's venv Python (because it needs <code>from tools.approval import resolve_gateway_approval</code>).</p>
+
+<h2>Dual-Process Design</h2>
+
+<table>
+  <thead>
+    <tr><th>Process</th><th>Python</th><th>Port</th><th>Role</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>BuddyBridge</strong></td><td>/usr/bin/python3 (system)</td><td>8765</td><td>BLE Central + HTTP Server</td></tr>
+    <tr><td><strong>Approval Relay</strong></td><td>Hermes venv Python</td><td>8766</td><td>Calls resolve_gateway_approval()</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Why two Python environments?</strong></p>
+
+<ul>
+  <li><code>bleak</code> requires system Python with pyobjc (CoreBluetooth) support</li>
+  <li><code>resolve_gateway_approval()</code> requires Hermes venv to import tools.approval</li>
+</ul>
+
+<p>The two processes communicate via HTTP (localhost) and are independent — either one crashing doesn't affect the other.</p>
+
+<h2>Hermes Interface Dependencies (v0.12.0)</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Capability</th><th>Status</th><th>PR</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>pre_approval_request hook</td><td>✅ Merged</td><td>#16776</td></tr>
+    <tr><td>2</td><td>post_approval_response hook</td><td>✅ Merged</td><td>#16776</td></tr>
+    <tr><td>3</td><td>platform_registry plugin registration</td><td>✅ Built-in</td><td>—</td></tr>
+    <tr><td>4</td><td>resolve_gateway_approval()</td><td>✅ Always available</td><td>—</td></tr>
+    <tr><td>5</td><td>Approval wake on session cleanup</td><td>✅ Merged</td><td>#18171</td></tr>
+    <tr><td>6</td><td>pre_tool_call approve directive</td><td>❌ Open</td><td>#11816</td></tr>
+  </tbody>
+</table>
+
+<p>PR #11816 is the only unmerged item — it would allow plugin-whitelisted commands to auto-approve without triggering the approval flow. <strong>This does not affect the physical button approval chain</strong> — the hook + Relay path handles button approvals independently.</p>
+
+<h2>Installation and Usage</h2>
+
+<h3>Prerequisites</h3>
+
+<ul>
+  <li>macOS (CoreBluetooth for BLE)</li>
+  <li>System Python 3.9+ with pyobjc</li>
+  <li>Hermes Agent v0.12.0+ installed at ~/.hermes/</li>
+  <li>M5StickC Plus flashed with Claude Desktop Buddy firmware (BLE broadcast name: Claude-XXXX)</li>
+  <li>Python packages: bleak, aiohttp</li>
+</ul>
+
+<h3>Installation Steps</h3>
+
+<pre>
+# 1. Clone the project
+cd ~/code
+git clone https://github.com/harryfan1985/agent-buddy-bridge.git
+cd agent-buddy-bridge
+
+# 2. Install dependencies
+/usr/bin/pip3 install bleak aiohttp
+
+# 3. Create plugin symlink
+ln -s ~/code/agent-buddy-bridge/hermes_plugin ~/.hermes/plugins/buddy-bridge
+</pre>
+
+<h3>Configure Hermes</h3>
+
+<p>Add to <code>~/.hermes/config.yaml</code>:</p>
+
+<pre>
+gateway:
+  platforms:
+    buddy:
+      enabled: true
+      extra:
+        bridge_url: "http://localhost:8765"
+
+plugins:
+  enabled:
+    - buddy-bridge
+</pre>
+
+<h3>Start the Services</h3>
+
+<p>Terminal 1 — BuddyBridge (BLE + HTTP):</p>
+<pre>
+cd ~/code/agent-buddy-bridge
+/usr/bin/python3 -m hermes_buddy_bridge.main     --http-port 8765 --relay-url http://localhost:8766
+</pre>
+
+<p>Terminal 2 — Approval Relay:</p>
+<pre>
+cd ~/code/agent-buddy-bridge
+~/.hermes/hermes-agent/venv/bin/python     -m hermes_buddy_bridge.approval_relay     --hermes-home ~/.hermes --port 8766
+</pre>
+
+<p>After starting both processes, restart the Hermes Gateway: <code>hermes gateway restart</code></p>
+
+<h3>Verification</h3>
+
+<pre>
+# Health checks
+curl -s http://localhost:8765/health
+curl -s http://localhost:8766/health
+
+# BLE device connection status
+curl -s http://localhost:8765/buddy/status
+# → {"connected": true, "device_name": "Claude-0C1E"}
+
+# Approval path test (idempotent — returns resolved=0 when nothing pending)
+curl -s -X POST http://localhost:8765/internal/approve   -H "Content-Type: application/json"   -d '{"session_key":"test","choice":"once"}'
+# → {"status": "ok", "via": "approval-relay", "resolved": 0}
+</pre>
+
+<h2>Project Status and TODO</h2>
+
+<p><strong>The core approval chain is fully operational.</strong> Remaining work is prioritized as follows:</p>
+
+<ul>
+  <li><strong>P1</strong> — Adapt BuddyPlatformAdapter to the pre_approval_request hook (currently based on legacy architecture)</li>
+  <li><strong>P2</strong> — End-to-end integration testing (trigger real dangerous command → M5StickC display → button approval → Agent unblocked)</li>
+  <li><strong>P3</strong> — Await PR #11816 merge (whitelist auto-approve for known-safe commands, UX optimization)</li>
+</ul>
+
+<h2>Project Links</h2>
+
+<ul>
+  <li>GitHub: <a href="https://github.com/harryfan1985/agent-buddy-bridge">harryfan1985/agent-buddy-bridge</a></li>
+  <li>Hermes Agent: <a href="https://github.com/NousResearch/hermes-agent">NousResearch/hermes-agent</a></li>
+  <li>M5StickC Plus: <a href="https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit">M5Stack Official</a></li>
+</ul>
+
+<hr>
+
+<p><em>This article is based on Hermes Agent v0.12.0 and agent-buddy-bridge v1.0.0. Reviewed: May 1, 2026.</em></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
