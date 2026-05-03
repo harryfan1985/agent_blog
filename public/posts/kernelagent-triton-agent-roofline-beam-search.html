@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从 KernelAgent 到 triton-agent：Roofline 分析与 Beam Search 的工程导入方案 | Agent Blog</title>
+    <meta name="description" content="详细分析 Meta KernelAgent 的两项核心能力——Roofline 驱动的自动终止和 Beam Search 并行探索——在工程层面如何引入到 Ascend NPU 的 triton-agent 项目中，包含完整代码示例和改动量估算。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="从 KernelAgent 到 triton-agent：Roofline 分析与 Beam Search 的工程导入方案">
+    <meta property="og:description" content="详细分析 Meta KernelAgent 的两项核心能力——Roofline 驱动的自动终止和 Beam Search 并行探索——在工程层面如何引入到 Ascend NPU 的 triton-agent 项目中，包含完整代码示例和改动量估算。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 3, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>从 KernelAgent 到 triton-agent：Roofline 分析与 Beam Search 的工程导入方案</h1>
+                <div class="meta">
+                    <span class="date">May 3, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>背景</h2>
+
+<p>在研究 <a href="https://github.com/meta-pytorch/KernelAgent" target="_blank">meta-pytorch/KernelAgent</a>——Meta PyTorch 团队的 GPU Kernel 自主生成与优化项目——的过程中，我发现它和我的 <a href="https://gitcode.com/midwinter1993/triton-agent" target="_blank">triton-agent</a>（面向华为 Ascend NPU 的 Triton 算子优化 CLI）有很多概念上的重叠。KernelAgent 的两项核心能力——<strong>Roofline 驱动的自动终止</strong>和<strong>Beam Search 并行探索</strong>——是 triton-agent 当前缺失的。这篇文章详细分析这两项能力的工程实现，以及如何把它们引入到 triton-agent 的 skill 系统中。</p>
+
+<h2>两个项目的架构对比</h2>
+
+<p>先说清楚两者的差异，才能理解"导入"的适配成本。</p>
+
+<table>
+<tr><th>维度</th><th>KernelAgent</th><th>triton-agent</th></tr>
+<tr><td>硬件目标</td><td>NVIDIA CUDA + Intel XPU</td><td>华为 Ascend NPU（昇腾）</td></tr>
+<tr><td>Profiling 工具</td><td>NCU (NVIDIA Compute Utility)</td><td>msprof (Ascend Toolkit)</td></tr>
+<tr><td>优化引擎</td><td>直接调 GPT-5/Claude API</td><td>Code Agent 后端（Codex/OpenCode/pi/Claude）</td></tr>
+<tr><td>优化策略</td><td>单路径 + Beam Search 可选</td><td>单路径顺序迭代 (opt-round-1 → 2 → ...)</td></tr>
+<tr><td>终止条件</td><td>Roofline ≥95% SOL 自动停</td><td>人工判断 + min_rounds 门槛</td></tr>
+<tr><td>知识库</td><td>GPU specs 配置文件 + RAG</td><td>21 个 pattern card + 4 个 symptom card</td></tr>
+</table>
+
+<p>关键差异：triton-agent 的优化循环完全依赖 code agent 的自主决策，CLI 只管编排和 gate。KernelAgent 则是 CLI/Orchestrator 深度参与每轮决策——这正是 Roofline 和 Beam Search 能工作的前提。</p>
+
+<h2>P0：Roofline 分析 + 自动终止</h2>
+
+<h3>KernelAgent 的实现</h3>
+
+<p>KernelAgent 的 roofline 模块（<code>kernel_perf_agent/kernel_opt/roofline/ncu_roofline.py</code>，~254 行）是一个独立、可配置的分析器。核心架构：</p>
+
+<pre><code># 简化后的核心逻辑（完整代码见文末仓库链接）
+@dataclass
+class RooflineConfig:
+    threshold_pct: float = 95.0       # SOL% 达到此值认为触顶
+    early_stop: bool = True           # 触顶时自动终止
+    convergence_rounds: int = 5       # 连续 N 轮无改进触发停止
+    min_improvement_pct: float = 0.1  # 最小改进阈值
+    underutilized_threshold: float = 60.0  # 双低 = underutilized
+
+class RooflineAnalyzer:
+    def analyze(self, ncu_metrics: dict) -> RooflineResult:
+        compute_sol = ncu_metrics["sm__throughput.avg.pct_of_peak_sustained_elapsed"]
+        memory_sol = ncu_metrics["gpu__compute_memory_throughput.avg.pct_of_peak_sustained_elapsed"]
+        efficiency = max(compute_sol, memory_sol)
+
+        bottleneck = self._classify_bottleneck(compute_sol, memory_sol)
+        # 逻辑：双低(<60%) → underutilized
+        #       memory_sol >= compute_sol → memory-bound
+        #       否则 → compute-bound
+
+        return RooflineResult(
+            compute_sol_pct=compute_sol,
+            memory_sol_pct=memory_sol,
+            efficiency_pct=efficiency,
+            at_roofline=efficiency >= self.config.threshold_pct,
+            bottleneck=bottleneck,
+        )
+
+    def should_stop(self, result: RooflineResult) -> tuple[bool, str]:
+        self._efficiency_history.append(result.efficiency_pct)
+        # 条件1：达到 roofline 阈值且 early_stop 开启
+        if self.config.early_stop and result.at_roofline:
+            return True, f"At roofline ({result.efficiency_pct}% SOL)"
+        # 条件2：连续 N 轮效率无改进
+        if len(self._efficiency_history) >= self.config.convergence_rounds:
+            recent = self._efficiency_history[-self.config.convergence_rounds:]
+            if max(recent) - min(recent) < self.config.min_improvement_pct:
+                return True, f"Converged (improvement < {self.config.min_improvement_pct}%)"
+        return False, ""</code></pre>
+
+<p>在 <code>OptimizationOrchestrator.optimize_kernel()</code> 中，每轮优化后都运行 roofline 检查，达到阈值直接 break 出循环并输出 early_stop_reason。</p>
+
+<h3>triton-agent 当前的状态</h3>
+
+<p>triton-agent 的 optimize 已有 profiling 能力：</p>
+
+<ul>
+<li><code>triton-npu-profile-operator</code> skill：调用 msprof 采集算子级性能数据</li>
+<li><code>triton-npu-analyze-round-performance</code> skill：基于 profiling 数据做深层诊断</li>
+<li><code>opt-note.md</code> 和 <code>perf-analysis.md</code>：记录每轮性能变化</li>
+</ul>
+
+<p>但缺失的是：<strong>没有把 profiling 数据量化成单一效率指标，没有形式化的终止条件</strong>。当前优化循环的收敛判断完全依赖 code agent 在 <code>opt-note.md</code> 中的主观判断，以及用户设置的 <code>--min-rounds</code> 硬门槛。</p>
+
+<p>从 <code>contract.json</code> 可以看到，当前 round state 的 required fields 包含 <code>perf_artifact</code>、<code>comparison_target</code>、<code>next_recommendation</code>，但没有 efficiency_pct 或 bottleneck 分类字段。</p>
+
+<h3>引入方案：新增 triton-npu-roofline 模块</h3>
+
+<p>分三步实现。每步都是独立的增量，降低风险。</p>
+
+<h4>Step 1：硬件 Spec 知识卡</h4>
+
+<p>在 <code>skills/triton-npu-optimize-knowledge/references/</code> 下新增 <code>hardware_specs.md</code>，记录 Ascend 各芯片的理论峰值：</p>
+
+<pre><code># Ascend NPU Hardware Specifications
+
+## A5 (Ascend 950)
+- FP16 compute peak: 512 TFLOPS
+- Memory bandwidth: 2048 GB/s (HBM2e)
+- UB size: 256 KB per core
+- L1 cache: 512 KB per core
+- L2 cache: 96 MB (shared)
+- SM count: 80
+
+## A3 (Ascend 910B)
+- FP16 compute peak: 320 TFLOPS
+- Memory bandwidth: 1536 GB/s
+- ...</code></pre>
+
+<p>用 <code>--target-chip A5</code>（已有参数）选择对应配置。</p>
+
+<h4>Step 2：在 optimize skill 的 layered analysis 中加入 roofline 层</h4>
+
+<p>修改 <code>skills/triton-npu-optimize/SKILL.md</code> 的 Stage 2（Layered Analysis），在 profiling diagnosis 和 IR attribution 之间插入 roofline 层级：</p>
+
+<pre><code>### roofline analysis（新增）
+
+- After each round's benchmark succeeds, calculate SOL efficiency.
+- Read `../triton-npu-optimize-knowledge/references/hardware_specs.md` for peak values.
+- Compute: efficiency_pct = max(achieved_compute / peak_compute, achieved_bw / peak_bw) × 100
+- Classify bottleneck: memory-bound / compute-bound / underutilized.
+- Record in `opt-round-N/roofline.json`:
+  {
+    "efficiency_pct": 72.3,
+    "compute_sol_pct": 55.1,
+    "memory_sol_pct": 72.3,
+    "bottleneck": "memory",
+    "at_roofline": false
+  }
+- Auto-termination: if efficiency_pct >= 95% OR last 5 rounds show improvement < 0.1%,
+  record in opt-note.md: `## Early Termination: roofline converged`.</code></pre>
+
+<p>这只是 skill 指令层面的改动——告诉 code agent 在每轮 benchmark 后多做一件事。零 CLI 代码变更。</p>
+
+<h4>Step 3：CLI 层面支持自动终止</h4>
+
+<p>在 <code>src/triton_agent/optimize/checks.py</code> 中新增 roofline check 函数，hook 进 run_loop：</p>
+
+<pre><code>def check_roofline_termination(workdir: Path, config: RooflineConfig) -> tuple[bool, str]:
+    """扫描所有 opt-round-N/roofline.json，判断是否应该终止"""
+    rounds = sorted(workdir.glob("opt-round-*/roofline.json"))
+    if not rounds:
+        return False, ""
+
+    efficiency_history = []
+    for r in rounds:
+        data = json.loads(r.read_text())
+        efficiency_history.append(data["efficiency_pct"])
+
+    latest = efficiency_history[-1]
+
+    # 条件1：达到 roofline 阈值（默认 95%）
+    if config.early_stop and latest >= config.threshold_pct:
+        return True, f"At roofline ({latest:.1f}% >= {config.threshold_pct}%)"
+
+    # 条件2：连续收敛
+    if len(efficiency_history) >= config.convergence_rounds:
+        recent = efficiency_history[-config.convergence_rounds:]
+        if max(recent) - min(recent) < config.min_improvement_pct:
+            return True, f"Converged (Δ{max(recent)-min(recent):.2f}% < {config.min_improvement_pct}%)"
+
+    return False, ""</code></pre>
+
+<p>在 <code>SupervisedOptimizeAdapter.run_supervisor()</code> 中，<code>GateDecision.PASS_STOP</code> 的触发条件从纯人工判断扩展为：人工判断 OR roofline check。</p>
+
+<p><strong>改动量估算</strong>：新增 ~80 行 Python + ~50 行 skill 指令 + 1 个 hardware_specs.md，不改变 optimize 的 round 目录结构契约。</p>
+
+<h2>P1：Beam Search 优化</h2>
+
+<h3>KernelAgent 的实现</h3>
+
+<p>KernelAgent 的 beam search（<code>triton_kernel_agent/opt_worker_component/searching/strategy/beam_search.py</code>，~169 行）是一个干净的策略实现：</p>
+
+<pre><code>class BeamSearchStrategy(SearchStrategy):
+    """每轮同时探索 N 个 top kernel × M 个瓶颈方向 = N×M 个 worker"""
+
+    def __init__(self, num_top_kernels: int = 2, num_bottlenecks: int = 2):
+        self.top_kernels: list[ProgramEntry] = []  # beam 中的 top-N kernel
+
+    def initialize(self, initial_program: ProgramEntry):
+        self.top_kernels = [initial_program] * self.num_top_kernels
+
+    def select_candidates(self, round_num: int) -> list[dict]:
+        """为每个 (kernel, bottleneck) 对生成一个候选任务"""
+        candidates = []
+        for rank, kernel in enumerate(self.top_kernels):
+            for bottleneck_id in range(1, self.num_bottlenecks + 1):
+                candidates.append({
+                    "parent": kernel,
+                    "bottleneck_id": bottleneck_id,
+                    "kernel_rank": rank,
+                })
+        return candidates  # 共 N × M 个
+
+    def update_with_results(self, results: list[dict], round_num: int):
+        """合并新结果 → 按性能排序 → 保留 top-N"""
+        new_entries = [r["program_entry"] for r in results if r.get("success")]
+        all_candidates = self.top_kernels + new_entries
+        all_candidates.sort(key=lambda x: x.metrics.time_ms)
+        self.top_kernels = all_candidates[:self.num_top_kernels]
+</code></pre>
+
+<p>关键设计：<strong>bottleneck_id 驱动探索多样性</strong>。每个 worker 的 <code>OptimizationOrchestrator</code> 收到不同的 <code>bottleneck_id</code> 参数，LLM 瓶颈分析返回的是一组瓶颈排序列表，<code>bottleneck_id=1</code> 选第一个方向（最可能的瓶颈），<code>bottleneck_id=2</code> 选第二个方向（次可能），从而实现从不同角度同时攻击同一 kernel。</p>
+
+<h3>triton-agent 当前的状态</h3>
+
+<p>triton-agent 的 optimize 是严格的单路径：每个 round 只有一个优化方向。从 <code>run_loop.py</code> 可以看到，supervised 模式下每个 round 就是 worker→supervisor→gate decision 的单线流程。虽然有 <code>optimize-batch</code> 支持多 workspace 并行，但那是多个不同算子的独立优化，而非同一个算子的多方向探索。</p>
+
+<p>不过基础设施已有雏形：</p>
+
+<ul>
+<li><code>TRITON_AGENT_BATCH_NPU_DEVICES</code> 已经支持多设备分配（如 <code>0,3-5,8-9</code>）</li>
+<li><code>npu_affinity.py</code> 实现了设备亲和性绑定</li>
+<li><code>OptimizeRunLoop</code> 已经有 supervised loop 的架构（worker + supervisor + gate）</li>
+</ul>
+
+<h3>引入方案：新增 BeamSearchOptimizeRunLoop</h3>
+
+<h4>架构改变</h4>
+
+<p>并行化发生在 round 级别而非 loop 级别——每轮的 N×M 个 worker 并发执行，supervisor 汇总后 gate 决定继续或停止。</p>
+
+<pre><code># 当前架构（单路径）
+for round in 1..max_rounds:
+    worker_result = agent.optimize(direction)
+    gate = supervisor.check(round_dir)
+    if gate == PASS_STOP: break
+
+# Beam Search 架构（并行探索）
+beam = [baseline_kernel] * K
+for round in 1..max_rounds:
+    candidates = []
+    for kernel in beam:
+        for bottleneck_id in 1..M:
+            workers.append(spawn(agent.optimize(kernel, bottleneck_id)))
+    results = await gather(workers)
+    beam = merge_and_top_k(beam, results, K)
+    if roofline_check(beam[0]): break</code></pre>
+
+<h4>具体实现步骤</h4>
+
+<p><strong>Step 1：新增 <code>--strategy beam_search</code> 参数和 <code>BeamSearchConfig</code></strong></p>
+
+<p>在 <code>src/triton_agent/optimize/models.py</code> 中添加：</p>
+
+<pre><code>@dataclass(frozen=True)
+class BeamSearchConfig:
+    num_top_kernels: int = 2    # beam size K
+    num_bottlenecks: int = 2    # 每个 kernel 探索 M 个方向
+    max_beam_rounds: int = 5    # beam search 最大轮次</code></pre>
+
+<p><strong>Step 2：新增 <code>BeamSearchOptimizeAdapter</code> in execution.py</strong></p>
+
+<p>复用现有 <code>SupervisedOptimizeAdapter</code> 作为单 worker 适配器，在外层包装 beam search 逻辑：</p>
+
+<pre><code>class BeamSearchOptimizeAdapter:
+    def __init__(self, runner, artifacts_manager, config: BeamSearchConfig):
+        self._single_adapter = SupervisedOptimizeAdapter(runner, ...)
+        self._beam: list[tuple[Path, float]] = []  # (round_dir, time_ms)
+
+    def run_round(self, request: AgentRequest) -> GateResult:
+        """并行启动 N×M 个 worker，汇总后 gate"""
+        candidates = self._select_candidates()
+        results = parallel_map(self._run_single_worker, candidates,
+                               device_affinity=self._assign_devices)
+        self._update_beam(results)
+        return self._gate_check()
+
+    def _run_single_worker(self, candidate: BeamCandidate) -> WorkerResult:
+        """每个 worker 在自己的 opt-round-N-worker-M/ 目录下运行"""
+        worker_request = replace(request,
+            workdir=request.workdir / f"opt-round-{candidate.round}-worker-{candidate.worker_id}",
+            optimize_role="worker",
+            bottleneck_hint=candidate.bottleneck_id,
+        )
+        return self._single_adapter.run_worker(worker_request)</code></pre>
+
+<p><strong>Step 3：设备亲和性调度</strong></p>
+
+<p>利用现有 <code>npu_affinity.py</code> 和 <code>TRITON_AGENT_BATCH_NPU_DEVICES</code>：</p>
+
+<ul>
+<li>2×2 beam search = 4 个并发 worker，需要 4 个 NPU 设备</li>
+<li>每个 worker 绑定独立设备，避免 profiling 互相干扰</li>
+<li>如果设备不足 N×M，降级为轮询分批执行</li>
+</ul>
+
+<p><strong>Step 4：瓶颈多样性（bottleneck_id 映射）</strong></p>
+
+<p>triton-agent 的瓶颈分析是通过 skill 指令让 code agent 自主完成的，没有 KernelAgent 的 <code>BottleneckAnalyzer</code> 返回排序列表。需要调整 <code>triton-npu-optimize</code> skill，让 code agent 在分析阶段输出多个候选方向：</p>
+
+<pre><code>## bottleneck analysis（扩展）
+
+After profiling, list the top M candidate bottleneck directions in priority order.
+Write them to `opt-round-N/bottleneck_candidates.json`:
+[
+  {"rank": 1, "category": "memory", "root_cause": "...", "recommended_fix": "..."},
+  {"rank": 2, "category": "compute", "root_cause": "...", "recommended_fix": "..."}
+]
+</code></pre>
+
+<p>CLI 侧 beam search adapter 解析这个 JSON，把 rank=1 分给 worker-1，rank=2 分给 worker-2。</p>
+
+<p><strong>Step 5：Merge & Gate</strong></p>
+
+<p>每轮结束后，扫描所有 worker 的 benchmark 结果，按性能排序，保留 top-K 进入下一轮。Gate 逻辑增加 beam search 特有的条件：</p>
+
+<ul>
+<li>top-1 kernel 达到 roofline → <code>PASS_STOP</code></li>
+<li>beam 中所有 kernel 连续两轮无改进 → <code>PASS_STOP</code></li>
+<li>否则 → <code>PASS_CONTINUE</code></li>
+</ul>
+
+<p><strong>改动量估算</strong>：新增 ~200 行 Python（BeamSearchOptimizeAdapter + BeamSearchConfig + merge/gate 逻辑）+ 并行调度 ~50 行 + skill 指令扩展 ~40 行 + bottleneck_candidates.json 契约。</p>
+
+<h2>实施优先级和风险</h2>
+
+<h3>为什么不先做 Beam Search？</h3>
+
+<p>Beam Search 的正确性依赖一个好的终止条件。没有 Roofline，beam search 要么跑满 max_rounds（浪费算力），要么凭感觉停（不可靠）。Roofline 是 Beam Search 的前提——先有"何时停"的答案，再谈"如何并行探索"。</p>
+
+<h3>风险点</h3>
+
+<ul>
+<li><strong>Ascend msprof 的 SOL 指标</strong>：NCU 直接提供 <code>pct_of_peak_sustained_elapsed</code> 指标，Ascend msprof 需要确认是否有等效指标。如果没有，需要从 raw counters 反算（achieved_flops / peak_flops）。</li>
+<li><strong>Code Agent 的不确定性</strong>：KernelAgent 直接调 LLM API，结果相对可控。triton-agent 依赖 code agent（Codex/OpenCode）做实际优化，beam search 的 N×M 个 worker 各自启动一次完整的 agent session——token 消耗和 latency 都会显著增加。</li>
+<li><strong>设备资源竞争</strong>：在单卡环境（只有 1 个 Ascend NPU），beam search 的并行无法真正并行。需要 fallback 到串行批次执行。</li>
+</ul>
+
+<h2>总结</h2>
+
+<p>两个能力的导入路径清晰：</p>
+
+<ul>
+<li><strong>P0 Roofline</strong>：新增 skill 指令 + 硬件 spec 卡 + CLI 侧 roofline check 函数，改动量 ~150 行，不改变 round 目录契约</li>
+<li><strong>P1 Beam Search</strong>：新增 BeamSearchOptimizeAdapter + 设备亲和性调度 + 瓶颈方向多样性输出，改动量 ~300 行，复用现有 supervised loop 架构</li>
+</ul>
+
+<p>两者的共同前提是：让 triton-agent 的 optimize 循环从"纯 code agent 自主决策"转向"CLI 编排 + 数据驱动 gate"。这不是削弱 code agent 的能力，而是给它提供更精确的航向信息——就像给一个优秀的程序员配上性能 profiler 和明确的优化目标。</p>
+
+<h2>相关仓库</h2>
+
+<ul>
+<li><a href="https://github.com/meta-pytorch/KernelAgent" target="_blank">meta-pytorch/KernelAgent</a> — GPU Kernel 自主生成与优化</li>
+<li><a href="https://gitcode.com/midwinter1993/triton-agent" target="_blank">midwinter1993/triton-agent</a> — Ascend NPU Triton 算子优化 CLI</li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

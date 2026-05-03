@@ -1,239 +1,309 @@
 posts:
+- title: 从 KernelAgent 到 triton-agent：Roofline 分析与 Beam Search 的工程导入方案
+  date: May 3, 2026
+  excerpt: 详细分析 Meta KernelAgent 的两项核心能力——Roofline 驱动的自动终止和 Beam Search 并行探索——在工程层面如何引入到
+    Ascend NPU 的 triton-agent 项目中，包含完整代码示例和改动量估算。
+  content: "<h2>背景</h2>\n\n<p>在研究 <a href=\"https://github.com/meta-pytorch/KernelAgent\"\
+    \ target=\"_blank\">meta-pytorch/KernelAgent</a>——Meta PyTorch 团队的 GPU Kernel\
+    \ 自主生成与优化项目——的过程中，我发现它和我的 <a href=\"https://gitcode.com/midwinter1993/triton-agent\"\
+    \ target=\"_blank\">triton-agent</a>（面向华为 Ascend NPU 的 Triton 算子优化 CLI）有很多概念上的重叠。KernelAgent\
+    \ 的两项核心能力——<strong>Roofline 驱动的自动终止</strong>和<strong>Beam Search 并行探索</strong>——是\
+    \ triton-agent 当前缺失的。这篇文章详细分析这两项能力的工程实现，以及如何把它们引入到 triton-agent 的 skill 系统中。</p>\n\
+    \n<h2>两个项目的架构对比</h2>\n\n<p>先说清楚两者的差异，才能理解\"导入\"的适配成本。</p>\n\n<table>\n<tr><th>维度</th><th>KernelAgent</th><th>triton-agent</th></tr>\n\
+    <tr><td>硬件目标</td><td>NVIDIA CUDA + Intel XPU</td><td>华为 Ascend NPU（昇腾）</td></tr>\n\
+    <tr><td>Profiling 工具</td><td>NCU (NVIDIA Compute Utility)</td><td>msprof (Ascend\
+    \ Toolkit)</td></tr>\n<tr><td>优化引擎</td><td>直接调 GPT-5/Claude API</td><td>Code Agent\
+    \ 后端（Codex/OpenCode/pi/Claude）</td></tr>\n<tr><td>优化策略</td><td>单路径 + Beam Search\
+    \ 可选</td><td>单路径顺序迭代 (opt-round-1 → 2 → ...)</td></tr>\n<tr><td>终止条件</td><td>Roofline\
+    \ ≥95% SOL 自动停</td><td>人工判断 + min_rounds 门槛</td></tr>\n<tr><td>知识库</td><td>GPU\
+    \ specs 配置文件 + RAG</td><td>21 个 pattern card + 4 个 symptom card</td></tr>\n</table>\n\
+    \n<p>关键差异：triton-agent 的优化循环完全依赖 code agent 的自主决策，CLI 只管编排和 gate。KernelAgent 则是\
+    \ CLI/Orchestrator 深度参与每轮决策——这正是 Roofline 和 Beam Search 能工作的前提。</p>\n\n<h2>P0：Roofline\
+    \ 分析 + 自动终止</h2>\n\n<h3>KernelAgent 的实现</h3>\n\n<p>KernelAgent 的 roofline 模块（<code>kernel_perf_agent/kernel_opt/roofline/ncu_roofline.py</code>，~254\
+    \ 行）是一个独立、可配置的分析器。核心架构：</p>\n\n<pre><code># 简化后的核心逻辑（完整代码见文末仓库链接）\n@dataclass\n\
+    class RooflineConfig:\n    threshold_pct: float = 95.0       # SOL% 达到此值认为触顶\n\
+    \    early_stop: bool = True           # 触顶时自动终止\n    convergence_rounds: int\
+    \ = 5       # 连续 N 轮无改进触发停止\n    min_improvement_pct: float = 0.1  # 最小改进阈值\n\
+    \    underutilized_threshold: float = 60.0  # 双低 = underutilized\n\nclass RooflineAnalyzer:\n\
+    \    def analyze(self, ncu_metrics: dict) -> RooflineResult:\n        compute_sol\
+    \ = ncu_metrics[\"sm__throughput.avg.pct_of_peak_sustained_elapsed\"]\n      \
+    \  memory_sol = ncu_metrics[\"gpu__compute_memory_throughput.avg.pct_of_peak_sustained_elapsed\"\
+    ]\n        efficiency = max(compute_sol, memory_sol)\n\n        bottleneck = self._classify_bottleneck(compute_sol,\
+    \ memory_sol)\n        # 逻辑：双低(<60%) → underutilized\n        #       memory_sol\
+    \ >= compute_sol → memory-bound\n        #       否则 → compute-bound\n\n      \
+    \  return RooflineResult(\n            compute_sol_pct=compute_sol,\n        \
+    \    memory_sol_pct=memory_sol,\n            efficiency_pct=efficiency,\n    \
+    \        at_roofline=efficiency >= self.config.threshold_pct,\n            bottleneck=bottleneck,\n\
+    \        )\n\n    def should_stop(self, result: RooflineResult) -> tuple[bool,\
+    \ str]:\n        self._efficiency_history.append(result.efficiency_pct)\n    \
+    \    # 条件1：达到 roofline 阈值且 early_stop 开启\n        if self.config.early_stop and\
+    \ result.at_roofline:\n            return True, f\"At roofline ({result.efficiency_pct}%\
+    \ SOL)\"\n        # 条件2：连续 N 轮效率无改进\n        if len(self._efficiency_history)\
+    \ >= self.config.convergence_rounds:\n            recent = self._efficiency_history[-self.config.convergence_rounds:]\n\
+    \            if max(recent) - min(recent) < self.config.min_improvement_pct:\n\
+    \                return True, f\"Converged (improvement < {self.config.min_improvement_pct}%)\"\
+    \n        return False, \"\"</code></pre>\n\n<p>在 <code>OptimizationOrchestrator.optimize_kernel()</code>\
+    \ 中，每轮优化后都运行 roofline 检查，达到阈值直接 break 出循环并输出 early_stop_reason。</p>\n\n<h3>triton-agent\
+    \ 当前的状态</h3>\n\n<p>triton-agent 的 optimize 已有 profiling 能力：</p>\n\n<ul>\n<li><code>triton-npu-profile-operator</code>\
+    \ skill：调用 msprof 采集算子级性能数据</li>\n<li><code>triton-npu-analyze-round-performance</code>\
+    \ skill：基于 profiling 数据做深层诊断</li>\n<li><code>opt-note.md</code> 和 <code>perf-analysis.md</code>：记录每轮性能变化</li>\n\
+    </ul>\n\n<p>但缺失的是：<strong>没有把 profiling 数据量化成单一效率指标，没有形式化的终止条件</strong>。当前优化循环的收敛判断完全依赖\
+    \ code agent 在 <code>opt-note.md</code> 中的主观判断，以及用户设置的 <code>--min-rounds</code>\
+    \ 硬门槛。</p>\n\n<p>从 <code>contract.json</code> 可以看到，当前 round state 的 required fields\
+    \ 包含 <code>perf_artifact</code>、<code>comparison_target</code>、<code>next_recommendation</code>，但没有\
+    \ efficiency_pct 或 bottleneck 分类字段。</p>\n\n<h3>引入方案：新增 triton-npu-roofline 模块</h3>\n\
+    \n<p>分三步实现。每步都是独立的增量，降低风险。</p>\n\n<h4>Step 1：硬件 Spec 知识卡</h4>\n\n<p>在 <code>skills/triton-npu-optimize-knowledge/references/</code>\
+    \ 下新增 <code>hardware_specs.md</code>，记录 Ascend 各芯片的理论峰值：</p>\n\n<pre><code># Ascend\
+    \ NPU Hardware Specifications\n\n## A5 (Ascend 950)\n- FP16 compute peak: 512\
+    \ TFLOPS\n- Memory bandwidth: 2048 GB/s (HBM2e)\n- UB size: 256 KB per core\n\
+    - L1 cache: 512 KB per core\n- L2 cache: 96 MB (shared)\n- SM count: 80\n\n##\
+    \ A3 (Ascend 910B)\n- FP16 compute peak: 320 TFLOPS\n- Memory bandwidth: 1536\
+    \ GB/s\n- ...</code></pre>\n\n<p>用 <code>--target-chip A5</code>（已有参数）选择对应配置。</p>\n\
+    \n<h4>Step 2：在 optimize skill 的 layered analysis 中加入 roofline 层</h4>\n\n<p>修改\
+    \ <code>skills/triton-npu-optimize/SKILL.md</code> 的 Stage 2（Layered Analysis），在\
+    \ profiling diagnosis 和 IR attribution 之间插入 roofline 层级：</p>\n\n<pre><code>###\
+    \ roofline analysis（新增）\n\n- After each round's benchmark succeeds, calculate\
+    \ SOL efficiency.\n- Read `../triton-npu-optimize-knowledge/references/hardware_specs.md`\
+    \ for peak values.\n- Compute: efficiency_pct = max(achieved_compute / peak_compute,\
+    \ achieved_bw / peak_bw) × 100\n- Classify bottleneck: memory-bound / compute-bound\
+    \ / underutilized.\n- Record in `opt-round-N/roofline.json`:\n  {\n    \"efficiency_pct\"\
+    : 72.3,\n    \"compute_sol_pct\": 55.1,\n    \"memory_sol_pct\": 72.3,\n    \"\
+    bottleneck\": \"memory\",\n    \"at_roofline\": false\n  }\n- Auto-termination:\
+    \ if efficiency_pct >= 95% OR last 5 rounds show improvement < 0.1%,\n  record\
+    \ in opt-note.md: `## Early Termination: roofline converged`.</code></pre>\n\n\
+    <p>这只是 skill 指令层面的改动——告诉 code agent 在每轮 benchmark 后多做一件事。零 CLI 代码变更。</p>\n\n<h4>Step\
+    \ 3：CLI 层面支持自动终止</h4>\n\n<p>在 <code>src/triton_agent/optimize/checks.py</code>\
+    \ 中新增 roofline check 函数，hook 进 run_loop：</p>\n\n<pre><code>def check_roofline_termination(workdir:\
+    \ Path, config: RooflineConfig) -> tuple[bool, str]:\n    \"\"\"扫描所有 opt-round-N/roofline.json，判断是否应该终止\"\
+    \"\"\n    rounds = sorted(workdir.glob(\"opt-round-*/roofline.json\"))\n    if\
+    \ not rounds:\n        return False, \"\"\n\n    efficiency_history = []\n   \
+    \ for r in rounds:\n        data = json.loads(r.read_text())\n        efficiency_history.append(data[\"\
+    efficiency_pct\"])\n\n    latest = efficiency_history[-1]\n\n    # 条件1：达到 roofline\
+    \ 阈值（默认 95%）\n    if config.early_stop and latest >= config.threshold_pct:\n \
+    \       return True, f\"At roofline ({latest:.1f}% >= {config.threshold_pct}%)\"\
+    \n\n    # 条件2：连续收敛\n    if len(efficiency_history) >= config.convergence_rounds:\n\
+    \        recent = efficiency_history[-config.convergence_rounds:]\n        if\
+    \ max(recent) - min(recent) < config.min_improvement_pct:\n            return\
+    \ True, f\"Converged (Δ{max(recent)-min(recent):.2f}% < {config.min_improvement_pct}%)\"\
+    \n\n    return False, \"\"</code></pre>\n\n<p>在 <code>SupervisedOptimizeAdapter.run_supervisor()</code>\
+    \ 中，<code>GateDecision.PASS_STOP</code> 的触发条件从纯人工判断扩展为：人工判断 OR roofline check。</p>\n\
+    \n<p><strong>改动量估算</strong>：新增 ~80 行 Python + ~50 行 skill 指令 + 1 个 hardware_specs.md，不改变\
+    \ optimize 的 round 目录结构契约。</p>\n\n<h2>P1：Beam Search 优化</h2>\n\n<h3>KernelAgent\
+    \ 的实现</h3>\n\n<p>KernelAgent 的 beam search（<code>triton_kernel_agent/opt_worker_component/searching/strategy/beam_search.py</code>，~169\
+    \ 行）是一个干净的策略实现：</p>\n\n<pre><code>class BeamSearchStrategy(SearchStrategy):\n\
+    \    \"\"\"每轮同时探索 N 个 top kernel × M 个瓶颈方向 = N×M 个 worker\"\"\"\n\n    def __init__(self,\
+    \ num_top_kernels: int = 2, num_bottlenecks: int = 2):\n        self.top_kernels:\
+    \ list[ProgramEntry] = []  # beam 中的 top-N kernel\n\n    def initialize(self,\
+    \ initial_program: ProgramEntry):\n        self.top_kernels = [initial_program]\
+    \ * self.num_top_kernels\n\n    def select_candidates(self, round_num: int) ->\
+    \ list[dict]:\n        \"\"\"为每个 (kernel, bottleneck) 对生成一个候选任务\"\"\"\n      \
+    \  candidates = []\n        for rank, kernel in enumerate(self.top_kernels):\n\
+    \            for bottleneck_id in range(1, self.num_bottlenecks + 1):\n      \
+    \          candidates.append({\n                    \"parent\": kernel,\n    \
+    \                \"bottleneck_id\": bottleneck_id,\n                    \"kernel_rank\"\
+    : rank,\n                })\n        return candidates  # 共 N × M 个\n\n    def\
+    \ update_with_results(self, results: list[dict], round_num: int):\n        \"\"\
+    \"合并新结果 → 按性能排序 → 保留 top-N\"\"\"\n        new_entries = [r[\"program_entry\"]\
+    \ for r in results if r.get(\"success\")]\n        all_candidates = self.top_kernels\
+    \ + new_entries\n        all_candidates.sort(key=lambda x: x.metrics.time_ms)\n\
+    \        self.top_kernels = all_candidates[:self.num_top_kernels]\n</code></pre>\n\
+    \n<p>关键设计：<strong>bottleneck_id 驱动探索多样性</strong>。每个 worker 的 <code>OptimizationOrchestrator</code>\
+    \ 收到不同的 <code>bottleneck_id</code> 参数，LLM 瓶颈分析返回的是一组瓶颈排序列表，<code>bottleneck_id=1</code>\
+    \ 选第一个方向（最可能的瓶颈），<code>bottleneck_id=2</code> 选第二个方向（次可能），从而实现从不同角度同时攻击同一 kernel。</p>\n\
+    \n<h3>triton-agent 当前的状态</h3>\n\n<p>triton-agent 的 optimize 是严格的单路径：每个 round 只有一个优化方向。从\
+    \ <code>run_loop.py</code> 可以看到，supervised 模式下每个 round 就是 worker→supervisor→gate\
+    \ decision 的单线流程。虽然有 <code>optimize-batch</code> 支持多 workspace 并行，但那是多个不同算子的独立优化，而非同一个算子的多方向探索。</p>\n\
+    \n<p>不过基础设施已有雏形：</p>\n\n<ul>\n<li><code>TRITON_AGENT_BATCH_NPU_DEVICES</code>\
+    \ 已经支持多设备分配（如 <code>0,3-5,8-9</code>）</li>\n<li><code>npu_affinity.py</code> 实现了设备亲和性绑定</li>\n\
+    <li><code>OptimizeRunLoop</code> 已经有 supervised loop 的架构（worker + supervisor +\
+    \ gate）</li>\n</ul>\n\n<h3>引入方案：新增 BeamSearchOptimizeRunLoop</h3>\n\n<h4>架构改变</h4>\n\
+    \n<p>并行化发生在 round 级别而非 loop 级别——每轮的 N×M 个 worker 并发执行，supervisor 汇总后 gate 决定继续或停止。</p>\n\
+    \n<pre><code># 当前架构（单路径）\nfor round in 1..max_rounds:\n    worker_result = agent.optimize(direction)\n\
+    \    gate = supervisor.check(round_dir)\n    if gate == PASS_STOP: break\n\n#\
+    \ Beam Search 架构（并行探索）\nbeam = [baseline_kernel] * K\nfor round in 1..max_rounds:\n\
+    \    candidates = []\n    for kernel in beam:\n        for bottleneck_id in 1..M:\n\
+    \            workers.append(spawn(agent.optimize(kernel, bottleneck_id)))\n  \
+    \  results = await gather(workers)\n    beam = merge_and_top_k(beam, results,\
+    \ K)\n    if roofline_check(beam[0]): break</code></pre>\n\n<h4>具体实现步骤</h4>\n\n\
+    <p><strong>Step 1：新增 <code>--strategy beam_search</code> 参数和 <code>BeamSearchConfig</code></strong></p>\n\
+    \n<p>在 <code>src/triton_agent/optimize/models.py</code> 中添加：</p>\n\n<pre><code>@dataclass(frozen=True)\n\
+    class BeamSearchConfig:\n    num_top_kernels: int = 2    # beam size K\n    num_bottlenecks:\
+    \ int = 2    # 每个 kernel 探索 M 个方向\n    max_beam_rounds: int = 5    # beam search\
+    \ 最大轮次</code></pre>\n\n<p><strong>Step 2：新增 <code>BeamSearchOptimizeAdapter</code>\
+    \ in execution.py</strong></p>\n\n<p>复用现有 <code>SupervisedOptimizeAdapter</code>\
+    \ 作为单 worker 适配器，在外层包装 beam search 逻辑：</p>\n\n<pre><code>class BeamSearchOptimizeAdapter:\n\
+    \    def __init__(self, runner, artifacts_manager, config: BeamSearchConfig):\n\
+    \        self._single_adapter = SupervisedOptimizeAdapter(runner, ...)\n     \
+    \   self._beam: list[tuple[Path, float]] = []  # (round_dir, time_ms)\n\n    def\
+    \ run_round(self, request: AgentRequest) -> GateResult:\n        \"\"\"并行启动 N×M\
+    \ 个 worker，汇总后 gate\"\"\"\n        candidates = self._select_candidates()\n  \
+    \      results = parallel_map(self._run_single_worker, candidates,\n         \
+    \                      device_affinity=self._assign_devices)\n        self._update_beam(results)\n\
+    \        return self._gate_check()\n\n    def _run_single_worker(self, candidate:\
+    \ BeamCandidate) -> WorkerResult:\n        \"\"\"每个 worker 在自己的 opt-round-N-worker-M/\
+    \ 目录下运行\"\"\"\n        worker_request = replace(request,\n            workdir=request.workdir\
+    \ / f\"opt-round-{candidate.round}-worker-{candidate.worker_id}\",\n         \
+    \   optimize_role=\"worker\",\n            bottleneck_hint=candidate.bottleneck_id,\n\
+    \        )\n        return self._single_adapter.run_worker(worker_request)</code></pre>\n\
+    \n<p><strong>Step 3：设备亲和性调度</strong></p>\n\n<p>利用现有 <code>npu_affinity.py</code>\
+    \ 和 <code>TRITON_AGENT_BATCH_NPU_DEVICES</code>：</p>\n\n<ul>\n<li>2×2 beam search\
+    \ = 4 个并发 worker，需要 4 个 NPU 设备</li>\n<li>每个 worker 绑定独立设备，避免 profiling 互相干扰</li>\n\
+    <li>如果设备不足 N×M，降级为轮询分批执行</li>\n</ul>\n\n<p><strong>Step 4：瓶颈多样性（bottleneck_id\
+    \ 映射）</strong></p>\n\n<p>triton-agent 的瓶颈分析是通过 skill 指令让 code agent 自主完成的，没有 KernelAgent\
+    \ 的 <code>BottleneckAnalyzer</code> 返回排序列表。需要调整 <code>triton-npu-optimize</code>\
+    \ skill，让 code agent 在分析阶段输出多个候选方向：</p>\n\n<pre><code>## bottleneck analysis（扩展）\n\
+    \nAfter profiling, list the top M candidate bottleneck directions in priority\
+    \ order.\nWrite them to `opt-round-N/bottleneck_candidates.json`:\n[\n  {\"rank\"\
+    : 1, \"category\": \"memory\", \"root_cause\": \"...\", \"recommended_fix\": \"\
+    ...\"},\n  {\"rank\": 2, \"category\": \"compute\", \"root_cause\": \"...\", \"\
+    recommended_fix\": \"...\"}\n]\n</code></pre>\n\n<p>CLI 侧 beam search adapter\
+    \ 解析这个 JSON，把 rank=1 分给 worker-1，rank=2 分给 worker-2。</p>\n\n<p><strong>Step 5：Merge\
+    \ & Gate</strong></p>\n\n<p>每轮结束后，扫描所有 worker 的 benchmark 结果，按性能排序，保留 top-K 进入下一轮。Gate\
+    \ 逻辑增加 beam search 特有的条件：</p>\n\n<ul>\n<li>top-1 kernel 达到 roofline → <code>PASS_STOP</code></li>\n\
+    <li>beam 中所有 kernel 连续两轮无改进 → <code>PASS_STOP</code></li>\n<li>否则 → <code>PASS_CONTINUE</code></li>\n\
+    </ul>\n\n<p><strong>改动量估算</strong>：新增 ~200 行 Python（BeamSearchOptimizeAdapter\
+    \ + BeamSearchConfig + merge/gate 逻辑）+ 并行调度 ~50 行 + skill 指令扩展 ~40 行 + bottleneck_candidates.json\
+    \ 契约。</p>\n\n<h2>实施优先级和风险</h2>\n\n<h3>为什么不先做 Beam Search？</h3>\n\n<p>Beam Search\
+    \ 的正确性依赖一个好的终止条件。没有 Roofline，beam search 要么跑满 max_rounds（浪费算力），要么凭感觉停（不可靠）。Roofline\
+    \ 是 Beam Search 的前提——先有\"何时停\"的答案，再谈\"如何并行探索\"。</p>\n\n<h3>风险点</h3>\n\n<ul>\n\
+    <li><strong>Ascend msprof 的 SOL 指标</strong>：NCU 直接提供 <code>pct_of_peak_sustained_elapsed</code>\
+    \ 指标，Ascend msprof 需要确认是否有等效指标。如果没有，需要从 raw counters 反算（achieved_flops / peak_flops）。</li>\n\
+    <li><strong>Code Agent 的不确定性</strong>：KernelAgent 直接调 LLM API，结果相对可控。triton-agent\
+    \ 依赖 code agent（Codex/OpenCode）做实际优化，beam search 的 N×M 个 worker 各自启动一次完整的 agent\
+    \ session——token 消耗和 latency 都会显著增加。</li>\n<li><strong>设备资源竞争</strong>：在单卡环境（只有\
+    \ 1 个 Ascend NPU），beam search 的并行无法真正并行。需要 fallback 到串行批次执行。</li>\n</ul>\n\n<h2>总结</h2>\n\
+    \n<p>两个能力的导入路径清晰：</p>\n\n<ul>\n<li><strong>P0 Roofline</strong>：新增 skill 指令 +\
+    \ 硬件 spec 卡 + CLI 侧 roofline check 函数，改动量 ~150 行，不改变 round 目录契约</li>\n<li><strong>P1\
+    \ Beam Search</strong>：新增 BeamSearchOptimizeAdapter + 设备亲和性调度 + 瓶颈方向多样性输出，改动量\
+    \ ~300 行，复用现有 supervised loop 架构</li>\n</ul>\n\n<p>两者的共同前提是：让 triton-agent 的 optimize\
+    \ 循环从\"纯 code agent 自主决策\"转向\"CLI 编排 + 数据驱动 gate\"。这不是削弱 code agent 的能力，而是给它提供更精确的航向信息——就像给一个优秀的程序员配上性能\
+    \ profiler 和明确的优化目标。</p>\n\n<h2>相关仓库</h2>\n\n<ul>\n<li><a href=\"https://github.com/meta-pytorch/KernelAgent\"\
+    \ target=\"_blank\">meta-pytorch/KernelAgent</a> — GPU Kernel 自主生成与优化</li>\n<li><a\
+    \ href=\"https://gitcode.com/midwinter1993/triton-agent\" target=\"_blank\">midwinter1993/triton-agent</a>\
+    \ — Ascend NPU Triton 算子优化 CLI</li>\n</ul>"
 - title: 'Agent Buddy Bridge: Physical Button Approval System for AI Agents'
   date: May 01, 2026
-  excerpt: Building a "hardware kill switch" for AI Agent dangerous commands using M5StickC Plus — a BLE-based physical button approval system built on Hermes hooks and dual-process architecture.
-  content: |
-      <p>In the AI Agent space, approval of dangerous commands has always been a dilemma: fully autonomous execution is risky, while manual approval is tedious. The Agent Buddy Bridge project offers a hardware-level solution — using the physical button on an M5StickC Plus dev board as a "hardware kill switch" for dangerous commands.</p>
-
-      <h2>Motivation</h2>
-
-      <p>Once you grant an AI Agent shell execution privileges, the attack surface expands instantly. <code>rm -rf /data</code>, <code>DROP TABLE users</code> — these commands can cause catastrophic damage with a moment's inattention.</p>
-
-      <p>Existing approval mechanisms (Telegram's <code>/approve</code>, terminal interactive confirmation) share a common weakness: <strong>they depend on the same device's UI interaction</strong>. If you step away from your computer, the Agent blocks indefinitely or times out and auto-denies. A physical button provides an independent, air-gapped approval channel — press it anywhere, and the Agent unblocks immediately.</p>
-
-      <h2>Technical Architecture</h2>
-
-      <h3>Overall Architecture</h3>
-
-      <pre>
-      M5StickC Plus (BLE Peripheral)
-          ↕ BLE NUS (Nordic UART Service)
-      BLECentral (bleak / macOS CoreBluetooth)
-          ↓ JSON over BLE
-      HTTPServer (:8765)
-          ↑ POST /buddy/state (Hermes → Bridge, from pre_approval_request hook)
-          ↓ POST /internal/approve (Bridge → Hermes, on button press)
-          ↓
-      Approval Relay (:8766) → resolve_gateway_approval(session_key, choice)
-          ↑
-          Hermes tools/approval.py
-      </pre>
-
-      <h3>Approval Flow</h3>
-
-      <pre>
-      Dangerous command detected (e.g. rm -rf /data)
-          │
-          ▼
-      tools/approval.py: prompt_dangerous_approval()
-          │
-          ├─→ 🔔 pre_approval_request hook
-          │       → Plugin receives {command, session_key, surface="gateway"}
-          │       → BuddyPlatformAdapter pushes to Bridge (:8765)
-          │       → BLE → M5StickC screen shows approval prompt
-          │
-          ├─→ 📱 Telegram notification (simultaneous)
-          │       "⚠️ Dangerous command: rm -rf /data
-          │        Reply /approve, /always, or /cancel"
-          │
-          └─→ ⏸️ Agent thread blocks (threading.Event.wait)
-                  │
-          ┌───────┴───────┐
-          ▼               ▼
-       M5StickC button   Telegram /approve
-       (BLE notify)      (slash command)
-          │               │
-          ▼               ▼
-       Approval Relay    gateway._handle_approve_command()
-          │               │
-          └───────┬───────┘
-                  ▼
-       resolve_gateway_approval(session_key, "once")
-                  │
-                  ▼
-          event.set() → Agent unblocked
-                  │
-                  ▼
-          🔔 post_approval_response hook
-              → Clean up M5StickC screen
-              → Command executes
-      </pre>
-
-      <p><strong>Dual-channel approval, first-come-first-served.</strong> Users can approve from Telegram (at desk) or via the M5StickC button (away from desk). When both arrive simultaneously, the first one wins; the other returns 0 (idempotent).</p>
-
-      <h2>Core Technical Details</h2>
-
-      <h3>1. pre_approval_request Hook — Push Mechanism for Approval Requests</h3>
-
-      <p>This is a key capability introduced in Hermes v0.12.0 (PR #16776). When the Agent encounters a dangerous command, approval.py fires the <code>pre_approval_request</code> hook with the following payload:</p>
-
-      <ul>
-        <li><code>command</code> — the command text pending approval</li>
-        <li><code>session_key</code> — current session identifier (used for approval callback)</li>
-        <li><code>pattern_key</code> — command pattern matching key</li>
-        <li><code>surface</code> — trigger source ("gateway" / "cli")</li>
-      </ul>
-
-      <p>This hook solves the biggest gap in the previous approach: <strong>how does the M5StickC know when Hermes is waiting for approval?</strong> Now the hook pushes proactively — no polling needed.</p>
-
-      <h3>2. post_approval_response Hook — Cleanup Mechanism for Approval Results</h3>
-
-      <p>After approval completes (whether via button or Telegram), the hook callback carries a <code>choice</code> field ("once" / "always" / "deny" / "timeout"). The Plugin can use this to clean up the M5StickC screen, record audit logs, etc.</p>
-
-      <h3>3. platform_registry — Pluggable Platform Adapters</h3>
-
-      <p>Hermes's built-in <code>platform_registry</code> allows plugins to register custom platform adapters (see the IRC/Teams plugins for reference). BuddyPlatformAdapter is registered as a Hermes "platform" through this mechanism — no core code modifications required.</p>
-
-      <h3>4. Approval Relay — HTTP-to-Python Function Bridge</h3>
-
-      <p>Button press events travel via BLE → HTTP Server (:8765) → Approval Relay (:8766) → Hermes. <code>resolve_gateway_approval()</code> is a Python function, not an HTTP endpoint, so a Relay process is needed to bridge the gap. The Relay uses Hermes's venv Python (because it needs <code>from tools.approval import resolve_gateway_approval</code>).</p>
-
-      <h2>Dual-Process Design</h2>
-
-      <table>
-        <thead>
-          <tr><th>Process</th><th>Python</th><th>Port</th><th>Role</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><strong>BuddyBridge</strong></td><td>/usr/bin/python3 (system)</td><td>8765</td><td>BLE Central + HTTP Server</td></tr>
-          <tr><td><strong>Approval Relay</strong></td><td>Hermes venv Python</td><td>8766</td><td>Calls resolve_gateway_approval()</td></tr>
-        </tbody>
-      </table>
-
-      <p><strong>Why two Python environments?</strong></p>
-
-      <ul>
-        <li><code>bleak</code> requires system Python with pyobjc (CoreBluetooth) support</li>
-        <li><code>resolve_gateway_approval()</code> requires Hermes venv to import tools.approval</li>
-      </ul>
-
-      <p>The two processes communicate via HTTP (localhost) and are independent — either one crashing doesn't affect the other.</p>
-
-      <h2>Hermes Interface Dependencies (v0.12.0)</h2>
-
-      <table>
-        <thead>
-          <tr><th>#</th><th>Capability</th><th>Status</th><th>PR</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>1</td><td>pre_approval_request hook</td><td>✅ Merged</td><td>#16776</td></tr>
-          <tr><td>2</td><td>post_approval_response hook</td><td>✅ Merged</td><td>#16776</td></tr>
-          <tr><td>3</td><td>platform_registry plugin registration</td><td>✅ Built-in</td><td>—</td></tr>
-          <tr><td>4</td><td>resolve_gateway_approval()</td><td>✅ Always available</td><td>—</td></tr>
-          <tr><td>5</td><td>Approval wake on session cleanup</td><td>✅ Merged</td><td>#18171</td></tr>
-          <tr><td>6</td><td>pre_tool_call approve directive</td><td>❌ Open</td><td>#11816</td></tr>
-        </tbody>
-      </table>
-
-      <p>PR #11816 is the only unmerged item — it would allow plugin-whitelisted commands to auto-approve without triggering the approval flow. <strong>This does not affect the physical button approval chain</strong> — the hook + Relay path handles button approvals independently.</p>
-
-      <h2>Installation and Usage</h2>
-
-      <h3>Prerequisites</h3>
-
-      <ul>
-        <li>macOS (CoreBluetooth for BLE)</li>
-        <li>System Python 3.9+ with pyobjc</li>
-        <li>Hermes Agent v0.12.0+ installed at ~/.hermes/</li>
-        <li>M5StickC Plus flashed with Claude Desktop Buddy firmware (BLE broadcast name: Claude-XXXX)</li>
-        <li>Python packages: bleak, aiohttp</li>
-      </ul>
-
-      <h3>Installation Steps</h3>
-
-      <pre>
-      # 1. Clone the project
-      cd ~/code
-      git clone https://github.com/harryfan1985/agent-buddy-bridge.git
-      cd agent-buddy-bridge
-
-      # 2. Install dependencies
-      /usr/bin/pip3 install bleak aiohttp
-
-      # 3. Create plugin symlink
-      ln -s ~/code/agent-buddy-bridge/hermes_plugin ~/.hermes/plugins/buddy-bridge
-      </pre>
-
-      <h3>Configure Hermes</h3>
-
-      <p>Add to <code>~/.hermes/config.yaml</code>:</p>
-
-      <pre>
-      gateway:
-        platforms:
-          buddy:
-            enabled: true
-            extra:
-              bridge_url: "http://localhost:8765"
-
-      plugins:
-        enabled:
-          - buddy-bridge
-      </pre>
-
-      <h3>Start the Services</h3>
-
-      <p>Terminal 1 — BuddyBridge (BLE + HTTP):</p>
-      <pre>
-      cd ~/code/agent-buddy-bridge
-      /usr/bin/python3 -m hermes_buddy_bridge.main     --http-port 8765 --relay-url http://localhost:8766
-      </pre>
-
-      <p>Terminal 2 — Approval Relay:</p>
-      <pre>
-      cd ~/code/agent-buddy-bridge
-      ~/.hermes/hermes-agent/venv/bin/python     -m hermes_buddy_bridge.approval_relay     --hermes-home ~/.hermes --port 8766
-      </pre>
-
-      <p>After starting both processes, restart the Hermes Gateway: <code>hermes gateway restart</code></p>
-
-      <h3>Verification</h3>
-
-      <pre>
-      # Health checks
-      curl -s http://localhost:8765/health
-      curl -s http://localhost:8766/health
-
-      # BLE device connection status
-      curl -s http://localhost:8765/buddy/status
-      # → {"connected": true, "device_name": "Claude-0C1E"}
-
-      # Approval path test (idempotent — returns resolved=0 when nothing pending)
-      curl -s -X POST http://localhost:8765/internal/approve   -H "Content-Type: application/json"   -d '{"session_key":"test","choice":"once"}'
-      # → {"status": "ok", "via": "approval-relay", "resolved": 0}
-      </pre>
-
-      <h2>Project Status and TODO</h2>
-
-      <p><strong>The core approval chain is fully operational.</strong> Remaining work is prioritized as follows:</p>
-
-      <ul>
-        <li><strong>P1</strong> — Adapt BuddyPlatformAdapter to the pre_approval_request hook (currently based on legacy architecture)</li>
-        <li><strong>P2</strong> — End-to-end integration testing (trigger real dangerous command → M5StickC display → button approval → Agent unblocked)</li>
-        <li><strong>P3</strong> — Await PR #11816 merge (whitelist auto-approve for known-safe commands, UX optimization)</li>
-      </ul>
-
-      <h2>Project Links</h2>
-
-      <ul>
-        <li>GitHub: <a href="https://github.com/harryfan1985/agent-buddy-bridge">harryfan1985/agent-buddy-bridge</a></li>
-        <li>Hermes Agent: <a href="https://github.com/NousResearch/hermes-agent">NousResearch/hermes-agent</a></li>
-        <li>M5StickC Plus: <a href="https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit">M5Stack Official</a></li>
-      </ul>
-
-      <hr>
-
-      <p><em>This article is based on Hermes Agent v0.12.0 and agent-buddy-bridge v1.0.0. Reviewed: May 1, 2026.</em></p>
+  excerpt: Building a "hardware kill switch" for AI Agent dangerous commands using
+    M5StickC Plus — a BLE-based physical button approval system built on Hermes hooks
+    and dual-process architecture.
+  content: "<p>In the AI Agent space, approval of dangerous commands has always been\
+    \ a dilemma: fully autonomous execution is risky, while manual approval is tedious.\
+    \ The Agent Buddy Bridge project offers a hardware-level solution — using the\
+    \ physical button on an M5StickC Plus dev board as a \"hardware kill switch\"\
+    \ for dangerous commands.</p>\n\n<h2>Motivation</h2>\n\n<p>Once you grant an AI\
+    \ Agent shell execution privileges, the attack surface expands instantly. <code>rm\
+    \ -rf /data</code>, <code>DROP TABLE users</code> — these commands can cause catastrophic\
+    \ damage with a moment's inattention.</p>\n\n<p>Existing approval mechanisms (Telegram's\
+    \ <code>/approve</code>, terminal interactive confirmation) share a common weakness:\
+    \ <strong>they depend on the same device's UI interaction</strong>. If you step\
+    \ away from your computer, the Agent blocks indefinitely or times out and auto-denies.\
+    \ A physical button provides an independent, air-gapped approval channel — press\
+    \ it anywhere, and the Agent unblocks immediately.</p>\n\n<h2>Technical Architecture</h2>\n\
+    \n<h3>Overall Architecture</h3>\n\n<pre>\nM5StickC Plus (BLE Peripheral)\n   \
+    \ ↕ BLE NUS (Nordic UART Service)\nBLECentral (bleak / macOS CoreBluetooth)\n\
+    \    ↓ JSON over BLE\nHTTPServer (:8765)\n    ↑ POST /buddy/state (Hermes → Bridge,\
+    \ from pre_approval_request hook)\n    ↓ POST /internal/approve (Bridge → Hermes,\
+    \ on button press)\n    ↓\nApproval Relay (:8766) → resolve_gateway_approval(session_key,\
+    \ choice)\n    ↑\n    Hermes tools/approval.py\n</pre>\n\n<h3>Approval Flow</h3>\n\
+    \n<pre>\nDangerous command detected (e.g. rm -rf /data)\n    │\n    ▼\ntools/approval.py:\
+    \ prompt_dangerous_approval()\n    │\n    ├─→ \U0001F514 pre_approval_request\
+    \ hook\n    │       → Plugin receives {command, session_key, surface=\"gateway\"\
+    }\n    │       → BuddyPlatformAdapter pushes to Bridge (:8765)\n    │       →\
+    \ BLE → M5StickC screen shows approval prompt\n    │\n    ├─→ \U0001F4F1 Telegram\
+    \ notification (simultaneous)\n    │       \"⚠️ Dangerous command: rm -rf /data\n\
+    \    │        Reply /approve, /always, or /cancel\"\n    │\n    └─→ ⏸️ Agent thread\
+    \ blocks (threading.Event.wait)\n            │\n    ┌───────┴───────┐\n    ▼ \
+    \              ▼\n M5StickC button   Telegram /approve\n (BLE notify)      (slash\
+    \ command)\n    │               │\n    ▼               ▼\n Approval Relay    gateway._handle_approve_command()\n\
+    \    │               │\n    └───────┬───────┘\n            ▼\n resolve_gateway_approval(session_key,\
+    \ \"once\")\n            │\n            ▼\n    event.set() → Agent unblocked\n\
+    \            │\n            ▼\n    \U0001F514 post_approval_response hook\n  \
+    \      → Clean up M5StickC screen\n        → Command executes\n</pre>\n\n<p><strong>Dual-channel\
+    \ approval, first-come-first-served.</strong> Users can approve from Telegram\
+    \ (at desk) or via the M5StickC button (away from desk). When both arrive simultaneously,\
+    \ the first one wins; the other returns 0 (idempotent).</p>\n\n<h2>Core Technical\
+    \ Details</h2>\n\n<h3>1. pre_approval_request Hook — Push Mechanism for Approval\
+    \ Requests</h3>\n\n<p>This is a key capability introduced in Hermes v0.12.0 (PR\
+    \ #16776). When the Agent encounters a dangerous command, approval.py fires the\
+    \ <code>pre_approval_request</code> hook with the following payload:</p>\n\n<ul>\n\
+    \  <li><code>command</code> — the command text pending approval</li>\n  <li><code>session_key</code>\
+    \ — current session identifier (used for approval callback)</li>\n  <li><code>pattern_key</code>\
+    \ — command pattern matching key</li>\n  <li><code>surface</code> — trigger source\
+    \ (\"gateway\" / \"cli\")</li>\n</ul>\n\n<p>This hook solves the biggest gap in\
+    \ the previous approach: <strong>how does the M5StickC know when Hermes is waiting\
+    \ for approval?</strong> Now the hook pushes proactively — no polling needed.</p>\n\
+    \n<h3>2. post_approval_response Hook — Cleanup Mechanism for Approval Results</h3>\n\
+    \n<p>After approval completes (whether via button or Telegram), the hook callback\
+    \ carries a <code>choice</code> field (\"once\" / \"always\" / \"deny\" / \"timeout\"\
+    ). The Plugin can use this to clean up the M5StickC screen, record audit logs,\
+    \ etc.</p>\n\n<h3>3. platform_registry — Pluggable Platform Adapters</h3>\n\n\
+    <p>Hermes's built-in <code>platform_registry</code> allows plugins to register\
+    \ custom platform adapters (see the IRC/Teams plugins for reference). BuddyPlatformAdapter\
+    \ is registered as a Hermes \"platform\" through this mechanism — no core code\
+    \ modifications required.</p>\n\n<h3>4. Approval Relay — HTTP-to-Python Function\
+    \ Bridge</h3>\n\n<p>Button press events travel via BLE → HTTP Server (:8765) →\
+    \ Approval Relay (:8766) → Hermes. <code>resolve_gateway_approval()</code> is\
+    \ a Python function, not an HTTP endpoint, so a Relay process is needed to bridge\
+    \ the gap. The Relay uses Hermes's venv Python (because it needs <code>from tools.approval\
+    \ import resolve_gateway_approval</code>).</p>\n\n<h2>Dual-Process Design</h2>\n\
+    \n<table>\n  <thead>\n    <tr><th>Process</th><th>Python</th><th>Port</th><th>Role</th></tr>\n\
+    \  </thead>\n  <tbody>\n    <tr><td><strong>BuddyBridge</strong></td><td>/usr/bin/python3\
+    \ (system)</td><td>8765</td><td>BLE Central + HTTP Server</td></tr>\n    <tr><td><strong>Approval\
+    \ Relay</strong></td><td>Hermes venv Python</td><td>8766</td><td>Calls resolve_gateway_approval()</td></tr>\n\
+    \  </tbody>\n</table>\n\n<p><strong>Why two Python environments?</strong></p>\n\
+    \n<ul>\n  <li><code>bleak</code> requires system Python with pyobjc (CoreBluetooth)\
+    \ support</li>\n  <li><code>resolve_gateway_approval()</code> requires Hermes\
+    \ venv to import tools.approval</li>\n</ul>\n\n<p>The two processes communicate\
+    \ via HTTP (localhost) and are independent — either one crashing doesn't affect\
+    \ the other.</p>\n\n<h2>Hermes Interface Dependencies (v0.12.0)</h2>\n\n<table>\n\
+    \  <thead>\n    <tr><th>#</th><th>Capability</th><th>Status</th><th>PR</th></tr>\n\
+    \  </thead>\n  <tbody>\n    <tr><td>1</td><td>pre_approval_request hook</td><td>✅\
+    \ Merged</td><td>#16776</td></tr>\n    <tr><td>2</td><td>post_approval_response\
+    \ hook</td><td>✅ Merged</td><td>#16776</td></tr>\n    <tr><td>3</td><td>platform_registry\
+    \ plugin registration</td><td>✅ Built-in</td><td>—</td></tr>\n    <tr><td>4</td><td>resolve_gateway_approval()</td><td>✅\
+    \ Always available</td><td>—</td></tr>\n    <tr><td>5</td><td>Approval wake on\
+    \ session cleanup</td><td>✅ Merged</td><td>#18171</td></tr>\n    <tr><td>6</td><td>pre_tool_call\
+    \ approve directive</td><td>❌ Open</td><td>#11816</td></tr>\n  </tbody>\n</table>\n\
+    \n<p>PR #11816 is the only unmerged item — it would allow plugin-whitelisted commands\
+    \ to auto-approve without triggering the approval flow. <strong>This does not\
+    \ affect the physical button approval chain</strong> — the hook + Relay path handles\
+    \ button approvals independently.</p>\n\n<h2>Installation and Usage</h2>\n\n<h3>Prerequisites</h3>\n\
+    \n<ul>\n  <li>macOS (CoreBluetooth for BLE)</li>\n  <li>System Python 3.9+ with\
+    \ pyobjc</li>\n  <li>Hermes Agent v0.12.0+ installed at ~/.hermes/</li>\n  <li>M5StickC\
+    \ Plus flashed with Claude Desktop Buddy firmware (BLE broadcast name: Claude-XXXX)</li>\n\
+    \  <li>Python packages: bleak, aiohttp</li>\n</ul>\n\n<h3>Installation Steps</h3>\n\
+    \n<pre>\n# 1. Clone the project\ncd ~/code\ngit clone https://github.com/harryfan1985/agent-buddy-bridge.git\n\
+    cd agent-buddy-bridge\n\n# 2. Install dependencies\n/usr/bin/pip3 install bleak\
+    \ aiohttp\n\n# 3. Create plugin symlink\nln -s ~/code/agent-buddy-bridge/hermes_plugin\
+    \ ~/.hermes/plugins/buddy-bridge\n</pre>\n\n<h3>Configure Hermes</h3>\n\n<p>Add\
+    \ to <code>~/.hermes/config.yaml</code>:</p>\n\n<pre>\ngateway:\n  platforms:\n\
+    \    buddy:\n      enabled: true\n      extra:\n        bridge_url: \"http://localhost:8765\"\
+    \n\nplugins:\n  enabled:\n    - buddy-bridge\n</pre>\n\n<h3>Start the Services</h3>\n\
+    \n<p>Terminal 1 — BuddyBridge (BLE + HTTP):</p>\n<pre>\ncd ~/code/agent-buddy-bridge\n\
+    /usr/bin/python3 -m hermes_buddy_bridge.main     --http-port 8765 --relay-url\
+    \ http://localhost:8766\n</pre>\n\n<p>Terminal 2 — Approval Relay:</p>\n<pre>\n\
+    cd ~/code/agent-buddy-bridge\n~/.hermes/hermes-agent/venv/bin/python     -m hermes_buddy_bridge.approval_relay\
+    \     --hermes-home ~/.hermes --port 8766\n</pre>\n\n<p>After starting both processes,\
+    \ restart the Hermes Gateway: <code>hermes gateway restart</code></p>\n\n<h3>Verification</h3>\n\
+    \n<pre>\n# Health checks\ncurl -s http://localhost:8765/health\ncurl -s http://localhost:8766/health\n\
+    \n# BLE device connection status\ncurl -s http://localhost:8765/buddy/status\n\
+    # → {\"connected\": true, \"device_name\": \"Claude-0C1E\"}\n\n# Approval path\
+    \ test (idempotent — returns resolved=0 when nothing pending)\ncurl -s -X POST\
+    \ http://localhost:8765/internal/approve   -H \"Content-Type: application/json\"\
+    \   -d '{\"session_key\":\"test\",\"choice\":\"once\"}'\n# → {\"status\": \"ok\"\
+    , \"via\": \"approval-relay\", \"resolved\": 0}\n</pre>\n\n<h2>Project Status\
+    \ and TODO</h2>\n\n<p><strong>The core approval chain is fully operational.</strong>\
+    \ Remaining work is prioritized as follows:</p>\n\n<ul>\n  <li><strong>P1</strong>\
+    \ — Adapt BuddyPlatformAdapter to the pre_approval_request hook (currently based\
+    \ on legacy architecture)</li>\n  <li><strong>P2</strong> — End-to-end integration\
+    \ testing (trigger real dangerous command → M5StickC display → button approval\
+    \ → Agent unblocked)</li>\n  <li><strong>P3</strong> — Await PR #11816 merge (whitelist\
+    \ auto-approve for known-safe commands, UX optimization)</li>\n</ul>\n\n<h2>Project\
+    \ Links</h2>\n\n<ul>\n  <li>GitHub: <a href=\"https://github.com/harryfan1985/agent-buddy-bridge\"\
+    >harryfan1985/agent-buddy-bridge</a></li>\n  <li>Hermes Agent: <a href=\"https://github.com/NousResearch/hermes-agent\"\
+    >NousResearch/hermes-agent</a></li>\n  <li>M5StickC Plus: <a href=\"https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit\"\
+    >M5Stack Official</a></li>\n</ul>\n\n<hr>\n\n<p><em>This article is based on Hermes\
+    \ Agent v0.12.0 and agent-buddy-bridge v1.0.0. Reviewed: May 1, 2026.</em></p>\n"
 - title: Ascend Triton 技术栈全景图：华为昇腾 NPU 的 Triton 编译器生态
   date: May 1, 2026
   excerpt: 深入解析华为 Ascend NPU 上的 Triton 技术栈全景：Triton-Ascend、triton-ascend-ops、AscendNPU-IR
@@ -563,238 +633,91 @@ posts:
 - title: 'Agent Buddy Bridge: M5StickC Plus 物理按钮审批系统'
   date: May 01, 2026
   excerpt: 用 M5StickC Plus 开发板构建 AI Agent 危险命令的"硬件开关"——基于 BLE、Hermes hook 系统和双进程架构的物理按钮审批方案。
-  content: |
-      <p>在 AI Agent 领域，安全审批一直是个两难问题：全自动执行有风险，全手动审批太繁琐。Agent Buddy Bridge 项目给出了一种硬件级别的解决方案——用 M5StickC Plus 开发板的物理按钮来做危险命令的"硬件开关"。</p>
-
-      <h2>项目动机</h2>
-
-      <p>当你赋予 AI Agent shell 执行权限后，攻击面瞬间扩大。<code>rm -rf /data</code>、<code>DROP TABLE users</code>——这些命令只需要一瞬间的疏忽就可能造成灾难性后果。</p>
-
-      <p>现有的审批方案（Telegram 的 <code>/approve</code>、终端交互确认）都有共同的弱点：<strong>依赖同一个设备的 UI 交互</strong>。如果你离开电脑，Agent 就会一直阻塞等待，或者超时自动拒绝。物理按钮提供了一个独立的、硬隔离的审批通道——你可以在任何地方按下按钮，Agent 立即解除阻塞。</p>
-
-      <h2>技术架构</h2>
-
-      <h3>整体架构</h3>
-
-      <pre>
-      M5StickC Plus (BLE Peripheral)
-          ↕ BLE NUS (Nordic UART Service)
-      BLECentral (bleak / macOS CoreBluetooth)
-          ↓ JSON over BLE
-      HTTPServer (:8765)
-          ↑ POST /buddy/state (Hermes → Bridge, 来自 pre_approval_request hook)
-          ↓ POST /internal/approve (Bridge → Hermes, 按钮按下时)
-          ↓
-      Approval Relay (:8766) → resolve_gateway_approval(session_key, choice)
-          ↑
-          Hermes tools/approval.py
-      </pre>
-
-      <h3>审批流程</h3>
-
-      <pre>
-      危险命令检测 (如 rm -rf /data)
-          │
-          ▼
-      tools/approval.py: prompt_dangerous_approval()
-          │
-          ├─→ 🔔 pre_approval_request hook
-          │       → Plugin 收到 {command, session_key, surface="gateway"}
-          │       → BuddyPlatformAdapter 推送到 Bridge (:8765)
-          │       → BLE → M5StickC 屏幕显示审批提示
-          │
-          ├─→ 📱 Telegram 通知 (同步触发)
-          │       "⚠️ Dangerous command: rm -rf /data
-          │        Reply /approve, /always, or /cancel"
-          │
-          └─→ ⏸️ Agent 线程阻塞 (threading.Event.wait)
-                  │
-          ┌───────┴───────┐
-          ▼               ▼
-       M5StickC 按钮      Telegram /approve
-       (BLE 通知)         (slash command)
-          │               │
-          ▼               ▼
-       Approval Relay     gateway._handle_approve_command()
-          │               │
-          └───────┬───────┘
-                  ▼
-       resolve_gateway_approval(session_key, "once")
-                  │
-                  ▼
-          event.set() → Agent 解除阻塞
-                  │
-                  ▼
-          🔔 post_approval_response hook
-              → 清理 M5StickC 屏幕
-              → 命令继续执行
-      </pre>
-
-      <p><strong>双通道审批，先到先得。</strong>用户可以在电脑前用 Telegram 审批，也可以在离开电脑时按 M5StickC 按钮。两者同时到达时，先到先得，另一个幂等返回 0。</p>
-
-      <h2>核心技术要点</h2>
-
-      <h3>1. pre_approval_request hook — 审批请求的推送机制</h3>
-
-      <p>这是 Hermes v0.12.0 引入的关键能力（PR #16776）。当 Agent 执行到危险命令时，approval.py 会触发 <code>pre_approval_request</code> hook，回调携带：</p>
-
-      <ul>
-        <li><code>command</code> — 待审批的命令文本</li>
-        <li><code>session_key</code> — 当前会话标识（用于后续审批回传）</li>
-        <li><code>pattern_key</code> — 命令模式匹配键</li>
-        <li><code>surface</code> — 触发来源（"gateway" / "cli"）</li>
-      </ul>
-
-      <p>这个 hook 解决了之前方案中最大的断点：<strong>M5StickC 如何知道 Hermes 何时在等待审批？</strong>现在 hook 会主动推送，不需要轮询。</p>
-
-      <h3>2. post_approval_response hook — 审批结果的清理机制</h3>
-
-      <p>审批完成后（不管是通过按钮还是 Telegram），hook 回调携带 <code>choice</code> 字段（"once" / "always" / "deny" / "timeout"），Plugin 可以据此清理 M5StickC 屏幕、记录审计日志等。</p>
-
-      <h3>3. platform_registry — 插件化平台适配器</h3>
-
-      <p>Hermes 内置的 <code>platform_registry</code> 允许插件注册自定义平台适配器（参考 IRC/Teams 插件的实现）。BuddyPlatformAdapter 通过这个机制被注册为 Hermes 的一个"平台"，而不需要修改 Hermes 核心代码。</p>
-
-      <h3>4. Approval Relay — HTTP 到 Python 函数的桥接</h3>
-
-      <p>按钮按下事件通过 BLE → HTTP Server (:8765) → Approval Relay (:8766) 到达 Hermes。<code>resolve_gateway_approval()</code> 是 Python 函数而非 HTTP 端点，所以需要一个 Relay 进程来做桥接。Relay 使用 Hermes venv 的 Python（因为它需要 <code>from tools.approval import resolve_gateway_approval</code>）。</p>
-
-      <h2>双进程设计</h2>
-
-      <table>
-        <thead>
-          <tr><th>进程</th><th>Python</th><th>端口</th><th>职责</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><strong>BuddyBridge</strong></td><td>/usr/bin/python3 (系统)</td><td>8765</td><td>BLE Central + HTTP Server</td></tr>
-          <tr><td><strong>Approval Relay</strong></td><td>Hermes venv Python</td><td>8766</td><td>调用 resolve_gateway_approval()</td></tr>
-        </tbody>
-      </table>
-
-      <p><strong>为什么需要两个 Python 环境？</strong></p>
-
-      <ul>
-        <li><code>bleak</code> 需要系统 Python 的 pyobjc (CoreBluetooth) 支持</li>
-        <li><code>resolve_gateway_approval()</code> 需要 Hermes venv 才能导入 tools.approval</li>
-      </ul>
-
-      <p>两个进程通过 HTTP 通信（localhost），互相独立，任何一个崩溃不影响另一个。</p>
-
-      <h2>依赖的 Hermes 接口 (v0.12.0)</h2>
-
-      <table>
-        <thead>
-          <tr><th>#</th><th>能力</th><th>状态</th><th>PR</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>1</td><td>pre_approval_request hook</td><td>✅ 已合并</td><td>#16776</td></tr>
-          <tr><td>2</td><td>post_approval_response hook</td><td>✅ 已合并</td><td>#16776</td></tr>
-          <tr><td>3</td><td>platform_registry 插件注册</td><td>✅ 内置</td><td>—</td></tr>
-          <tr><td>4</td><td>resolve_gateway_approval()</td><td>✅ 一直可用</td><td>—</td></tr>
-          <tr><td>5</td><td>Session 清理时唤醒阻塞审批</td><td>✅ 已合并</td><td>#18171</td></tr>
-          <tr><td>6</td><td>pre_tool_call approve 指令</td><td>❌ 未合并</td><td>#11816</td></tr>
-        </tbody>
-      </table>
-
-      <p>PR #11816 是唯一的未合并项，它允许插件白名单命令自动放行（不触发审批）。<strong>这不影响物理按钮审批的核心链路</strong>——hook + Relay 路径独立处理按钮审批。</p>
-
-      <h2>安装和使用</h2>
-
-      <h3>前置依赖</h3>
-
-      <ul>
-        <li>macOS（CoreBluetooth 用于 BLE）</li>
-        <li>系统 Python 3.9+ 带 pyobjc</li>
-        <li>Hermes Agent v0.12.0+ 安装在 ~/.hermes/</li>
-        <li>M5StickC Plus，烧录了 Claude Desktop Buddy 固件（BLE 广播名为 Claude-XXXX）</li>
-        <li>Python 包：bleak, aiohttp</li>
-      </ul>
-
-      <h3>安装步骤</h3>
-
-      <pre>
-      # 1. 克隆项目
-      cd ~/code
-      git clone https://github.com/harryfan1985/agent-buddy-bridge.git
-      cd agent-buddy-bridge
-
-      # 2. 安装依赖
-      /usr/bin/pip3 install bleak aiohttp
-
-      # 3. 创建插件软链接
-      ln -s ~/code/agent-buddy-bridge/hermes_plugin ~/.hermes/plugins/buddy-bridge
-      </pre>
-
-      <h3>配置 Hermes</h3>
-
-      <p>在 <code>~/.hermes/config.yaml</code> 中添加：</p>
-
-      <pre>
-      gateway:
-        platforms:
-          buddy:
-            enabled: true
-            extra:
-              bridge_url: "http://localhost:8765"
-
-      plugins:
-        enabled:
-          - buddy-bridge
-      </pre>
-
-      <h3>启动服务</h3>
-
-      <p>终端 1 — BuddyBridge（BLE + HTTP）：</p>
-      <pre>
-      cd ~/code/agent-buddy-bridge
-      /usr/bin/python3 -m hermes_buddy_bridge.main     --http-port 8765 --relay-url http://localhost:8766
-      </pre>
-
-      <p>终端 2 — Approval Relay：</p>
-      <pre>
-      cd ~/code/agent-buddy-bridge
-      ~/.hermes/hermes-agent/venv/bin/python     -m hermes_buddy_bridge.approval_relay     --hermes-home ~/.hermes --port 8766
-      </pre>
-
-      <p>启动后重启 Hermes Gateway：<code>hermes gateway restart</code></p>
-
-      <h3>验证</h3>
-
-      <pre>
-      # 健康检查
-      curl -s http://localhost:8765/health
-      curl -s http://localhost:8766/health
-
-      # BLE 设备连接状态
-      curl -s http://localhost:8765/buddy/status
-      # → {"connected": true, "device_name": "Claude-0C1E"}
-
-      # 审批路径测试（幂等，无 pending 时返回 resolved=0）
-      curl -s -X POST http://localhost:8765/internal/approve   -H "Content-Type: application/json"   -d '{"session_key":"test","choice":"once"}'
-      # → {"status": "ok", "via": "approval-relay", "resolved": 0}
-      </pre>
-
-      <h2>项目状态和 TODO</h2>
-
-      <p><strong>核心审批链路已打通。</strong>目前余下工作分为三个优先级：</p>
-
-      <ul>
-        <li><strong>P1</strong> — BuddyPlatformAdapter 适配 pre_approval_request hook（目前基于旧架构实现）</li>
-        <li><strong>P2</strong> — 端到端集成测试（触发真实危险命令 → M5StickC 显示 → 按钮审批 → Agent 解除阻塞）</li>
-        <li><strong>P3</strong> — 等待 PR #11816 合并（白名单命令自动放行，UX 优化）</li>
-      </ul>
-
-      <h2>项目链接</h2>
-
-      <ul>
-        <li>GitHub：<a href="https://github.com/harryfan1985/agent-buddy-bridge">harryfan1985/agent-buddy-bridge</a></li>
-        <li>Hermes Agent：<a href="https://github.com/NousResearch/hermes-agent">NousResearch/hermes-agent</a></li>
-        <li>M5StickC Plus 开发板：<a href="https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit">M5Stack 官方</a></li>
-      </ul>
-
-      <hr>
-
-      <p><em>本文基于 Hermes Agent v0.12.0 和 agent-buddy-bridge v1.0.0。检查日期：2026-05-01。</em></p>
+  content: "<p>在 AI Agent 领域，安全审批一直是个两难问题：全自动执行有风险，全手动审批太繁琐。Agent Buddy Bridge 项目给出了一种硬件级别的解决方案——用\
+    \ M5StickC Plus 开发板的物理按钮来做危险命令的\"硬件开关\"。</p>\n\n<h2>项目动机</h2>\n\n<p>当你赋予 AI Agent\
+    \ shell 执行权限后，攻击面瞬间扩大。<code>rm -rf /data</code>、<code>DROP TABLE users</code>——这些命令只需要一瞬间的疏忽就可能造成灾难性后果。</p>\n\
+    \n<p>现有的审批方案（Telegram 的 <code>/approve</code>、终端交互确认）都有共同的弱点：<strong>依赖同一个设备的\
+    \ UI 交互</strong>。如果你离开电脑，Agent 就会一直阻塞等待，或者超时自动拒绝。物理按钮提供了一个独立的、硬隔离的审批通道——你可以在任何地方按下按钮，Agent\
+    \ 立即解除阻塞。</p>\n\n<h2>技术架构</h2>\n\n<h3>整体架构</h3>\n\n<pre>\nM5StickC Plus (BLE Peripheral)\n\
+    \    ↕ BLE NUS (Nordic UART Service)\nBLECentral (bleak / macOS CoreBluetooth)\n\
+    \    ↓ JSON over BLE\nHTTPServer (:8765)\n    ↑ POST /buddy/state (Hermes → Bridge,\
+    \ 来自 pre_approval_request hook)\n    ↓ POST /internal/approve (Bridge → Hermes,\
+    \ 按钮按下时)\n    ↓\nApproval Relay (:8766) → resolve_gateway_approval(session_key,\
+    \ choice)\n    ↑\n    Hermes tools/approval.py\n</pre>\n\n<h3>审批流程</h3>\n\n<pre>\n\
+    危险命令检测 (如 rm -rf /data)\n    │\n    ▼\ntools/approval.py: prompt_dangerous_approval()\n\
+    \    │\n    ├─→ \U0001F514 pre_approval_request hook\n    │       → Plugin 收到\
+    \ {command, session_key, surface=\"gateway\"}\n    │       → BuddyPlatformAdapter\
+    \ 推送到 Bridge (:8765)\n    │       → BLE → M5StickC 屏幕显示审批提示\n    │\n    ├─→ \U0001F4F1\
+    \ Telegram 通知 (同步触发)\n    │       \"⚠️ Dangerous command: rm -rf /data\n    │\
+    \        Reply /approve, /always, or /cancel\"\n    │\n    └─→ ⏸️ Agent 线程阻塞 (threading.Event.wait)\n\
+    \            │\n    ┌───────┴───────┐\n    ▼               ▼\n M5StickC 按钮   \
+    \   Telegram /approve\n (BLE 通知)         (slash command)\n    │              \
+    \ │\n    ▼               ▼\n Approval Relay     gateway._handle_approve_command()\n\
+    \    │               │\n    └───────┬───────┘\n            ▼\n resolve_gateway_approval(session_key,\
+    \ \"once\")\n            │\n            ▼\n    event.set() → Agent 解除阻塞\n    \
+    \        │\n            ▼\n    \U0001F514 post_approval_response hook\n      \
+    \  → 清理 M5StickC 屏幕\n        → 命令继续执行\n</pre>\n\n<p><strong>双通道审批，先到先得。</strong>用户可以在电脑前用\
+    \ Telegram 审批，也可以在离开电脑时按 M5StickC 按钮。两者同时到达时，先到先得，另一个幂等返回 0。</p>\n\n<h2>核心技术要点</h2>\n\
+    \n<h3>1. pre_approval_request hook — 审批请求的推送机制</h3>\n\n<p>这是 Hermes v0.12.0 引入的关键能力（PR\
+    \ #16776）。当 Agent 执行到危险命令时，approval.py 会触发 <code>pre_approval_request</code> hook，回调携带：</p>\n\
+    \n<ul>\n  <li><code>command</code> — 待审批的命令文本</li>\n  <li><code>session_key</code>\
+    \ — 当前会话标识（用于后续审批回传）</li>\n  <li><code>pattern_key</code> — 命令模式匹配键</li>\n  <li><code>surface</code>\
+    \ — 触发来源（\"gateway\" / \"cli\"）</li>\n</ul>\n\n<p>这个 hook 解决了之前方案中最大的断点：<strong>M5StickC\
+    \ 如何知道 Hermes 何时在等待审批？</strong>现在 hook 会主动推送，不需要轮询。</p>\n\n<h3>2. post_approval_response\
+    \ hook — 审批结果的清理机制</h3>\n\n<p>审批完成后（不管是通过按钮还是 Telegram），hook 回调携带 <code>choice</code>\
+    \ 字段（\"once\" / \"always\" / \"deny\" / \"timeout\"），Plugin 可以据此清理 M5StickC 屏幕、记录审计日志等。</p>\n\
+    \n<h3>3. platform_registry — 插件化平台适配器</h3>\n\n<p>Hermes 内置的 <code>platform_registry</code>\
+    \ 允许插件注册自定义平台适配器（参考 IRC/Teams 插件的实现）。BuddyPlatformAdapter 通过这个机制被注册为 Hermes 的一个\"\
+    平台\"，而不需要修改 Hermes 核心代码。</p>\n\n<h3>4. Approval Relay — HTTP 到 Python 函数的桥接</h3>\n\
+    \n<p>按钮按下事件通过 BLE → HTTP Server (:8765) → Approval Relay (:8766) 到达 Hermes。<code>resolve_gateway_approval()</code>\
+    \ 是 Python 函数而非 HTTP 端点，所以需要一个 Relay 进程来做桥接。Relay 使用 Hermes venv 的 Python（因为它需要\
+    \ <code>from tools.approval import resolve_gateway_approval</code>）。</p>\n\n<h2>双进程设计</h2>\n\
+    \n<table>\n  <thead>\n    <tr><th>进程</th><th>Python</th><th>端口</th><th>职责</th></tr>\n\
+    \  </thead>\n  <tbody>\n    <tr><td><strong>BuddyBridge</strong></td><td>/usr/bin/python3\
+    \ (系统)</td><td>8765</td><td>BLE Central + HTTP Server</td></tr>\n    <tr><td><strong>Approval\
+    \ Relay</strong></td><td>Hermes venv Python</td><td>8766</td><td>调用 resolve_gateway_approval()</td></tr>\n\
+    \  </tbody>\n</table>\n\n<p><strong>为什么需要两个 Python 环境？</strong></p>\n\n<ul>\n\
+    \  <li><code>bleak</code> 需要系统 Python 的 pyobjc (CoreBluetooth) 支持</li>\n  <li><code>resolve_gateway_approval()</code>\
+    \ 需要 Hermes venv 才能导入 tools.approval</li>\n</ul>\n\n<p>两个进程通过 HTTP 通信（localhost），互相独立，任何一个崩溃不影响另一个。</p>\n\
+    \n<h2>依赖的 Hermes 接口 (v0.12.0)</h2>\n\n<table>\n  <thead>\n    <tr><th>#</th><th>能力</th><th>状态</th><th>PR</th></tr>\n\
+    \  </thead>\n  <tbody>\n    <tr><td>1</td><td>pre_approval_request hook</td><td>✅\
+    \ 已合并</td><td>#16776</td></tr>\n    <tr><td>2</td><td>post_approval_response hook</td><td>✅\
+    \ 已合并</td><td>#16776</td></tr>\n    <tr><td>3</td><td>platform_registry 插件注册</td><td>✅\
+    \ 内置</td><td>—</td></tr>\n    <tr><td>4</td><td>resolve_gateway_approval()</td><td>✅\
+    \ 一直可用</td><td>—</td></tr>\n    <tr><td>5</td><td>Session 清理时唤醒阻塞审批</td><td>✅\
+    \ 已合并</td><td>#18171</td></tr>\n    <tr><td>6</td><td>pre_tool_call approve 指令</td><td>❌\
+    \ 未合并</td><td>#11816</td></tr>\n  </tbody>\n</table>\n\n<p>PR #11816 是唯一的未合并项，它允许插件白名单命令自动放行（不触发审批）。<strong>这不影响物理按钮审批的核心链路</strong>——hook\
+    \ + Relay 路径独立处理按钮审批。</p>\n\n<h2>安装和使用</h2>\n\n<h3>前置依赖</h3>\n\n<ul>\n  <li>macOS（CoreBluetooth\
+    \ 用于 BLE）</li>\n  <li>系统 Python 3.9+ 带 pyobjc</li>\n  <li>Hermes Agent v0.12.0+\
+    \ 安装在 ~/.hermes/</li>\n  <li>M5StickC Plus，烧录了 Claude Desktop Buddy 固件（BLE 广播名为\
+    \ Claude-XXXX）</li>\n  <li>Python 包：bleak, aiohttp</li>\n</ul>\n\n<h3>安装步骤</h3>\n\
+    \n<pre>\n# 1. 克隆项目\ncd ~/code\ngit clone https://github.com/harryfan1985/agent-buddy-bridge.git\n\
+    cd agent-buddy-bridge\n\n# 2. 安装依赖\n/usr/bin/pip3 install bleak aiohttp\n\n# 3.\
+    \ 创建插件软链接\nln -s ~/code/agent-buddy-bridge/hermes_plugin ~/.hermes/plugins/buddy-bridge\n\
+    </pre>\n\n<h3>配置 Hermes</h3>\n\n<p>在 <code>~/.hermes/config.yaml</code> 中添加：</p>\n\
+    \n<pre>\ngateway:\n  platforms:\n    buddy:\n      enabled: true\n      extra:\n\
+    \        bridge_url: \"http://localhost:8765\"\n\nplugins:\n  enabled:\n    -\
+    \ buddy-bridge\n</pre>\n\n<h3>启动服务</h3>\n\n<p>终端 1 — BuddyBridge（BLE + HTTP）：</p>\n\
+    <pre>\ncd ~/code/agent-buddy-bridge\n/usr/bin/python3 -m hermes_buddy_bridge.main\
+    \     --http-port 8765 --relay-url http://localhost:8766\n</pre>\n\n<p>终端 2 —\
+    \ Approval Relay：</p>\n<pre>\ncd ~/code/agent-buddy-bridge\n~/.hermes/hermes-agent/venv/bin/python\
+    \     -m hermes_buddy_bridge.approval_relay     --hermes-home ~/.hermes --port\
+    \ 8766\n</pre>\n\n<p>启动后重启 Hermes Gateway：<code>hermes gateway restart</code></p>\n\
+    \n<h3>验证</h3>\n\n<pre>\n# 健康检查\ncurl -s http://localhost:8765/health\ncurl -s\
+    \ http://localhost:8766/health\n\n# BLE 设备连接状态\ncurl -s http://localhost:8765/buddy/status\n\
+    # → {\"connected\": true, \"device_name\": \"Claude-0C1E\"}\n\n# 审批路径测试（幂等，无 pending\
+    \ 时返回 resolved=0）\ncurl -s -X POST http://localhost:8765/internal/approve   -H\
+    \ \"Content-Type: application/json\"   -d '{\"session_key\":\"test\",\"choice\"\
+    :\"once\"}'\n# → {\"status\": \"ok\", \"via\": \"approval-relay\", \"resolved\"\
+    : 0}\n</pre>\n\n<h2>项目状态和 TODO</h2>\n\n<p><strong>核心审批链路已打通。</strong>目前余下工作分为三个优先级：</p>\n\
+    \n<ul>\n  <li><strong>P1</strong> — BuddyPlatformAdapter 适配 pre_approval_request\
+    \ hook（目前基于旧架构实现）</li>\n  <li><strong>P2</strong> — 端到端集成测试（触发真实危险命令 → M5StickC\
+    \ 显示 → 按钮审批 → Agent 解除阻塞）</li>\n  <li><strong>P3</strong> — 等待 PR #11816 合并（白名单命令自动放行，UX\
+    \ 优化）</li>\n</ul>\n\n<h2>项目链接</h2>\n\n<ul>\n  <li>GitHub：<a href=\"https://github.com/harryfan1985/agent-buddy-bridge\"\
+    >harryfan1985/agent-buddy-bridge</a></li>\n  <li>Hermes Agent：<a href=\"https://github.com/NousResearch/hermes-agent\"\
+    >NousResearch/hermes-agent</a></li>\n  <li>M5StickC Plus 开发板：<a href=\"https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit\"\
+    >M5Stack 官方</a></li>\n</ul>\n\n<hr>\n\n<p><em>本文基于 Hermes Agent v0.12.0 和 agent-buddy-bridge\
+    \ v1.0.0。检查日期：2026-05-01。</em></p>\n"
 - title: 'Triton-Agent: 基于 AI Agent 的昇腾 NPU 算子自动化开发工具链'
   date: April 30, 2026
   excerpt: 深度分析 triton-agent 项目，解析其基于 AI Agent 的自动化算子测试、迁移与性能优化全流程，以及详细的硬件和工具链依赖清单。
