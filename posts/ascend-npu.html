@@ -38,7 +38,7 @@
             <div class="content"><p>本文为昇腾NPU全栈开发的完整成长路径，覆盖99%的昇腾开发场景，适合有Python/C++基础、了解AI开发流程的开发者学习。</p>
 
 <h2>总览：4个成长阶段 + 4个角色路径</h2>
-<pre><code class="language-mermaid">
+<div class="mermaid">
 graph LR
 A[入门期<br>2周] --> B[应用开发期<br>1-2个月] --> C[进阶开发期<br>2-3个月] --> D[全栈精通期<br>6个月+]
 style A fill:#f9f,stroke:#333
@@ -50,7 +50,7 @@ E[应用开发工程师]
 F[算子开发工程师]
 G[大模型训练工程师]
 H[全栈架构师]
-</code></pre>
+</div>
 <p>注：学习时间为有Python/C++基础、了解AI开发流程的开发者参考值。</p>
 
 <h2>第一阶段：入门期（2周）</h2>
@@ -234,5 +234,13 @@ H[全栈架构师]
         }, { passive: true });
     })();
     </script>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
 </body>
 </html>
