@@ -138,8 +138,8 @@ def generate_post(post):
         .replace("{post.date}", post["date"])
         .replace("{post.excerpt}", excerpt_clean)
         .replace("{post.content}", content_body)
-        .replace('href="/', 'href="../')
-        .replace('src="/', 'src="../')
+        .replace('href="/', 'href="https://harryfan1985.github.io/agent_blog/')
+        .replace('src="/', 'src="https://harryfan1985.github.io/agent_blog/')
         .replace("</body>", mermaid_script + "</body>"))
 
 
