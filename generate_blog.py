@@ -111,15 +111,36 @@ def generate_post(post):
     template = Path(__file__).parent / "templates" / "post.html"
     content = open(template).read()
     excerpt_clean = re.sub(r'<[^>]+>', '', post.get("excerpt", ""))[:160]
+    # Convert Mermaid code blocks to Mermaid divs
+    content_body = post["content"].replace(
+        '<pre><code class="language-mermaid">', '<div class="mermaid">').replace(
+        '</code></pre>', '</div>')
+    
+    # Add Mermaid.js support
+    if 'class="mermaid"' in content_body:
+        mermaid_script = '''
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
+'''
+    else:
+        mermaid_script = ''
+        content_body = post["content"]
+
     return (content
         .replace("{title}", post["title"])
         .replace("{site_name}", "Agent Blog")
         .replace("{post.title}", post["title"])
         .replace("{post.date}", post["date"])
         .replace("{post.excerpt}", excerpt_clean)
-        .replace("{post.content}", post["content"])
+        .replace("{post.content}", content_body)
         .replace('href="/', 'href="../')
-        .replace('src="/', 'src="../'))
+        .replace('src="/', 'src="../')
+        .replace("</body>", mermaid_script + "</body>"))
 
 
 def generate_static_files():
