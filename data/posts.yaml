@@ -4,7 +4,7 @@ posts:
   excerpt: 本文详细介绍了如何将 ComfyUI 与 Flux.2 Klein 9B GGUF 模型集成到 Hermes Agent 工作流中，实现本地端到端的文本到图像生成。
   content: "<p>本文详细介绍了如何将 ComfyUI 与 Flux.2 Klein 9B GGUF 模型集成到 Hermes Agent 工作流中，实现本地端到端的文本到图像生成。</p>\n\
     \n<h2>架构概览</h2>\n<p>这套工作流运行在 Apple M4 Pro 48 GB 统一内存环境下，完全本地化，不依赖任何外部 API：</p>\n\
-    \n<img src=\"images/hermes-comfyui-architecture/arch-diagram.png\" alt=\"Hermes\
+    \n<img src=\"/images/hermes-comfyui-architecture/arch-diagram.png\" alt=\"Hermes\
     \ + ComfyUI 集成架构图\" style=\"max-width: 100%; border-radius: 8px; margin: 16px\
     \ 0;\">\n\n<h2>关键组成部分</h2>\n<ul>\n    <li><strong>Hermes Agent：</strong>使用 qwen3.6-plus\
     \ 主模型，加载 comfyui skill 处理图像生成请求</li>\n    <li><strong>ComfyUI Server：</strong>本地运行\
