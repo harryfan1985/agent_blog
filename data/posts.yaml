@@ -1,4 +1,150 @@
 posts:
+- title: "GraSP 论文深度分析：图结构技能编排 — Agent Skill 管理的范式转移"
+  date: May 7, 2026
+  excerpt: "腾讯最新论文 GraSP 提出图结构技能编排架构，将扁平 skill 集合编译为 typed DAG，实现局部修复 O(d^h) 而非全局重试 O(N)。本文深度分析其四阶段架构、实验数据和设计启示。"
+  content: "
+    <p>LLM Agent 的 Skill 生态已经快速发展，但最近的大规模基准测试揭示了一个反直觉的发现：<strong>给 Agent 提供更多 skill 并不会单调地提升性能</strong>。2-3 个聚焦的 skill 带来的增益最大，4 个以上就开始边际递减，完整文档库甚至会造成伤害。瓶颈已经从 skill <em>availability</em>（可用性）转移到了 skill <em>orchestration</em>（编排）。</p>\n\
+    \n\
+    <p>腾讯在 arXiv 2604.17870 上发表的 <strong>GraSP（Graph-Structured Skill Compositions）</strong> 正是针对这个问题的第一个可执行的 skill 图架构。本文对它进行深度技术分析。</p>\n\
+    \n\
+    <h2>核心洞察</h2>\n\
+    \n\
+    <p>GraSP 的核心论点是：Agent 需要的不是更多的 skill，而是一个 <strong>结构化的选择/组合/执行机制</strong>，并包含显式的因果依赖关系。为此，GraSP 在 skill 检索和执行之间引入了一层 <strong>编译层（Compilation Layer）</strong>，将扁平的 skill 集合编译成带类型的 DAG（有向无环图）。</p>\n\
+    \n\
+    <p>传统的扁平 skill 执行（ReAct + Skills）将 skill 视为顺序链，任何失败都会以 O(N) 代价使整个后缀失效。GraSP 的 DAG 结构将失败传播限制在 O(d^h) 的局部子图中——典型场景下 d≈2, h=2，意味着无论任务多长，修复范围始终在 4-5 个节点内。</p>\n\
+    \n\
+    <h2>四阶段架构</h2>\n\
+    \n\
+    <h3>Stage 1: Memory-Conditioned Retrieval</h3>\n\
+    \n\
+    <p>不同于纯语义匹配（仅靠任务描述匹配 skill 名称），GraSP 融合了<strong>情景记忆（Episodic Experience）</strong>：</p>\n\
+    \n\
+    <pre><code>p(s|q,x,R) = λ·p_dir(s|q,x) + (1-λ)·(1/Z)·Σ(ρ_j · freq(s, τ_ij))</code></pre>\n\
+    \n\
+    <p>其中 p_dir 是直接语义分布，ρ_j 是历史相似记忆的归一化相似度，freq(s, τ_ij) 是技能在成功轨迹中的出现频率。同时计算一个校准后的 <strong>retrieval confidence</strong> c_ret，使用四个特征：平均记忆相似度、分布一致性、top-skill 边距、目标覆盖率。当 c_ret < τ_low 时，系统回退到 ReAct。</p>\n\
+    \n\
+    <h3>Stage 2: DAG Compilation（核心创新）</h3>\n\
+    \n\
+    <p>检索到的 skill 集合是扁平的，丢失了依赖信息。编译阶段将它们重组为 <strong>typed DAG</strong>，每个 skill 节点携带 8 个属性：</p>\n\
+    \n\
+    <pre><code>a(v) = ⟨κ_v, θ_v, φ_v_pre, φ_v_eff, ν_v, ζ_v, c_v, b_v⟩\n\
+           schema  args   precond   postcond  verifier status conf  budget</code></pre>\n\
+    \n\
+    <p>三种边类型编码不同的依赖语义：</p>\n\
+    \n\
+    <ul>\n\
+    <li><strong>state 边</strong> (u → v)：u 的 effect 满足 v 的 precondition（如\"拿锅\"→\"加热\"，必须先有锅）</li>\n\
+    <li><strong>data 边</strong> (u → v)：u 产出 v 需要的数据（如\"查找温度\"→\"设置温度\"）</li>\n\
+    <li><strong>order 边</strong> (u → v)：u 必须在 v 之前执行（如\"清洗\"→\"切割\"）</li>\n\
+    </ul>\n\
+    \n\
+    <p>扁平序列只是 GraSP 的特例（仅有 order 边）。DAG 结构带来了三个关键优势：<strong>表达能力</strong>（并行分支 + 类型化依赖）、<strong>有界失败传播</strong>、<strong>受控数量</strong>（编译阶段自动剪枝冗余 skill）。</p>\n\
+    \n\
+    <h3>Stage 3: Verified Execution + Local Repair</h3>\n\
+    \n\
+    <p>执行时逐节点做 pre/postcondition verification：</p>\n\
+    \n\
+    <ol>\n\
+    <li>检查 x_t ⊧ φ_v_pre（当前状态满足前置条件？）</li>\n\
+    <li>执行 skill v</li>\n\
+    <li>检查 ν_v(x_t, x_{t+1})（后置条件验证）</li>\n\
+    <li>全部通过 → 标记 verified，继续下一个 ready 节点</li>\n\
+    </ol>\n\
+    \n\
+    <p>失败时，系统生成一个 failure event ε = ⟨v, τ_ε, m_ε, x_t⟩，其中 τ_ε 分类失败类型（precondition/execution/postcondition/timeout）。然后调用 <strong>5 种类型化局部修复算子</strong>：</p>\n\
+    \n\
+    <table style=\"width:100%; border-collapse: collapse;\">\n\
+    <tr style=\"background: #333;\"><th style=\"padding: 8px; border: 1px solid #555;\">算子</th><th style=\"padding: 8px; border: 1px solid #555;\">操作</th><th style=\"padding: 8px; border: 1px solid #555;\">适用场景</th></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\"><strong>Rebind</strong></td><td style=\"padding: 8px; border: 1px solid #555;\">更新失败节点参数</td><td style=\"padding: 8px; border: 1px solid #555;\">skill 对但参数错</td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\"><strong>InsertPrereq</strong></td><td style=\"padding: 8px; border: 1px solid #555;\">插入缺失前置条件子图</td><td style=\"padding: 8px; border: 1px solid #555;\">缺前置步骤</td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\"><strong>Substitute</strong></td><td style=\"padding: 8px; border: 1px solid #555;\">替换 skill schema（保下游兼容）</td><td style=\"padding: 8px; border: 1px solid #555;\">skill 不适用但需同类功能</td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\"><strong>Rewire</strong></td><td style=\"padding: 8px; border: 1px solid #555;\">局部编辑边（增/删/改类型）</td><td style=\"padding: 8px; border: 1px solid #555;\">依赖关系错误</td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\"><strong>Bypass</strong></td><td style=\"padding: 8px; border: 1px solid #555;\">跳过节点（若状态已满足下游需求）</td><td style=\"padding: 8px; border: 1px solid #555;\">冗余步骤</td></tr>\n\
+    </table>\n\
+    \n\
+    <p>修复范围被限制在 h-hop 邻域内（|ΔV| ≤ L_max, |ΔE| ≤ E_max），这是保证 O(d^h) 复杂度的关键。如果局部修复失败，系统升级到全局重规划或 ReAct fallback。</p>\n\
+    \n\
+    <h3>Stage 4: Confidence-Based Routing</h3>\n\
+    \n\
+    <p>不是所有任务都适合结构化执行。GraSP 的三段式路由：</p>\n\
+    \n\
+    <ul>\n\
+    <li><strong>c_ret < τ_low</strong> → 回退到 ReAct（避免不可靠的 skill 执行）</li>\n\
+    <li><strong>c_ret > τ_high</strong> → 完整 DAG + local repair</li>\n\
+    <li><strong>中间值</strong> → 增加 repair budget 作为预防</li>\n\
+    </ul>\n\
+    \n\
+    <p>由于 GraSP 包含 ReAct 作为特例（当所有 skill 置信度低时），这个机制保证了 <strong>no-regression</strong>。</p>\n\
+    \n\
+    <h2>实验数据</h2>\n\
+    \n\
+    <p>GraSP 在 <strong>4 个交互基准测试</strong>（ALFWorld、ScienceWorld、WebShop、InterCode）上使用 <strong>8 个 LLM 后端</strong>（DeepSeek V3.2、GPT-4.1、Claude-4-Sonnet、GLM-5、Gemini 2.5 Pro、o4 Mini、Qwen3-235B、Kimi-K2.5）进行了全面评估。</p>\n\
+    \n\
+    <h3>核心结果：48/48 配置全部最优</h3>\n\
+    \n\
+    <p>GraSP 在所有 48 个 (model, split) 配置中均超越所有 baseline：</p>\n\
+    \n\
+    <ul>\n\
+    <li>平均比 ExpeL 高 <strong>+12.7 分</strong></li>\n\
+    <li>平均比最强 per-cell baseline 高 <strong>+6.9 分</strong></li>\n\
+    <li>比 ReAct 平均少 <strong>~24% environment steps</strong>（最佳情况 -41%）</li>\n\
+    </ul>\n\
+    \n\
+    <p>几个亮点数据：</p>\n\
+    \n\
+    <ul>\n\
+    <li><strong>Gemini 2.5 Pro + ALFWorld seen</strong>：GraSP 91.4 vs ReAct+Skills 76.1（+20.1%）</li>\n\
+    <li><strong>GLM-5 + ALFWorld seen</strong>：GraSP 96.3 vs ReAct+Skills 80.9（+19.0%）</li>\n\
+    <li><strong>Claude-4-Sonnet + ScienceWorld</strong>：GraSP 62.3 vs ReAct+Skills 42.9（+45.2%）</li>\n\
+    </ul>\n\
+    \n\
+    <h3>消融实验</h3>\n\
+    \n\
+    <p>逐组件贡献分析（ALFWorld + DeepSeek V3.2）：</p>\n\
+    \n\
+    <table style=\"width:100%; border-collapse: collapse;\">\n\
+    <tr style=\"background: #333;\"><th style=\"padding: 8px; border: 1px solid #555;\">配置</th><th style=\"padding: 8px; border: 1px solid #555;\">ΔReward</th><th style=\"padding: 8px; border: 1px solid #555;\">占比</th></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\">Experience Memory</td><td style=\"padding: 8px; border: 1px solid #555;\">+1.6</td><td style=\"padding: 8px; border: 1px solid #555;\">19.7%</td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\"><strong>DAG Compilation</strong></td><td style=\"padding: 8px; border: 1px solid #555;\"><strong>+1.9</strong></td><td style=\"padding: 8px; border: 1px solid #555;\"><strong>23.5%</strong></td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\">Local Repair</td><td style=\"padding: 8px; border: 1px solid #555;\">+1.3</td><td style=\"padding: 8px; border: 1px solid #555;\">16.0%</td></tr>\n\
+    <tr><td style=\"padding: 8px; border: 1px solid #555;\">Routing</td><td style=\"padding: 8px; border: 1px solid #555;\">+0.9</td><td style=\"padding: 8px; border: 1px solid #555;\">11.1%</td></tr>\n\
+    </table>\n\
+    \n\
+    <p><strong>DAG Compilation 贡献最大</strong>，因为它既过滤了无关 skill，又将依赖顺序显式化。值得注意的对比：Local Repair（+1.3）vs Global Replan（-2.3 比 GraSP 完整版），确认局部修复远优于全局重规划。</p>\n\
+    \n\
+    <h3>任务复杂度与 GraSP 优势正相关</h3>\n\
+    \n\
+    <p>短任务（≤10 steps）上 GraSP 比 ExpeL 高 ~6%，长任务（≥20 steps）上差距增长到 <strong>~18%</strong>。这直接验证了 O(N) vs O(d^h) 的理论分析：随着链条变长，扁平 agent 的一次中段失败会丢弃所有下游进度，而 GraSP 将损坏局限在受影响的子图。</p>\n\
+    \n\
+    <h2>对 Agent 系统设计的启示</h2>\n\
+    \n\
+    <h3>1. 技能编排 > 技能数量</h3>\n\
+    \n\
+    <p>当前 Agent 框架（包括 Hermes）的 skill 管理侧重点是 skill 本身的增删改查。GraSP 指出下一步是 <strong>skill orchestration</strong>——如何自动选择、排序、组合、容错。这暗示了 Agent 框架需要从 \"skill registry\" 进化到 \"skill compiler\"。</p>\n\
+    \n\
+    <h3>2. DAG 而不是 Chain</h3>\n\
+    \n\
+    <p>大多数 Agent 框架的 skill pipeline 是线性的。实际场景中，有些 skill 可以并行（如同时 web_search + 本地文件读取），有些有前置依赖。GraSP 的 DAG 模型在 <strong>Kanban/Orchestrator</strong> 等多 agent 编排场景中有直接应用价值。</p>\n\
+    \n\
+    <h3>3. 局部修复 vs 全局重试</h3>\n\
+    \n\
+    <p>当前 Agent 系统中 skill 失败通常触发整个流程重试（O(N)）。GraSP 的 O(d^h) 局部修复方案更优雅，特别是对长期任务（如科学实验、多步推理），能显著节省 token 和 latency。</p>\n\
+    \n\
+    <h3>4. Confidence-Based 路由</h3>\n\
+    \n\
+    <p>不是所有任务都需要完整 skill pipeline。GraSP 的思路（低置信度→回退到简单策略）可以引入 Agent 的执行路径选择中，对简单请求直接走轻量路径，复杂任务才激活完整 DAG。</p>\n\
+    \n\
+    <h2>总结</h2>\n\
+    \n\
+    <p>GraSP 是 2026 年上半年在 Agent Skill 管理方向上最重要的论文之一。它的核心贡献不是提出了一种新的 skill 格式或检索方法，而是从根本上重新思考了 <strong>skill 的执行模型</strong>——从扁平的顺序链到编译后的 DAG。这个范式转移对 Agent 框架的设计有深远影响：未来的 Agent 框架可能需要内建一个 \"skill compiler\"，而不仅仅是一个 \"skill registry\"。</p>\n\
+    \n\
+    <p>与其他同期论文的对照：</p>\n\
+    \n\
+    <ul>\n\
+    <li><strong>SkCC（2605.03353）</strong>关注 skill 的跨框架可移植性（编译到不同 Agent 平台），与 GraSP 互补</li>\n\
+    <li><strong>Verifiable Artifacts（2605.00424）</strong>关注 skill 的安全验证（信任 schema），与 GraSP 的节点级验证结合</li>\n\
+    <li><strong>Graph of Skills（2604.05333）</strong>关注大规模 skill 库的检索（依赖感知检索），是 GraSP 的前置模块</li>\n\
+    </ul>"
 - title: Hermes Agent 与 ComfyUI / Flux.2 集成架构
   date: May 05, 2026
   excerpt: 本文详细介绍了如何将 ComfyUI 与 Flux.2 Klein 9B GGUF 模型集成到 Hermes Agent 工作流中，实现本地端到端的文本到图像生成。
