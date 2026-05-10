@@ -1,4 +1,195 @@
 posts:
+- title: "SkillOS 深度分析：RL 训练 8B 模型做技能策展，超越 Gemini-2.5-Pro——Google 最新论文解读"
+  date: "May 10, 2026"
+  excerpt: "Google Cloud AI 联合 UIUC/MIT 发布 SkillOS：通过分组任务流 RL 训练，8B 小模型学会自动 insert/update/delete 技能，在 ALFWorld 上 SR 提升 13.3pp，超越 Gemini-2.5-Pro 零样本策展。Executor-grounded 训练比模型规模更重要。"
+  content: "
+    <p>想象一下：你部署了一个 AI Agent，它今天能解决 100 个任务。一周后，它还是只能解决 100 个任务——因为每次新任务到来，它都从零开始，完全记不住上次是怎么成功的。</p>\n\
+    \n\
+    <p>这正是当前 LLM Agent 的困境。2026 年 5 月 7 日，Google Cloud AI 联合 UIUC 和 MIT 的 16 位研究者发布了 <strong>SkillOS</strong>，首次系统性地证明：<strong>一个 8B 参数的小模型，经过 RL 训练学会\"技能策展\"后，可以超越 Gemini-2.5-Pro 直接做策展的效果</strong>。</p>\n\
+    \n\
+    <p>论文链接：<a href=\"https://arxiv.org/abs/2605.06614\">arXiv:2605.06614</a></p>\n\
+    \n\
+    <h2>问题：Agent 为什么不能\"记住\"经验？</h2>\n\
+    \n\
+    <p>在流式部署场景（streaming setting）中，任务按时间顺序不断到来。一个理想的 Agent 应该：</p>\n\
+    \n\
+    <ol>\n\
+      <li>从每个任务中提炼可复用的经验</li>\n\
+      <li>将经验组织成可检索、可更新的技能库</li>\n\
+      <li>在后续相关任务中利用这些技能提升表现</li>\n\
+    </ol>\n\
+    \n\
+    <p>但现实是，大多数 Agent 是 \"one-off problem solver\"——每次新任务从零开始。为什么？因为<strong>技能策展（Skill Curation）极其困难</strong>：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>人工策展</strong>：Anthropic 维护了高质量的 skills 仓库，但依赖大量专家时间，无法规模化</li>\n\
+      <li><strong>启发式规则</strong>：固定规则（如\"成功则 insert，失败不操作\"）缺乏下游性能反馈，无法适应 executor 的实际需求</li>\n\
+      <li><strong>短期 RL</strong>：现有研究训练 agent 使用技能或优化短期操作，但 <code>update</code> 和 <code>delete</code> 这类复杂操作的回报是延迟的、间接的</li>\n\
+    </ul>\n\
+    \n\
+    <p>核心难点：策展操作（insert/update/delete）本身不产生直接结果——你需要等到<strong>未来相关任务</strong>的表现出来，才能判断上次的策展决策是好是坏。</p>\n\
+    \n\
+    <h2>SkillOS 架构：双组件 + RL 训练</h2>\n\
+    \n\
+    <p>SkillOS 的核心思想简洁而优雅：</p>\n\
+    \n\
+    <pre><code class=\"language-text\">\n\
+    ┌─────────────────┐          ┌──────────────────┐\n\
+    │ Frozen Executor  │  ←──────→│ Trainable Curator │\n\
+    │ (执行任务，不变)   │  Skills  │ (8B, RL训练)      │\n\
+    └────────┬─────────┘          └────────┬─────────┘\n\
+             │ 检索技能                    │ insert/update/delete\n\
+             │                             │\n\
+             ▼                             ▼\n\
+        ┌─────────────────────────────────────┐\n\
+        │  SkillRepo (Markdown 文件，类 OS I/O)  │\n\
+        │  skill_1.md  skill_2.md  ...          │\n\
+        └─────────────────────────────────────┘\n\
+    </code></pre>\n\
+    \n\
+    <h3>组件一：Frozen Agent Executor</h3>\n\
+    \n\
+    <p>Executor 是<strong>冻结的</strong>——完全不参与训练。给定当前任务，它用 BM25 从 SkillRepo 检索相关技能，然后用 ReAct/CoT 执行。执行完成后，产生轨迹（trajectory）传回给 Curator。</p>\n\
+    \n\
+    <h3>组件二：Trainable Skill Curator</h3>\n\
+    \n\
+    <p>Curator 是唯一可训练的部分。它观察 executor 的执行轨迹 + 自评结果，然后通过结构化 function call 操作 SkillRepo：</p>\n\
+    \n\
+    <ul>\n\
+      <li><code>insert_skill</code>：从成功/失败轨迹中提炼新技能</li>\n\
+      <li><code>update_skill</code>：精炼已有技能，合并冲突知识</li>\n\
+      <li><code>delete_skill</code>：移除过时、冗余、有害技能</li>\n\
+    </ul>\n\
+    \n\
+    <p>每个技能遵循 Anthropic 的 SKILL.md 格式——YAML frontmatter（名称 + 使用条件描述）+ Markdown 可执行指令。</p>\n\
+    \n\
+    <h3>训练方式：GRPO + 复合奖励</h3>\n\
+    \n\
+    <p>基于 Qwen3-8B，使用 GRPO（Grouped Reward Policy Optimization）在 16×H100 GPU 上训练，框架为字节跳动的 verl。关键奖励函数：</p>\n\
+    \n\
+    <pre><code class=\"language-text\">r = r_task + r_fc + 0.1·r_cnt + 0.05·r_comp</code></pre>\n\
+    \n\
+    <ul>\n\
+      <li><strong>r_task</strong>：后续任务的平均成功率（从 group 中第 2 个任务开始计，第 1 个用空 SkillRepo 无策展影响）——<em>核心信号，锚定策展对下游的实际价值</em></li>\n\
+      <li><strong>r_fc</strong>：有效函数调用比例——<em>防止生成无效 JSON 或空技能</em></li>\n\
+      <li><strong>r_cnt</strong>：Qwen3-32B 外部评委内容质量评分——<em>训练早期的密集信号</em></li>\n\
+      <li><strong>r_comp</strong>：压缩奖励 = 1 − |SkillRepo|/|input context|——<em>惩罚复制粘贴整条轨迹</em></li>\n\
+    </ul>\n\
+    \n\
+    <h2>创新 1：分组任务流训练（Grouped Task Streams）</h2>\n\
+    \n\
+    <p>这是 SkillOS 最精妙的设计，也是消融实验中<strong>影响最大的组件</strong>（去掉后 SR 从 61.2% 暴跌到 57.3%）。</p>\n\
+    \n\
+    <p>不按随机顺序训练，而是：</p>\n\
+    \n\
+    <ol>\n\
+      <li>用 Gemini-2.5-Pro 为每个任务标注技能相关属性标签</li>\n\
+      <li>基于属性相似度将任务聚合成组</li>\n\
+      <li>每组训练从空的 SkillRepo 开始</li>\n\
+      <li>早期任务的策展决策由后续相关任务验证</li>\n\
+    </ol>\n\
+    \n\
+    <p>这解决了核心难题：<strong>如何把延迟且间接的监督信号转化为有效的学习信号</strong>。在随机任务流中，策展操作的效果被无关后续任务稀释；而在分组流中，策展质量直接体现在后续相关任务的表现上。</p>\n\
+    \n\
+    <h2>创新 2：Executor-Grounded 策展</h2>\n\
+    \n\
+    <p>SkillOS 对比了一个关键实验：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>SkillOS-gemini</strong>：Gemini-2.5-Pro 直接做 curator（零样本策展）</li>\n\
+      <li><strong>SkillOS</strong>：Qwen3-8B RL 训练做 curator</li>\n\
+    </ul>\n\
+    \n\
+    <p>结果：8B 训练的 curator <strong>80.2% SR vs 79.3%</strong>，超过了 Gemini-2.5-Pro。当 executor 是较小的 Qwen3-8B 时差距更大：<strong>61.2% vs 50.7%</strong>。</p>\n\
+    \n\
+    <p><strong>关键洞察</strong>：Gemini 策展出的\"高质量技能\"可能与较小 executor 的使用模式不匹配——过于复杂、跳过 executor 能力范围外的步骤、或包含 executor 无法利用的抽象策略。而 RL 训练的 curator 通过 executor-grounded 反馈，学习生成的技能精确匹配下游 agent 的实际需求。</p>\n\
+    \n\
+    <p>这颠覆了\"用更强模型策展更好\"的直觉——<strong>与 executor 对齐的策展比模型规模更重要</strong>。</p>\n\
+    \n\
+    <h2>完整实验结果</h2>\n\
+    \n\
+    <h3>ALFWorld（多轮 agent 任务）</h3>\n\
+    \n\
+    <table>\n\
+      <tr><th>Executor</th><th>No Memory</th><th>SkillOS</th><th>提升</th></tr>\n\
+      <tr><td>Qwen3-8B</td><td>47.9%</td><td>61.2%</td><td>+13.3pp</td></tr>\n\
+      <tr><td>Qwen3-32B</td><td>54.5%</td><td>68.6%</td><td>+14.1pp</td></tr>\n\
+      <tr><td>Gemini-2.5-Pro</td><td>66.4%</td><td>80.2%</td><td>+13.8pp</td></tr>\n\
+    </table>\n\
+    \n\
+    <p>同时执行步骤减少：21.1 → 18.9（−10.4%）。效率不是靠更多试错换来的——技能让 executor 直接走捷径，绕过冗余探索。</p>\n\
+    \n\
+    <h3>WebShop + 推理任务（AIME24/25, GPQA）</h3>\n\
+    \n\
+    <table>\n\
+      <tr><th>基准</th><th>No Memory</th><th>SkillOS</th><th>提升</th></tr>\n\
+      <tr><td>WebShop SR</td><td>9.8%</td><td>16.5%</td><td>+6.7pp</td></tr>\n\
+      <tr><td>AIME24 Acc</td><td>76.0%</td><td>80.0%</td><td>+4.0pp</td></tr>\n\
+      <tr><td>AIME25 Acc</td><td>71.1%</td><td>76.7%</td><td>+5.6pp</td></tr>\n\
+      <tr><td>GPQA Acc</td><td>61.8%</td><td>64.6%</td><td>+2.8pp</td></tr>\n\
+    </table>\n\
+    \n\
+    <p>agent 任务（ALFWorld/WebShop）的增益普遍大于推理任务——前者暴露更多程序化规律（行动顺序、探索策略、环境约束），后者可复用知识更抽象（分解启发式、验证模式），但 SkillOS 在所有基准上均有提升。</p>\n\
+    \n\
+    <h2>技能的\"自我进化\"</h2>\n\
+    \n\
+    <p>训练过程中策展行为发生了清晰的阶段性转变：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>早期</strong>：insert 占绝对主导——疯狂扩张技能库</li>\n\
+      <li><strong>中期</strong>：update 逐渐增多，insert 下降——从扩张转向精炼</li>\n\
+      <li><strong>后期</strong>：delete 缓慢增长——开始清理低效技能</li>\n\
+    </ul>\n\
+    \n\
+    <p>技能内容也经历了从\"虚胖\"到\"结实\"的演化：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>训练早期</strong>：技能充满空洞的 guidance/tips/recommendations，增加篇幅但不增操作价值</li>\n\
+      <li><strong>训练后期</strong>：涌现出 <strong>failure-handling logic、conditional branches、meta-strategy skills</strong>（验证策略、fallback 规划、系统搜索、策略调整）</li>\n\
+    </ul>\n\
+    \n\
+    <p>技能仓库从任务特定操作集合 → 跨任务控制知识体系。这不是简单的\"存了更多东西\"，而是<strong>技能的组织方式发生了质变</strong>。</p>\n\
+    \n\
+    <h2>跨任务泛化：训练的策展能力可迁移</h2>\n\
+    \n\
+    <p>从推理任务训练的 curator 迁移到 ALFWorld/WebShop 仍有效——因为推理技能提炼了分解、验证、自适应规划等抽象策略。反向迁移较弱——WebShop/ALFWorld 的技能更绑定于环境特定知识。</p>\n\
+    \n\
+    <h2>与 Hermes 的关联</h2>\n\
+    \n\
+    <p>这篇论文与 Hermes Agent 的技能系统高度相关：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>同源格式</strong>：SkillOS 和 Hermes 都遵循 Anthropic SKILL.md（YAML frontmatter + Markdown 指令）</li>\n\
+      <li><strong>当前差距</strong>：Hermes 的 skill 是人工维护的静态资产；SkillOS 证明了可以用 RL 自动学习技能策展</li>\n\
+      <li><strong>可操作的启示</strong>：</li>\n\
+      <ul>\n\
+        <li>复合奖励设计（内容质量 + 压缩 + 下游验证）可直接启发 Hermes skill 质量的自动化评估</li>\n\
+        <li>Grouped Task Streams 思路 → 在关联任务组中评估技能质量，而非单独评测</li>\n\
+        <li>8B 模型超越 Gemini-2.5-Pro → 本地小模型做技能管理的可行性</li>\n\
+        <li>技能演化趋势 → 预期技能从任务特定向 meta-strategic 演化</li>\n\
+      </ul>\n\
+    </ul>\n\
+    \n\
+    <h2>局限与展望</h2>\n\
+    \n\
+    <ul>\n\
+      <li><strong>检索简单</strong>：BM25 未学习检索策略——未来应联合学习检索+策展</li>\n\
+      <li><strong>技能表征简化</strong>：单文件 Markdown vs Anthropic 完整文件夹结构</li>\n\
+      <li><strong>Executor 冻结</strong>：未联合优化 executor + curator</li>\n\
+      <li><strong>训练成本</strong>：3-5 天 × 16×H100</li>\n\
+    </ul>\n\
+    \n\
+    <p>论文提出的未来方向包括：Agentic Search over Experiential Memory（学习检索什么而不仅是策展什么）、层次化/组合式技能、多 Agent 共享记忆。</p>\n\
+    \n\
+    <h2>总结</h2>\n\
+    \n\
+    <p>SkillOS 回答了一个根本问题：<strong>如何让 Agent 自己学会写 SKILL.md？</strong></p>\n\
+    \n\
+    <p>通过分组任务流 + 复合奖励 + executor-grounded 训练，一个 8B 小模型学会了从经验中持续提炼高质量技能——效果超过 Gemini-2.5-Pro 零样本策展，跨 executor 和跨任务均有泛化性。这篇论文为\"自进化 Agent\"提供了一条可操作的、工程化的实现路径，也是 Hermes 技能系统向自动化演进的理论基础。</p>\n\
+    \n\
+    <blockquote>\n\
+      <p>Stronger reasoning ≠ better curation. The curator that understands its executor beats the curator that only understands itself.</p>\n\
+    </blockquote>"
 - title: Graph of Skills 深度分析：基于 PPR 的图结构 Skill 检索——GraSP 的开源参考实现
   date: May 8, 2026
   excerpt: GoS（142⭐）是 Lehigh University 团队开源的结构化 skill 检索框架，通过离线技能图构建 + 在线 PPR 图游走实现精准检索。本文深度拆解其四阶段
