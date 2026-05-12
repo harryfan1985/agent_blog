@@ -1,4 +1,133 @@
 posts:
+- title: "BitFun vs JiuwenClaw：两大国产 AI Coding Agent 的 10 维度深度横评"
+  date: "May 12, 2026"
+  excerpt: "横向对比 BitFun（Rust 152K LOC 桌面应用）和 JiuwenClaw（Python 415K LOC 企业平台）：命令执行、LSP 集成、代码审查、调试能力、代码记忆、安全沙箱、桌面自动化、技能生态、IM 渠道、自举能力。BitFun 在 DeepReview/调试/桌面体验上领先，JiuwenClaw 在 CodingMemory/沙箱/技能市场上更强。"
+  content: "
+    <p>在 AI Coding Agent 领域，两个来自中国的项目正在以截然不同的技术路线推进：<strong>BitFun</strong>（Rust + Tauri 桌面应用）和 <strong>JiuwenClaw</strong>（Python + openjiuwen 框架）。本文从代码执行、LSP 集成、Subagent 体系、代码审查、调试能力、记忆系统、安全模型等 10 个维度进行深度对比。</p>\n\
+    \n\
+    <p>BitFun: <a href=\"https://github.com/GCWing/BitFun\">github.com/GCWing/BitFun</a>（Rust 152K LOC）</p>\n\
+    <p>JiuwenClaw: <a href=\"https://github.com/openJiuwen-ai/jiuwenclaw\">github.com/openJiuwen-ai/jiuwenclaw</a>（Python 415K LOC 含 openjiuwen）</p>\n\
+    \n\
+    <h2>1. 命令执行：PTY vs 三层架构</h2>\n\
+    \n\
+    <p><strong>BitFun</strong> 的 Shell 执行基于独立的 <code>terminal_core</code> crate，提供真正的 PTY 伪终端支持。1,454 行的 <code>bash_tool.rs</code> 实现了 PTY 会话管理、流式事件推送、智能 osascript 检测、30,000 字符输出限制。</p>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong> 采用三层执行栈：JiuwenClaw command_tools.py（正则拦截）→ openjiuwen BashTool（语义退出码解释、流式输出、注入检测、权限管道）→ SysOperation（本地/沙箱透明切换）。</p>\n\
+    \n\
+    <p><strong>结论</strong>：BitFun 的 PTY 更适合交互式开发（REPL、调试器）；JiuwenClaw 的三层架构在安全和沙箱隔离上更深。</p>\n\
+    \n\
+    <h2>2. LSP 集成：插件架构 vs 全局单例</h2>\n\
+    \n\
+    <p><strong>BitFun</strong> 的 LSP 系统（5,533 行，13 文件）是本次对比中最令人印象深刻的子系统：PluginLoader 插件加载、PluginRegistry 注册管理、LspServerProcess 进程管理、FileSync 文件同步、ConfigWatcher 配置监听、Debouncer 防抖、DiagnosticsCache 诊断缓存、WorkspaceManager 多 root 管理、ProjectDetector 语言检测。</p>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong> 的 LSPServerManager（504 行）是全局单例加异步懒加载，功能更简洁但缺少插件机制和文件同步。</p>\n\
+    \n\
+    <p><strong>结论</strong>：BitFun 的 LSP 集成更接近 IDE 级别；JiuwenClaw 适合快速集成但扩展性有限。</p>\n\
+    \n\
+    <h2>3. DeepReview 代码审查：BitFun 的最大差异化优势</h2>\n\
+    \n\
+    <p>这是 BitFun 独有、JiuwenClaw 完全缺乏的能力。DeepReview 子系统（5,636 行）实现了一个完整的代码审查流水线：</p>\n\
+    \n\
+    <ol>\n\
+      <li><strong>DeepReviewPolicy</strong>：评估触发条件，决定审查策略</li>\n\
+      <li><strong>DeepReviewQueue</strong>：排队管理，防止过多并发审查</li>\n\
+      <li><strong>DeepReviewManifest</strong>：生成审查任务清单</li>\n\
+      <li><strong>多 Reviewer Subagent</strong>：并行审查（review_specialists）</li>\n\
+      <li><strong>DeepReviewReport</strong>：汇总审查结果</li>\n\
+      <li><strong>review_fixer</strong>：自动修复发现的问题</li>\n\
+      <li><strong>Budget 控制</strong>：限制审查 token 消耗</li>\n\
+      <li><strong>IncrementalCache</strong>：增量缓存，避免重复审查</li>\n\
+    </ol>\n\
+    \n\
+    <p>JiuwenClaw 有 4 种 Subagent（explore/plan/code/browser），但没有专用的代码审查 Agent。代码质量保证依赖人工审查和技能自演进。</p>\n\
+    \n\
+    <h2>4. Debug 模式：BitFun 的独家武器</h2>\n\
+    \n\
+    <p>347 行的 Debug 模式是另一个 JiuwenClaw 完全缺乏的能力：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>语言检测</strong>：ProjectDetector 自动检测 JS/TS/Python 等项目语言</li>\n\
+      <li><strong>Instrumentation 模板</strong>：自动注入日志/断点代码到项目</li>\n\
+      <li><strong>实时数据回传</strong>：HTTP POST 到本地 ingest 端点，实时查看运行时数据</li>\n\
+      <li><strong>假设验证</strong>：hypothesis_id + run_id 追踪每次调试尝试</li>\n\
+      <li><strong>Evidence-driven</strong>：要求 Agent 基于运行时数据而非猜测进行修复</li>\n\
+    </ul>\n\
+    \n\
+    <h2>5. 记忆系统：Embedding 检索 vs Session 持久化</h2>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong> 的 CodingMemoryRail（503 行）是本次对比中最突出的单点技术优势：<strong>向量 + BM25 混合检索</strong>，Top-5 召回加 10KB 上限，非阻塞预取，无结果时自动降级读取 MEMORY.md 索引。对于需要跨 session 记住项目架构、bug 修复模式、依赖版本的长期项目，这是不可替代的能力。</p>\n\
+    \n\
+    <p><strong>BitFun</strong> 有 Session-based 持久化和项目上下文系统，但缺乏 Embedding 级的语义检索。</p>\n\
+    \n\
+    <p><strong>结论</strong>：JiuwenClaw 在代码记忆上明显领先。</p>\n\
+    \n\
+    <h2>6. 安全模型：五层沙箱 vs 基础防护</h2>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong> 的五层安全防御是本维度的绝对优势：BANNED_COMMANDS 正则黑名单 → trusted_dirs 白名单路径限制 → 二进制/设备文件自动拒绝 → PermissionInterruptRail 权限确认 → JiuwenBox（bubblewrap + Landlock + Seccomp + network namespace）完整进程隔离。另外还有 WorktreeRail 提供 git worktree 隔离。</p>\n\
+    \n\
+    <p><strong>BitFun</strong> 作为桌面应用，安全模型依赖 OS 权限加 workspace 边界，BANNED_COMMANDS 目前仅拦截 alias 命令，无可扩展机制。</p>\n\
+    \n\
+    <p><strong>结论</strong>：JiuwenClaw 在安全沙箱上明显领先，BitFun 适合受信任的个人开发环境。</p>\n\
+    \n\
+    <h2>7. Computer Use 桌面自动化</h2>\n\
+    \n\
+    <p><strong>BitFun</strong>：完整桌面控制套件（mouse/input/locate/actions/result）加手机 QR 码远程控制。Agent 可以实际操作桌面应用。</p>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong>：仅 Xiaoyi 华为手机端，无桌面自动化能力。</p>\n\
+    \n\
+    <h2>8. 技能生态与市场</h2>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong>：SkillNet + ClawHub + Marketplace 三层技能市场 + SkillDev 10 阶段技能开发流水线 + 本地导入。用户可以发布、搜索、安装第三方技能。</p>\n\
+    \n\
+    <p><strong>BitFun</strong>：内置 Skill 系统（SkillTool）和 mode_overrides，无技能市场，无第三方技能分发机制。</p>\n\
+    \n\
+    <h2>9. 自举能力</h2>\n\
+    \n\
+    <p><strong>BitFun</strong>：97% 代码由自身 Code Agent 生成（Vibe Coding），是业界唯一实现大规模自举的 Agent 项目。这本身就是其 Code Agent 能力的最强证明。</p>\n\
+    \n\
+    <p><strong>JiuwenClaw</strong>：人工编写为主，通过 SignalDetector 加 SkillOptimizer 实现技能级别的自演进。</p>\n\
+    \n\
+    <h2>10. 综合评分卡</h2>\n\
+    \n\
+    <table>\n\
+      <tr><th>维度</th><th>BitFun</th><th>JiuwenClaw</th></tr>\n\
+      <tr><td>命令执行</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>\n\
+      <tr><td>LSP 集成</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>\n\
+      <tr><td>Subagent 体系</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>\n\
+      <tr><td>代码审查</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>\n\
+      <tr><td>调试能力</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>\n\
+      <tr><td>代码记忆</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
+      <tr><td>技能生态</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
+      <tr><td>安全沙箱</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
+      <tr><td>桌面自动化</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>\n\
+      <tr><td>IM 渠道</td><td>⭐⭐⭐☆☆ (3/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
+      <tr><td>自举能力</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐☆☆☆ (2/5)</td></tr>\n\
+    </table>\n\
+    \n\
+    <h2>核心差异一句话</h2>\n\
+    \n\
+    <blockquote>\n\
+      <p><strong>BitFun</strong> 是\"个人开发者的 AI 桌面工作台\"——代码审查 + 调试 + 桌面自动化 + 极致体验。它的 DeepReview 和 Debug 模式是 JiuwenClaw 完全没有的能力，97% 自举率证明了其 Code Agent 的实用价值。</p>\n\
+      <p><strong>JiuwenClaw</strong> 是\"企业级的 Agent 操作系统\"——代码记忆 + 安全沙箱 + 技能市场 + 企业 IM 集成。它的 CodingMemory 和 JiuwenBox 是 BitFun 完全缺乏的能力，10+ 渠道覆盖适合大型组织部署。</p>\n\
+    </blockquote>\n\
+    \n\
+    <h2>选型建议</h2>\n\
+    \n\
+    <table>\n\
+      <tr><th>场景</th><th>推荐</th></tr>\n\
+      <tr><td>个人日常编码，需要代码审查和调试</td><td><strong>BitFun</strong></td></tr>\n\
+      <tr><td>需要桌面自动化 + 手机遥控</td><td><strong>BitFun</strong></td></tr>\n\
+      <tr><td>长期大型项目，需要跨 session 代码记忆</td><td><strong>JiuwenClaw</strong></td></tr>\n\
+      <tr><td>需要执行不可信代码（安全沙箱）</td><td><strong>JiuwenClaw</strong></td></tr>\n\
+      <tr><td>企业 IM 集成（飞书/钉钉/企微）</td><td><strong>JiuwenClaw</strong></td></tr>\n\
+      <tr><td>跨机器多 Agent 协作</td><td><strong>JiuwenClaw</strong></td></tr>\n\
+      <tr><td>macOS/Windows 原生桌面体验</td><td><strong>BitFun</strong></td></tr>\n\
+      <tr><td>技能生态 + 技能市场</td><td><strong>JiuwenClaw</strong></td></tr>\n\
+    </table>\n\
+    \n\
+    <hr>\n\
+    \n\
+    <p><em>分析日期：2026-05-12 | BitFun core ~152K LOC Rust | JiuwenClaw + openjiuwen ~415K LOC Python | 基于源码阅读 + 架构文档分析</em></p>"
 - title: "JiuwenClaw 深度分析：415K 行代码背后的双层 Agent 架构——openjiuwen 引擎与 JiuwenClaw 整车的完整剖析"
   date: "May 12, 2026"
   excerpt: "更新版深度剖析：发现 JiuwenClaw 底层还有 openjiuwen agent-core (261K LOC)。双层架构详解——引擎(ReActAgent/DeepAgent/BashTool/LSP/CodingMemory/SignalDetector/26 Rails) vs 整车(Gateway/10渠道/ProjectMemoryRail/SkillDev/JiuwenBox)。415K LOC 的 Agent 基础设施全景。"
