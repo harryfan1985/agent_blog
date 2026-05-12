@@ -1,4 +1,187 @@
 posts:
+- title: "JiuwenClaw 深度分析：154K 行代码背后的 AI Coding Agent 工程哲学"
+  date: "May 12, 2026"
+  excerpt: "深度剖析华为团队出品的 JiuwenClaw 项目：154K 行 Python 构建的全栈 Agent OS，4 种 Subagent 编码体系、LSP 集成、Embedding 代码记忆、5 层安全沙箱、技能自演进闭环。与 Hermes Agent 的全方位对比，揭示两种 AI Coding Agent 工程哲学。"
+  content: "
+    <p>2026 年 5 月，我在做 AI Agent 基础设施调研时偶然发现了 <strong>JiuwenClaw</strong>——一个华为团队出品的 AI Agent 项目，GitHub 上 671 stars，不算特别火，但代码量惊人：<strong>154,000 行 Python</strong>，728 个 commits。点进去一看，这不是一个简单的 LLM wrapper，而是一个全栈 Agent 操作系统。</p>\n\
+    \n\
+    <p>项目地址：<a href=\"https://github.com/openJiuwen-ai/jiuwenclaw\">github.com/openJiuwen-ai/jiuwenclaw</a></p>\n\
+    \n\
+    <h2>一句话定位</h2>\n\
+    \n\
+    <blockquote>\n\
+      <p>JiuwenClaw 不是 LLM + shell = 代码助手，而是一个有状态、有记忆、有安全护栏、有多智能体分工、能自进化的专业代码工程平台。</p>\n\
+    </blockquote>\n\
+    \n\
+    <h2>架构全景：四层金字塔</h2>\n\
+    \n\
+    <p>JiuwenClaw 的架构可以清晰地分为四层：</p>\n\
+    \n\
+    <ol>\n\
+      <li><strong>Channel/接入层</strong>：10+ IM 平台（飞书/钉钉/企微/微信/Telegram/小艺/WhatsApp/Discord）+ Web + TUI + ACP/A2A 协议</li>\n\
+      <li><strong>Gateway/网关层</strong>：消息路由、Session 管理、SlashCommand 解析、E2A 协议封装</li>\n\
+      <li><strong>AgentServer/执行引擎</strong>：三模式 Adapter（Agent/Code/Team），SkillManager，SessionManager</li>\n\
+      <li><strong>openjiuwen Harness/框架底层</strong>：DeepAgent、ReActAgent、Runner、Checkpointer、LspRail、SubAgent</li>\n\
+    </ol>\n\
+    \n\
+    <p>其中第三层的 <strong>Code Adapter</strong> 是整个 coding agent 能力的核心。它不是一个简单的模式开关，而是一个通过继承 Agent Adapter 并完全重写 Rails/Tools/Subagents 注册逻辑的独立子系统。</p>\n\
+    \n\
+    <h2>Code Agent 的六维能力矩阵</h2>\n\
+    \n\
+    <h3>1. 命令执行引擎：跨平台 Shell 沙箱</h3>\n\
+    \n\
+    <p>核心实现在 <code>command_tools.py</code>（322 行），不是一个简单的 <code>subprocess.run(cmd, shell=True)</code>，而是一个完整的跨平台执行引擎：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>Shell 自动检测</strong>：macOS/Linux 优先 bash→降级 sh；Windows 通过 PowerShell token 检测自动选择 pwsh 或 cmd</li>\n\
+      <li><strong>危险命令拦截</strong>：rm -rf、format、shutdown、reboot、mkfs、reg delete 等正则黑名单</li>\n\
+      <li><strong>工作目录沙箱</strong>：所有命令的 workdir 必须是 project_root 的子目录，否则拒绝执行</li>\n\
+      <li><strong>超时控制</strong>：默认 300s，最大 3600s（环境变量可配）</li>\n\
+      <li><strong>后台模式</strong>：background=True 启动守护进程，5s grace period 检测启动失败，返回 pid 供追踪</li>\n\
+      <li><strong>编码自适应</strong>：bash/sh→UTF-8，cmd/PowerShell→系统 code page</li>\n\
+    </ul>\n\
+    \n\
+    <h3>2. LSP 集成：让 AI 看懂代码</h3>\n\
+    \n\
+    <p>这是 JiuwenClaw 最独特的设计之一。<code>LspRail</code> 将语言服务器协议集成到 Agent 中，提供真正的 IDE 级代码理解：</p>\n\
+    \n\
+    <ul>\n\
+      <li>lsp_diagnostics：实时诊断错误/警告</li>\n\
+      <li>lsp_completion：智能代码补全</li>\n\
+      <li>lsp_definition/references：跳转定义/查找引用</li>\n\
+      <li>lsp_hover/symbols：悬停文档/符号搜索</li>\n\
+    </ul>\n\
+    \n\
+    <p>LSP 信息在每次 LLM 调用前注入系统 prompt 的 <code>code_context</code> 段，Agent 不需要在 prompt 里塞满代码就能理解项目结构。传统的 LLM 编码助手只能依赖训练数据中的静态知识，LSP 集成使 Agent 能实时理解当前项目的具体代码状态。</p>\n\
+    \n\
+    <h3>3. 四层 Subagent 体系：分工协作</h3>\n\
+    \n\
+    <p>Code 模式不是只有一个 Agent，而是 <strong>主 Agent + 4 类 Subagent</strong> 的协作系统：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>explore_agent</strong>（固定启用）：代码库探索，理解项目结构，搜索文件和符号</li>\n\
+      <li><strong>plan_agent</strong>（固定启用）：任务规划，方案设计，生成实施计划</li>\n\
+      <li><strong>code_agent</strong>（按配置启用）：实际代码编写，共享主 Agent 的 CodingMemoryRail</li>\n\
+      <li><strong>browser_agent</strong>（按配置启用）：Playwright-based Web 自动化</li>\n\
+    </ul>\n\
+    \n\
+    <p>主 Agent 通过 <code>task_tool</code> 调度子代理，每个 Subagent 有独立的 max_iterations=15、独立上下文窗口、独立工具集。这种设计使得一个复杂的编码任务可以被分解为探索→规划→实现→验证的流水线。</p>\n\
+    \n\
+    <h3>4. CodingMemory：基于 Embedding 的代码知识库</h3>\n\
+    \n\
+    <p>这可能是 JiuwenClaw 最被低估的能力。<strong>CodingMemory 不是对话历史</strong>，而是一个基于 Embedding 向量的语义检索系统：</p>\n\
+    \n\
+    <ul>\n\
+      <li><code>coding_memory_read(query)</code>：语义检索相关代码上下文</li>\n\
+      <li><code>coding_memory_write(content, section)</code>：按类别（architecture/bugfix/pattern）写入知识</li>\n\
+      <li><code>coding_memory_edit(memory_id, content)</code>：增量编辑已有记忆</li>\n\
+    </ul>\n\
+    \n\
+    <p>按项目名称隔离存储（<code>coding_memory/&lt;project&gt;/</code>），跨 session 持久化。配置 Embedding API 后，Agent 在长期项目中能自动积累和检索代码知识——第一次探索的架构信息、修复过的 bug 模式、特定依赖的兼容性问题——全部自动记忆。</p>\n\
+    \n\
+    <h3>5. ProjectMemory：五层项目上下文</h3>\n\
+    \n\
+    <p><code>ProjectMemoryRail</code> 在每次 LLM 调用前自动加载 5 层级项目上下文（优先级从低到高）：</p>\n\
+    \n\
+    <ol>\n\
+      <li>/etc/jiuwen/JIUWENCLAW.md（系统级）</li>\n\
+      <li>~/.jiuwen/JIUWENCLAW.md（用户级）</li>\n\
+      <li>项目根/JIUWENCLAW.md（项目级）</li>\n\
+      <li>项目根/.jiuwen/JIUWENCLAW.md + rules/*.md（项目扩展）</li>\n\
+      <li>项目根/JIUWENCLAW.local.md（本地覆盖，最高优先级）</li>\n\
+    </ol>\n\
+    \n\
+    <p>同时也兼容 CLAUDE.md 等文件。缓存失效由文件操作（write_file/edit_file/delete_file/move_file）自动触发 + 文件快照检查保证一致性。</p>\n\
+    \n\
+    <h3>6. 五层安全防御</h3>\n\
+    \n\
+    <p>安全不是一块附加功能，而是深度嵌入在每一层：</p>\n\
+    \n\
+    <ol>\n\
+      <li><strong>命令正则拦截</strong>：shutdown, rm -rf, mkfs 等在入 subprocess 前被拦截</li>\n\
+      <li><strong>路径沙箱</strong>：所有命令 workdir 必须是 project_root 子目录</li>\n\
+      <li><strong>trusted_dirs 白名单</strong>：/workspace add 命令管理信任目录</li>\n\
+      <li><strong>WorktreeRail</strong>：Git worktree 隔离代码修改，不影响主分支</li>\n\
+      <li><strong>JiuwenBox</strong>：独立 Linux sandbox，bubblewrap + Landlock + Seccomp + network namespace 完整进程隔离</li>\n\
+    </ol>\n\
+    \n\
+    <h2>ACP 协议：真正的 IDE 集成</h2>\n\
+    \n\
+    <p>JiuwenClaw 的 ACP 实现（1,809 行 acp_connect.py + 585 行 acp_output_tools.py）不只是\"可以连 IDE\"，而是<strong>完整的双向协议</strong>：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>Inbound</strong>：initialize/prompt/session/new/list/cancel</li>\n\
+      <li><strong>Outbound</strong>：session/update（流式输出）、usage（token 统计）、<strong>workspace/applyEdit</strong>（直接编辑 IDE 内容）</li>\n\
+    </ul>\n\
+    \n\
+    <p>这意味着 Agent 不只是\"回复文本\"，而是可以直接修改你 VS Code 编辑器里的代码——像 Claude Code 的 apply edit 一样，但基于标准 ACP 协议。</p>\n\
+    \n\
+    <h2>技能自演进：Agent 学会改进自己</h2>\n\
+    \n\
+    <p>JiuwenClaw 有一个所有 Agent 框架都想要但很少有人真正做到的能力——<strong>技能自演进</strong>。它不是在部署后冻结的静态技能集，而是一个闭环：</p>\n\
+    \n\
+    <ol>\n\
+      <li>SignalDetector 检测执行失败（error/timeout/exception）和用户纠正（\"不对/应该是\"）</li>\n\
+      <li>SkillOptimizer 用 LLM 生成具体改进方案</li>\n\
+      <li>SkillEvolutionManager 合并到 evolutions.json</li>\n\
+      <li>最终 solidify 回 SKILL.md</li>\n\
+    </ol>\n\
+    \n\
+    <p>在 Code 模式下这意味着：部署脚本首次失败→自动添加网络检查步骤；API 调用参数错误→自动补充正确的参数格式；文件路径错误→自动记录正确的项目结构。</p>\n\
+    \n\
+    <h2>与 Hermes Agent 的对比</h2>\n\
+    \n\
+    <p>作为 Hermes Agent 的日常用户，我从几个维度做了对比：</p>\n\
+    \n\
+    <table>\n\
+      <tr><th>维度</th><th>JiuwenClaw</th><th>Hermes Agent</th></tr>\n\
+      <tr><td>代码规模</td><td>154K+ LOC</td><td>~8K LOC 核心</td></tr>\n\
+      <tr><td>框架</td><td>openjiuwen（华为闭源）</td><td>自研 Gateway + ACP</td></tr>\n\
+      <tr><td>Code 模式</td><td>专用 Adapter + LSP + Subagent</td><td>技能系统实现</td></tr>\n\
+      <tr><td>安全隔离</td><td>JiuwenBox（bubblewrap+Landlock+Seccomp）</td><td>OS 权限 + approval</td></tr>\n\
+      <tr><td>记忆系统</td><td>3 套（Memory/CodingMemory/Experience）</td><td>1 套</td></tr>\n\
+      <tr><td>IDE 集成</td><td>ACP 双向编辑推送</td><td>ACP stdio</td></tr>\n\
+      <tr><td>IM 渠道</td><td>10+ 平台</td><td>Telegram 为主</td></tr>\n\
+      <tr><td>分布式 Team</td><td>✅ pyzmq 跨进程</td><td>❌</td></tr>\n\
+      <tr><td>技能自演进</td><td>✅ 自动化流水线</td><td>❌ 手工维护</td></tr>\n\
+      <tr><td>测试覆盖</td><td>75 files, ~16%</td><td>较少</td></tr>\n\
+    </table>\n\
+    \n\
+    <p>这两者代表了 AI Coding Agent 的<strong>两种工程哲学</strong>：JiuwenClaw 走\"全栈平台\"路线——一个 Agent OS 内建所有能力，用 Adapter 模式做模式分流；Hermes/OpenClaw 走\"可组合微核\"路线——轻量核心 + 技能系统扩展，灵活但深度不如。</p>\n\
+    \n\
+    <h2>优劣势总结</h2>\n\
+    \n\
+    <h3>优势</h3>\n\
+    <ul>\n\
+      <li>工业级架构，华为工程标准，分层清晰、依赖倒置、异常处理全面</li>\n\
+      <li>Code 模式深度定制：LSP + CodingMemory + Subagent 三件套提供真正的代码辅助体验</li>\n\
+      <li>五层安全沙箱远超同类产品</li>\n\
+      <li>技能生态完善（SkillNet/ClawHub/Marketplace）+ SkillDev 10 阶段开发流水线</li>\n\
+      <li>渠道覆盖广度领先，10+ IM 平台 + ACP + A2A</li>\n\
+      <li>分布式 Team 模式，支持跨进程/跨机器代码协作</li>\n\
+    </ul>\n\
+    \n\
+    <h3>不足</h3>\n\
+    <ul>\n\
+      <li>核心 openjiuwen 框架闭源，外部贡献者无法修改底层行为</li>\n\
+      <li>154K LOC 维护成本高、新人上手慢</li>\n\
+      <li>测试覆盖率 16% 偏低，关键路径（LSP/沙箱）需要更多测试</li>\n\
+      <li>缺乏 Think/Reasoning 模式控制</li>\n\
+      <li>max_iterations 固定 15，无自适应调节</li>\n\
+      <li>文档中英文质量参差</li>\n\
+    </ul>\n\
+    \n\
+    <h2>结语</h2>\n\
+    \n\
+    <p>JiuwenClaw 给我的最大启示是：<strong>一个好的 Coding Agent 不是\"能执行命令的聊天机器人\"，而是一个拥有 IDE 级代码理解、持久化项目记忆、多智能体分工、安全沙箱隔离的工程平台。</strong></p>\n\
+    \n\
+    <p>如果你正在构建自己的 Coding Agent，JiuwenClaw 的以下设计值得借鉴：LSP 实时诊断注入系统 prompt、Subagent 专业化分工而非单 Agent 包揽一切、基于 Embedding 的持久化代码记忆、多层安全防御而非单一沙箱。</p>\n\
+    \n\
+    <p>当然，154K LOC 的维护负担和闭源框架依赖也提醒我们：有时候，\"少即是多\"。</p>\n\
+    \n\
+    <hr>\n\
+    \n\
+    <p><em>分析日期：2026-05-12 | 项目版本：v0.1.11 | 代码行数：~154,000 Python | 分析方法：源码阅读 + 架构文档 + 测试分析</em></p>"
 - title: "SkillOS 深度分析：RL 训练 8B 模型做技能策展，超越 Gemini-2.5-Pro——Google 最新论文解读"
   date: "May 10, 2026"
   excerpt: "Google Cloud AI 联合 UIUC/MIT 发布 SkillOS：通过分组任务流 RL 训练，8B 小模型学会自动 insert/update/delete 技能，在 ALFWorld 上 SR 提升 13.3pp，超越 Gemini-2.5-Pro 零样本策展。Executor-grounded 训练比模型规模更重要。"
