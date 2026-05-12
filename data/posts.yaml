@@ -1,187 +1,147 @@
 posts:
-- title: "JiuwenClaw 深度分析：154K 行代码背后的 AI Coding Agent 工程哲学"
+- title: "JiuwenClaw 深度分析：415K 行代码背后的双层 Agent 架构——openjiuwen 引擎与 JiuwenClaw 整车的完整剖析"
   date: "May 12, 2026"
-  excerpt: "深度剖析华为团队出品的 JiuwenClaw 项目：154K 行 Python 构建的全栈 Agent OS，4 种 Subagent 编码体系、LSP 集成、Embedding 代码记忆、5 层安全沙箱、技能自演进闭环。与 Hermes Agent 的全方位对比，揭示两种 AI Coding Agent 工程哲学。"
+  excerpt: "更新版深度剖析：发现 JiuwenClaw 底层还有 openjiuwen agent-core (261K LOC)。双层架构详解——引擎(ReActAgent/DeepAgent/BashTool/LSP/CodingMemory/SignalDetector/26 Rails) vs 整车(Gateway/10渠道/ProjectMemoryRail/SkillDev/JiuwenBox)。415K LOC 的 Agent 基础设施全景。"
   content: "
-    <p>2026 年 5 月，我在做 AI Agent 基础设施调研时偶然发现了 <strong>JiuwenClaw</strong>——一个华为团队出品的 AI Agent 项目，GitHub 上 671 stars，不算特别火，但代码量惊人：<strong>154,000 行 Python</strong>，728 个 commits。点进去一看，这不是一个简单的 LLM wrapper，而是一个全栈 Agent 操作系统。</p>\n\
+    <p>2026 年 5 月，我在做 AI Agent 基础设施调研时发现了 <strong>JiuwenClaw</strong>——华为团队出品的 AI Agent 平台。最初以为是 154K 行 Python 的单体项目，深入后才发现它只是冰山一角：底层还有一个 <strong>openjiuwen agent-core</strong> 框架，<strong>261K 行代码、1,383 个 Python 文件</strong>，两者合计 <strong>415K 行</strong>。这是一套\"引擎 + 整车\"的双层架构。</p>\n\
     \n\
-    <p>项目地址：<a href=\"https://github.com/openJiuwen-ai/jiuwenclaw\">github.com/openJiuwen-ai/jiuwenclaw</a></p>\n\
+    <p>JiuwenClaw: <a href=\"https://github.com/openJiuwen-ai/jiuwenclaw\">github.com/openJiuwen-ai/jiuwenclaw</a></p>\n\
+    <p>agent-core: <a href=\"https://github.com/openJiuwen-ai/agent-core\">github.com/openJiuwen-ai/agent-core</a></p>\n\
     \n\
-    <h2>一句话定位</h2>\n\
+    <h2>双层架构：引擎与整车的精确分工</h2>\n\
     \n\
-    <blockquote>\n\
-      <p>JiuwenClaw 不是 LLM + shell = 代码助手，而是一个有状态、有记忆、有安全护栏、有多智能体分工、能自进化的专业代码工程平台。</p>\n\
-    </blockquote>\n\
-    \n\
-    <h2>架构全景：四层金字塔</h2>\n\
-    \n\
-    <p>JiuwenClaw 的架构可以清晰地分为四层：</p>\n\
-    \n\
-    <ol>\n\
-      <li><strong>Channel/接入层</strong>：10+ IM 平台（飞书/钉钉/企微/微信/Telegram/小艺/WhatsApp/Discord）+ Web + TUI + ACP/A2A 协议</li>\n\
-      <li><strong>Gateway/网关层</strong>：消息路由、Session 管理、SlashCommand 解析、E2A 协议封装</li>\n\
-      <li><strong>AgentServer/执行引擎</strong>：三模式 Adapter（Agent/Code/Team），SkillManager，SessionManager</li>\n\
-      <li><strong>openjiuwen Harness/框架底层</strong>：DeepAgent、ReActAgent、Runner、Checkpointer、LspRail、SubAgent</li>\n\
-    </ol>\n\
-    \n\
-    <p>其中第三层的 <strong>Code Adapter</strong> 是整个 coding agent 能力的核心。它不是一个简单的模式开关，而是一个通过继承 Agent Adapter 并完全重写 Rails/Tools/Subagents 注册逻辑的独立子系统。</p>\n\
-    \n\
-    <h2>Code Agent 的六维能力矩阵</h2>\n\
-    \n\
-    <h3>1. 命令执行引擎：跨平台 Shell 沙箱</h3>\n\
-    \n\
-    <p>核心实现在 <code>command_tools.py</code>（322 行），不是一个简单的 <code>subprocess.run(cmd, shell=True)</code>，而是一个完整的跨平台执行引擎：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>Shell 自动检测</strong>：macOS/Linux 优先 bash→降级 sh；Windows 通过 PowerShell token 检测自动选择 pwsh 或 cmd</li>\n\
-      <li><strong>危险命令拦截</strong>：rm -rf、format、shutdown、reboot、mkfs、reg delete 等正则黑名单</li>\n\
-      <li><strong>工作目录沙箱</strong>：所有命令的 workdir 必须是 project_root 的子目录，否则拒绝执行</li>\n\
-      <li><strong>超时控制</strong>：默认 300s，最大 3600s（环境变量可配）</li>\n\
-      <li><strong>后台模式</strong>：background=True 启动守护进程，5s grace period 检测启动失败，返回 pid 供追踪</li>\n\
-      <li><strong>编码自适应</strong>：bash/sh→UTF-8，cmd/PowerShell→系统 code page</li>\n\
-    </ul>\n\
-    \n\
-    <h3>2. LSP 集成：让 AI 看懂代码</h3>\n\
-    \n\
-    <p>这是 JiuwenClaw 最独特的设计之一。<code>LspRail</code> 将语言服务器协议集成到 Agent 中，提供真正的 IDE 级代码理解：</p>\n\
-    \n\
-    <ul>\n\
-      <li>lsp_diagnostics：实时诊断错误/警告</li>\n\
-      <li>lsp_completion：智能代码补全</li>\n\
-      <li>lsp_definition/references：跳转定义/查找引用</li>\n\
-      <li>lsp_hover/symbols：悬停文档/符号搜索</li>\n\
-    </ul>\n\
-    \n\
-    <p>LSP 信息在每次 LLM 调用前注入系统 prompt 的 <code>code_context</code> 段，Agent 不需要在 prompt 里塞满代码就能理解项目结构。传统的 LLM 编码助手只能依赖训练数据中的静态知识，LSP 集成使 Agent 能实时理解当前项目的具体代码状态。</p>\n\
-    \n\
-    <h3>3. 四层 Subagent 体系：分工协作</h3>\n\
-    \n\
-    <p>Code 模式不是只有一个 Agent，而是 <strong>主 Agent + 4 类 Subagent</strong> 的协作系统：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>explore_agent</strong>（固定启用）：代码库探索，理解项目结构，搜索文件和符号</li>\n\
-      <li><strong>plan_agent</strong>（固定启用）：任务规划，方案设计，生成实施计划</li>\n\
-      <li><strong>code_agent</strong>（按配置启用）：实际代码编写，共享主 Agent 的 CodingMemoryRail</li>\n\
-      <li><strong>browser_agent</strong>（按配置启用）：Playwright-based Web 自动化</li>\n\
-    </ul>\n\
-    \n\
-    <p>主 Agent 通过 <code>task_tool</code> 调度子代理，每个 Subagent 有独立的 max_iterations=15、独立上下文窗口、独立工具集。这种设计使得一个复杂的编码任务可以被分解为探索→规划→实现→验证的流水线。</p>\n\
-    \n\
-    <h3>4. CodingMemory：基于 Embedding 的代码知识库</h3>\n\
-    \n\
-    <p>这可能是 JiuwenClaw 最被低估的能力。<strong>CodingMemory 不是对话历史</strong>，而是一个基于 Embedding 向量的语义检索系统：</p>\n\
-    \n\
-    <ul>\n\
-      <li><code>coding_memory_read(query)</code>：语义检索相关代码上下文</li>\n\
-      <li><code>coding_memory_write(content, section)</code>：按类别（architecture/bugfix/pattern）写入知识</li>\n\
-      <li><code>coding_memory_edit(memory_id, content)</code>：增量编辑已有记忆</li>\n\
-    </ul>\n\
-    \n\
-    <p>按项目名称隔离存储（<code>coding_memory/&lt;project&gt;/</code>），跨 session 持久化。配置 Embedding API 后，Agent 在长期项目中能自动积累和检索代码知识——第一次探索的架构信息、修复过的 bug 模式、特定依赖的兼容性问题——全部自动记忆。</p>\n\
-    \n\
-    <h3>5. ProjectMemory：五层项目上下文</h3>\n\
-    \n\
-    <p><code>ProjectMemoryRail</code> 在每次 LLM 调用前自动加载 5 层级项目上下文（优先级从低到高）：</p>\n\
-    \n\
-    <ol>\n\
-      <li>/etc/jiuwen/JIUWENCLAW.md（系统级）</li>\n\
-      <li>~/.jiuwen/JIUWENCLAW.md（用户级）</li>\n\
-      <li>项目根/JIUWENCLAW.md（项目级）</li>\n\
-      <li>项目根/.jiuwen/JIUWENCLAW.md + rules/*.md（项目扩展）</li>\n\
-      <li>项目根/JIUWENCLAW.local.md（本地覆盖，最高优先级）</li>\n\
-    </ol>\n\
-    \n\
-    <p>同时也兼容 CLAUDE.md 等文件。缓存失效由文件操作（write_file/edit_file/delete_file/move_file）自动触发 + 文件快照检查保证一致性。</p>\n\
-    \n\
-    <h3>6. 五层安全防御</h3>\n\
-    \n\
-    <p>安全不是一块附加功能，而是深度嵌入在每一层：</p>\n\
-    \n\
-    <ol>\n\
-      <li><strong>命令正则拦截</strong>：shutdown, rm -rf, mkfs 等在入 subprocess 前被拦截</li>\n\
-      <li><strong>路径沙箱</strong>：所有命令 workdir 必须是 project_root 子目录</li>\n\
-      <li><strong>trusted_dirs 白名单</strong>：/workspace add 命令管理信任目录</li>\n\
-      <li><strong>WorktreeRail</strong>：Git worktree 隔离代码修改，不影响主分支</li>\n\
-      <li><strong>JiuwenBox</strong>：独立 Linux sandbox，bubblewrap + Landlock + Seccomp + network namespace 完整进程隔离</li>\n\
-    </ol>\n\
-    \n\
-    <h2>ACP 协议：真正的 IDE 集成</h2>\n\
-    \n\
-    <p>JiuwenClaw 的 ACP 实现（1,809 行 acp_connect.py + 585 行 acp_output_tools.py）不只是\"可以连 IDE\"，而是<strong>完整的双向协议</strong>：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>Inbound</strong>：initialize/prompt/session/new/list/cancel</li>\n\
-      <li><strong>Outbound</strong>：session/update（流式输出）、usage（token 统计）、<strong>workspace/applyEdit</strong>（直接编辑 IDE 内容）</li>\n\
-    </ul>\n\
-    \n\
-    <p>这意味着 Agent 不只是\"回复文本\"，而是可以直接修改你 VS Code 编辑器里的代码——像 Claude Code 的 apply edit 一样，但基于标准 ACP 协议。</p>\n\
-    \n\
-    <h2>技能自演进：Agent 学会改进自己</h2>\n\
-    \n\
-    <p>JiuwenClaw 有一个所有 Agent 框架都想要但很少有人真正做到的能力——<strong>技能自演进</strong>。它不是在部署后冻结的静态技能集，而是一个闭环：</p>\n\
-    \n\
-    <ol>\n\
-      <li>SignalDetector 检测执行失败（error/timeout/exception）和用户纠正（\"不对/应该是\"）</li>\n\
-      <li>SkillOptimizer 用 LLM 生成具体改进方案</li>\n\
-      <li>SkillEvolutionManager 合并到 evolutions.json</li>\n\
-      <li>最终 solidify 回 SKILL.md</li>\n\
-    </ol>\n\
-    \n\
-    <p>在 Code 模式下这意味着：部署脚本首次失败→自动添加网络检查步骤；API 调用参数错误→自动补充正确的参数格式；文件路径错误→自动记录正确的项目结构。</p>\n\
-    \n\
-    <h2>与 Hermes Agent 的对比</h2>\n\
-    \n\
-    <p>作为 Hermes Agent 的日常用户，我从几个维度做了对比：</p>\n\
+    <p>理解 JiuwenClaw 的 Code Agent 能力，必须先理解它和 openjiuwen 的关系：</p>\n\
     \n\
     <table>\n\
-      <tr><th>维度</th><th>JiuwenClaw</th><th>Hermes Agent</th></tr>\n\
-      <tr><td>代码规模</td><td>154K+ LOC</td><td>~8K LOC 核心</td></tr>\n\
-      <tr><td>框架</td><td>openjiuwen（华为闭源）</td><td>自研 Gateway + ACP</td></tr>\n\
-      <tr><td>Code 模式</td><td>专用 Adapter + LSP + Subagent</td><td>技能系统实现</td></tr>\n\
-      <tr><td>安全隔离</td><td>JiuwenBox（bubblewrap+Landlock+Seccomp）</td><td>OS 权限 + approval</td></tr>\n\
-      <tr><td>记忆系统</td><td>3 套（Memory/CodingMemory/Experience）</td><td>1 套</td></tr>\n\
-      <tr><td>IDE 集成</td><td>ACP 双向编辑推送</td><td>ACP stdio</td></tr>\n\
-      <tr><td>IM 渠道</td><td>10+ 平台</td><td>Telegram 为主</td></tr>\n\
-      <tr><td>分布式 Team</td><td>✅ pyzmq 跨进程</td><td>❌</td></tr>\n\
-      <tr><td>技能自演进</td><td>✅ 自动化流水线</td><td>❌ 手工维护</td></tr>\n\
-      <tr><td>测试覆盖</td><td>75 files, ~16%</td><td>较少</td></tr>\n\
+      <tr><th>层</th><th>openjiuwen agent-core</th><th>JiuwenClaw</th></tr>\n\
+      <tr><td><strong>代码量</strong></td><td>261,273 LOC, 1,383 files</td><td>154,000 LOC (核心)</td></tr>\n\
+      <tr><td><strong>角色</strong></td><td>Agent 引擎/框架 (SDK)</td><td>Agent 产品/平台 (可安装)</td></tr>\n\
+      <tr><td><strong>目标用户</strong></td><td>Agent 开发者</td><td>终端用户</td></tr>\n\
+      <tr><td><strong>核心组件</strong></td><td>ReActAgent, DeepAgent, 26 Rails, 4 Subagent Factory, LSP, CodingMemory, SignalDetector, TeamRuntime</td><td>Gateway, 10 IM 渠道, Web UI, TUI, ProjectMemoryRail, 技能市场, SkillDev, JiuwenBox 沙箱</td></tr>\n\
+      <tr><td><strong>安全</strong></td><td>BashTool 注入检测+权限管道, SysOperation 协议, 文件系统防护</td><td>危险命令拦截, trusted_dirs 白名单, JiuwenBox(bubblewrap+Landlock+Seccomp)</td></tr>\n\
+      <tr><td><strong>配置方式</strong></td><td>Python API</td><td>config.yaml + Web UI</td></tr>\n\
     </table>\n\
     \n\
-    <p>这两者代表了 AI Coding Agent 的<strong>两种工程哲学</strong>：JiuwenClaw 走\"全栈平台\"路线——一个 Agent OS 内建所有能力，用 Adapter 模式做模式分流；Hermes/OpenClaw 走\"可组合微核\"路线——轻量核心 + 技能系统扩展，灵活但深度不如。</p>\n\
+    <p>依赖方向严格单向：<code>JiuwenClaw → import openjiuwen.*</code>，反向永不发生。</p>\n\
     \n\
-    <h2>优劣势总结</h2>\n\
+    <h2>Code Agent 能力深度剖析</h2>\n\
     \n\
-    <h3>优势</h3>\n\
+    <h3>1. 命令执行：三层架构，远比表面复杂</h3>\n\
+    \n\
+    <p>之前只看 JiuwenClaw 的 <code>command_tools.py</code> (322行)，以为是简单的 subprocess 包装。实际上完整执行栈是三层：</p>\n\
+    \n\
     <ul>\n\
-      <li>工业级架构，华为工程标准，分层清晰、依赖倒置、异常处理全面</li>\n\
-      <li>Code 模式深度定制：LSP + CodingMemory + Subagent 三件套提供真正的代码辅助体验</li>\n\
-      <li>五层安全沙箱远超同类产品</li>\n\
-      <li>技能生态完善（SkillNet/ClawHub/Marketplace）+ SkillDev 10 阶段开发流水线</li>\n\
-      <li>渠道覆盖广度领先，10+ IM 平台 + ACP + A2A</li>\n\
-      <li>分布式 Team 模式，支持跨进程/跨机器代码协作</li>\n\
+      <li><strong>Layer 3 — JiuwenClaw 包装层</strong>：危险命令正则拦截 (rm -rf/shutdown/mkfs)，工作目录强制限制在 project_root 子目录</li>\n\
+      <li><strong>Layer 2 — openjiuwen BashTool (271行)</strong>：这才是真正的执行引擎。功能包括：<strong>语义级退出码解释</strong>（不是只返回数字，而是解读含义）、<strong>流式输出</strong>（stream() 方法 + 实时 chunk 推送）、<strong>注入检测</strong>（check_injection()）、<strong>权限管道</strong>（deny/allow patterns + mode enforcement）、<strong>破坏性命令警告</strong>（get_destructive_warning()）、<strong>智能输出截断</strong>（default 8000 字符，超限自动持久化到文件）</li>\n\
+      <li><strong>Layer 1 — SysOperation 抽象层</strong>：统一的系统操作接口，支持 LocalWorkConfig（本地执行）和 SandboxGatewayConfig（远程 JiuwenBox 沙箱执行），上层代码无需感知差异</li>\n\
     </ul>\n\
     \n\
-    <h3>不足</h3>\n\
+    <h3>2. 文件系统：1,801行的完整实现</h3>\n\
+    \n\
+    <p>openjiuwen 的 <code>filesystem.py</code> 不是简单的 read/write wrapper：</p>\n\
+    \n\
     <ul>\n\
-      <li>核心 openjiuwen 框架闭源，外部贡献者无法修改底层行为</li>\n\
-      <li>154K LOC 维护成本高、新人上手慢</li>\n\
-      <li>测试覆盖率 16% 偏低，关键路径（LSP/沙箱）需要更多测试</li>\n\
-      <li>缺乏 Think/Reasoning 模式控制</li>\n\
-      <li>max_iterations 固定 15，无自适应调节</li>\n\
-      <li>文档中英文质量参差</li>\n\
+      <li><strong>行级分页读取</strong>：offset + limit，避免加载大文件</li>\n\
+      <li><strong>PDF 支持</strong>：集成 pdfplumber，自动解析 PDF 文本</li>\n\
+      <li><strong>二进制防护</strong>：阻止读取 20+ 种二进制格式 (.exe, .so, .db, .zip...)</li>\n\
+      <li><strong>设备文件防护</strong>：/dev/zero, /dev/random, /dev/urandom 等阻塞设备自动拒绝</li>\n\
+      <li><strong>编辑前置验证</strong>：必须先 read 才能 edit，通过 <code>_FILE_READ_REGISTRY</code> 检测外部修改</li>\n\
+      <li><strong>操作历史</strong>：每个 workspace 维护 write/edit 操作日志，异步安全</li>\n\
     </ul>\n\
     \n\
-    <h2>结语</h2>\n\
+    <h3>3. LSP 集成：504行全局单例管理器</h3>\n\
     \n\
-    <p>JiuwenClaw 给我的最大启示是：<strong>一个好的 Coding Agent 不是\"能执行命令的聊天机器人\"，而是一个拥有 IDE 级代码理解、持久化项目记忆、多智能体分工、安全沙箱隔离的工程平台。</strong></p>\n\
+    <p>不是简单的 LSP 客户端包装。openjiuwen 实现了一个完整的 <strong>LSPServerManager</strong>：</p>\n\
     \n\
-    <p>如果你正在构建自己的 Coding Agent，JiuwenClaw 的以下设计值得借鉴：LSP 实时诊断注入系统 prompt、Subagent 专业化分工而非单 Agent 包揽一切、基于 Embedding 的持久化代码记忆、多层安全防御而非单一沙箱。</p>\n\
+    <ul>\n\
+      <li><strong>全局单例 + 异步懒加载</strong>：服务器不立即启动，首次 LSP 请求时才初始化</li>\n\
+      <li><strong>Monorepo 多 root 支持</strong>：ServerInstanceKey(server_id, root) 允许同一语言在不同项目 root 下独立运行</li>\n\
+      <li><strong>自动语言检测</strong>：build_configs_async() 扫描项目结构，自动选择需要的 LSP server</li>\n\
+      <li><strong>诊断注入</strong>：每次 before_model_call 前，LspRail 获取当前打开文件的诊断信息，注入系统 prompt 的 code_context 段 (SectionPriority=120)</li>\n\
+    </ul>\n\
     \n\
-    <p>当然，154K LOC 的维护负担和闭源框架依赖也提醒我们：有时候，\"少即是多\"。</p>\n\
+    <p>这意味着 Agent 在开始编码前就已经知道当前文件的类型错误、未使用变量、接口不匹配等问题——不需要先跑一遍编译。</p>\n\
+    \n\
+    <h3>4. CodingMemory：向量+BM25 混合检索</h3>\n\
+    \n\
+    <p>之前描述为\"Embedding 代码记忆\"，实际更精确：openjiuwen 的 CodingMemoryRail (503行) 实现的是<strong>向量检索 + BM25 关键词检索的混合方案</strong>，不是纯向量：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>混合检索</strong>：向量语义匹配 + BM25 精确关键词匹配，互补优势</li>\n\
+      <li><strong>Top-5 召回</strong>：每个 user turn 自动检索，最多返回 5 条最相关记忆</li>\n\
+      <li><strong>10KB 上限</strong>：召回内容总大小硬限制，避免 token 爆炸</li>\n\
+      <li><strong>非阻塞预取</strong>：asyncio.create_task() 启动异步检索，不阻塞 Agent 主循环</li>\n\
+      <li><strong>降级策略</strong>：无检索结果时自动降级为读取 MEMORY.md 索引</li>\n\
+      <li><strong>存储格式</strong>：独立 .md 文件 + YAML frontmatter 元数据，人类可读</li>\n\
+    </ul>\n\
+    \n\
+    <h3>5. Subagent 体系：精确的分工约束</h3>\n\
+    \n\
+    <p>4 种 Subagent 的 factory 全部定义在 openjiuwen 中，JiuwenClaw 只负责从 config.yaml 读取配置并传递：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>explore_agent (263行)</strong>：最严格的只读约束。System prompt 明确禁止所有写操作，工具集限定为 glob/grep/read_file/list_files/bash(只读子集)。bash 只能执行 ls/git status/log/diff/cat/head/tail。</li>\n\
+      <li><strong>plan_agent</strong>：专注方案设计，不操作文件系统。输出结构化计划。</li>\n\
+      <li><strong>code_agent (286行)</strong>：实际编码执行。默认 Rails: SysOperationRail + CodingMemoryRail。System prompt 强调\"能用工具就用工具，不要猜文件内容；变更要小、可回滚；先澄清接口再动代码\"。</li>\n\
+      <li><strong>browser_agent</strong>：Playwright-based Web 自动化。</li>\n\
+    </ul>\n\
+    \n\
+    <p>SubagentRail 配套了 SessionRail（子代理会话管理）、VerificationRail（输出质量验证）、VerificationContractRail（基于合约的输出验证），构成完整的子代理生命周期管理。</p>\n\
+    \n\
+    <h3>6. 自演进系统：604行信号检测器</h3>\n\
+    \n\
+    <p>openjiuwen 的 ConversationSignalDetector 是整个自演进体系的基础：</p>\n\
+    \n\
+    <ul>\n\
+      <li><strong>40+ 失败关键词</strong>：覆盖 error/exception/traceback/failed/timeout/errno/permission denied/command not found/module not found/econnrefused/enoent 及中文错误/异常/失败/超时</li>\n\
+      <li><strong>18 种用户纠正句式</strong>：不对/不是这/那/错了/应该是/用/改/换/你搞错了/重新来/做/执行/尝试/纠正一下/我的意思是 + 英文 that's wrong/should be/actually/no wait</li>\n\
+      <li><strong>工具分类过滤</strong>：数据获取工具（web_fetch/search）的输出不触发信号；代码执行工具（bash/code）的输出才检测</li>\n\
+      <li><strong>6 阶段演进流水线</strong>：Trajectory → SignalDetector → SkillEvolutionManager → SkillOptimizer(LLM) → evolutions.json → solidify → SKILL.md</li>\n\
+    </ul>\n\
+    \n\
+    <p>JiuwenClaw 在此基础上增加了 SkillDev 10 阶段开发流水线和 /evolve 手动触发命令。</p>\n\
+    \n\
+    <h2>JiuwenClaw 的真正原创价值</h2>\n\
+    \n\
+    <p>分析完 agent-core 后发现，JiuwenClaw 的 Code Agent <strong>核心能力都来自 openjiuwen</strong>。JiuwenClaw 真正的原创在于：</p>\n\
+    \n\
+    <ol>\n\
+      <li><strong>Gateway + 渠道层</strong>：E2A 协议 (自研) + ACP/A2A 协议栈 + 10+ IM 平台接入。这是 openjiuwen 完全不提供的。</li>\n\
+      <li><strong>ProjectMemoryRail</strong>：JIUWENCLAW.md 5 层级自动加载。openjiuwen 框架中没有这个 Rail，是 JiuwenClaw 的独创。</li>\n\
+      <li><strong>技能市场生态</strong>：SkillNet + ClawHub + Marketplace + 本地导入。四层技能分发体系。</li>\n\
+      <li><strong>SkillDev 10 阶段流水线</strong>：从 INIT 到 PACKAGE 的完整技能开发工厂。</li>\n\
+      <li><strong>JiuwenBox 沙箱</strong>：bubblewrap + Landlock + Seccomp + network namespace。openjiuwen 只有 SysOperation 协议抽象，JiuwenBox 是真正实现。</li>\n\
+      <li><strong>产品化体验</strong>：Web UI + TUI + config.yaml + 多模型配置 + SlashCommand 系统。</li>\n\
+    </ol>\n\
+    \n\
+    <h2>对比 Hermes Agent 的两种哲学</h2>\n\
+    \n\
+    <table>\n\
+      <tr><th>维度</th><th>openjiuwen+JiuwenClaw</th><th>Hermes Agent</th></tr>\n\
+      <tr><td>总代码量</td><td>415K LOC</td><td>~8K LOC 核心</td></tr>\n\
+      <tr><td>架构哲学</td><td>引擎+整车：框架做原子能力，产品做包装</td><td>可组合微核：轻量核心+技能扩展</td></tr>\n\
+      <tr><td>命令执行</td><td>三层(BashTool语义解释+SysOperation+沙箱)</td><td>一层(terminal工具+approval)</td></tr>\n\
+      <tr><td>LSP 集成</td><td>504行全局单例+懒加载+monorepo</td><td>❌ 无原生支持</td></tr>\n\
+      <tr><td>代码记忆</td><td>向量+BM25混合检索+10KB限制+降级策略</td><td>Memory 工具+会话持久化</td></tr>\n\
+      <tr><td>Subagent</td><td>4种Factory+SessionRail+VerificationRail</td><td>技能系统模拟</td></tr>\n\
+      <tr><td>自演进</td><td>604行SignalDetector(40+失败+18+纠正)</td><td>❌ 手工维护</td></tr>\n\
+      <tr><td>安全</td><td>5层(BashTool注入检测→文件防护→SysOperation→JiuwenBox沙箱→trusted_dirs)</td><td>approval机制+OS权限</td></tr>\n\
+      <tr><td>IM 渠道</td><td>10+ 平台</td><td>Telegram 为主</td></tr>\n\
+      <tr><td>技能生态</td><td>SkillNet+ClawHub+Marketplace+SkillDev</td><td>内置+用户自建</td></tr>\n\
+    </table>\n\
+    \n\
+    <h2>关键洞察</h2>\n\
+    \n\
+    <ol>\n\
+      <li><strong>JiuwenClaw 的 Code Agent 能力不是自建的</strong>——它继承自 openjiuwen 框架，通过 JiuwenClawCodeAdapter (1,146行) 注入产品配置。真正复杂的部分是框架层的 BashTool/LspRail/CodingMemoryRail/SignalDetector。</li>\n\
+      <li><strong>openjiuwen 的工程深度被低估了</strong>——261K LOC 不是堆代码量，而是每个子系统都有精心设计：BashTool 的语义退出码解释、CodingMemory 的混合检索+非阻塞预取、LSPServerManager 的懒加载+多 root、SignalDetector 的 40+ 失败模式+工具分类过滤。</li>\n\
+      <li><strong>415K LOC 的维护负担是真实风险</strong>——openjiuwen 闭源意味着只有华为内部团队能改框架层。JiuwenClaw 社区只能通过 Adapter 层扩展，无法触及核心 Rails/Tools。这是最大的生态限制。</li>\n\
+      <li><strong>两种哲学各有优劣</strong>——openjiuwen+JiuwenClaw 提供开箱即用的全栈能力，但维护成本高、框架闭源；Hermes 轻量灵活，但需要用户自己搭建很多能力。选择取决于你的团队规模和需求深度。</li>\n\
+    </ol>\n\
     \n\
     <hr>\n\
     \n\
-    <p><em>分析日期：2026-05-12 | 项目版本：v0.1.11 | 代码行数：~154,000 Python | 分析方法：源码阅读 + 架构文档 + 测试分析</em></p>"
+    <p><em>分析日期：2026-05-12 (更新) | openjiuwen agent-core + JiuwenClaw 联合分析 | 总代码量：~415,000 Python | 分析方法：双层源码阅读 + 架构文档 + 测试分析</em></p>"
 - title: "SkillOS 深度分析：RL 训练 8B 模型做技能策展，超越 Gemini-2.5-Pro——Google 最新论文解读"
   date: "May 10, 2026"
   excerpt: "Google Cloud AI 联合 UIUC/MIT 发布 SkillOS：通过分组任务流 RL 训练，8B 小模型学会自动 insert/update/delete 技能，在 ALFWorld 上 SR 提升 13.3pp，超越 Gemini-2.5-Pro 零样本策展。Executor-grounded 训练比模型规模更重要。"
