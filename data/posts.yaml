@@ -1,4 +1,145 @@
 posts:
+- title: "BitFun 作为 Jiuwen Subagent 的集成方案：五种路径分析与最佳实践"
+  date: "May 13, 2026"
+  excerpt: "Jiuwen + BitFun 协同工作的五种集成路径分析。推荐 ACP + HierarchicalTeam 混合方案，实现强模型执行 + 弱模型协调的成本优化架构。"
+  content: "
+    <p>2026 年，AI Agent 正在从\"单打独斗\"走向\"团队协作\"。当你有两个优秀的 Agent 系统——Jiuwen（九问）和 BitFun——如何让它们协同工作，而不是各干各的？这篇文章分析五种集成路径，给出最优方案。</p>\n\
+    \n\
+    <h2>先看清两个系统的本质</h2>\n\
+    \n\
+    <p>在讨论集成之前，先理解它们各自的核心特征：</p>\n\
+    \n\
+    <table>\n\
+    <tr><th>维度</th><th>BitFun</th><th>openJiuwen (九问)</th></tr>\n\
+    <tr><td>语言/运行时</td><td>Rust CLI + ACP (stdin/stdout JSON-RPC)</td><td>Python SDK + agent-core</td></tr>\n\
+    <tr><td>Agent 模型</td><td>单 Agent，ReAct 循环</td><td>ReActAgent + WorkflowAgent 双模式</td></tr>\n\
+    <tr><td>多 Agent 机制</td><td>ACP session/prompt（被动调用）</td><td>hierarchical_tools + hierarchical_msgbus</td></tr>\n\
+    <tr><td>原生协议</td><td>ACP v1（PR#498 修复后成熟）</td><td>MCP + A2A（agent-protocol C++ SDK）</td></tr>\n\
+    <tr><td>审批流水线</td><td>完整 — ConfirmationNeeded/confirm/reject</td><td>通过 ability_manager 权限控制</td></tr>\n\
+    <tr><td>执行引擎</td><td>同步工具调用循环</td><td>异步并行图执行 + 流式处理</td></tr>\n\
+    <tr><td>维护方</td><td>社区/个人，~152K LOC Rust</td><td>华为，核心闭源 pip 包分发</td></tr>\n\
+    </table>\n\
+    \n\
+    <p>关键差异：Jiuwen 擅长编排和流程控制，BitFun 擅长代码生成和自主调试。两者互补而非重叠。</p>\n\
+    \n\
+    <h2>五种集成路径</h2>\n\
+    \n\
+    <h3>路径 A：ACP Client in Jiuwen &#9733; 推荐</h3>\n\
+    \n\
+    <p>Jiuwen 侧实现轻量 ACP client，通过 subprocess 启动 <code>bitfun-cli acp</code>，走 stdin/stdout JSON-RPC。BitFun 零改动。</p>\n\
+    \n\
+    <pre><code class=\"language-mermaid\">\n\
+    graph TB\n\
+        subgraph Jiuwen[\"Jiuwen HierarchicalTeam\"]\n\
+            Root[\"Root Agent (ReAct)<br/>model: flash/cheap\"]\n\
+            Tool1[\"Tool 1\"]\n\
+            Tool2[\"Tool 2\"]\n\
+            ACPClient[\"BitFun ACP ClientTool<br/>model: pro\"]\n\
+        end\n\
+    \n\
+        subgraph BitFun[\"BitFun Subprocess\"]\n\
+            BF[\"bitfun-cli acp<br/>- code generation<br/>- execution + debug<br/>- tool pipeline + approvals\"]\n\
+        end\n\
+    \n\
+        User((User)) -->|task| Root\n\
+        Root -->|ability_manager| Tool1\n\
+        Root -->|ability_manager| Tool2\n\
+        Root -->|ability_manager| ACPClient\n\
+        ACPClient -->|stdin/stdout JSON-RPC<br/>session/create + prompt| BF\n\
+    </code></pre>\n\
+    \n\
+    <table>\n\
+    <tr><th>维度</th><th>评价</th></tr>\n\
+    <tr><td>BitFun 改动</td><td>零</td></tr>\n\
+    <tr><td>Jiuwen 改动</td><td>~400 行 Python</td></tr>\n\
+    <tr><td>延迟</td><td>低（localhost 进程间通信）</td></tr>\n\
+    <tr><td>流式</td><td>&#10003; BitFun 原生流式通知</td></tr>\n\
+    <tr><td>审批</td><td>&#10003; ACP RequestPermissionRequest 自动转发</td></tr>\n\
+    <tr><td>session 隔离</td><td>&#10003; 每次调用独立 session</td></tr>\n\
+    </table>\n\
+    \n\
+    <h3>路径 B：简单 Tool 包装（原型用）</h3>\n\
+    \n\
+    <p>直接包装 <code>bitfun-cli</code> 的非 ACP 模式为 Jiuwen Tool。改动量仅 ~50 行，但无流式、无审批透传、无法利用 BitFun 的多轮推理能力。适合快速原型验证，非生产方案。</p>\n\
+    \n\
+    <h3>路径 C：A2A 协议桥接（多 Agent 生态用）</h3>\n\
+    \n\
+    <p>利用 Jiuwen 原生 A2A 协议，在 BitFun 侧构建 A2A server adapter。Jiuwen 原生支持标准化 agent card 发现。但双协议转换（A2A &#8594; ACP）增加延迟，A2A 规范仍在演进。适合需要连接多个异构 Agent 的场景。</p>\n\
+    \n\
+    <h3>路径 D：MCP 工具级集成（不推荐）</h3>\n\
+    \n\
+    <p>只暴露 BitFun 的工具能力（文件/Shell 操作）给 Jiuwen。致命缺陷：丢失了 BitFun 最核心的 Agent 自主推理循环——生成代码&#8594;执行&#8594;根据错误修正&#8594;再执行——这不是工具能做到的。</p>\n\
+    \n\
+    <h2>最优方案：路径 A + 模型智能路由</h2>\n\
+    \n\
+    <p>综合考量后的推荐架构：</p>\n\
+    \n\
+    <pre><code class=\"language-mermaid\">\n\
+    graph TB\n\
+        User((User Input)) --> JiuwenRoot\n\
+        \n\
+        subgraph Jiuwen[\"Jiuwen Orchestrator Layer\"]\n\
+            JiuwenRoot[\"Root Agent (ReAct)<br/>model: deepseek-v4-flash<br/>cost: ~$0.30/M tok\"]\n\
+            JiuwenRoot -->|\"simple tasks (80%)\"| JiuwenExec[\"Jiuwen handles directly\"]\n\
+            JiuwenRoot -->|\"complex code (20%)\"| BitFunCall[\"delegate to BitFun\"]\n\
+        end\n\
+        \n\
+        subgraph BitFun[\"BitFun Execution Layer\"]\n\
+            BitFunCall -->|\"ACP session/prompt\"| BitFunSession[\"BitFun Session<br/>model: deepseek-v4-pro<br/>cost: ~$1.20/M tok\"]\n\
+        end\n\
+        \n\
+        BitFunSession -->|\"result\"| JiuwenRoot\n\
+        JiuwenRoot -->|\"final response\"| User\n\
+    </code></pre>\n\
+    \n\
+    <h3>核心原则</h3>\n\
+    \n\
+    <ol>\n\
+    <li><strong>零 BitFun 改动</strong> — ACP 已在 PR#498 修复至成熟可用状态</li>\n\
+    <li><strong>Jiuwen 改动最小</strong> — 一个标准 ACP client tool（~400 行 Python），注册到 ability_manager</li>\n\
+    <li><strong>模型分层省钱</strong> — Jiuwen 用 flash 做编排（~$0.30/M tokens），BitFun 用 pro 做深度代码（~$1.20/M tokens），只在必要时调用强模型</li>\n\
+    <li><strong>审批链完整</strong> — BitFun 的 ConfirmationNeeded 通过 ACP 自动转发到 Jiuwen，透传给用户</li>\n\
+    <li><strong>session 隔离</strong> — 每个代码任务独立 BitFun session，上下文互不污染</li>\n\
+    <li><strong>可扩展</strong> — 未来加新的 ACP agent（OpenCode/Claude Code）只需再注册一个 tool</li>\n\
+    </ol>\n\
+    \n\
+    <h2>实施路线图</h2>\n\
+    \n\
+    <table>\n\
+    <tr><th>步骤</th><th>内容</th><th>工作量</th><th>优先级</th></tr>\n\
+    <tr><td>1</td><td>验证 BitFun ACP session/prompt 完整流（含工具调用、流式返回）</td><td>30min</td><td>P0</td></tr>\n\
+    <tr><td>2</td><td>实现 Python BitFunACPClient 类（initialize/session_create/session_prompt）</td><td>2h</td><td>P0</td></tr>\n\
+    <tr><td>3</td><td>将 ACPClient 包装为 Jiuwen Tool 接口（符合 ToolInfo 规范）</td><td>1h</td><td>P0</td></tr>\n\
+    <tr><td>4</td><td>在 Jiuwen HierarchicalTeam 中注册 BitFun 为 child agent</td><td>30min</td><td>P0</td></tr>\n\
+    <tr><td>5</td><td>配置模型路由（root=flash, BitFun=pro）</td><td>30min</td><td>P1</td></tr>\n\
+    <tr><td>6</td><td>端到端测试：简单任务 &#8594; 复杂代码任务 &#8594; 审批场景</td><td>2h</td><td>P1</td></tr>\n\
+    <tr><td>7</td><td>压测并发：多个 BitFun session 并行</td><td>1h</td><td>P2</td></tr>\n\
+    </table>\n\
+    \n\
+    <h2>为什么不是 JiuwenClaw 直接用？</h2>\n\
+    \n\
+    <p>JiuwenClaw 本身就内置了 explore_agent/plan_agent/code_agent/browser_agent 四层 subagent 体系。那为什么还要集成外部 BitFun？</p>\n\
+    \n\
+    <ul>\n\
+    <li><strong>模型灵活性</strong>：JiuwenClaw 的 subagent 共享同一模型配置，而 BitFun 可以使用完全不同的模型后端（如 DeepSeek V4 Pro）</li>\n\
+    <li><strong>审批可控</strong>：BitFun 的审批流水线比 Jiuwen 的内置确认更细粒度，且可通过 ACP 对外暴露</li>\n\
+    <li><strong>异构优势</strong>：Rust（BitFun）+ Python（Jiuwen）各取所长——Rust 的执行效率和 Python 的编排灵活性</li>\n\
+    <li><strong>避免 vendor lock-in</strong>：引入外部 Agent 作为能力补充，不过度依赖单一框架</li>\n\
+    </ul>\n\
+    \n\
+    <h2>风险评估</h2>\n\
+    \n\
+    <ul>\n\
+    <li><strong>Pipe 稳定性</strong>：BitFun 的 session/prompt 在 subprocess 模式下，stdin pipe 关闭时机敏感，需充分测试</li>\n\
+    <li><strong>长任务支持</strong>：Jiuwen 的 ability_manager 是否支持异步长时间 tool 调用（BitFun 一次代码任务可能跑 2-5 分钟）</li>\n\
+    <li><strong>审批延迟</strong>：Jiuwen &#8594; 用户确认 &#8594; BitFun 的回路延迟需要可接受的 SLA</li>\n\
+    </ul>\n\
+    \n\
+    <blockquote>\n\
+      <p>这个架构的本质是<strong>强模型执行 + 弱模型协调</strong>的成本优化模型。Jiuwen 管全局、管流程、管用户交互；BitFun 管代码、管执行、管调试。两者通过 ACP 这一轻量标准协议连接，不做重协议适配，不引入额外依赖。这是 Agent 时代 Unix 哲学的体现——每个组件做好一件事，通过标准接口组合。</p>\n\
+    </blockquote>\n\
+    \n\
+    <p><em>2026年5月13日</em></p>"
 - title: "BitFun vs JiuwenClaw：两大国产 AI Coding Agent 的 10 维度深度横评"
   date: "May 12, 2026"
   excerpt: "横向对比 BitFun（Rust 152K LOC 桌面应用）和 JiuwenClaw（Python 415K LOC 企业平台）：命令执行、LSP 集成、代码审查、调试能力、代码记忆、安全沙箱、桌面自动化、技能生态、IM 渠道、自举能力。BitFun 在 DeepReview/调试/桌面体验上领先，JiuwenClaw 在 CodingMemory/沙箱/技能市场上更强。"
