@@ -1,912 +1,1861 @@
 posts:
-- title: "Artificial Analysis Coding Agent Index 深度剖析：三大基准的测评哲学与工程意义"
-  date: "May 14, 2026"
-  excerpt: "拆解 Artificial Analysis Coding Agent Index 的设计逻辑：SWE-Bench-Pro-Hard-AA、Terminal-Bench v2、SWE-Atlas-QnA 三个基准如何正交覆盖 coding agent 的全栈能力。分析等权平均的局限、harness-aware 评测的价值，以及工程选型的实用建议。"
-  content: "
-    <h2>三个基准，三个维度</h2>\n\
-    \n\
-    <p>Artificial Analysis 做了一件被很多人忽视的事：<strong>他们评测的是 \"Agent 完整系统\"，而不只是裸模型</strong>。同一个模型（例如 Claude Opus 4.5）在不同 agent harness 下（Cursor CLI vs Claude Code vs Codex）得分可以相差 15 个百分点以上。传统的 MMLU、HumanEval、SWE-Bench Verified 只看模型能力，而这个指数把 harness × model 组合作为一个整体来评测——这才接近工程选型的真实决策场景。</p>\n\
-    \n\
-    <p>指数由三个基准等权（各 1/3）简单平均构成，每基准跑 3 次取 pass@1 均值。总任务量 358 道。</p>\n\
-    \n\
-    <h3>① SWE-Bench-Pro-Hard-AA（150 题）—— 交付可用代码</h3>\n\
-    \n\
-    <p><strong>来源链路</strong>：SWE-Bench → SWE-Bench Verified（500 题，去噪）→ SWE-Bench Pro（Scale AI SEAL，731 题，抗污染）→ <strong>Hard-AA 子集</strong>（150 题精选）。</p>\n\
-    \n\
-    <p>这个演进链路本身就说明问题：SWE-Bench Verified 已经被污染。同一个 Claude Opus 4.5，Verified 上 80.9%，Pro 上直接腰斩到 45.9%。Pro 上的 46% 比 Verified 上的 81% 更接近真实能力。而 Hard-AA 是 Pro 的困难子集，分数会进一步压低。</p>\n\
-    \n\
-    <p><strong>测什么</strong>：Agent 收到 GitHub issue + 代码仓库 → 浏览文件 → 编辑代码 → 跑测试 → 生成 patch → <strong>必须通过原仓库的 test suite</strong>。二元评分，全过得 1，不过得 0。这是三个基准中最接近真实 \"修 Bug / 写 feature\" 场景的。</p>\n\
-    \n\
-    <p><strong>隐含挑战</strong>：Hard-AA 的 150 道题从 731 道 Pro 中如何筛选？这个筛选逻辑没有完全公开。如果筛选策略是 \"当前模型表现差的题\"，就引入了选择偏差——相当于专门挑了模型的短板来测。</p>\n\
-    \n\
-    <h3>② Terminal-Bench v2（84 题 / 原 89）—— 在终端里办事</h3>\n\
-    \n\
-    <p><strong>来源</strong>：Stanford + Laude Institute 联合项目，Snorkel AI 为主要贡献者。开源（GitHub: harbor-framework/terminal-bench），在 Docker 沙箱中执行。</p>\n\
-    \n\
-    <p><strong>测什么</strong>：不是写代码，而是 <strong>\"在 shell 里办事\"</strong>——检视文件、运行命令、debug 失败、跟踪多步状态。考验的是 Agent 对终端环境的理解和操作能力，这在 infra / DevOps / 调试场景中至关重要。</p>\n\
-    \n\
-    <p><strong>被排除的 5 道题</strong>：AA 声明因 \"环境兼容性问题\" 排除。这值得追问——如果排除的是依赖特定系统环境（如特定 OS 版本、网络条件）的任务，可能系统性低估 Agent 的终端操作上限。不过反过来看，在标准化评测中排除环境依赖题也是合理的做法。</p>\n\
-    \n\
-    <p><strong>二元评分</strong>，测试套件判定 pass/fail。与 SWE-Bench 相同，没有 partial credit。</p>\n\
-    \n\
-    <h3>③ SWE-Atlas-QnA（124 题）—— 读懂代码并回答</h3>\n\
-    \n\
-    <p><strong>来源</strong>：Scale AI 的 SWE-Atlas 基准套件（arXiv: 2605.08366）。注意：SWE-Atlas 完整版包含三个子任务——Codebase Q&A（124 题）、Test Writing（90 题）、Refactoring（70 题）——但 AA <strong>只用了 Q&A 部分</strong>。</p>\n\
-    \n\
-    <p><strong>测什么</strong>：Agent 需要阅读代码库、理解架构和行为，然后给出文字答案。<strong>不要求修改代码</strong>。这是纯 \"阅读理解\" 维度。</p>\n\
-    \n\
-    <p><strong>唯一支持 partial credit 的基准</strong>：Rubric-based grading，每题得分 0–1 连续分布。答案可以部分正确——答对一半的 rubric 检查项拿 0.5 分。这意味着 SWE-Atlas-QnA 的 per-task 平均分通常高于另外两个二元基准，在等权平均中实际权重可能更大。</p>\n\
-    \n\
-    <p><strong>缺少的维度</strong>：SWE-Atlas 的 Test Writing 和 Refactoring 被跳过。这两个在实际工程中占比很高——写测试是 TDD 的基础，重构是日常维护的核心。跳过它们意味着指数缺失了两个重要的工程能力维度。</p>\n\
-    \n\
-    <h2>设计逻辑：为什么是这三个？</h2>\n\
-    \n\
-    <p>AA 的官方说法很直白：\"不同 Agent 在 repository Q&A、implementation / bug-fix tasks、terminal-heavy workflows 上表现差异巨大。指数的意义不是把所有编码工作坍缩成一个任务类型，而是<strong>把不同 benchmark 家族聚合到一个顶层视图</strong>，同时保留底层分类明细。\"</p>\n\
-    \n\
-    <p>三个基准的维度正交性确实不错：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>写代码（SWE-Bench-Pro-Hard-AA）</strong>：实现可靠性，产出可验证的 patch</li>\n\
-    <li><strong>终端操作（Terminal-Bench v2）</strong>：工具使用能力，shell 环境中的多步工作流</li>\n\
-    <li><strong>读代码（SWE-Atlas-QnA）</strong>：仓库理解深度，不需要产出可执行代码</li>\n\
-    </ul>\n\
-    \n\
-    <p>一个 Agent 可能读代码很强但修不好 Bug（理解正确但实现出错），也可能修 Bug 强但终端操作弱（编码厉害但不会用命令行工具）。三者组合才能反映全栈 coding agent 能力。</p>\n\
-    \n\
-    <h2>亮点与创新</h2>\n\
-    \n\
-    <h3>✓ Harness-aware 是真正的进步</h3>\n\
-    \n\
-    <p>2026 年的 coding agent 市场已经从 \"哪个模型最强\" 变成了 \"哪个 agent 组合最好用\"。同一模型在不同 harness 下表现差异巨大。AA 把 harness 作为一等评测维度（每个榜单行是 \"模型 + harness + 设置\" 的组合），这比单纯报模型分数实用得多。</p>\n\
-    \n\
-    <h3>✓ 效率指标并重</h3>\n\
-    \n\
-    <p>除了 pass@1 分数，AA 还报告：</p>\n\
-    <ul>\n\
-    <li><strong>Cost per task</strong>：基于 API token 定价的实际费用（非订阅价格）</li>\n\
-    <li><strong>Token 消耗</strong>：区分 input / cache / cache-write / reasoning / output</li>\n\
-    <li><strong>Wall-clock 执行时间</strong>：完整任务耗时</li>\n\
-    </ul>\n\
-    \n\
-    <p>这在工程选型中极其重要。一个 Agent 拿 60 分但每次花 $15，另一个拿 55 分但每次 $2，后者性价比高出 6 倍。没有效率指标，你无法做出理性决策。</p>\n\
-    \n\
-    <h3>✓ 抗污染设计</h3>\n\
-    \n\
-    <p>三个基准都不是老旧的 SWE-Bench Verified。SWE-Bench Pro 是专门为抗污染设计的（新题、未公开答案），Terminal-Bench v2 是 v2 升级版，SWE-Atlas 是全新基准。这避免了 \"模型在训练数据中见过题目\" 的虚高分数问题。</p>\n\
-    \n\
-    <h3>✓ 统计稳定性</h3>\n\
-    \n\
-    <p>每基准跑 3 次取平均。虽然 3 次仍然偏少（尤其对二元评分的高方差任务），但好过只跑 1 次。</p>\n\
-    \n\
-    <h2>局限与改进空间</h2>\n\
-    \n\
-    <h3>✗ 等权平均过于粗暴</h3>\n\
-    \n\
-    <p>三个基准的难度、区分度、评分分布完全不同：</p>\n\
-    <ul>\n\
-    <li>SWE-Bench-Pro-Hard-AA：二元 0/1，极难（Pro 上最好模型才 ~46%）</li>\n\
-    <li>Terminal-Bench v2：二元 0/1，难度未知</li>\n\
-    <li>SWE-Atlas-QnA：连续 0–1，有 partial credit，均值通常更高</li>\n\
-    </ul>\n\
-    \n\
-    <p>等权 1/3 意味着 SWE-Atlas-QnA 的连续分（因为有 partial credit，均值系统性偏高）在指数中的<strong>实际贡献可能大于 1/3</strong>。更合理的做法是按难度归一化或使用 z-score。</p>\n\
-    \n\
-    <h3>✗ Hard-AA 子集不透明</h3>\n\
-    \n\
-    <p>150 道从 731 道中筛选的逻辑未完全公开。任何 \"精选 harder subset\" 的操作都可能引入主观偏差。如果筛选准则是 \"当前最强模型也做不对\"，那这个 subset 更多反映的是 \"模型的当前盲区\" 而非 \"通用的工程难度\"。</p>\n\
-    \n\
-    <h3>✗ 缺少可靠性维度</h3>\n\
-    \n\
-    <p>3 次重复只取均值，不报告方差。同一个 Agent 可能 3 次得分 (80, 20, 50)，均值 50 看起来还行，但实际极不可靠。对于生产环境，可靠性（方差）往往比均值更重要——一个稳定拿 45 分的 Agent 比一个波动在 20–70 之间的 Agent 可预测得多。</p>\n\
-    \n\
-    <h3>✗ 缺少自修正能力评测</h3>\n\
-    \n\
-    <p>pass@1 只测一次尝试，不测 Agent 看到测试失败后能否自我修复。现实中的 Agent 工作流几乎总是迭代式的：写 patch → 跑测试 → 看错误 → 修复 → 再跑。pass@1 丢掉了这个最重要的反馈循环。</p>\n\
-    \n\
-    <h3>✗ 题目总量偏小</h3>\n\
-    \n\
-    <p>三基准加起来 358 道独立任务（且有 3 次重复），对比 SWE-Bench Full 的 2,294 题，统计效力有限。尤其当模型之间差距在 3–5 分时，这可能没有统计显著性。</p>\n\
-    \n\
-    <h3>✗ 缺少多模态 & 测试/重构维度</h3>\n\
-    \n\
-    <p>三个基准全是纯文本/代码任务，不涉及 UI 截图、设计稿、API 文档截图等多模态输入。同时跳过了 SWE-Atlas 的 Test Writing 和 Refactoring 子任务——这两个在实际工程中占比很高。</p>\n\
-    \n\
-    <h2>与其他主流 Benchmark 体系的对比</h2>\n\
-    \n\
-    <table>\n\
-    <tr><th>维度</th><th>AA Coding Agent Index</th><th>SWE-Bench Verified</th><th>Aider Polyglot</th></tr>\n\
-    <tr><td>评测对象</td><td>Agent 系统（model + harness）</td><td>裸模型（通常）</td><td>Agent 系统</td></tr>\n\
-    <tr><td>任务类型</td><td>3 种异构</td><td>单一（修 Bug）</td><td>单一（编辑代码）</td></tr>\n\
-    <tr><td>抗污染</td><td>高（Pro-based）</td><td>低（已明显被污染）</td><td>中</td></tr>\n\
-    <tr><td>效率指标</td><td>✓（cost / token / time）</td><td>✗</td><td>✗</td></tr>\n\
-    <tr><td>Partial credit</td><td>仅 Atlas-QnA</td><td>✗</td><td>✗</td></tr>\n\
-    <tr><td>题目透明度</td><td>中（Hard-AA 子集不透明）</td><td>高</td><td>高</td></tr>\n\
-    <tr><td>Harness 差异可见</td><td>✓</td><td>✗</td><td>✓（有限）</td></tr>\n\
-    </table>\n\
-    \n\
-    <h2>实用建议：什么时候用它，什么时候不够</h2>\n\
-    \n\
-    <p><strong>适合的场景</strong>：</p>\n\
-    <ul>\n\
-    <li>选型 coding agent 全栈方案（Cursor vs Claude Code vs Codex vs Copilot）</li>\n\
-    <li>需要同时考虑质量、成本、速度的决策</li>\n\
-    <li>对比同一模型在不同 harness 下的表现差异</li>\n\
-    <li>跟踪 coding agent 领域的能力演进趋势</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>不够用的场景</strong>：</p>\n\
-    <ul>\n\
-    <li>你的主要工作是单一类型任务（如只修 Bug、只做 code review）——看对应子基准即可</li>\n\
-    <li>需要评测 Agent 的自修正 / 迭代能力——需要补充 pass@k（k ≥ 2）</li>\n\
-    <li>需要多模态能力（处理设计稿 → 写前端，或 UI bug 截图 → 定位代码）</li>\n\
-    <li>需要评测特定语言 / 框架——三个基准主要是 Python 仓库</li>\n\
-    <li>团队预算极度敏感——需要结合自己的 API 订阅计划重新算实际成本</li>\n\
-    </ul>\n\
-    \n\
-    <h2>底线判断</h2>\n\
-    \n\
-    <p>AA Coding Agent Index 是<strong>目前最好的 Agent 系统级评测框架之一</strong>。核心价值在于三点：harness-aware 设计（把 harness 作为一等变量）、效率并报（不止报分数）、抗污染（三个基准都比较新）。</p>\n\
-    \n\
-    <p>但它更适合做 <strong>相对排名</strong> 而非 <strong>绝对能力测量</strong>。等权平均、358 题总量、缺少方差报告——这些意味着指数上 3–5 分的差距可能没有统计显著性。选型时建议：<strong>看子基准分类得分 + 效率指标</strong>，而不是只看总指数排名。</p>\n\
-    \n\
-    <p>2026 年的 coding agent 评测正在从 \"排行榜竞赛\" 走向 \"工程决策工具\"。AA 这个指数是正确方向上的关键一步——但还远不是终点。</p>\n\
-    \n\
-    <blockquote>发布日期：May 14, 2026</blockquote>"
-- title: "BitFun 作为 Jiuwen Subagent 的集成方案：五种路径分析与最佳实践"
-  date: "May 13, 2026"
-  excerpt: "Jiuwen + BitFun 协同工作的五种集成路径分析。推荐 ACP + HierarchicalTeam 混合方案，实现强模型执行 + 弱模型协调的成本优化架构。"
-  content: "
-    <p>2026 年，AI Agent 正在从\"单打独斗\"走向\"团队协作\"。当你有两个优秀的 Agent 系统——Jiuwen（九问）和 BitFun——如何让它们协同工作，而不是各干各的？这篇文章分析五种集成路径，给出最优方案。</p>\n\
-    \n\
-    <h2>先看清两个系统的本质</h2>\n\
-    \n\
-    <p>在讨论集成之前，先理解它们各自的核心特征：</p>\n\
-    \n\
-    <table>\n\
-    <tr><th>维度</th><th>BitFun</th><th>openJiuwen (九问)</th></tr>\n\
-    <tr><td>语言/运行时</td><td>Rust CLI + ACP (stdin/stdout JSON-RPC)</td><td>Python SDK + agent-core</td></tr>\n\
-    <tr><td>Agent 模型</td><td>单 Agent，ReAct 循环</td><td>ReActAgent + WorkflowAgent 双模式</td></tr>\n\
-    <tr><td>多 Agent 机制</td><td>ACP session/prompt（被动调用）</td><td>hierarchical_tools + hierarchical_msgbus</td></tr>\n\
-    <tr><td>原生协议</td><td>ACP v1（PR#498 修复后成熟）</td><td>MCP + A2A（agent-protocol C++ SDK）</td></tr>\n\
-    <tr><td>审批流水线</td><td>完整 — ConfirmationNeeded/confirm/reject</td><td>通过 ability_manager 权限控制</td></tr>\n\
-    <tr><td>执行引擎</td><td>同步工具调用循环</td><td>异步并行图执行 + 流式处理</td></tr>\n\
-    <tr><td>维护方</td><td>社区/个人，~152K LOC Rust</td><td>华为，核心闭源 pip 包分发</td></tr>\n\
-    </table>\n\
-    \n\
-    <p>关键差异：Jiuwen 擅长编排和流程控制，BitFun 擅长代码生成和自主调试。两者互补而非重叠。</p>\n\
-    \n\
-    <h2>五种集成路径</h2>\n\
-    \n\
-    <h3>路径 A：ACP Client in Jiuwen &#9733; 推荐</h3>\n\
-    \n\
-    <p>Jiuwen 侧实现轻量 ACP client，通过 subprocess 启动 <code>bitfun-cli acp</code>，走 stdin/stdout JSON-RPC。BitFun 零改动。</p>\n\
-    \n\
-    <pre><code class=\"language-mermaid\">\n\
-    graph TB\n\
-        subgraph Jiuwen[\"Jiuwen HierarchicalTeam\"]\n\
-            Root[\"Root Agent (ReAct)<br/>model: flash/cheap\"]\n\
-            Tool1[\"Tool 1\"]\n\
-            Tool2[\"Tool 2\"]\n\
-            ACPClient[\"BitFun ACP ClientTool<br/>model: pro\"]\n\
-        end\n\
-    \n\
-        subgraph BitFun[\"BitFun Subprocess\"]\n\
-            BF[\"bitfun-cli acp<br/>- code generation<br/>- execution + debug<br/>- tool pipeline + approvals\"]\n\
-        end\n\
-    \n\
-        User((User)) -->|task| Root\n\
-        Root -->|ability_manager| Tool1\n\
-        Root -->|ability_manager| Tool2\n\
-        Root -->|ability_manager| ACPClient\n\
-        ACPClient -->|stdin/stdout JSON-RPC<br/>session/create + prompt| BF\n\
-    </code></pre>\n\
-    \n\
-    <table>\n\
-    <tr><th>维度</th><th>评价</th></tr>\n\
-    <tr><td>BitFun 改动</td><td>零</td></tr>\n\
-    <tr><td>Jiuwen 改动</td><td>~400 行 Python</td></tr>\n\
-    <tr><td>延迟</td><td>低（localhost 进程间通信）</td></tr>\n\
-    <tr><td>流式</td><td>&#10003; BitFun 原生流式通知</td></tr>\n\
-    <tr><td>审批</td><td>&#10003; ACP RequestPermissionRequest 自动转发</td></tr>\n\
-    <tr><td>session 隔离</td><td>&#10003; 每次调用独立 session</td></tr>\n\
-    </table>\n\
-    \n\
-    <h3>路径 B：简单 Tool 包装（原型用）</h3>\n\
-    \n\
-    <p>直接包装 <code>bitfun-cli</code> 的非 ACP 模式为 Jiuwen Tool。改动量仅 ~50 行，但无流式、无审批透传、无法利用 BitFun 的多轮推理能力。适合快速原型验证，非生产方案。</p>\n\
-    \n\
-    <h3>路径 C：A2A 协议桥接（多 Agent 生态用）</h3>\n\
-    \n\
-    <p>利用 Jiuwen 原生 A2A 协议，在 BitFun 侧构建 A2A server adapter。Jiuwen 原生支持标准化 agent card 发现。但双协议转换（A2A &#8594; ACP）增加延迟，A2A 规范仍在演进。适合需要连接多个异构 Agent 的场景。</p>\n\
-    \n\
-    <h3>路径 D：MCP 工具级集成（不推荐）</h3>\n\
-    \n\
-    <p>只暴露 BitFun 的工具能力（文件/Shell 操作）给 Jiuwen。致命缺陷：丢失了 BitFun 最核心的 Agent 自主推理循环——生成代码&#8594;执行&#8594;根据错误修正&#8594;再执行——这不是工具能做到的。</p>\n\
-    \n\
-    <h2>最优方案：路径 A + 模型智能路由</h2>\n\
-    \n\
-    <p>综合考量后的推荐架构：</p>\n\
-    \n\
-    <pre><code class=\"language-mermaid\">\n\
-    graph TB\n\
-        User((User Input)) --> JiuwenRoot\n\
-        \n\
-        subgraph Jiuwen[\"Jiuwen Orchestrator Layer\"]\n\
-            JiuwenRoot[\"Root Agent (ReAct)<br/>model: deepseek-v4-flash<br/>cost: ~$0.30/M tok\"]\n\
-            JiuwenRoot -->|\"simple tasks (80%)\"| JiuwenExec[\"Jiuwen handles directly\"]\n\
-            JiuwenRoot -->|\"complex code (20%)\"| BitFunCall[\"delegate to BitFun\"]\n\
-        end\n\
-        \n\
-        subgraph BitFun[\"BitFun Execution Layer\"]\n\
-            BitFunCall -->|\"ACP session/prompt\"| BitFunSession[\"BitFun Session<br/>model: deepseek-v4-pro<br/>cost: ~$1.20/M tok\"]\n\
-        end\n\
-        \n\
-        BitFunSession -->|\"result\"| JiuwenRoot\n\
-        JiuwenRoot -->|\"final response\"| User\n\
-    </code></pre>\n\
-    \n\
-    <h3>核心原则</h3>\n\
-    \n\
-    <ol>\n\
-    <li><strong>零 BitFun 改动</strong> — ACP 已在 PR#498 修复至成熟可用状态</li>\n\
-    <li><strong>Jiuwen 改动最小</strong> — 一个标准 ACP client tool（~400 行 Python），注册到 ability_manager</li>\n\
-    <li><strong>模型分层省钱</strong> — Jiuwen 用 flash 做编排（~$0.30/M tokens），BitFun 用 pro 做深度代码（~$1.20/M tokens），只在必要时调用强模型</li>\n\
-    <li><strong>审批链完整</strong> — BitFun 的 ConfirmationNeeded 通过 ACP 自动转发到 Jiuwen，透传给用户</li>\n\
-    <li><strong>session 隔离</strong> — 每个代码任务独立 BitFun session，上下文互不污染</li>\n\
-    <li><strong>可扩展</strong> — 未来加新的 ACP agent（OpenCode/Claude Code）只需再注册一个 tool</li>\n\
-    </ol>\n\
-    \n\
-    <h2>实施路线图</h2>\n\
-    \n\
-    <table>\n\
-    <tr><th>步骤</th><th>内容</th><th>工作量</th><th>优先级</th></tr>\n\
-    <tr><td>1</td><td>验证 BitFun ACP session/prompt 完整流（含工具调用、流式返回）</td><td>30min</td><td>P0</td></tr>\n\
-    <tr><td>2</td><td>实现 Python BitFunACPClient 类（initialize/session_create/session_prompt）</td><td>2h</td><td>P0</td></tr>\n\
-    <tr><td>3</td><td>将 ACPClient 包装为 Jiuwen Tool 接口（符合 ToolInfo 规范）</td><td>1h</td><td>P0</td></tr>\n\
-    <tr><td>4</td><td>在 Jiuwen HierarchicalTeam 中注册 BitFun 为 child agent</td><td>30min</td><td>P0</td></tr>\n\
-    <tr><td>5</td><td>配置模型路由（root=flash, BitFun=pro）</td><td>30min</td><td>P1</td></tr>\n\
-    <tr><td>6</td><td>端到端测试：简单任务 &#8594; 复杂代码任务 &#8594; 审批场景</td><td>2h</td><td>P1</td></tr>\n\
-    <tr><td>7</td><td>压测并发：多个 BitFun session 并行</td><td>1h</td><td>P2</td></tr>\n\
-    </table>\n\
-    \n\
-    <h2>为什么不是 JiuwenClaw 直接用？</h2>\n\
-    \n\
-    <p>JiuwenClaw 本身就内置了 explore_agent/plan_agent/code_agent/browser_agent 四层 subagent 体系。那为什么还要集成外部 BitFun？</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>模型灵活性</strong>：JiuwenClaw 的 subagent 共享同一模型配置，而 BitFun 可以使用完全不同的模型后端（如 DeepSeek V4 Pro）</li>\n\
-    <li><strong>审批可控</strong>：BitFun 的审批流水线比 Jiuwen 的内置确认更细粒度，且可通过 ACP 对外暴露</li>\n\
-    <li><strong>异构优势</strong>：Rust（BitFun）+ Python（Jiuwen）各取所长——Rust 的执行效率和 Python 的编排灵活性</li>\n\
-    <li><strong>避免 vendor lock-in</strong>：引入外部 Agent 作为能力补充，不过度依赖单一框架</li>\n\
-    </ul>\n\
-    \n\
-    <h2>风险评估</h2>\n\
-    \n\
-    <ul>\n\
-    <li><strong>Pipe 稳定性</strong>：BitFun 的 session/prompt 在 subprocess 模式下，stdin pipe 关闭时机敏感，需充分测试</li>\n\
-    <li><strong>长任务支持</strong>：Jiuwen 的 ability_manager 是否支持异步长时间 tool 调用（BitFun 一次代码任务可能跑 2-5 分钟）</li>\n\
-    <li><strong>审批延迟</strong>：Jiuwen &#8594; 用户确认 &#8594; BitFun 的回路延迟需要可接受的 SLA</li>\n\
-    </ul>\n\
-    \n\
-    <blockquote>\n\
-      <p>这个架构的本质是<strong>强模型执行 + 弱模型协调</strong>的成本优化模型。Jiuwen 管全局、管流程、管用户交互；BitFun 管代码、管执行、管调试。两者通过 ACP 这一轻量标准协议连接，不做重协议适配，不引入额外依赖。这是 Agent 时代 Unix 哲学的体现——每个组件做好一件事，通过标准接口组合。</p>\n\
-    </blockquote>\n\
-    \n\
-    <p><em>2026年5月13日</em></p>"
-- title: "BitFun vs JiuwenClaw：两大国产 AI Coding Agent 的 10 维度深度横评"
-  date: "May 12, 2026"
-  excerpt: "横向对比 BitFun（Rust 152K LOC 桌面应用）和 JiuwenClaw（Python 415K LOC 企业平台）：命令执行、LSP 集成、代码审查、调试能力、代码记忆、安全沙箱、桌面自动化、技能生态、IM 渠道、自举能力。BitFun 在 DeepReview/调试/桌面体验上领先，JiuwenClaw 在 CodingMemory/沙箱/技能市场上更强。"
-  content: "
-    <p>在 AI Coding Agent 领域，两个来自中国的项目正在以截然不同的技术路线推进：<strong>BitFun</strong>（Rust + Tauri 桌面应用）和 <strong>JiuwenClaw</strong>（Python + openjiuwen 框架）。本文从代码执行、LSP 集成、Subagent 体系、代码审查、调试能力、记忆系统、安全模型等 10 个维度进行深度对比。</p>\n\
-    \n\
-    <p>BitFun: <a href=\"https://github.com/GCWing/BitFun\">github.com/GCWing/BitFun</a>（Rust 152K LOC）</p>\n\
-    <p>JiuwenClaw: <a href=\"https://github.com/openJiuwen-ai/jiuwenclaw\">github.com/openJiuwen-ai/jiuwenclaw</a>（Python 415K LOC 含 openjiuwen）</p>\n\
-    \n\
-    <h2>1. 命令执行：PTY vs 三层架构</h2>\n\
-    \n\
-    <p><strong>BitFun</strong> 的 Shell 执行基于独立的 <code>terminal_core</code> crate，提供真正的 PTY 伪终端支持。1,454 行的 <code>bash_tool.rs</code> 实现了 PTY 会话管理、流式事件推送、智能 osascript 检测、30,000 字符输出限制。</p>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong> 采用三层执行栈：JiuwenClaw command_tools.py（正则拦截）→ openjiuwen BashTool（语义退出码解释、流式输出、注入检测、权限管道）→ SysOperation（本地/沙箱透明切换）。</p>\n\
-    \n\
-    <p><strong>结论</strong>：BitFun 的 PTY 更适合交互式开发（REPL、调试器）；JiuwenClaw 的三层架构在安全和沙箱隔离上更深。</p>\n\
-    \n\
-    <h2>2. LSP 集成：插件架构 vs 全局单例</h2>\n\
-    \n\
-    <p><strong>BitFun</strong> 的 LSP 系统（5,533 行，13 文件）是本次对比中最令人印象深刻的子系统：PluginLoader 插件加载、PluginRegistry 注册管理、LspServerProcess 进程管理、FileSync 文件同步、ConfigWatcher 配置监听、Debouncer 防抖、DiagnosticsCache 诊断缓存、WorkspaceManager 多 root 管理、ProjectDetector 语言检测。</p>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong> 的 LSPServerManager（504 行）是全局单例加异步懒加载，功能更简洁但缺少插件机制和文件同步。</p>\n\
-    \n\
-    <p><strong>结论</strong>：BitFun 的 LSP 集成更接近 IDE 级别；JiuwenClaw 适合快速集成但扩展性有限。</p>\n\
-    \n\
-    <h2>3. DeepReview 代码审查：BitFun 的最大差异化优势</h2>\n\
-    \n\
-    <p>这是 BitFun 独有、JiuwenClaw 完全缺乏的能力。DeepReview 子系统（5,636 行）实现了一个完整的代码审查流水线：</p>\n\
-    \n\
-    <ol>\n\
-      <li><strong>DeepReviewPolicy</strong>：评估触发条件，决定审查策略</li>\n\
-      <li><strong>DeepReviewQueue</strong>：排队管理，防止过多并发审查</li>\n\
-      <li><strong>DeepReviewManifest</strong>：生成审查任务清单</li>\n\
-      <li><strong>多 Reviewer Subagent</strong>：并行审查（review_specialists）</li>\n\
-      <li><strong>DeepReviewReport</strong>：汇总审查结果</li>\n\
-      <li><strong>review_fixer</strong>：自动修复发现的问题</li>\n\
-      <li><strong>Budget 控制</strong>：限制审查 token 消耗</li>\n\
-      <li><strong>IncrementalCache</strong>：增量缓存，避免重复审查</li>\n\
-    </ol>\n\
-    \n\
-    <p>JiuwenClaw 有 4 种 Subagent（explore/plan/code/browser），但没有专用的代码审查 Agent。代码质量保证依赖人工审查和技能自演进。</p>\n\
-    \n\
-    <h2>4. Debug 模式：BitFun 的独家武器</h2>\n\
-    \n\
-    <p>347 行的 Debug 模式是另一个 JiuwenClaw 完全缺乏的能力：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>语言检测</strong>：ProjectDetector 自动检测 JS/TS/Python 等项目语言</li>\n\
-      <li><strong>Instrumentation 模板</strong>：自动注入日志/断点代码到项目</li>\n\
-      <li><strong>实时数据回传</strong>：HTTP POST 到本地 ingest 端点，实时查看运行时数据</li>\n\
-      <li><strong>假设验证</strong>：hypothesis_id + run_id 追踪每次调试尝试</li>\n\
-      <li><strong>Evidence-driven</strong>：要求 Agent 基于运行时数据而非猜测进行修复</li>\n\
-    </ul>\n\
-    \n\
-    <h2>5. 记忆系统：Embedding 检索 vs Session 持久化</h2>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong> 的 CodingMemoryRail（503 行）是本次对比中最突出的单点技术优势：<strong>向量 + BM25 混合检索</strong>，Top-5 召回加 10KB 上限，非阻塞预取，无结果时自动降级读取 MEMORY.md 索引。对于需要跨 session 记住项目架构、bug 修复模式、依赖版本的长期项目，这是不可替代的能力。</p>\n\
-    \n\
-    <p><strong>BitFun</strong> 有 Session-based 持久化和项目上下文系统，但缺乏 Embedding 级的语义检索。</p>\n\
-    \n\
-    <p><strong>结论</strong>：JiuwenClaw 在代码记忆上明显领先。</p>\n\
-    \n\
-    <h2>6. 安全模型：五层沙箱 vs 基础防护</h2>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong> 的五层安全防御是本维度的绝对优势：BANNED_COMMANDS 正则黑名单 → trusted_dirs 白名单路径限制 → 二进制/设备文件自动拒绝 → PermissionInterruptRail 权限确认 → JiuwenBox（bubblewrap + Landlock + Seccomp + network namespace）完整进程隔离。另外还有 WorktreeRail 提供 git worktree 隔离。</p>\n\
-    \n\
-    <p><strong>BitFun</strong> 作为桌面应用，安全模型依赖 OS 权限加 workspace 边界，BANNED_COMMANDS 目前仅拦截 alias 命令，无可扩展机制。</p>\n\
-    \n\
-    <p><strong>结论</strong>：JiuwenClaw 在安全沙箱上明显领先，BitFun 适合受信任的个人开发环境。</p>\n\
-    \n\
-    <h2>7. Computer Use 桌面自动化</h2>\n\
-    \n\
-    <p><strong>BitFun</strong>：完整桌面控制套件（mouse/input/locate/actions/result）加手机 QR 码远程控制。Agent 可以实际操作桌面应用。</p>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong>：仅 Xiaoyi 华为手机端，无桌面自动化能力。</p>\n\
-    \n\
-    <h2>8. 技能生态与市场</h2>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong>：SkillNet + ClawHub + Marketplace 三层技能市场 + SkillDev 10 阶段技能开发流水线 + 本地导入。用户可以发布、搜索、安装第三方技能。</p>\n\
-    \n\
-    <p><strong>BitFun</strong>：内置 Skill 系统（SkillTool）和 mode_overrides，无技能市场，无第三方技能分发机制。</p>\n\
-    \n\
-    <h2>9. 自举能力</h2>\n\
-    \n\
-    <p><strong>BitFun</strong>：97% 代码由自身 Code Agent 生成（Vibe Coding），是业界唯一实现大规模自举的 Agent 项目。这本身就是其 Code Agent 能力的最强证明。</p>\n\
-    \n\
-    <p><strong>JiuwenClaw</strong>：人工编写为主，通过 SignalDetector 加 SkillOptimizer 实现技能级别的自演进。</p>\n\
-    \n\
-    <h2>10. 综合评分卡</h2>\n\
-    \n\
-    <table>\n\
-      <tr><th>维度</th><th>BitFun</th><th>JiuwenClaw</th></tr>\n\
-      <tr><td>命令执行</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>\n\
-      <tr><td>LSP 集成</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>\n\
-      <tr><td>Subagent 体系</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>\n\
-      <tr><td>代码审查</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>\n\
-      <tr><td>调试能力</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>\n\
-      <tr><td>代码记忆</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
-      <tr><td>技能生态</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
-      <tr><td>安全沙箱</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
-      <tr><td>桌面自动化</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>\n\
-      <tr><td>IM 渠道</td><td>⭐⭐⭐☆☆ (3/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>\n\
-      <tr><td>自举能力</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐☆☆☆ (2/5)</td></tr>\n\
-    </table>\n\
-    \n\
-    <h2>核心差异一句话</h2>\n\
-    \n\
-    <blockquote>\n\
-      <p><strong>BitFun</strong> 是\"个人开发者的 AI 桌面工作台\"——代码审查 + 调试 + 桌面自动化 + 极致体验。它的 DeepReview 和 Debug 模式是 JiuwenClaw 完全没有的能力，97% 自举率证明了其 Code Agent 的实用价值。</p>\n\
-      <p><strong>JiuwenClaw</strong> 是\"企业级的 Agent 操作系统\"——代码记忆 + 安全沙箱 + 技能市场 + 企业 IM 集成。它的 CodingMemory 和 JiuwenBox 是 BitFun 完全缺乏的能力，10+ 渠道覆盖适合大型组织部署。</p>\n\
-    </blockquote>\n\
-    \n\
-    <h2>选型建议</h2>\n\
-    \n\
-    <table>\n\
-      <tr><th>场景</th><th>推荐</th></tr>\n\
-      <tr><td>个人日常编码，需要代码审查和调试</td><td><strong>BitFun</strong></td></tr>\n\
-      <tr><td>需要桌面自动化 + 手机遥控</td><td><strong>BitFun</strong></td></tr>\n\
-      <tr><td>长期大型项目，需要跨 session 代码记忆</td><td><strong>JiuwenClaw</strong></td></tr>\n\
-      <tr><td>需要执行不可信代码（安全沙箱）</td><td><strong>JiuwenClaw</strong></td></tr>\n\
-      <tr><td>企业 IM 集成（飞书/钉钉/企微）</td><td><strong>JiuwenClaw</strong></td></tr>\n\
-      <tr><td>跨机器多 Agent 协作</td><td><strong>JiuwenClaw</strong></td></tr>\n\
-      <tr><td>macOS/Windows 原生桌面体验</td><td><strong>BitFun</strong></td></tr>\n\
-      <tr><td>技能生态 + 技能市场</td><td><strong>JiuwenClaw</strong></td></tr>\n\
-    </table>\n\
-    \n\
-    <hr>\n\
-    \n\
-    <p><em>分析日期：2026-05-12 | BitFun core ~152K LOC Rust | JiuwenClaw + openjiuwen ~415K LOC Python | 基于源码阅读 + 架构文档分析</em></p>"
-- title: "JiuwenClaw 深度分析：415K 行代码背后的双层 Agent 架构——openjiuwen 引擎与 JiuwenClaw 整车的完整剖析"
-  date: "May 12, 2026"
-  excerpt: "更新版深度剖析：发现 JiuwenClaw 底层还有 openjiuwen agent-core (261K LOC)。双层架构详解——引擎(ReActAgent/DeepAgent/BashTool/LSP/CodingMemory/SignalDetector/26 Rails) vs 整车(Gateway/10渠道/ProjectMemoryRail/SkillDev/JiuwenBox)。415K LOC 的 Agent 基础设施全景。"
-  content: "
-     <p>2026 年 5 月，我在做 AI Agent 基础设施调研时发现了 <strong>JiuwenClaw</strong>——华为团队出品的 AI Agent 平台。最初以为是 154K 行 Python 的单体项目，深入后才发现它只是冰山一角：底层还有一个 <strong>openjiuwen agent-core</strong> 框架，<strong>261K 行代码、1,383 个 Python 文件</strong>，两者合计 <strong>415K 行</strong>。这是一套\"引擎 + 整车\"的双层架构。</p>\n\
-    \n\
-    <p>JiuwenClaw: <a href=\"https://github.com/openJiuwen-ai/jiuwenclaw\">github.com/openJiuwen-ai/jiuwenclaw</a></p>\n\
-    <p>agent-core: <a href=\"https://github.com/openJiuwen-ai/agent-core\">github.com/openJiuwen-ai/agent-core</a></p>\n\
-    \n\
-    <h2>双层架构：引擎与整车的精确分工</h2>\n\
-    \n\
-    <p>理解 JiuwenClaw 的 Code Agent 能力，必须先理解它和 openjiuwen 的关系：</p>\n\
-    \n\
-    <table>\n\
-    <tr><th>层</th><th>openjiuwen agent-core</th><th>JiuwenClaw</th></tr>\n\
-    <tr><td><strong>代码量</strong></td><td>261,273 LOC, 1,383 files</td><td>154,000 LOC (核心)</td></tr>\n\
-    <tr><td><strong>角色</strong></td><td>Agent 引擎/框架 (SDK)</td><td>Agent 产品/平台 (可安装)</td></tr>\n\
-    <tr><td><strong>目标用户</strong></td><td>Agent 开发者</td><td>终端用户</td></tr>\n\
-    <tr><td><strong>核心组件</strong></td><td>ReActAgent, DeepAgent, 26 Rails, 4 Subagent Factory, LSP, CodingMemory, SignalDetector, TeamRuntime</td><td>Gateway, 10 IM 渠道, Web UI, TUI, ProjectMemoryRail, 技能市场, SkillDev, JiuwenBox 沙箱</td></tr>\n\
-    <tr><td><strong>安全</strong></td><td>BashTool 注入检测+权限管道, SysOperation 协议, 文件系统防护</td><td>危险命令拦截, trusted_dirs 白名单, JiuwenBox(bubblewrap+Landlock+Seccomp)</td></tr>\n\
-    <tr><td><strong>配置方式</strong></td><td>Python API</td><td>config.yaml + Web UI</td></tr>\n\
-    </table>\n\
-    \n\
-    <p>依赖方向严格单向：<code>JiuwenClaw → import openjiuwen.*</code>，反向永不发生。</p>\n\
-    \n\
-    <h2>Code Agent 能力深度剖析</h2>\n\
-    \n\
-    <h3>1. 命令执行：三层架构，远比表面复杂</h3>\n\
-    \n\
-    <p>之前只看 JiuwenClaw 的 <code>command_tools.py</code> (322行)，以为是简单的 subprocess 包装。实际上完整执行栈是三层：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>Layer 3 — JiuwenClaw 包装层</strong>：危险命令正则拦截 (rm -rf/shutdown/mkfs)，工作目录强制限制在 project_root 子目录</li>\n\
-    <li><strong>Layer 2 — openjiuwen BashTool (271行)</strong>：这才是真正的执行引擎。功能包括：<strong>语义级退出码解释</strong>（不是只返回数字，而是解读含义）、<strong>流式输出</strong>（stream() 方法 + 实时 chunk 推送）、<strong>注入检测</strong>（check_injection()）、<strong>权限管道</strong>（deny/allow patterns + mode enforcement）、<strong>破坏性命令警告</strong>（get_destructive_warning()）、<strong>智能输出截断</strong>（default 8000 字符，超限自动持久化到文件）</li>\n\
-    <li><strong>Layer 1 — SysOperation 抽象层</strong>：统一的系统操作接口，支持 LocalWorkConfig（本地执行）和 SandboxGatewayConfig（远程 JiuwenBox 沙箱执行），上层代码无需感知差异</li>\n\
-    </ul>\n\
-    \n\
-    <h3>2. 文件系统：1,801行的完整实现</h3>\n\
-    \n\
-    <p>openjiuwen 的 <code>filesystem.py</code> 不是简单的 read/write wrapper：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>行级分页读取</strong>：offset + limit，避免加载大文件</li>\n\
-    <li><strong>PDF 支持</strong>：集成 pdfplumber，自动解析 PDF 文本</li>\n\
-    <li><strong>二进制防护</strong>：阻止读取 20+ 种二进制格式 (.exe, .so, .db, .zip...)</li>\n\
-    <li><strong>设备文件防护</strong>：/dev/zero, /dev/random, /dev/urandom 等阻塞设备自动拒绝</li>\n\
-    <li><strong>编辑前置验证</strong>：必须先 read 才能 edit，通过 <code>_FILE_READ_REGISTRY</code> 检测外部修改</li>\n\
-    <li><strong>操作历史</strong>：每个 workspace 维护 write/edit 操作日志，异步安全</li>\n\
-    </ul>\n\
-    \n\
-    <h3>3. LSP 集成：504行全局单例管理器</h3>\n\
-    \n\
-    <p>不是简单的 LSP 客户端包装。openjiuwen 实现了一个完整的 <strong>LSPServerManager</strong>：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>全局单例 + 异步懒加载</strong>：服务器不立即启动，首次 LSP 请求时才初始化</li>\n\
-    <li><strong>Monorepo 多 root 支持</strong>：ServerInstanceKey(server_id, root) 允许同一语言在不同项目 root 下独立运行</li>\n\
-    <li><strong>自动语言检测</strong>：build_configs_async() 扫描项目结构，自动选择需要的 LSP server</li>\n\
-    <li><strong>诊断注入</strong>：每次 before_model_call 前，LspRail 获取当前打开文件的诊断信息，注入系统 prompt 的 code_context 段 (SectionPriority=120)</li>\n\
-    </ul>\n\
-    \n\
-    <p>这意味着 Agent 在开始编码前就已经知道当前文件的类型错误、未使用变量、接口不匹配等问题——不需要先跑一遍编译。</p>\n\
-    \n\
-    <h3>4. CodingMemory：向量+BM25 混合检索</h3>\n\
-    \n\
-    <p>之前描述为\"Embedding 代码记忆\"，实际更精确：openjiuwen 的 CodingMemoryRail (503行) 实现的是<strong>向量检索 + BM25 关键词检索的混合方案</strong>，不是纯向量：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>混合检索</strong>：向量语义匹配 + BM25 精确关键词匹配，互补优势</li>\n\
-    <li><strong>Top-5 召回</strong>：每个 user turn 自动检索，最多返回 5 条最相关记忆</li>\n\
-    <li><strong>10KB 上限</strong>：召回内容总大小硬限制，避免 token 爆炸</li>\n\
-    <li><strong>非阻塞预取</strong>：asyncio.create_task() 启动异步检索，不阻塞 Agent 主循环</li>\n\
-    <li><strong>降级策略</strong>：无检索结果时自动降级为读取 MEMORY.md 索引</li>\n\
-    <li><strong>存储格式</strong>：独立 .md 文件 + YAML frontmatter 元数据，人类可读</li>\n\
-    </ul>\n\
-    \n\
-    <h3>5. Subagent 体系：精确的分工约束</h3>\n\
-    \n\
-    <p>4 种 Subagent 的 factory 全部定义在 openjiuwen 中，JiuwenClaw 只负责从 config.yaml 读取配置并传递：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>explore_agent (263行)</strong>：最严格的只读约束。System prompt 明确禁止所有写操作，工具集限定为 glob/grep/read_file/list_files/bash(只读子集)。bash 只能执行 ls/git status/log/diff/cat/head/tail。</li>\n\
-    <li><strong>plan_agent</strong>：专注方案设计，不操作文件系统。输出结构化计划。</li>\n\
-    <li><strong>code_agent (286行)</strong>：实际编码执行。默认 Rails: SysOperationRail + CodingMemoryRail。System prompt 强调\"能用工具就用工具，不要猜文件内容；变更要小、可回滚；先澄清接口再动代码\"。</li>\n\
-    <li><strong>browser_agent</strong>：Playwright-based Web 自动化。</li>\n\
-    </ul>\n\
-    \n\
-    <p>SubagentRail 配套了 SessionRail（子代理会话管理）、VerificationRail（输出质量验证）、VerificationContractRail（基于合约的输出验证），构成完整的子代理生命周期管理。</p>\n\
-    \n\
-    <h3>6. 自演进系统：604行信号检测器</h3>\n\
-    \n\
-    <p>openjiuwen 的 ConversationSignalDetector 是整个自演进体系的基础：</p>\n\
-    \n\
-    <ul>\n\
-    <li><strong>40+ 失败关键词</strong>：覆盖 error/exception/traceback/failed/timeout/errno/permission denied/command not found/module not found/econnrefused/enoent 及中文错误/异常/失败/超时</li>\n\
-    <li><strong>18 种用户纠正句式</strong>：不对/不是这/那/错了/应该是/用/改/换/你搞错了/重新来/做/执行/尝试/纠正一下/我的意思是 + 英文 that's wrong/should be/actually/no wait</li>\n\
-    <li><strong>工具分类过滤</strong>：数据获取工具（web_fetch/search）的输出不触发信号；代码执行工具（bash/code）的输出才检测</li>\n\
-    <li><strong>6 阶段演进流水线</strong>：Trajectory → SignalDetector → SkillEvolutionManager → SkillOptimizer(LLM) → evolutions.json → solidify → SKILL.md</li>\n\
-    </ul>\n\
-    \n\
-    <p>JiuwenClaw 在此基础上增加了 SkillDev 10 阶段开发流水线和 /evolve 手动触发命令。</p>\n\
-    \n\
-    <h2>JiuwenClaw 的真正原创价值</h2>\n\
-    \n\
-    <p>分析完 agent-core 后发现，JiuwenClaw 的 Code Agent <strong>核心能力都来自 openjiuwen</strong>。JiuwenClaw 真正的原创在于：</p>\n\
-    \n\
-    <ol>\n\
-    <li><strong>Gateway + 渠道层</strong>：E2A 协议 (自研) + ACP/A2A 协议栈 + 10+ IM 平台接入。这是 openjiuwen 完全不提供的。</li>\n\
-    <li><strong>ProjectMemoryRail</strong>：JIUWENCLAW.md 5 层级自动加载。openjiuwen 框架中没有这个 Rail，是 JiuwenClaw 的独创。</li>\n\
-    <li><strong>技能市场生态</strong>：SkillNet + ClawHub + Marketplace + 本地导入。四层技能分发体系。</li>\n\
-    <li><strong>SkillDev 10 阶段流水线</strong>：从 INIT 到 PACKAGE 的完整技能开发工厂。</li>\n\
-    <li><strong>JiuwenBox 沙箱</strong>：bubblewrap + Landlock + Seccomp + network namespace。openjiuwen 只有 SysOperation 协议抽象，JiuwenBox 是真正实现。</li>\n\
-    <li><strong>产品化体验</strong>：Web UI + TUI + config.yaml + 多模型配置 + SlashCommand 系统。</li>\n\
-    </ol>\n\
-    \n\
-    <h2>对比 Hermes Agent 的两种哲学</h2>\n\
-    \n\
-    <table>\n\
-    <tr><th>维度</th><th>openjiuwen+JiuwenClaw</th><th>Hermes Agent</th></tr>\n\
-    <tr><td>总代码量</td><td>415K LOC</td><td>~8K LOC 核心</td></tr>\n\
-    <tr><td>架构哲学</td><td>引擎+整车：框架做原子能力，产品做包装</td><td>可组合微核：轻量核心+技能扩展</td></tr>\n\
-    <tr><td>命令执行</td><td>三层(BashTool语义解释+SysOperation+沙箱)</td><td>一层(terminal工具+approval)</td></tr>\n\
-    <tr><td>LSP 集成</td><td>504行全局单例+懒加载+monorepo</td><td>❌ 无原生支持</td></tr>\n\
-    <tr><td>代码记忆</td><td>向量+BM25混合检索+10KB限制+降级策略</td><td>Memory 工具+会话持久化</td></tr>\n\
-    <tr><td>Subagent</td><td>4种Factory+SessionRail+VerificationRail</td><td>技能系统模拟</td></tr>\n\
-    <tr><td>自演进</td><td>604行SignalDetector(40+失败+18+纠正)</td><td>❌ 手工维护</td></tr>\n\
-    <tr><td>安全</td><td>5层(BashTool注入检测→文件防护→SysOperation→JiuwenBox沙箱→trusted_dirs)</td><td>approval机制+OS权限</td></tr>\n\
-    <tr><td>IM 渠道</td><td>10+ 平台</td><td>Telegram 为主</td></tr>\n\
-    <tr><td>技能生态</td><td>SkillNet+ClawHub+Marketplace+SkillDev</td><td>内置+用户自建</td></tr>\n\
-    </table>\n\
-    \n\
-    <h2>关键洞察</h2>\n\
-    \n\
-    <ol>\n\
-    <li><strong>JiuwenClaw 的 Code Agent 能力不是自建的</strong>——它继承自 openjiuwen 框架，通过 JiuwenClawCodeAdapter (1,146行) 注入产品配置。真正复杂的部分是框架层的 BashTool/LspRail/CodingMemoryRail/SignalDetector。</li>\n\
-    <li><strong>openjiuwen 的工程深度被低估了</strong>——261K LOC 不是堆代码量，而是每个子系统都有精心设计：BashTool 的语义退出码解释、CodingMemory 的混合检索+非阻塞预取、LSPServerManager 的懒加载+多 root、SignalDetector 的 40+ 失败模式+工具分类过滤。</li>\n\
-    <li><strong>415K LOC 的维护负担是真实风险</strong>——openjiuwen 闭源意味着只有华为内部团队能改框架层。JiuwenClaw 社区只能通过 Adapter 层扩展，无法触及核心 Rails/Tools。这是最大的生态限制。</li>\n\
-    <li><strong>两种哲学各有优劣</strong>——openjiuwen+JiuwenClaw 提供开箱即用的全栈能力，但维护成本高、框架闭源；Hermes 轻量灵活，但需要用户自己搭建很多能力。选择取决于你的团队规模和需求深度。</li>\n\
-    </ol>\n\
-    \n\
-    <h2>技术架构评估：JiuwenClaw 在 Code Agent 场景的深度评审</h2>\n\
-    \n\
-    <p>以下评估基于 415K LOC 的双层代码库分析，从架构设计、执行能力、安全模型、记忆系统、协作机制、可演进性六个维度，按工业级 Code Agent 的标准进行打分和详细说明。</p>\n\
-    \n\
-    <h3>一、架构设计：⭐⭐⭐⭐☆ (4/5)</h3>\n\
-    \n\
-    <p><strong>优势</strong>：</p>\n\
-    <ul>\n\
-      <li><strong>分层清晰</strong>：openjiuwen 做引擎（Agent 原子能力），JiuwenClaw 做产品（接入/分发/体验），职责边界明确。依赖方向严格单向，不存在循环依赖。</li>\n\
-      <li><strong>Adapter 模式优雅</strong>：JiuwenClawCodeAdapter 继承 JiuWenClawDeepAdapter，只重写 Rails/Tools/Subagents 注册方法。新增 Code 模式不需要修改框架代码，只需注入不同的配置。</li>\n\
-      <li><strong>Rail 系统设计精良</strong>：26 种 Rail 各有明确的 priority 和生命周期钩子（init/before_model_call/after_tool_call/uninit），可以任意组合。这是目前见过的 Agent 框架中最完善的中间件体系。</li>\n\
-      <li><strong>Card/Config 分离</strong>：AgentCard/ToolCard 定义身份元数据，运行时行为由 Config 控制。同一个 ToolCard 可以绑定不同的 Tool 实例，支持多租户和 A/B 测试。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>不足</strong>：</p>\n\
-    <ul>\n\
-      <li><strong>JiuWenClawDeepAdapter 过度膨胀</strong>：4,718 行单一文件，混合了模型配置、多模态配置、MCP 注册、权限引擎、身份 prompt 构建、Cron 运行时桥接等数十个关注点。违反单一职责原则。</li>\n\
-      <li><strong>openjiuwen 闭源限制扩展深度</strong>：虽然代码可见，但社区无法提交 PR 修改 BashTool 的执行逻辑或 LspRail 的诊断策略。所有扩展只能通过 Adapter 层做\"外挂\"。</li>\n\
-      <li><strong>全局状态依赖 Runner.resource_mgr</strong>：进程级全局单例，多实例测试需要显式隔离。AGENTS.md 中明确标注这是已知设计约束。</li>\n\
-      <li><strong>缺乏 Think/Reasoning 模式</strong>：与 Claude Code 的 thinking budget 或 Hermes 的 reasoning_effort 不同，JiuwenClaw 没有显式的推理阶段控制。Agent 的思考过程完全依赖模型自身的 chain-of-thought。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>二、执行能力：⭐⭐⭐⭐⭐ (5/5)</h3>\n\
-    \n\
-    <p><strong>命令执行</strong>：</p>\n\
-    <ul>\n\
-      <li>三层架构（command_tools → BashTool → SysOperation）提供了从用户接口到系统调用的完整抽象。BashTool 的语义退出码解释是行业最佳实践——Agent 看到的不是\"exit_code=1\"，而是\"命令失败，原因可能是文件不存在（ENOENT）\"。</li>\n\
-      <li>流式执行（stream() 方法）支持实时 chunk 推送，适合长时间运行的编译/测试任务。超限输出自动持久化到文件，避免 token 爆炸。</li>\n\
-      <li>后台模式（execute_cmd_background）支持启动守护进程，5 秒 grace period 检测启动失败。比简单的 nohup & 可靠得多。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>文件操作</strong>：</p>\n\
-    <ul>\n\
-      <li>filesystem.py (1,801行) 的功能完备性在同类框架中领先。编辑前置验证（必须先 read 才能 edit）是一个看似简单但极其有效的安全机制——防止 Agent 基于幻觉修改文件。</li>\n\
-      <li>二进制/设备文件自动拒绝，避免了新手 Agent 常见的\"cat /dev/urandom → OOM\"事故。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>局限性</strong>：</p>\n\
-    <ul>\n\
-      <li>BashTool 的 STRICT 模式（注入检测+权限管道）默认关闭，需要环境变量 OPENJIUWEN_BASH_STRICT=1 手动开启。这是一个安全配置上的遗憾——应该是默认开启，可选关闭。</li>\n\
-      <li>JiuwenClaw 的 command_tools.py 和 openjiuwen 的 BashTool 是两套独立实现，存在功能重复和维护分歧。JiuwenClaw 的命令执行包装更像是早期遗留代码。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>三、安全模型：⭐⭐⭐⭐☆ (4/5)</h3>\n\
-    \n\
-    <p><strong>分层防御体系</strong>：</p>\n\
-    <ul>\n\
-      <li>5 层安全从协议到产品逐层加固：WorktreeRail (git 隔离) → SysOperationRail (文件护栏) → BashTool 注入检测 (STRICT 模式) → ProjectMemoryRail (写操作监控) → JiuwenBox (进程沙箱)。</li>\n\
-      <li>JiuwenBox 是真正的亮点：bubblewrap + Landlock + Seccomp + network namespace 的 4 层 Linux 安全机制叠加，远超市面上常见的 Docker 沙箱方案。Landlock 是 Linux 5.13+ 的无特权沙箱机制，比 seccomp 更细粒度。</li>\n\
-      <li>PermissionInterruptRail 的\"本次允许/总是允许/拒绝\"三级确认粒度合理，不会过度打扰用户。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>不足</strong>：</p>\n\
-    <ul>\n\
-      <li>JiuwenBox 仅支持 Linux，macOS/Windows 用户无法受益于完整的进程隔离。</li>\n\
-      <li>trusted_dirs 白名单机制依赖用户手动配置，新用户可能在不理解的情况下信任了整个 home 目录。</li>\n\
-      <li>BashTool 的 PermissionConfig (deny_patterns/allow_patterns) 是基于正则的，可能被精心构造的命令绕过。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>四、记忆系统：⭐⭐⭐⭐⭐ (5/5)</h3>\n\
-    \n\
-    <p><strong>三套记忆协同</strong>：</p>\n\
-    <ul>\n\
-      <li>Memory (对话记忆) + Experience Memory (任务经验) + CodingMemory (代码知识) 的分层设计是目前开源 Agent 中最完整的记忆架构。</li>\n\
-      <li>CodingMemory 的向量+BM25 混合检索是工程上的正确选择——纯向量检索在代码场景（精确符号名、API 名称）表现不佳，BM25 弥补了语义匹配的盲区。</li>\n\
-      <li>非阻塞预取（asyncio.create_task）+ 降级策略（无结果时读取 MEMORY.md 索引）的工程实现扎实，不会因为 Embedding API 延迟而阻塞 Agent 主循环。</li>\n\
-      <li>10KB 召回上限和 Top-5 限制是务实的设计——避免记忆系统本身成为 token 消耗大户。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>局限性</strong>：</p>\n\
-    <ul>\n\
-      <li>依赖外部 Embedding API（需配置 embed_api_key/base_url/model），离线环境无法使用。缺少本地 Embedding 模型的 fallback。</li>\n\
-      <li>MEMORY.md 降级索引是人类可读但语义检索能力弱。在无 Embedding 配置时，记忆系统等效于全文搜索。</li>\n\
-      <li>CodingMemory 和 Memory 虽然目录隔离，但在系统 prompt 中可能同时注入，存在信息冗余风险。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>五、协作机制：⭐⭐⭐⭐☆ (4/5)</h3>\n\
-    \n\
-    <p><strong>Subagent 分工</strong>：</p>\n\
-    <ul>\n\
-      <li>4 种 Subagent 的职责边界清晰：explore 只读、plan 设计、code 实现、browser 抓取。这不是简单的\"多个 Agent 同时跑\"，而是有明确的分工约束。</li>\n\
-      <li>explore_agent 的只读设计尤为出色——不是靠代码限制，而是直接不注册写工具。Agent 想做也做不了。</li>\n\
-      <li>code_agent 共享主 Agent 的 CodingMemoryRail 实例，避免了重复初始化 Embedding 连接和重复召回。</li>\n\
-      <li>SessionRail + VerificationRail + VerificationContractRail 构成完整的子代理生命周期管理链路。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>Team 模式</strong>：</p>\n\
-    <ul>\n\
-      <li>MessageBus + TeamRuntime + CommunicableAgent 的消息总线架构支持 inprocess/pyzmq 两种传输模式，可以无缝从单机扩展到分布式。</li>\n\
-      <li>Handoff (handoff_tool + orchestrator) 和 Hierarchical (消息总线+工具代理) 两种内置 Team 拓扑，覆盖了大多数多 Agent 协作场景。</li>\n\
-      <li>每个 teammate 可以注入独立的 Code profile（独立的 LSP 实例、CodingMemory 目录、SysOperation 工作目录），这让\"前端 Agent+后端 Agent+DBAgent\"的分工成为可能。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>不足</strong>：</p>\n\
-    <ul>\n\
-      <li>Subagent 的 max_iterations 默认 15 且全局统一，无法根据任务复杂度自适应。explore_agent 可能 3 轮就完成，code_agent 可能需要 30 轮。</li>\n\
-      <li>Subagent 之间缺乏直接的通信通道——所有交互必须经过主 Agent 的 task_tool 中继，形成单点瓶颈。</li>\n\
-      <li>Team 模式的状态存储（SQLite/PostgreSQL）在分布式场景下可能成为性能瓶颈，缺少 etcd/Redis 等更适合分布式协调的存储后端。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>六、可演进性：⭐⭐⭐⭐⭐ (5/5)</h3>\n\
-    \n\
-    <p><strong>自演进闭环</strong>：</p>\n\
-    <ul>\n\
-      <li>SignalDetector（604行）的检测规则覆盖面广——40+ 失败模式 + 18 种用户纠正句式 + 工具分类过滤（数据获取工具不触发、代码执行工具才检测）。这套规则是工程经验的结晶。</li>\n\
-      <li>6 阶段演进流水线（Trajectory → Signal → Optimizer(LLM) → evolutions.json → solidify → SKILL.md）每一步都有持久化，失败可回溯。</li>\n\
-      <li>JiuwenClaw 的 SkillDev 10 阶段开发流水线是 Agent 技能工程化的标杆设计——INIT→PLAN→GENERATE→VALIDATE→TEST_DESIGN→TEST_RUN→EVALUATE→IMPROVE→PACKAGE→DESC_OPTIMIZE。用户只需要描述需求，系统自动生成可安装的 .skill 包。</li>\n\
-      <li>RL 训练管线（agent_rl/）支持 GRPO 等现代 RL 方法进行在线+离线策略优化，是目前开源 Agent 框架中唯一提供原生 RL 训练支持的。</li>\n\
-    </ul>\n\
-    \n\
-    <p><strong>不足</strong>：</p>\n\
-    <ul>\n\
-      <li>SignalDetector 是纯规则引擎，无法检测语义级别的失败（如\"代码能跑但结果不对\"）。</li>\n\
-      <li>SkillOptimizer 依赖 LLM 调用生成改进，引入了额外的成本和延迟——在 Code 模式下频繁触发可能导致 token 消耗显著增加。</li>\n\
-      <li>evolutions.json → SKILL.md 的 solidify 过程可能覆盖用户手工编辑的内容，需要更精细的冲突解决策略。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>综合评分</h3>\n\
-    \n\
-    <table>\n\
-      <tr><th>维度</th><th>评分</th><th>核心优势</th><th>主要短板</th></tr>\n\
-      <tr><td>架构设计</td><td>⭐⭐⭐⭐☆ 4/5</td><td>分层清晰、Adapter 优雅、Rail 系统完善</td><td>Adapter 单文件 4,718 行过度膨胀、框架闭源、无 Reasoning 模式</td></tr>\n\
-      <tr><td>执行能力</td><td>⭐⭐⭐⭐⭐ 5/5</td><td>三层架构、语义退出码、流式执行、文件前置验证</td><td>STRICT 安全模式默认关闭、两套 Shell 实现并存</td></tr>\n\
-      <tr><td>安全模型</td><td>⭐⭐⭐⭐☆ 4/5</td><td>5 层防御、JiuwenBox(bubblewrap+Landlock+Seccomp)</td><td>沙箱仅限 Linux、正则可能被绕过</td></tr>\n\
-      <tr><td>记忆系统</td><td>⭐⭐⭐⭐⭐ 5/5</td><td>三套记忆协同、向量+BM25 混合检索、非阻塞预取</td><td>依赖外部 Embedding API、无本地 fallback</td></tr>\n\
-      <tr><td>协作机制</td><td>⭐⭐⭐⭐☆ 4/5</td><td>Subagent 分工明确、pyzmq 分布式、独立 Code profile</td><td>迭代上限固定、Subagent 间无直连、分布式状态存储瓶颈</td></tr>\n\
-      <tr><td>可演进性</td><td>⭐⭐⭐⭐⭐ 5/5</td><td>604行 SignalDetector、SkillDev 10 阶段、原生 RL 训练</td><td>纯规则检测、LLM 优化成本、solidify 覆盖风险</td></tr>\n\
-      <tr><td><strong>综合</strong></td><td><strong>⭐⭐⭐⭐½ 4.5/5</strong></td><td colspan=\"2\">工业级 Code Agent 基础设施，在记忆系统和可演进性上领先，主要扣分项在架构膨胀和框架闭源</td></tr>\n\
-    </table>\n\
-    \n\
-    <h3>技术债务与风险提示</h3>\n\
-    \n\
-    <ul>\n\
-      <li><strong>Adapter 膨胀风险</strong>：JiuWenClawDeepAdapter (4,718行) 继续增长将变成 God Object。建议拆分：ModelConfigAdapter + MCPAdapter + PermissionAdapter + PromptAdapter。</li>\n\
-      <li><strong>双 Shell 实现分歧</strong>：command_tools.py (JiuwenClaw) 和 BashTool (openjiuwen) 功能重叠但 API 不同。长期应统一到 BashTool，废弃前者。</li>\n\
-      <li><strong>测试覆盖率 16%</strong>：对于 415K LOC 的生产级 Agent 系统，这个覆盖率意味着大量关键路径（LSP 懒加载、混合检索、信号检测）可能缺少回归保护。</li>\n\
-      <li><strong>openjiuwen 版本锁定</strong>：JiuwenClaw 的 uv.lock 锁定了 openjiuwen 的特定版本。框架升级可能引入 Adapter 层兼容性问题。</li>\n\
-      <li><strong>文档分散</strong>：架构知识分布在 AGENTS.md、.claude/rules/*.md、docs/en/、docs/zh/ 四个位置，缺乏统一入口。</li>\n\
-    </ul>\n\
-    \n\
-    <h3>适用场景建议</h3>\n\
-    \n\
-    <table>\n\
-      <tr><th>场景</th><th>推荐度</th><th>原因</th></tr>\n\
-      <tr><td>企业级长期项目 (3+ 月)</td><td>⭐⭐⭐⭐⭐</td><td>CodingMemory+ProjectMemory 的长期记忆能力是最佳匹配</td></tr>\n\
-      <tr><td>多人协作的大型代码库</td><td>⭐⭐⭐⭐⭐</td><td>Subagent 分工 + Team 模式 + LSP 全局诊断</td></tr>\n\
-      <tr><td>需要频繁部署/运维的项目</td><td>⭐⭐⭐⭐☆</td><td>JiuwenBox 沙箱安全 + BashTool 流式执行，但仅限 Linux</td></tr>\n\
-      <tr><td>个人快速原型开发</td><td>⭐⭐⭐☆☆</td><td>过于重量级，Hermes/Cursor 更合适</td></tr>\n\
-      <tr><td>需要自定义底层行为的场景</td><td>⭐⭐☆☆☆</td><td>框架闭源，只能通过 Adapter 外挂扩展</td></tr>\n\
-      <tr><td>macOS/Windows 为主的环境</td><td>⭐⭐⭐☆☆</td><td>核心功能可用，但 JiuwenBox 沙箱不可用，安全降级</td></tr>\n\
-    </table>\n\
-    <hr>\n\
-    \n\
-    <p><em>分析日期：2026-05-12 (更新) | openjiuwen agent-core + JiuwenClaw 联合分析 | 总代码量：~415,000 Python | 分析方法：双层源码阅读 + 架构文档 + 测试分析</em></p>"
-- title: "SkillOS 深度分析：RL 训练 8B 模型做技能策展，超越 Gemini-2.5-Pro——Google 最新论文解读"
-  date: "May 10, 2026"
-  excerpt: "Google Cloud AI 联合 UIUC/MIT 发布 SkillOS：通过分组任务流 RL 训练，8B 小模型学会自动 insert/update/delete 技能，在 ALFWorld 上 SR 提升 13.3pp，超越 Gemini-2.5-Pro 零样本策展。Executor-grounded 训练比模型规模更重要。"
-  content: "
-    <p>想象一下：你部署了一个 AI Agent，它今天能解决 100 个任务。一周后，它还是只能解决 100 个任务——因为每次新任务到来，它都从零开始，完全记不住上次是怎么成功的。</p>\n\
-    \n\
-    <p>这正是当前 LLM Agent 的困境。2026 年 5 月 7 日，Google Cloud AI 联合 UIUC 和 MIT 的 16 位研究者发布了 <strong>SkillOS</strong>，首次系统性地证明：<strong>一个 8B 参数的小模型，经过 RL 训练学会\"技能策展\"后，可以超越 Gemini-2.5-Pro 直接做策展的效果</strong>。</p>\n\
-    \n\
-    <p>论文链接：<a href=\"https://arxiv.org/abs/2605.06614\">arXiv:2605.06614</a></p>\n\
-    \n\
-    <h2>问题：Agent 为什么不能\"记住\"经验？</h2>\n\
-    \n\
-    <p>在流式部署场景（streaming setting）中，任务按时间顺序不断到来。一个理想的 Agent 应该：</p>\n\
-    \n\
-    <ol>\n\
-      <li>从每个任务中提炼可复用的经验</li>\n\
-      <li>将经验组织成可检索、可更新的技能库</li>\n\
-      <li>在后续相关任务中利用这些技能提升表现</li>\n\
-    </ol>\n\
-    \n\
-    <p>但现实是，大多数 Agent 是 \"one-off problem solver\"——每次新任务从零开始。为什么？因为<strong>技能策展（Skill Curation）极其困难</strong>：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>人工策展</strong>：Anthropic 维护了高质量的 skills 仓库，但依赖大量专家时间，无法规模化</li>\n\
-      <li><strong>启发式规则</strong>：固定规则（如\"成功则 insert，失败不操作\"）缺乏下游性能反馈，无法适应 executor 的实际需求</li>\n\
-      <li><strong>短期 RL</strong>：现有研究训练 agent 使用技能或优化短期操作，但 <code>update</code> 和 <code>delete</code> 这类复杂操作的回报是延迟的、间接的</li>\n\
-    </ul>\n\
-    \n\
-    <p>核心难点：策展操作（insert/update/delete）本身不产生直接结果——你需要等到<strong>未来相关任务</strong>的表现出来，才能判断上次的策展决策是好是坏。</p>\n\
-    \n\
-    <h2>SkillOS 架构：双组件 + RL 训练</h2>\n\
-    \n\
-    <p>SkillOS 的核心思想简洁而优雅：</p>\n\
-    \n\
-    <pre><code class=\"language-text\">\n\
-    ┌─────────────────┐          ┌──────────────────┐\n\
-    │ Frozen Executor  │  ←──────→│ Trainable Curator │\n\
-    │ (执行任务，不变)   │  Skills  │ (8B, RL训练)      │\n\
-    └────────┬─────────┘          └────────┬─────────┘\n\
-             │ 检索技能                    │ insert/update/delete\n\
-             │                             │\n\
-             ▼                             ▼\n\
-        ┌─────────────────────────────────────┐\n\
-        │  SkillRepo (Markdown 文件，类 OS I/O)  │\n\
-        │  skill_1.md  skill_2.md  ...          │\n\
-        └─────────────────────────────────────┘\n\
-    </code></pre>\n\
-    \n\
-    <h3>组件一：Frozen Agent Executor</h3>\n\
-    \n\
-    <p>Executor 是<strong>冻结的</strong>——完全不参与训练。给定当前任务，它用 BM25 从 SkillRepo 检索相关技能，然后用 ReAct/CoT 执行。执行完成后，产生轨迹（trajectory）传回给 Curator。</p>\n\
-    \n\
-    <h3>组件二：Trainable Skill Curator</h3>\n\
-    \n\
-    <p>Curator 是唯一可训练的部分。它观察 executor 的执行轨迹 + 自评结果，然后通过结构化 function call 操作 SkillRepo：</p>\n\
-    \n\
-    <ul>\n\
-      <li><code>insert_skill</code>：从成功/失败轨迹中提炼新技能</li>\n\
-      <li><code>update_skill</code>：精炼已有技能，合并冲突知识</li>\n\
-      <li><code>delete_skill</code>：移除过时、冗余、有害技能</li>\n\
-    </ul>\n\
-    \n\
-    <p>每个技能遵循 Anthropic 的 SKILL.md 格式——YAML frontmatter（名称 + 使用条件描述）+ Markdown 可执行指令。</p>\n\
-    \n\
-    <h3>训练方式：GRPO + 复合奖励</h3>\n\
-    \n\
-    <p>基于 Qwen3-8B，使用 GRPO（Grouped Reward Policy Optimization）在 16×H100 GPU 上训练，框架为字节跳动的 verl。关键奖励函数：</p>\n\
-    \n\
-    <pre><code class=\"language-text\">r = r_task + r_fc + 0.1·r_cnt + 0.05·r_comp</code></pre>\n\
-    \n\
-    <ul>\n\
-      <li><strong>r_task</strong>：后续任务的平均成功率（从 group 中第 2 个任务开始计，第 1 个用空 SkillRepo 无策展影响）——<em>核心信号，锚定策展对下游的实际价值</em></li>\n\
-      <li><strong>r_fc</strong>：有效函数调用比例——<em>防止生成无效 JSON 或空技能</em></li>\n\
-      <li><strong>r_cnt</strong>：Qwen3-32B 外部评委内容质量评分——<em>训练早期的密集信号</em></li>\n\
-      <li><strong>r_comp</strong>：压缩奖励 = 1 − |SkillRepo|/|input context|——<em>惩罚复制粘贴整条轨迹</em></li>\n\
-    </ul>\n\
-    \n\
-    <h2>创新 1：分组任务流训练（Grouped Task Streams）</h2>\n\
-    \n\
-    <p>这是 SkillOS 最精妙的设计，也是消融实验中<strong>影响最大的组件</strong>（去掉后 SR 从 61.2% 暴跌到 57.3%）。</p>\n\
-    \n\
-    <p>不按随机顺序训练，而是：</p>\n\
-    \n\
-    <ol>\n\
-      <li>用 Gemini-2.5-Pro 为每个任务标注技能相关属性标签</li>\n\
-      <li>基于属性相似度将任务聚合成组</li>\n\
-      <li>每组训练从空的 SkillRepo 开始</li>\n\
-      <li>早期任务的策展决策由后续相关任务验证</li>\n\
-    </ol>\n\
-    \n\
-    <p>这解决了核心难题：<strong>如何把延迟且间接的监督信号转化为有效的学习信号</strong>。在随机任务流中，策展操作的效果被无关后续任务稀释；而在分组流中，策展质量直接体现在后续相关任务的表现上。</p>\n\
-    \n\
-    <h2>创新 2：Executor-Grounded 策展</h2>\n\
-    \n\
-    <p>SkillOS 对比了一个关键实验：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>SkillOS-gemini</strong>：Gemini-2.5-Pro 直接做 curator（零样本策展）</li>\n\
-      <li><strong>SkillOS</strong>：Qwen3-8B RL 训练做 curator</li>\n\
-    </ul>\n\
-    \n\
-    <p>结果：8B 训练的 curator <strong>80.2% SR vs 79.3%</strong>，超过了 Gemini-2.5-Pro。当 executor 是较小的 Qwen3-8B 时差距更大：<strong>61.2% vs 50.7%</strong>。</p>\n\
-    \n\
-    <p><strong>关键洞察</strong>：Gemini 策展出的\"高质量技能\"可能与较小 executor 的使用模式不匹配——过于复杂、跳过 executor 能力范围外的步骤、或包含 executor 无法利用的抽象策略。而 RL 训练的 curator 通过 executor-grounded 反馈，学习生成的技能精确匹配下游 agent 的实际需求。</p>\n\
-    \n\
-    <p>这颠覆了\"用更强模型策展更好\"的直觉——<strong>与 executor 对齐的策展比模型规模更重要</strong>。</p>\n\
-    \n\
-    <h2>完整实验结果</h2>\n\
-    \n\
-    <h3>ALFWorld（多轮 agent 任务）</h3>\n\
-    \n\
-    <table>\n\
-      <tr><th>Executor</th><th>No Memory</th><th>SkillOS</th><th>提升</th></tr>\n\
-      <tr><td>Qwen3-8B</td><td>47.9%</td><td>61.2%</td><td>+13.3pp</td></tr>\n\
-      <tr><td>Qwen3-32B</td><td>54.5%</td><td>68.6%</td><td>+14.1pp</td></tr>\n\
-      <tr><td>Gemini-2.5-Pro</td><td>66.4%</td><td>80.2%</td><td>+13.8pp</td></tr>\n\
-    </table>\n\
-    \n\
-    <p>同时执行步骤减少：21.1 → 18.9（−10.4%）。效率不是靠更多试错换来的——技能让 executor 直接走捷径，绕过冗余探索。</p>\n\
-    \n\
-    <h3>WebShop + 推理任务（AIME24/25, GPQA）</h3>\n\
-    \n\
-    <table>\n\
-      <tr><th>基准</th><th>No Memory</th><th>SkillOS</th><th>提升</th></tr>\n\
-      <tr><td>WebShop SR</td><td>9.8%</td><td>16.5%</td><td>+6.7pp</td></tr>\n\
-      <tr><td>AIME24 Acc</td><td>76.0%</td><td>80.0%</td><td>+4.0pp</td></tr>\n\
-      <tr><td>AIME25 Acc</td><td>71.1%</td><td>76.7%</td><td>+5.6pp</td></tr>\n\
-      <tr><td>GPQA Acc</td><td>61.8%</td><td>64.6%</td><td>+2.8pp</td></tr>\n\
-    </table>\n\
-    \n\
-    <p>agent 任务（ALFWorld/WebShop）的增益普遍大于推理任务——前者暴露更多程序化规律（行动顺序、探索策略、环境约束），后者可复用知识更抽象（分解启发式、验证模式），但 SkillOS 在所有基准上均有提升。</p>\n\
-    \n\
-    <h2>技能的\"自我进化\"</h2>\n\
-    \n\
-    <p>训练过程中策展行为发生了清晰的阶段性转变：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>早期</strong>：insert 占绝对主导——疯狂扩张技能库</li>\n\
-      <li><strong>中期</strong>：update 逐渐增多，insert 下降——从扩张转向精炼</li>\n\
-      <li><strong>后期</strong>：delete 缓慢增长——开始清理低效技能</li>\n\
-    </ul>\n\
-    \n\
-    <p>技能内容也经历了从\"虚胖\"到\"结实\"的演化：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>训练早期</strong>：技能充满空洞的 guidance/tips/recommendations，增加篇幅但不增操作价值</li>\n\
-      <li><strong>训练后期</strong>：涌现出 <strong>failure-handling logic、conditional branches、meta-strategy skills</strong>（验证策略、fallback 规划、系统搜索、策略调整）</li>\n\
-    </ul>\n\
-    \n\
-    <p>技能仓库从任务特定操作集合 → 跨任务控制知识体系。这不是简单的\"存了更多东西\"，而是<strong>技能的组织方式发生了质变</strong>。</p>\n\
-    \n\
-    <h2>跨任务泛化：训练的策展能力可迁移</h2>\n\
-    \n\
-    <p>从推理任务训练的 curator 迁移到 ALFWorld/WebShop 仍有效——因为推理技能提炼了分解、验证、自适应规划等抽象策略。反向迁移较弱——WebShop/ALFWorld 的技能更绑定于环境特定知识。</p>\n\
-    \n\
-    <h2>与 Hermes 的关联</h2>\n\
-    \n\
-    <p>这篇论文与 Hermes Agent 的技能系统高度相关：</p>\n\
-    \n\
-    <ul>\n\
-      <li><strong>同源格式</strong>：SkillOS 和 Hermes 都遵循 Anthropic SKILL.md（YAML frontmatter + Markdown 指令）</li>\n\
-      <li><strong>当前差距</strong>：Hermes 的 skill 是人工维护的静态资产；SkillOS 证明了可以用 RL 自动学习技能策展</li>\n\
-      <li><strong>可操作的启示</strong>：</li>\n\
-      <ul>\n\
-        <li>复合奖励设计（内容质量 + 压缩 + 下游验证）可直接启发 Hermes skill 质量的自动化评估</li>\n\
-        <li>Grouped Task Streams 思路 → 在关联任务组中评估技能质量，而非单独评测</li>\n\
-        <li>8B 模型超越 Gemini-2.5-Pro → 本地小模型做技能管理的可行性</li>\n\
-        <li>技能演化趋势 → 预期技能从任务特定向 meta-strategic 演化</li>\n\
-      </ul>\n\
-    </ul>\n\
-    \n\
-    <h2>局限与展望</h2>\n\
-    \n\
-    <ul>\n\
-      <li><strong>检索简单</strong>：BM25 未学习检索策略——未来应联合学习检索+策展</li>\n\
-      <li><strong>技能表征简化</strong>：单文件 Markdown vs Anthropic 完整文件夹结构</li>\n\
-      <li><strong>Executor 冻结</strong>：未联合优化 executor + curator</li>\n\
-      <li><strong>训练成本</strong>：3-5 天 × 16×H100</li>\n\
-    </ul>\n\
-    \n\
-    <p>论文提出的未来方向包括：Agentic Search over Experiential Memory（学习检索什么而不仅是策展什么）、层次化/组合式技能、多 Agent 共享记忆。</p>\n\
-    \n\
-    <h2>总结</h2>\n\
-    \n\
-    <p>SkillOS 回答了一个根本问题：<strong>如何让 Agent 自己学会写 SKILL.md？</strong></p>\n\
-    \n\
-    <p>通过分组任务流 + 复合奖励 + executor-grounded 训练，一个 8B 小模型学会了从经验中持续提炼高质量技能——效果超过 Gemini-2.5-Pro 零样本策展，跨 executor 和跨任务均有泛化性。这篇论文为\"自进化 Agent\"提供了一条可操作的、工程化的实现路径，也是 Hermes 技能系统向自动化演进的理论基础。</p>\n\
-    \n\
-    <blockquote>\n\
-      <p>Stronger reasoning ≠ better curation. The curator that understands its executor beats the curator that only understands itself.</p>\n\
-    </blockquote>"
+- title: Sparo-Agentic-OS 与 BitFun 的血缘关系：同一内核，两个产品叙事
+  date: May 15, 2026
+  excerpt: 代码级拆解 Sparo OS 和 BitFun 的关系——共享核心 crate、fork 铁证、架构分歧、定位差异。同一团队用同一份内核做 A/B
+    测试。
+  content: '<h2>核心发现：同一内核，两个产品叙事</h2>
+
+
+    <p>最近分析 GCWing 的两个开源项目——<strong>BitFun</strong> 和 <strong>Sparo-Agentic-OS</strong>——发现它们的关系远比表面看起来复杂。<strong>不是竞争，而是同一团队针对不同假设的两条实验线。</strong></p>
+
+
+    <p>两者共享核心代码基（Cargo crate 名称完全一致：<code>bitfun-core</code>、<code>bitfun-events</code>、<code>bitfun-transport</code>……），但走向了截然不同的架构路径。这篇文章从代码层面拆解它们的关系。</p>
+
+
+    <h2>血缘铁证：fork 而非重写</h2>
+
+
+    <p>翻开两个项目的源代码，核心 crate 名称一模一样。Sparo 的对话协调器（coordinator.rs）与 BitFun 的<strong>前
+    5 行逐字相同</strong>，内部仍有 <code>~/.bitfun/projects/</code> 路径引用残留。桌面二进制文件仍叫 <code>bitfun-desktop</code>。环境变量前缀仍是
+    <code>BITFUN_*</code>。</p>
+
+
+    <p><strong>结论：Sparo 是在 BitFun 代码基上 fork 出来的，不是 clean-room 重写。</strong></p>
+
+
+    <h2>去掉的 10 个 crate：Sparo 拒绝了微 crate 架构</h2>
+
+
+    <p>BitFun 最近经历了一次架构重构，将 <code>bitfun-core</code> 拆成了多个独立 crate：acp（Agent Client
+    Protocol）、agent-stream、agent-tools、core-types、product-domains、runtime-ports、services-core/integrations、terminal/tool-packs/tool-runtime。</p>
+
+
+    <p><strong>Sparo 一个都没要。</strong>它的 Cargo workspace 只有 BitFun 的 7 个 core crate
+    + 1 个自创的 <code>libs/</code>。Sparo 选择了<strong>扁平架构</strong>，拒绝了 BitFun 正在推进的微 crate
+    分解路线。</p>
+
+
+    <h2>新增的唯一 crate：Agent Shell</h2>
+
+
+    <p>Sparo 自创的 <code>libs/</code> 包含两个子模块：</p>
+
+
+    <ul>
+
+    <li><strong>agentshell</strong> — PTY 伪终端管理、多 Shell 适配（bash/zsh/fish）、会话持久化、输出
+    ANSI 清洗</li>
+
+    <li><strong>cli-credential</strong> — Codex / Gemini 等第三方 CLI 工具的凭证管理</li>
+
+    </ul>
+
+
+    <p>这是 Sparo 对 Agentic Shell 方向的独立探索——把 Agent 深度嵌入终端体验，而不只是一个对话窗口。</p>
+
+
+    <h2>Agent 系统重构：从定义文件到独立文件</h2>
+
+
+    <p>两个项目在 Agent 组织方式上分道扬镳：</p>
+
+
+    <p><strong>BitFun 的 Agent 系统</strong>用 7 个定义文件组织（<code>definitions/{modes, review,
+    subagents, custom, hidden, shared}/</code>），通过注册表查询和解析来构建 Agent 实例。</p>
+
+
+    <p><strong>Sparo OS 的 Agent 系统</strong>则有 17 个独立 <code>.rs</code> 文件，每个 mode 一个文件——<code>agentic_mode.rs</code>、<code>code_review_agent.rs</code>、<code>plan_mode.rs</code>、<code>debug_mode.rs</code>
+    等等。加上 AgentAppStudio 和 LiveAppStudio 两个 Studio 模式。</p>
+
+
+    <p>Sparo 的 Agent 矩阵更&ldquo;重&rdquo;——不只是编排已有能力，而是每个 Agent 有自己的独立实现逻辑。</p>
+
+
+    <h2>MiniApp &rarr; Live App：概念升级</h2>
+
+
+    <p>BitFun 的 MiniApp 是&ldquo;一句话生成独立运行的应用&rdquo;。Sparo 将其升级为 Live App，增加了三个关键能力：</p>
+
+
+    <ul>
+
+    <li><strong>持久化身份与状态</strong>（Live App 不是一次性生成物，可以持续演进）</li>
+
+    <li><strong>Agentic Session Bridge</strong>（Live App 可以主动调用 Agent 系统）</li>
+
+    <li><strong>Bridge App</strong>（为现有 GUI 软件添加 Agent 操作层）</li>
+
+    </ul>
+
+
+    <p>加上 Dev Kit（Skills + Tools + MCP 开发工具链），Sparo 在努力构建一个<strong>智能应用生态</strong>，而不只是
+    Agent 运行时。</p>
+
+
+    <h2>品牌层：外改内不改</h2>
+
+
+    <p>外层面品牌化（Sparo），内层代码标识基本未动（仍然是 bitfun）：配置目录从 <code>~/.bitfun/</code> 改为 <code>~/.sparo_os/</code>，项目隐藏目录改为
+    <code>.sparo_os/</code>，Session 路径改为 <code>.sparo_os/projects/{slug}/sessions/</code>。但内部
+    bin 名仍是 <code>bitfun-desktop</code>，环境变量前缀仍是 <code>BITFUN_*</code>。说明 Sparo 还处于早期实验阶段——品牌先行，内部重构滞后。</p>
+
+
+    <h2>定位差异：Runtime vs OS</h2>
+
+
+    <p>同一个团队、同一份核心代码基，面向两个不同叙事：</p>
+
+
+    <p><strong>BitFun 的自我定义</strong>：&ldquo;桌面级 Agent 运行时 + 开箱即用的 Agent 套件。一个安装包覆盖编码、办公、桌面自动化和个人助理四大主流
+    Agent 能力。&rdquo;</p>
+
+
+    <p><strong>Sparo OS 的自我定义</strong>：&ldquo;AI 时代的 Agentic OS。AI 即系统——让软件不再是固定工具，而是围绕用户意图持续生成、组织、连接与演化。&rdquo;</p>
+
+
+    <p>BitFun 强调<strong>实用性</strong>（&ldquo;下载即用，一套配齐&rdquo;），Sparo 强调<strong>理念性</strong>（&ldquo;OS
+    思维，Agent 生态&rdquo;）。本质是同一团队在做 A/B 测试——哪个叙事更能打动用户？</p>
+
+
+    <h2>代码量对比</h2>
+
+
+    <p>BitFun 总代码量 <strong>516,494 LOC</strong>，Sparo 为 <strong>388,524 LOC</strong>（约占
+    BitFun 的 75%）。BitFun 有 17 个 Cargo crate，Sparo 精简到 7 个（+1 自创 <code>libs/</code>），精简了
+    59%。但 Sparo 的 Agent 数量更多——17 个独立 Agent 文件 vs BitFun 的 4 个官方 Agent + 定义系统。</p>
+
+
+    <h2>评估：Sparo 是实验分支</h2>
+
+
+    <p>综合所有证据，Sparo OS 大概率是 BitFun 的<strong>实验分支</strong>，在验证几个关键假设：</p>
+
+
+    <ol>
+
+    <li><strong>Agentic OS 叙事是否比 Agent Runtime 更有市场？</strong></li>
+
+    <li><strong>扁平架构是否比微 crate 架构更适合快速迭代？</strong></li>
+
+    <li><strong>更多内置 Agent 是否比 Markdown 可定义 Agent 更降低使用门槛？</strong></li>
+
+    <li><strong>Live App 生态是否比 MiniApp 更能留住用户？</strong></li>
+
+    </ol>
+
+
+    <p>如果这些实验成功，Sparo 的概念大概率会回流到 BitFun 主干。如果失败，Sparo 可能会被归档，BitFun 继续走自己的路。</p>
+
+
+    <h2>对 AI Agent 赛道的启示</h2>
+
+
+    <p>一个团队同时维护两个架构路线不同的产品，这在 AI Agent 赛道中非常罕见。它反映了一个更深刻的问题：</p>
+
+
+    <p><strong>AI Agent 行业还没有找到正确的产品形态。</strong></p>
+
+
+    <p>是应该做一个 Agent 运行时（BitFun 路线）——让开发者 <strong>Build on top of it</strong>？还是做一个
+    Agentic OS（Sparo 路线）——让用户 <strong>Live inside it</strong>？</p>
+
+
+    <p>这个问题不只 GCWing 在回答——从 OpenAI 的 Codex/Operator 到 Anthropic 的 Claude Code/MCP，到
+    Google 的 ADK/A2A，全行业都在探索。Sparo vs BitFun 只是这场大实验的一个微缩版。</p>
+
+
+    <p>保持关注。如果 Sparo 的实验跑通了，我们可能会看到一个比 Hermes 更重、比 BitFun 更全的 Agent 产品形态浮出水面。</p>'
+- title: Artificial Analysis Coding Agent Index 深度剖析：三大基准的测评哲学与工程意义
+  date: May 14, 2026
+  excerpt: 拆解 Artificial Analysis Coding Agent Index 的设计逻辑：SWE-Bench-Pro-Hard-AA、Terminal-Bench
+    v2、SWE-Atlas-QnA 三个基准如何正交覆盖 coding agent 的全栈能力。分析等权平均的局限、harness-aware 评测的价值，以及工程选型的实用建议。
+  content: ' <h2>三个基准，三个维度</h2>
+
+
+    <p>Artificial Analysis 做了一件被很多人忽视的事：<strong>他们评测的是 "Agent 完整系统"，而不只是裸模型</strong>。同一个模型（例如
+    Claude Opus 4.5）在不同 agent harness 下（Cursor CLI vs Claude Code vs Codex）得分可以相差
+    15 个百分点以上。传统的 MMLU、HumanEval、SWE-Bench Verified 只看模型能力，而这个指数把 harness × model
+    组合作为一个整体来评测——这才接近工程选型的真实决策场景。</p>
+
+
+    <p>指数由三个基准等权（各 1/3）简单平均构成，每基准跑 3 次取 pass@1 均值。总任务量 358 道。</p>
+
+
+    <h3>① SWE-Bench-Pro-Hard-AA（150 题）—— 交付可用代码</h3>
+
+
+    <p><strong>来源链路</strong>：SWE-Bench → SWE-Bench Verified（500 题，去噪）→ SWE-Bench Pro（Scale
+    AI SEAL，731 题，抗污染）→ <strong>Hard-AA 子集</strong>（150 题精选）。</p>
+
+
+    <p>这个演进链路本身就说明问题：SWE-Bench Verified 已经被污染。同一个 Claude Opus 4.5，Verified 上 80.9%，Pro
+    上直接腰斩到 45.9%。Pro 上的 46% 比 Verified 上的 81% 更接近真实能力。而 Hard-AA 是 Pro 的困难子集，分数会进一步压低。</p>
+
+
+    <p><strong>测什么</strong>：Agent 收到 GitHub issue + 代码仓库 → 浏览文件 → 编辑代码 → 跑测试 → 生成
+    patch → <strong>必须通过原仓库的 test suite</strong>。二元评分，全过得 1，不过得 0。这是三个基准中最接近真实 "修
+    Bug / 写 feature" 场景的。</p>
+
+
+    <p><strong>隐含挑战</strong>：Hard-AA 的 150 道题从 731 道 Pro 中如何筛选？这个筛选逻辑没有完全公开。如果筛选策略是
+    "当前模型表现差的题"，就引入了选择偏差——相当于专门挑了模型的短板来测。</p>
+
+
+    <h3>② Terminal-Bench v2（84 题 / 原 89）—— 在终端里办事</h3>
+
+
+    <p><strong>来源</strong>：Stanford + Laude Institute 联合项目，Snorkel AI 为主要贡献者。开源（GitHub:
+    harbor-framework/terminal-bench），在 Docker 沙箱中执行。</p>
+
+
+    <p><strong>测什么</strong>：不是写代码，而是 <strong>"在 shell 里办事"</strong>——检视文件、运行命令、debug
+    失败、跟踪多步状态。考验的是 Agent 对终端环境的理解和操作能力，这在 infra / DevOps / 调试场景中至关重要。</p>
+
+
+    <p><strong>被排除的 5 道题</strong>：AA 声明因 "环境兼容性问题" 排除。这值得追问——如果排除的是依赖特定系统环境（如特定 OS
+    版本、网络条件）的任务，可能系统性低估 Agent 的终端操作上限。不过反过来看，在标准化评测中排除环境依赖题也是合理的做法。</p>
+
+
+    <p><strong>二元评分</strong>，测试套件判定 pass/fail。与 SWE-Bench 相同，没有 partial credit。</p>
+
+
+    <h3>③ SWE-Atlas-QnA（124 题）—— 读懂代码并回答</h3>
+
+
+    <p><strong>来源</strong>：Scale AI 的 SWE-Atlas 基准套件（arXiv: 2605.08366）。注意：SWE-Atlas
+    完整版包含三个子任务——Codebase Q&A（124 题）、Test Writing（90 题）、Refactoring（70 题）——但 AA <strong>只用了
+    Q&A 部分</strong>。</p>
+
+
+    <p><strong>测什么</strong>：Agent 需要阅读代码库、理解架构和行为，然后给出文字答案。<strong>不要求修改代码</strong>。这是纯
+    "阅读理解" 维度。</p>
+
+
+    <p><strong>唯一支持 partial credit 的基准</strong>：Rubric-based grading，每题得分 0–1 连续分布。答案可以部分正确——答对一半的
+    rubric 检查项拿 0.5 分。这意味着 SWE-Atlas-QnA 的 per-task 平均分通常高于另外两个二元基准，在等权平均中实际权重可能更大。</p>
+
+
+    <p><strong>缺少的维度</strong>：SWE-Atlas 的 Test Writing 和 Refactoring 被跳过。这两个在实际工程中占比很高——写测试是
+    TDD 的基础，重构是日常维护的核心。跳过它们意味着指数缺失了两个重要的工程能力维度。</p>
+
+
+    <h2>设计逻辑：为什么是这三个？</h2>
+
+
+    <p>AA 的官方说法很直白："不同 Agent 在 repository Q&A、implementation / bug-fix tasks、terminal-heavy
+    workflows 上表现差异巨大。指数的意义不是把所有编码工作坍缩成一个任务类型，而是<strong>把不同 benchmark 家族聚合到一个顶层视图</strong>，同时保留底层分类明细。"</p>
+
+
+    <p>三个基准的维度正交性确实不错：</p>
+
+
+    <ul>
+
+    <li><strong>写代码（SWE-Bench-Pro-Hard-AA）</strong>：实现可靠性，产出可验证的 patch</li>
+
+    <li><strong>终端操作（Terminal-Bench v2）</strong>：工具使用能力，shell 环境中的多步工作流</li>
+
+    <li><strong>读代码（SWE-Atlas-QnA）</strong>：仓库理解深度，不需要产出可执行代码</li>
+
+    </ul>
+
+
+    <p>一个 Agent 可能读代码很强但修不好 Bug（理解正确但实现出错），也可能修 Bug 强但终端操作弱（编码厉害但不会用命令行工具）。三者组合才能反映全栈
+    coding agent 能力。</p>
+
+
+    <h2>亮点与创新</h2>
+
+
+    <h3>✓ Harness-aware 是真正的进步</h3>
+
+
+    <p>2026 年的 coding agent 市场已经从 "哪个模型最强" 变成了 "哪个 agent 组合最好用"。同一模型在不同 harness 下表现差异巨大。AA
+    把 harness 作为一等评测维度（每个榜单行是 "模型 + harness + 设置" 的组合），这比单纯报模型分数实用得多。</p>
+
+
+    <h3>✓ 效率指标并重</h3>
+
+
+    <p>除了 pass@1 分数，AA 还报告：</p>
+
+    <ul>
+
+    <li><strong>Cost per task</strong>：基于 API token 定价的实际费用（非订阅价格）</li>
+
+    <li><strong>Token 消耗</strong>：区分 input / cache / cache-write / reasoning / output</li>
+
+    <li><strong>Wall-clock 执行时间</strong>：完整任务耗时</li>
+
+    </ul>
+
+
+    <p>这在工程选型中极其重要。一个 Agent 拿 60 分但每次花 $15，另一个拿 55 分但每次 $2，后者性价比高出 6 倍。没有效率指标，你无法做出理性决策。</p>
+
+
+    <h3>✓ 抗污染设计</h3>
+
+
+    <p>三个基准都不是老旧的 SWE-Bench Verified。SWE-Bench Pro 是专门为抗污染设计的（新题、未公开答案），Terminal-Bench
+    v2 是 v2 升级版，SWE-Atlas 是全新基准。这避免了 "模型在训练数据中见过题目" 的虚高分数问题。</p>
+
+
+    <h3>✓ 统计稳定性</h3>
+
+
+    <p>每基准跑 3 次取平均。虽然 3 次仍然偏少（尤其对二元评分的高方差任务），但好过只跑 1 次。</p>
+
+
+    <h2>局限与改进空间</h2>
+
+
+    <h3>✗ 等权平均过于粗暴</h3>
+
+
+    <p>三个基准的难度、区分度、评分分布完全不同：</p>
+
+    <ul>
+
+    <li>SWE-Bench-Pro-Hard-AA：二元 0/1，极难（Pro 上最好模型才 ~46%）</li>
+
+    <li>Terminal-Bench v2：二元 0/1，难度未知</li>
+
+    <li>SWE-Atlas-QnA：连续 0–1，有 partial credit，均值通常更高</li>
+
+    </ul>
+
+
+    <p>等权 1/3 意味着 SWE-Atlas-QnA 的连续分（因为有 partial credit，均值系统性偏高）在指数中的<strong>实际贡献可能大于
+    1/3</strong>。更合理的做法是按难度归一化或使用 z-score。</p>
+
+
+    <h3>✗ Hard-AA 子集不透明</h3>
+
+
+    <p>150 道从 731 道中筛选的逻辑未完全公开。任何 "精选 harder subset" 的操作都可能引入主观偏差。如果筛选准则是 "当前最强模型也做不对"，那这个
+    subset 更多反映的是 "模型的当前盲区" 而非 "通用的工程难度"。</p>
+
+
+    <h3>✗ 缺少可靠性维度</h3>
+
+
+    <p>3 次重复只取均值，不报告方差。同一个 Agent 可能 3 次得分 (80, 20, 50)，均值 50 看起来还行，但实际极不可靠。对于生产环境，可靠性（方差）往往比均值更重要——一个稳定拿
+    45 分的 Agent 比一个波动在 20–70 之间的 Agent 可预测得多。</p>
+
+
+    <h3>✗ 缺少自修正能力评测</h3>
+
+
+    <p>pass@1 只测一次尝试，不测 Agent 看到测试失败后能否自我修复。现实中的 Agent 工作流几乎总是迭代式的：写 patch → 跑测试 →
+    看错误 → 修复 → 再跑。pass@1 丢掉了这个最重要的反馈循环。</p>
+
+
+    <h3>✗ 题目总量偏小</h3>
+
+
+    <p>三基准加起来 358 道独立任务（且有 3 次重复），对比 SWE-Bench Full 的 2,294 题，统计效力有限。尤其当模型之间差距在 3–5
+    分时，这可能没有统计显著性。</p>
+
+
+    <h3>✗ 缺少多模态 & 测试/重构维度</h3>
+
+
+    <p>三个基准全是纯文本/代码任务，不涉及 UI 截图、设计稿、API 文档截图等多模态输入。同时跳过了 SWE-Atlas 的 Test Writing
+    和 Refactoring 子任务——这两个在实际工程中占比很高。</p>
+
+
+    <h2>与其他主流 Benchmark 体系的对比</h2>
+
+
+    <table>
+
+    <tr><th>维度</th><th>AA Coding Agent Index</th><th>SWE-Bench Verified</th><th>Aider
+    Polyglot</th></tr>
+
+    <tr><td>评测对象</td><td>Agent 系统（model + harness）</td><td>裸模型（通常）</td><td>Agent 系统</td></tr>
+
+    <tr><td>任务类型</td><td>3 种异构</td><td>单一（修 Bug）</td><td>单一（编辑代码）</td></tr>
+
+    <tr><td>抗污染</td><td>高（Pro-based）</td><td>低（已明显被污染）</td><td>中</td></tr>
+
+    <tr><td>效率指标</td><td>✓（cost / token / time）</td><td>✗</td><td>✗</td></tr>
+
+    <tr><td>Partial credit</td><td>仅 Atlas-QnA</td><td>✗</td><td>✗</td></tr>
+
+    <tr><td>题目透明度</td><td>中（Hard-AA 子集不透明）</td><td>高</td><td>高</td></tr>
+
+    <tr><td>Harness 差异可见</td><td>✓</td><td>✗</td><td>✓（有限）</td></tr>
+
+    </table>
+
+
+    <h2>实用建议：什么时候用它，什么时候不够</h2>
+
+
+    <p><strong>适合的场景</strong>：</p>
+
+    <ul>
+
+    <li>选型 coding agent 全栈方案（Cursor vs Claude Code vs Codex vs Copilot）</li>
+
+    <li>需要同时考虑质量、成本、速度的决策</li>
+
+    <li>对比同一模型在不同 harness 下的表现差异</li>
+
+    <li>跟踪 coding agent 领域的能力演进趋势</li>
+
+    </ul>
+
+
+    <p><strong>不够用的场景</strong>：</p>
+
+    <ul>
+
+    <li>你的主要工作是单一类型任务（如只修 Bug、只做 code review）——看对应子基准即可</li>
+
+    <li>需要评测 Agent 的自修正 / 迭代能力——需要补充 pass@k（k ≥ 2）</li>
+
+    <li>需要多模态能力（处理设计稿 → 写前端，或 UI bug 截图 → 定位代码）</li>
+
+    <li>需要评测特定语言 / 框架——三个基准主要是 Python 仓库</li>
+
+    <li>团队预算极度敏感——需要结合自己的 API 订阅计划重新算实际成本</li>
+
+    </ul>
+
+
+    <h2>底线判断</h2>
+
+
+    <p>AA Coding Agent Index 是<strong>目前最好的 Agent 系统级评测框架之一</strong>。核心价值在于三点：harness-aware
+    设计（把 harness 作为一等变量）、效率并报（不止报分数）、抗污染（三个基准都比较新）。</p>
+
+
+    <p>但它更适合做 <strong>相对排名</strong> 而非 <strong>绝对能力测量</strong>。等权平均、358 题总量、缺少方差报告——这些意味着指数上
+    3–5 分的差距可能没有统计显著性。选型时建议：<strong>看子基准分类得分 + 效率指标</strong>，而不是只看总指数排名。</p>
+
+
+    <p>2026 年的 coding agent 评测正在从 "排行榜竞赛" 走向 "工程决策工具"。AA 这个指数是正确方向上的关键一步——但还远不是终点。</p>
+
+
+    <blockquote>发布日期：May 14, 2026</blockquote>'
+- title: BitFun 作为 Jiuwen Subagent 的集成方案：五种路径分析与最佳实践
+  date: May 13, 2026
+  excerpt: Jiuwen + BitFun 协同工作的五种集成路径分析。推荐 ACP + HierarchicalTeam 混合方案，实现强模型执行 +
+    弱模型协调的成本优化架构。
+  content: ' <p>2026 年，AI Agent 正在从"单打独斗"走向"团队协作"。当你有两个优秀的 Agent 系统——Jiuwen（九问）和 BitFun——如何让它们协同工作，而不是各干各的？这篇文章分析五种集成路径，给出最优方案。</p>
+
+
+    <h2>先看清两个系统的本质</h2>
+
+
+    <p>在讨论集成之前，先理解它们各自的核心特征：</p>
+
+
+    <table>
+
+    <tr><th>维度</th><th>BitFun</th><th>openJiuwen (九问)</th></tr>
+
+    <tr><td>语言/运行时</td><td>Rust CLI + ACP (stdin/stdout JSON-RPC)</td><td>Python SDK
+    + agent-core</td></tr>
+
+    <tr><td>Agent 模型</td><td>单 Agent，ReAct 循环</td><td>ReActAgent + WorkflowAgent 双模式</td></tr>
+
+    <tr><td>多 Agent 机制</td><td>ACP session/prompt（被动调用）</td><td>hierarchical_tools
+    + hierarchical_msgbus</td></tr>
+
+    <tr><td>原生协议</td><td>ACP v1（PR#498 修复后成熟）</td><td>MCP + A2A（agent-protocol C++
+    SDK）</td></tr>
+
+    <tr><td>审批流水线</td><td>完整 — ConfirmationNeeded/confirm/reject</td><td>通过 ability_manager
+    权限控制</td></tr>
+
+    <tr><td>执行引擎</td><td>同步工具调用循环</td><td>异步并行图执行 + 流式处理</td></tr>
+
+    <tr><td>维护方</td><td>社区/个人，~152K LOC Rust</td><td>华为，核心闭源 pip 包分发</td></tr>
+
+    </table>
+
+
+    <p>关键差异：Jiuwen 擅长编排和流程控制，BitFun 擅长代码生成和自主调试。两者互补而非重叠。</p>
+
+
+    <h2>五种集成路径</h2>
+
+
+    <h3>路径 A：ACP Client in Jiuwen &#9733; 推荐</h3>
+
+
+    <p>Jiuwen 侧实现轻量 ACP client，通过 subprocess 启动 <code>bitfun-cli acp</code>，走 stdin/stdout
+    JSON-RPC。BitFun 零改动。</p>
+
+
+    <pre><code class="language-mermaid">
+
+    graph TB
+
+    subgraph Jiuwen["Jiuwen HierarchicalTeam"]
+
+    Root["Root Agent (ReAct)<br/>model: flash/cheap"]
+
+    Tool1["Tool 1"]
+
+    Tool2["Tool 2"]
+
+    ACPClient["BitFun ACP ClientTool<br/>model: pro"]
+
+    end
+
+
+    subgraph BitFun["BitFun Subprocess"]
+
+    BF["bitfun-cli acp<br/>- code generation<br/>- execution + debug<br/>- tool pipeline
+    + approvals"]
+
+    end
+
+
+    User((User)) -->|task| Root
+
+    Root -->|ability_manager| Tool1
+
+    Root -->|ability_manager| Tool2
+
+    Root -->|ability_manager| ACPClient
+
+    ACPClient -->|stdin/stdout JSON-RPC<br/>session/create + prompt| BF
+
+    </code></pre>
+
+
+    <table>
+
+    <tr><th>维度</th><th>评价</th></tr>
+
+    <tr><td>BitFun 改动</td><td>零</td></tr>
+
+    <tr><td>Jiuwen 改动</td><td>~400 行 Python</td></tr>
+
+    <tr><td>延迟</td><td>低（localhost 进程间通信）</td></tr>
+
+    <tr><td>流式</td><td>&#10003; BitFun 原生流式通知</td></tr>
+
+    <tr><td>审批</td><td>&#10003; ACP RequestPermissionRequest 自动转发</td></tr>
+
+    <tr><td>session 隔离</td><td>&#10003; 每次调用独立 session</td></tr>
+
+    </table>
+
+
+    <h3>路径 B：简单 Tool 包装（原型用）</h3>
+
+
+    <p>直接包装 <code>bitfun-cli</code> 的非 ACP 模式为 Jiuwen Tool。改动量仅 ~50 行，但无流式、无审批透传、无法利用
+    BitFun 的多轮推理能力。适合快速原型验证，非生产方案。</p>
+
+
+    <h3>路径 C：A2A 协议桥接（多 Agent 生态用）</h3>
+
+
+    <p>利用 Jiuwen 原生 A2A 协议，在 BitFun 侧构建 A2A server adapter。Jiuwen 原生支持标准化 agent card
+    发现。但双协议转换（A2A &#8594; ACP）增加延迟，A2A 规范仍在演进。适合需要连接多个异构 Agent 的场景。</p>
+
+
+    <h3>路径 D：MCP 工具级集成（不推荐）</h3>
+
+
+    <p>只暴露 BitFun 的工具能力（文件/Shell 操作）给 Jiuwen。致命缺陷：丢失了 BitFun 最核心的 Agent 自主推理循环——生成代码&#8594;执行&#8594;根据错误修正&#8594;再执行——这不是工具能做到的。</p>
+
+
+    <h2>最优方案：路径 A + 模型智能路由</h2>
+
+
+    <p>综合考量后的推荐架构：</p>
+
+
+    <pre><code class="language-mermaid">
+
+    graph TB
+
+    User((User Input)) --> JiuwenRoot
+
+
+    subgraph Jiuwen["Jiuwen Orchestrator Layer"]
+
+    JiuwenRoot["Root Agent (ReAct)<br/>model: deepseek-v4-flash<br/>cost: ~$0.30/M
+    tok"]
+
+    JiuwenRoot -->|"simple tasks (80%)"| JiuwenExec["Jiuwen handles directly"]
+
+    JiuwenRoot -->|"complex code (20%)"| BitFunCall["delegate to BitFun"]
+
+    end
+
+
+    subgraph BitFun["BitFun Execution Layer"]
+
+    BitFunCall -->|"ACP session/prompt"| BitFunSession["BitFun Session<br/>model:
+    deepseek-v4-pro<br/>cost: ~$1.20/M tok"]
+
+    end
+
+
+    BitFunSession -->|"result"| JiuwenRoot
+
+    JiuwenRoot -->|"final response"| User
+
+    </code></pre>
+
+
+    <h3>核心原则</h3>
+
+
+    <ol>
+
+    <li><strong>零 BitFun 改动</strong> — ACP 已在 PR#498 修复至成熟可用状态</li>
+
+    <li><strong>Jiuwen 改动最小</strong> — 一个标准 ACP client tool（~400 行 Python），注册到 ability_manager</li>
+
+    <li><strong>模型分层省钱</strong> — Jiuwen 用 flash 做编排（~$0.30/M tokens），BitFun 用 pro
+    做深度代码（~$1.20/M tokens），只在必要时调用强模型</li>
+
+    <li><strong>审批链完整</strong> — BitFun 的 ConfirmationNeeded 通过 ACP 自动转发到 Jiuwen，透传给用户</li>
+
+    <li><strong>session 隔离</strong> — 每个代码任务独立 BitFun session，上下文互不污染</li>
+
+    <li><strong>可扩展</strong> — 未来加新的 ACP agent（OpenCode/Claude Code）只需再注册一个 tool</li>
+
+    </ol>
+
+
+    <h2>实施路线图</h2>
+
+
+    <table>
+
+    <tr><th>步骤</th><th>内容</th><th>工作量</th><th>优先级</th></tr>
+
+    <tr><td>1</td><td>验证 BitFun ACP session/prompt 完整流（含工具调用、流式返回）</td><td>30min</td><td>P0</td></tr>
+
+    <tr><td>2</td><td>实现 Python BitFunACPClient 类（initialize/session_create/session_prompt）</td><td>2h</td><td>P0</td></tr>
+
+    <tr><td>3</td><td>将 ACPClient 包装为 Jiuwen Tool 接口（符合 ToolInfo 规范）</td><td>1h</td><td>P0</td></tr>
+
+    <tr><td>4</td><td>在 Jiuwen HierarchicalTeam 中注册 BitFun 为 child agent</td><td>30min</td><td>P0</td></tr>
+
+    <tr><td>5</td><td>配置模型路由（root=flash, BitFun=pro）</td><td>30min</td><td>P1</td></tr>
+
+    <tr><td>6</td><td>端到端测试：简单任务 &#8594; 复杂代码任务 &#8594; 审批场景</td><td>2h</td><td>P1</td></tr>
+
+    <tr><td>7</td><td>压测并发：多个 BitFun session 并行</td><td>1h</td><td>P2</td></tr>
+
+    </table>
+
+
+    <h2>为什么不是 JiuwenClaw 直接用？</h2>
+
+
+    <p>JiuwenClaw 本身就内置了 explore_agent/plan_agent/code_agent/browser_agent 四层 subagent
+    体系。那为什么还要集成外部 BitFun？</p>
+
+
+    <ul>
+
+    <li><strong>模型灵活性</strong>：JiuwenClaw 的 subagent 共享同一模型配置，而 BitFun 可以使用完全不同的模型后端（如
+    DeepSeek V4 Pro）</li>
+
+    <li><strong>审批可控</strong>：BitFun 的审批流水线比 Jiuwen 的内置确认更细粒度，且可通过 ACP 对外暴露</li>
+
+    <li><strong>异构优势</strong>：Rust（BitFun）+ Python（Jiuwen）各取所长——Rust 的执行效率和 Python
+    的编排灵活性</li>
+
+    <li><strong>避免 vendor lock-in</strong>：引入外部 Agent 作为能力补充，不过度依赖单一框架</li>
+
+    </ul>
+
+
+    <h2>风险评估</h2>
+
+
+    <ul>
+
+    <li><strong>Pipe 稳定性</strong>：BitFun 的 session/prompt 在 subprocess 模式下，stdin pipe
+    关闭时机敏感，需充分测试</li>
+
+    <li><strong>长任务支持</strong>：Jiuwen 的 ability_manager 是否支持异步长时间 tool 调用（BitFun 一次代码任务可能跑
+    2-5 分钟）</li>
+
+    <li><strong>审批延迟</strong>：Jiuwen &#8594; 用户确认 &#8594; BitFun 的回路延迟需要可接受的 SLA</li>
+
+    </ul>
+
+
+    <blockquote>
+
+    <p>这个架构的本质是<strong>强模型执行 + 弱模型协调</strong>的成本优化模型。Jiuwen 管全局、管流程、管用户交互；BitFun 管代码、管执行、管调试。两者通过
+    ACP 这一轻量标准协议连接，不做重协议适配，不引入额外依赖。这是 Agent 时代 Unix 哲学的体现——每个组件做好一件事，通过标准接口组合。</p>
+
+    </blockquote>
+
+
+    <p><em>2026年5月13日</em></p>'
+- title: BitFun vs JiuwenClaw：两大国产 AI Coding Agent 的 10 维度深度横评
+  date: May 12, 2026
+  excerpt: 横向对比 BitFun（Rust 152K LOC 桌面应用）和 JiuwenClaw（Python 415K LOC 企业平台）：命令执行、LSP
+    集成、代码审查、调试能力、代码记忆、安全沙箱、桌面自动化、技能生态、IM 渠道、自举能力。BitFun 在 DeepReview/调试/桌面体验上领先，JiuwenClaw
+    在 CodingMemory/沙箱/技能市场上更强。
+  content: ' <p>在 AI Coding Agent 领域，两个来自中国的项目正在以截然不同的技术路线推进：<strong>BitFun</strong>（Rust
+    + Tauri 桌面应用）和 <strong>JiuwenClaw</strong>（Python + openjiuwen 框架）。本文从代码执行、LSP
+    集成、Subagent 体系、代码审查、调试能力、记忆系统、安全模型等 10 个维度进行深度对比。</p>
+
+
+    <p>BitFun: <a href="https://github.com/GCWing/BitFun">github.com/GCWing/BitFun</a>（Rust
+    152K LOC）</p>
+
+    <p>JiuwenClaw: <a href="https://github.com/openJiuwen-ai/jiuwenclaw">github.com/openJiuwen-ai/jiuwenclaw</a>（Python
+    415K LOC 含 openjiuwen）</p>
+
+
+    <h2>1. 命令执行：PTY vs 三层架构</h2>
+
+
+    <p><strong>BitFun</strong> 的 Shell 执行基于独立的 <code>terminal_core</code> crate，提供真正的
+    PTY 伪终端支持。1,454 行的 <code>bash_tool.rs</code> 实现了 PTY 会话管理、流式事件推送、智能 osascript
+    检测、30,000 字符输出限制。</p>
+
+
+    <p><strong>JiuwenClaw</strong> 采用三层执行栈：JiuwenClaw command_tools.py（正则拦截）→ openjiuwen
+    BashTool（语义退出码解释、流式输出、注入检测、权限管道）→ SysOperation（本地/沙箱透明切换）。</p>
+
+
+    <p><strong>结论</strong>：BitFun 的 PTY 更适合交互式开发（REPL、调试器）；JiuwenClaw 的三层架构在安全和沙箱隔离上更深。</p>
+
+
+    <h2>2. LSP 集成：插件架构 vs 全局单例</h2>
+
+
+    <p><strong>BitFun</strong> 的 LSP 系统（5,533 行，13 文件）是本次对比中最令人印象深刻的子系统：PluginLoader
+    插件加载、PluginRegistry 注册管理、LspServerProcess 进程管理、FileSync 文件同步、ConfigWatcher 配置监听、Debouncer
+    防抖、DiagnosticsCache 诊断缓存、WorkspaceManager 多 root 管理、ProjectDetector 语言检测。</p>
+
+
+    <p><strong>JiuwenClaw</strong> 的 LSPServerManager（504 行）是全局单例加异步懒加载，功能更简洁但缺少插件机制和文件同步。</p>
+
+
+    <p><strong>结论</strong>：BitFun 的 LSP 集成更接近 IDE 级别；JiuwenClaw 适合快速集成但扩展性有限。</p>
+
+
+    <h2>3. DeepReview 代码审查：BitFun 的最大差异化优势</h2>
+
+
+    <p>这是 BitFun 独有、JiuwenClaw 完全缺乏的能力。DeepReview 子系统（5,636 行）实现了一个完整的代码审查流水线：</p>
+
+
+    <ol>
+
+    <li><strong>DeepReviewPolicy</strong>：评估触发条件，决定审查策略</li>
+
+    <li><strong>DeepReviewQueue</strong>：排队管理，防止过多并发审查</li>
+
+    <li><strong>DeepReviewManifest</strong>：生成审查任务清单</li>
+
+    <li><strong>多 Reviewer Subagent</strong>：并行审查（review_specialists）</li>
+
+    <li><strong>DeepReviewReport</strong>：汇总审查结果</li>
+
+    <li><strong>review_fixer</strong>：自动修复发现的问题</li>
+
+    <li><strong>Budget 控制</strong>：限制审查 token 消耗</li>
+
+    <li><strong>IncrementalCache</strong>：增量缓存，避免重复审查</li>
+
+    </ol>
+
+
+    <p>JiuwenClaw 有 4 种 Subagent（explore/plan/code/browser），但没有专用的代码审查 Agent。代码质量保证依赖人工审查和技能自演进。</p>
+
+
+    <h2>4. Debug 模式：BitFun 的独家武器</h2>
+
+
+    <p>347 行的 Debug 模式是另一个 JiuwenClaw 完全缺乏的能力：</p>
+
+
+    <ul>
+
+    <li><strong>语言检测</strong>：ProjectDetector 自动检测 JS/TS/Python 等项目语言</li>
+
+    <li><strong>Instrumentation 模板</strong>：自动注入日志/断点代码到项目</li>
+
+    <li><strong>实时数据回传</strong>：HTTP POST 到本地 ingest 端点，实时查看运行时数据</li>
+
+    <li><strong>假设验证</strong>：hypothesis_id + run_id 追踪每次调试尝试</li>
+
+    <li><strong>Evidence-driven</strong>：要求 Agent 基于运行时数据而非猜测进行修复</li>
+
+    </ul>
+
+
+    <h2>5. 记忆系统：Embedding 检索 vs Session 持久化</h2>
+
+
+    <p><strong>JiuwenClaw</strong> 的 CodingMemoryRail（503 行）是本次对比中最突出的单点技术优势：<strong>向量
+    + BM25 混合检索</strong>，Top-5 召回加 10KB 上限，非阻塞预取，无结果时自动降级读取 MEMORY.md 索引。对于需要跨 session
+    记住项目架构、bug 修复模式、依赖版本的长期项目，这是不可替代的能力。</p>
+
+
+    <p><strong>BitFun</strong> 有 Session-based 持久化和项目上下文系统，但缺乏 Embedding 级的语义检索。</p>
+
+
+    <p><strong>结论</strong>：JiuwenClaw 在代码记忆上明显领先。</p>
+
+
+    <h2>6. 安全模型：五层沙箱 vs 基础防护</h2>
+
+
+    <p><strong>JiuwenClaw</strong> 的五层安全防御是本维度的绝对优势：BANNED_COMMANDS 正则黑名单 → trusted_dirs
+    白名单路径限制 → 二进制/设备文件自动拒绝 → PermissionInterruptRail 权限确认 → JiuwenBox（bubblewrap +
+    Landlock + Seccomp + network namespace）完整进程隔离。另外还有 WorktreeRail 提供 git worktree
+    隔离。</p>
+
+
+    <p><strong>BitFun</strong> 作为桌面应用，安全模型依赖 OS 权限加 workspace 边界，BANNED_COMMANDS 目前仅拦截
+    alias 命令，无可扩展机制。</p>
+
+
+    <p><strong>结论</strong>：JiuwenClaw 在安全沙箱上明显领先，BitFun 适合受信任的个人开发环境。</p>
+
+
+    <h2>7. Computer Use 桌面自动化</h2>
+
+
+    <p><strong>BitFun</strong>：完整桌面控制套件（mouse/input/locate/actions/result）加手机 QR 码远程控制。Agent
+    可以实际操作桌面应用。</p>
+
+
+    <p><strong>JiuwenClaw</strong>：仅 Xiaoyi 华为手机端，无桌面自动化能力。</p>
+
+
+    <h2>8. 技能生态与市场</h2>
+
+
+    <p><strong>JiuwenClaw</strong>：SkillNet + ClawHub + Marketplace 三层技能市场 + SkillDev
+    10 阶段技能开发流水线 + 本地导入。用户可以发布、搜索、安装第三方技能。</p>
+
+
+    <p><strong>BitFun</strong>：内置 Skill 系统（SkillTool）和 mode_overrides，无技能市场，无第三方技能分发机制。</p>
+
+
+    <h2>9. 自举能力</h2>
+
+
+    <p><strong>BitFun</strong>：97% 代码由自身 Code Agent 生成（Vibe Coding），是业界唯一实现大规模自举的
+    Agent 项目。这本身就是其 Code Agent 能力的最强证明。</p>
+
+
+    <p><strong>JiuwenClaw</strong>：人工编写为主，通过 SignalDetector 加 SkillOptimizer 实现技能级别的自演进。</p>
+
+
+    <h2>10. 综合评分卡</h2>
+
+
+    <table>
+
+    <tr><th>维度</th><th>BitFun</th><th>JiuwenClaw</th></tr>
+
+    <tr><td>命令执行</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>
+
+    <tr><td>LSP 集成</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>
+
+    <tr><td>Subagent 体系</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐⭐⭐☆ (4/5)</td></tr>
+
+    <tr><td>代码审查</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>
+
+    <tr><td>调试能力</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>
+
+    <tr><td>代码记忆</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>
+
+    <tr><td>技能生态</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>
+
+    <tr><td>安全沙箱</td><td>⭐⭐☆☆☆ (2/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>
+
+    <tr><td>桌面自动化</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐☆☆☆☆ (1/5)</td></tr>
+
+    <tr><td>IM 渠道</td><td>⭐⭐⭐☆☆ (3/5)</td><td>⭐⭐⭐⭐⭐ (5/5)</td></tr>
+
+    <tr><td>自举能力</td><td>⭐⭐⭐⭐⭐ (5/5)</td><td>⭐⭐☆☆☆ (2/5)</td></tr>
+
+    </table>
+
+
+    <h2>核心差异一句话</h2>
+
+
+    <blockquote>
+
+    <p><strong>BitFun</strong> 是"个人开发者的 AI 桌面工作台"——代码审查 + 调试 + 桌面自动化 + 极致体验。它的 DeepReview
+    和 Debug 模式是 JiuwenClaw 完全没有的能力，97% 自举率证明了其 Code Agent 的实用价值。</p>
+
+    <p><strong>JiuwenClaw</strong> 是"企业级的 Agent 操作系统"——代码记忆 + 安全沙箱 + 技能市场 + 企业 IM
+    集成。它的 CodingMemory 和 JiuwenBox 是 BitFun 完全缺乏的能力，10+ 渠道覆盖适合大型组织部署。</p>
+
+    </blockquote>
+
+
+    <h2>选型建议</h2>
+
+
+    <table>
+
+    <tr><th>场景</th><th>推荐</th></tr>
+
+    <tr><td>个人日常编码，需要代码审查和调试</td><td><strong>BitFun</strong></td></tr>
+
+    <tr><td>需要桌面自动化 + 手机遥控</td><td><strong>BitFun</strong></td></tr>
+
+    <tr><td>长期大型项目，需要跨 session 代码记忆</td><td><strong>JiuwenClaw</strong></td></tr>
+
+    <tr><td>需要执行不可信代码（安全沙箱）</td><td><strong>JiuwenClaw</strong></td></tr>
+
+    <tr><td>企业 IM 集成（飞书/钉钉/企微）</td><td><strong>JiuwenClaw</strong></td></tr>
+
+    <tr><td>跨机器多 Agent 协作</td><td><strong>JiuwenClaw</strong></td></tr>
+
+    <tr><td>macOS/Windows 原生桌面体验</td><td><strong>BitFun</strong></td></tr>
+
+    <tr><td>技能生态 + 技能市场</td><td><strong>JiuwenClaw</strong></td></tr>
+
+    </table>
+
+
+    <hr>
+
+
+    <p><em>分析日期：2026-05-12 | BitFun core ~152K LOC Rust | JiuwenClaw + openjiuwen
+    ~415K LOC Python | 基于源码阅读 + 架构文档分析</em></p>'
+- title: JiuwenClaw 深度分析：415K 行代码背后的双层 Agent 架构——openjiuwen 引擎与 JiuwenClaw 整车的完整剖析
+  date: May 12, 2026
+  excerpt: 更新版深度剖析：发现 JiuwenClaw 底层还有 openjiuwen agent-core (261K LOC)。双层架构详解——引擎(ReActAgent/DeepAgent/BashTool/LSP/CodingMemory/SignalDetector/26
+    Rails) vs 整车(Gateway/10渠道/ProjectMemoryRail/SkillDev/JiuwenBox)。415K LOC 的 Agent
+    基础设施全景。
+  content: ' <p>2026 年 5 月，我在做 AI Agent 基础设施调研时发现了 <strong>JiuwenClaw</strong>——华为团队出品的
+    AI Agent 平台。最初以为是 154K 行 Python 的单体项目，深入后才发现它只是冰山一角：底层还有一个 <strong>openjiuwen
+    agent-core</strong> 框架，<strong>261K 行代码、1,383 个 Python 文件</strong>，两者合计 <strong>415K
+    行</strong>。这是一套"引擎 + 整车"的双层架构。</p>
+
+
+    <p>JiuwenClaw: <a href="https://github.com/openJiuwen-ai/jiuwenclaw">github.com/openJiuwen-ai/jiuwenclaw</a></p>
+
+    <p>agent-core: <a href="https://github.com/openJiuwen-ai/agent-core">github.com/openJiuwen-ai/agent-core</a></p>
+
+
+    <h2>双层架构：引擎与整车的精确分工</h2>
+
+
+    <p>理解 JiuwenClaw 的 Code Agent 能力，必须先理解它和 openjiuwen 的关系：</p>
+
+
+    <table>
+
+    <tr><th>层</th><th>openjiuwen agent-core</th><th>JiuwenClaw</th></tr>
+
+    <tr><td><strong>代码量</strong></td><td>261,273 LOC, 1,383 files</td><td>154,000
+    LOC (核心)</td></tr>
+
+    <tr><td><strong>角色</strong></td><td>Agent 引擎/框架 (SDK)</td><td>Agent 产品/平台 (可安装)</td></tr>
+
+    <tr><td><strong>目标用户</strong></td><td>Agent 开发者</td><td>终端用户</td></tr>
+
+    <tr><td><strong>核心组件</strong></td><td>ReActAgent, DeepAgent, 26 Rails, 4 Subagent
+    Factory, LSP, CodingMemory, SignalDetector, TeamRuntime</td><td>Gateway, 10 IM
+    渠道, Web UI, TUI, ProjectMemoryRail, 技能市场, SkillDev, JiuwenBox 沙箱</td></tr>
+
+    <tr><td><strong>安全</strong></td><td>BashTool 注入检测+权限管道, SysOperation 协议, 文件系统防护</td><td>危险命令拦截,
+    trusted_dirs 白名单, JiuwenBox(bubblewrap+Landlock+Seccomp)</td></tr>
+
+    <tr><td><strong>配置方式</strong></td><td>Python API</td><td>config.yaml + Web UI</td></tr>
+
+    </table>
+
+
+    <p>依赖方向严格单向：<code>JiuwenClaw → import openjiuwen.*</code>，反向永不发生。</p>
+
+
+    <h2>Code Agent 能力深度剖析</h2>
+
+
+    <h3>1. 命令执行：三层架构，远比表面复杂</h3>
+
+
+    <p>之前只看 JiuwenClaw 的 <code>command_tools.py</code> (322行)，以为是简单的 subprocess 包装。实际上完整执行栈是三层：</p>
+
+
+    <ul>
+
+    <li><strong>Layer 3 — JiuwenClaw 包装层</strong>：危险命令正则拦截 (rm -rf/shutdown/mkfs)，工作目录强制限制在
+    project_root 子目录</li>
+
+    <li><strong>Layer 2 — openjiuwen BashTool (271行)</strong>：这才是真正的执行引擎。功能包括：<strong>语义级退出码解释</strong>（不是只返回数字，而是解读含义）、<strong>流式输出</strong>（stream()
+    方法 + 实时 chunk 推送）、<strong>注入检测</strong>（check_injection()）、<strong>权限管道</strong>（deny/allow
+    patterns + mode enforcement）、<strong>破坏性命令警告</strong>（get_destructive_warning()）、<strong>智能输出截断</strong>（default
+    8000 字符，超限自动持久化到文件）</li>
+
+    <li><strong>Layer 1 — SysOperation 抽象层</strong>：统一的系统操作接口，支持 LocalWorkConfig（本地执行）和
+    SandboxGatewayConfig（远程 JiuwenBox 沙箱执行），上层代码无需感知差异</li>
+
+    </ul>
+
+
+    <h3>2. 文件系统：1,801行的完整实现</h3>
+
+
+    <p>openjiuwen 的 <code>filesystem.py</code> 不是简单的 read/write wrapper：</p>
+
+
+    <ul>
+
+    <li><strong>行级分页读取</strong>：offset + limit，避免加载大文件</li>
+
+    <li><strong>PDF 支持</strong>：集成 pdfplumber，自动解析 PDF 文本</li>
+
+    <li><strong>二进制防护</strong>：阻止读取 20+ 种二进制格式 (.exe, .so, .db, .zip...)</li>
+
+    <li><strong>设备文件防护</strong>：/dev/zero, /dev/random, /dev/urandom 等阻塞设备自动拒绝</li>
+
+    <li><strong>编辑前置验证</strong>：必须先 read 才能 edit，通过 <code>_FILE_READ_REGISTRY</code>
+    检测外部修改</li>
+
+    <li><strong>操作历史</strong>：每个 workspace 维护 write/edit 操作日志，异步安全</li>
+
+    </ul>
+
+
+    <h3>3. LSP 集成：504行全局单例管理器</h3>
+
+
+    <p>不是简单的 LSP 客户端包装。openjiuwen 实现了一个完整的 <strong>LSPServerManager</strong>：</p>
+
+
+    <ul>
+
+    <li><strong>全局单例 + 异步懒加载</strong>：服务器不立即启动，首次 LSP 请求时才初始化</li>
+
+    <li><strong>Monorepo 多 root 支持</strong>：ServerInstanceKey(server_id, root) 允许同一语言在不同项目
+    root 下独立运行</li>
+
+    <li><strong>自动语言检测</strong>：build_configs_async() 扫描项目结构，自动选择需要的 LSP server</li>
+
+    <li><strong>诊断注入</strong>：每次 before_model_call 前，LspRail 获取当前打开文件的诊断信息，注入系统 prompt
+    的 code_context 段 (SectionPriority=120)</li>
+
+    </ul>
+
+
+    <p>这意味着 Agent 在开始编码前就已经知道当前文件的类型错误、未使用变量、接口不匹配等问题——不需要先跑一遍编译。</p>
+
+
+    <h3>4. CodingMemory：向量+BM25 混合检索</h3>
+
+
+    <p>之前描述为"Embedding 代码记忆"，实际更精确：openjiuwen 的 CodingMemoryRail (503行) 实现的是<strong>向量检索
+    + BM25 关键词检索的混合方案</strong>，不是纯向量：</p>
+
+
+    <ul>
+
+    <li><strong>混合检索</strong>：向量语义匹配 + BM25 精确关键词匹配，互补优势</li>
+
+    <li><strong>Top-5 召回</strong>：每个 user turn 自动检索，最多返回 5 条最相关记忆</li>
+
+    <li><strong>10KB 上限</strong>：召回内容总大小硬限制，避免 token 爆炸</li>
+
+    <li><strong>非阻塞预取</strong>：asyncio.create_task() 启动异步检索，不阻塞 Agent 主循环</li>
+
+    <li><strong>降级策略</strong>：无检索结果时自动降级为读取 MEMORY.md 索引</li>
+
+    <li><strong>存储格式</strong>：独立 .md 文件 + YAML frontmatter 元数据，人类可读</li>
+
+    </ul>
+
+
+    <h3>5. Subagent 体系：精确的分工约束</h3>
+
+
+    <p>4 种 Subagent 的 factory 全部定义在 openjiuwen 中，JiuwenClaw 只负责从 config.yaml 读取配置并传递：</p>
+
+
+    <ul>
+
+    <li><strong>explore_agent (263行)</strong>：最严格的只读约束。System prompt 明确禁止所有写操作，工具集限定为
+    glob/grep/read_file/list_files/bash(只读子集)。bash 只能执行 ls/git status/log/diff/cat/head/tail。</li>
+
+    <li><strong>plan_agent</strong>：专注方案设计，不操作文件系统。输出结构化计划。</li>
+
+    <li><strong>code_agent (286行)</strong>：实际编码执行。默认 Rails: SysOperationRail + CodingMemoryRail。System
+    prompt 强调"能用工具就用工具，不要猜文件内容；变更要小、可回滚；先澄清接口再动代码"。</li>
+
+    <li><strong>browser_agent</strong>：Playwright-based Web 自动化。</li>
+
+    </ul>
+
+
+    <p>SubagentRail 配套了 SessionRail（子代理会话管理）、VerificationRail（输出质量验证）、VerificationContractRail（基于合约的输出验证），构成完整的子代理生命周期管理。</p>
+
+
+    <h3>6. 自演进系统：604行信号检测器</h3>
+
+
+    <p>openjiuwen 的 ConversationSignalDetector 是整个自演进体系的基础：</p>
+
+
+    <ul>
+
+    <li><strong>40+ 失败关键词</strong>：覆盖 error/exception/traceback/failed/timeout/errno/permission
+    denied/command not found/module not found/econnrefused/enoent 及中文错误/异常/失败/超时</li>
+
+    <li><strong>18 种用户纠正句式</strong>：不对/不是这/那/错了/应该是/用/改/换/你搞错了/重新来/做/执行/尝试/纠正一下/我的意思是
+    + 英文 that''s wrong/should be/actually/no wait</li>
+
+    <li><strong>工具分类过滤</strong>：数据获取工具（web_fetch/search）的输出不触发信号；代码执行工具（bash/code）的输出才检测</li>
+
+    <li><strong>6 阶段演进流水线</strong>：Trajectory → SignalDetector → SkillEvolutionManager
+    → SkillOptimizer(LLM) → evolutions.json → solidify → SKILL.md</li>
+
+    </ul>
+
+
+    <p>JiuwenClaw 在此基础上增加了 SkillDev 10 阶段开发流水线和 /evolve 手动触发命令。</p>
+
+
+    <h2>JiuwenClaw 的真正原创价值</h2>
+
+
+    <p>分析完 agent-core 后发现，JiuwenClaw 的 Code Agent <strong>核心能力都来自 openjiuwen</strong>。JiuwenClaw
+    真正的原创在于：</p>
+
+
+    <ol>
+
+    <li><strong>Gateway + 渠道层</strong>：E2A 协议 (自研) + ACP/A2A 协议栈 + 10+ IM 平台接入。这是
+    openjiuwen 完全不提供的。</li>
+
+    <li><strong>ProjectMemoryRail</strong>：JIUWENCLAW.md 5 层级自动加载。openjiuwen 框架中没有这个
+    Rail，是 JiuwenClaw 的独创。</li>
+
+    <li><strong>技能市场生态</strong>：SkillNet + ClawHub + Marketplace + 本地导入。四层技能分发体系。</li>
+
+    <li><strong>SkillDev 10 阶段流水线</strong>：从 INIT 到 PACKAGE 的完整技能开发工厂。</li>
+
+    <li><strong>JiuwenBox 沙箱</strong>：bubblewrap + Landlock + Seccomp + network namespace。openjiuwen
+    只有 SysOperation 协议抽象，JiuwenBox 是真正实现。</li>
+
+    <li><strong>产品化体验</strong>：Web UI + TUI + config.yaml + 多模型配置 + SlashCommand 系统。</li>
+
+    </ol>
+
+
+    <h2>对比 Hermes Agent 的两种哲学</h2>
+
+
+    <table>
+
+    <tr><th>维度</th><th>openjiuwen+JiuwenClaw</th><th>Hermes Agent</th></tr>
+
+    <tr><td>总代码量</td><td>415K LOC</td><td>~8K LOC 核心</td></tr>
+
+    <tr><td>架构哲学</td><td>引擎+整车：框架做原子能力，产品做包装</td><td>可组合微核：轻量核心+技能扩展</td></tr>
+
+    <tr><td>命令执行</td><td>三层(BashTool语义解释+SysOperation+沙箱)</td><td>一层(terminal工具+approval)</td></tr>
+
+    <tr><td>LSP 集成</td><td>504行全局单例+懒加载+monorepo</td><td>❌ 无原生支持</td></tr>
+
+    <tr><td>代码记忆</td><td>向量+BM25混合检索+10KB限制+降级策略</td><td>Memory 工具+会话持久化</td></tr>
+
+    <tr><td>Subagent</td><td>4种Factory+SessionRail+VerificationRail</td><td>技能系统模拟</td></tr>
+
+    <tr><td>自演进</td><td>604行SignalDetector(40+失败+18+纠正)</td><td>❌ 手工维护</td></tr>
+
+    <tr><td>安全</td><td>5层(BashTool注入检测→文件防护→SysOperation→JiuwenBox沙箱→trusted_dirs)</td><td>approval机制+OS权限</td></tr>
+
+    <tr><td>IM 渠道</td><td>10+ 平台</td><td>Telegram 为主</td></tr>
+
+    <tr><td>技能生态</td><td>SkillNet+ClawHub+Marketplace+SkillDev</td><td>内置+用户自建</td></tr>
+
+    </table>
+
+
+    <h2>关键洞察</h2>
+
+
+    <ol>
+
+    <li><strong>JiuwenClaw 的 Code Agent 能力不是自建的</strong>——它继承自 openjiuwen 框架，通过 JiuwenClawCodeAdapter
+    (1,146行) 注入产品配置。真正复杂的部分是框架层的 BashTool/LspRail/CodingMemoryRail/SignalDetector。</li>
+
+    <li><strong>openjiuwen 的工程深度被低估了</strong>——261K LOC 不是堆代码量，而是每个子系统都有精心设计：BashTool
+    的语义退出码解释、CodingMemory 的混合检索+非阻塞预取、LSPServerManager 的懒加载+多 root、SignalDetector
+    的 40+ 失败模式+工具分类过滤。</li>
+
+    <li><strong>415K LOC 的维护负担是真实风险</strong>——openjiuwen 闭源意味着只有华为内部团队能改框架层。JiuwenClaw
+    社区只能通过 Adapter 层扩展，无法触及核心 Rails/Tools。这是最大的生态限制。</li>
+
+    <li><strong>两种哲学各有优劣</strong>——openjiuwen+JiuwenClaw 提供开箱即用的全栈能力，但维护成本高、框架闭源；Hermes
+    轻量灵活，但需要用户自己搭建很多能力。选择取决于你的团队规模和需求深度。</li>
+
+    </ol>
+
+
+    <h2>技术架构评估：JiuwenClaw 在 Code Agent 场景的深度评审</h2>
+
+
+    <p>以下评估基于 415K LOC 的双层代码库分析，从架构设计、执行能力、安全模型、记忆系统、协作机制、可演进性六个维度，按工业级 Code Agent
+    的标准进行打分和详细说明。</p>
+
+
+    <h3>一、架构设计：⭐⭐⭐⭐☆ (4/5)</h3>
+
+
+    <p><strong>优势</strong>：</p>
+
+    <ul>
+
+    <li><strong>分层清晰</strong>：openjiuwen 做引擎（Agent 原子能力），JiuwenClaw 做产品（接入/分发/体验），职责边界明确。依赖方向严格单向，不存在循环依赖。</li>
+
+    <li><strong>Adapter 模式优雅</strong>：JiuwenClawCodeAdapter 继承 JiuWenClawDeepAdapter，只重写
+    Rails/Tools/Subagents 注册方法。新增 Code 模式不需要修改框架代码，只需注入不同的配置。</li>
+
+    <li><strong>Rail 系统设计精良</strong>：26 种 Rail 各有明确的 priority 和生命周期钩子（init/before_model_call/after_tool_call/uninit），可以任意组合。这是目前见过的
+    Agent 框架中最完善的中间件体系。</li>
+
+    <li><strong>Card/Config 分离</strong>：AgentCard/ToolCard 定义身份元数据，运行时行为由 Config 控制。同一个
+    ToolCard 可以绑定不同的 Tool 实例，支持多租户和 A/B 测试。</li>
+
+    </ul>
+
+
+    <p><strong>不足</strong>：</p>
+
+    <ul>
+
+    <li><strong>JiuWenClawDeepAdapter 过度膨胀</strong>：4,718 行单一文件，混合了模型配置、多模态配置、MCP
+    注册、权限引擎、身份 prompt 构建、Cron 运行时桥接等数十个关注点。违反单一职责原则。</li>
+
+    <li><strong>openjiuwen 闭源限制扩展深度</strong>：虽然代码可见，但社区无法提交 PR 修改 BashTool 的执行逻辑或
+    LspRail 的诊断策略。所有扩展只能通过 Adapter 层做"外挂"。</li>
+
+    <li><strong>全局状态依赖 Runner.resource_mgr</strong>：进程级全局单例，多实例测试需要显式隔离。AGENTS.md
+    中明确标注这是已知设计约束。</li>
+
+    <li><strong>缺乏 Think/Reasoning 模式</strong>：与 Claude Code 的 thinking budget 或 Hermes
+    的 reasoning_effort 不同，JiuwenClaw 没有显式的推理阶段控制。Agent 的思考过程完全依赖模型自身的 chain-of-thought。</li>
+
+    </ul>
+
+
+    <h3>二、执行能力：⭐⭐⭐⭐⭐ (5/5)</h3>
+
+
+    <p><strong>命令执行</strong>：</p>
+
+    <ul>
+
+    <li>三层架构（command_tools → BashTool → SysOperation）提供了从用户接口到系统调用的完整抽象。BashTool 的语义退出码解释是行业最佳实践——Agent
+    看到的不是"exit_code=1"，而是"命令失败，原因可能是文件不存在（ENOENT）"。</li>
+
+    <li>流式执行（stream() 方法）支持实时 chunk 推送，适合长时间运行的编译/测试任务。超限输出自动持久化到文件，避免 token 爆炸。</li>
+
+    <li>后台模式（execute_cmd_background）支持启动守护进程，5 秒 grace period 检测启动失败。比简单的 nohup &
+    可靠得多。</li>
+
+    </ul>
+
+
+    <p><strong>文件操作</strong>：</p>
+
+    <ul>
+
+    <li>filesystem.py (1,801行) 的功能完备性在同类框架中领先。编辑前置验证（必须先 read 才能 edit）是一个看似简单但极其有效的安全机制——防止
+    Agent 基于幻觉修改文件。</li>
+
+    <li>二进制/设备文件自动拒绝，避免了新手 Agent 常见的"cat /dev/urandom → OOM"事故。</li>
+
+    </ul>
+
+
+    <p><strong>局限性</strong>：</p>
+
+    <ul>
+
+    <li>BashTool 的 STRICT 模式（注入检测+权限管道）默认关闭，需要环境变量 OPENJIUWEN_BASH_STRICT=1 手动开启。这是一个安全配置上的遗憾——应该是默认开启，可选关闭。</li>
+
+    <li>JiuwenClaw 的 command_tools.py 和 openjiuwen 的 BashTool 是两套独立实现，存在功能重复和维护分歧。JiuwenClaw
+    的命令执行包装更像是早期遗留代码。</li>
+
+    </ul>
+
+
+    <h3>三、安全模型：⭐⭐⭐⭐☆ (4/5)</h3>
+
+
+    <p><strong>分层防御体系</strong>：</p>
+
+    <ul>
+
+    <li>5 层安全从协议到产品逐层加固：WorktreeRail (git 隔离) → SysOperationRail (文件护栏) → BashTool
+    注入检测 (STRICT 模式) → ProjectMemoryRail (写操作监控) → JiuwenBox (进程沙箱)。</li>
+
+    <li>JiuwenBox 是真正的亮点：bubblewrap + Landlock + Seccomp + network namespace 的 4 层
+    Linux 安全机制叠加，远超市面上常见的 Docker 沙箱方案。Landlock 是 Linux 5.13+ 的无特权沙箱机制，比 seccomp 更细粒度。</li>
+
+    <li>PermissionInterruptRail 的"本次允许/总是允许/拒绝"三级确认粒度合理，不会过度打扰用户。</li>
+
+    </ul>
+
+
+    <p><strong>不足</strong>：</p>
+
+    <ul>
+
+    <li>JiuwenBox 仅支持 Linux，macOS/Windows 用户无法受益于完整的进程隔离。</li>
+
+    <li>trusted_dirs 白名单机制依赖用户手动配置，新用户可能在不理解的情况下信任了整个 home 目录。</li>
+
+    <li>BashTool 的 PermissionConfig (deny_patterns/allow_patterns) 是基于正则的，可能被精心构造的命令绕过。</li>
+
+    </ul>
+
+
+    <h3>四、记忆系统：⭐⭐⭐⭐⭐ (5/5)</h3>
+
+
+    <p><strong>三套记忆协同</strong>：</p>
+
+    <ul>
+
+    <li>Memory (对话记忆) + Experience Memory (任务经验) + CodingMemory (代码知识) 的分层设计是目前开源
+    Agent 中最完整的记忆架构。</li>
+
+    <li>CodingMemory 的向量+BM25 混合检索是工程上的正确选择——纯向量检索在代码场景（精确符号名、API 名称）表现不佳，BM25 弥补了语义匹配的盲区。</li>
+
+    <li>非阻塞预取（asyncio.create_task）+ 降级策略（无结果时读取 MEMORY.md 索引）的工程实现扎实，不会因为 Embedding
+    API 延迟而阻塞 Agent 主循环。</li>
+
+    <li>10KB 召回上限和 Top-5 限制是务实的设计——避免记忆系统本身成为 token 消耗大户。</li>
+
+    </ul>
+
+
+    <p><strong>局限性</strong>：</p>
+
+    <ul>
+
+    <li>依赖外部 Embedding API（需配置 embed_api_key/base_url/model），离线环境无法使用。缺少本地 Embedding
+    模型的 fallback。</li>
+
+    <li>MEMORY.md 降级索引是人类可读但语义检索能力弱。在无 Embedding 配置时，记忆系统等效于全文搜索。</li>
+
+    <li>CodingMemory 和 Memory 虽然目录隔离，但在系统 prompt 中可能同时注入，存在信息冗余风险。</li>
+
+    </ul>
+
+
+    <h3>五、协作机制：⭐⭐⭐⭐☆ (4/5)</h3>
+
+
+    <p><strong>Subagent 分工</strong>：</p>
+
+    <ul>
+
+    <li>4 种 Subagent 的职责边界清晰：explore 只读、plan 设计、code 实现、browser 抓取。这不是简单的"多个 Agent
+    同时跑"，而是有明确的分工约束。</li>
+
+    <li>explore_agent 的只读设计尤为出色——不是靠代码限制，而是直接不注册写工具。Agent 想做也做不了。</li>
+
+    <li>code_agent 共享主 Agent 的 CodingMemoryRail 实例，避免了重复初始化 Embedding 连接和重复召回。</li>
+
+    <li>SessionRail + VerificationRail + VerificationContractRail 构成完整的子代理生命周期管理链路。</li>
+
+    </ul>
+
+
+    <p><strong>Team 模式</strong>：</p>
+
+    <ul>
+
+    <li>MessageBus + TeamRuntime + CommunicableAgent 的消息总线架构支持 inprocess/pyzmq 两种传输模式，可以无缝从单机扩展到分布式。</li>
+
+    <li>Handoff (handoff_tool + orchestrator) 和 Hierarchical (消息总线+工具代理) 两种内置 Team
+    拓扑，覆盖了大多数多 Agent 协作场景。</li>
+
+    <li>每个 teammate 可以注入独立的 Code profile（独立的 LSP 实例、CodingMemory 目录、SysOperation 工作目录），这让"前端
+    Agent+后端 Agent+DBAgent"的分工成为可能。</li>
+
+    </ul>
+
+
+    <p><strong>不足</strong>：</p>
+
+    <ul>
+
+    <li>Subagent 的 max_iterations 默认 15 且全局统一，无法根据任务复杂度自适应。explore_agent 可能 3 轮就完成，code_agent
+    可能需要 30 轮。</li>
+
+    <li>Subagent 之间缺乏直接的通信通道——所有交互必须经过主 Agent 的 task_tool 中继，形成单点瓶颈。</li>
+
+    <li>Team 模式的状态存储（SQLite/PostgreSQL）在分布式场景下可能成为性能瓶颈，缺少 etcd/Redis 等更适合分布式协调的存储后端。</li>
+
+    </ul>
+
+
+    <h3>六、可演进性：⭐⭐⭐⭐⭐ (5/5)</h3>
+
+
+    <p><strong>自演进闭环</strong>：</p>
+
+    <ul>
+
+    <li>SignalDetector（604行）的检测规则覆盖面广——40+ 失败模式 + 18 种用户纠正句式 + 工具分类过滤（数据获取工具不触发、代码执行工具才检测）。这套规则是工程经验的结晶。</li>
+
+    <li>6 阶段演进流水线（Trajectory → Signal → Optimizer(LLM) → evolutions.json → solidify
+    → SKILL.md）每一步都有持久化，失败可回溯。</li>
+
+    <li>JiuwenClaw 的 SkillDev 10 阶段开发流水线是 Agent 技能工程化的标杆设计——INIT→PLAN→GENERATE→VALIDATE→TEST_DESIGN→TEST_RUN→EVALUATE→IMPROVE→PACKAGE→DESC_OPTIMIZE。用户只需要描述需求，系统自动生成可安装的
+    .skill 包。</li>
+
+    <li>RL 训练管线（agent_rl/）支持 GRPO 等现代 RL 方法进行在线+离线策略优化，是目前开源 Agent 框架中唯一提供原生 RL 训练支持的。</li>
+
+    </ul>
+
+
+    <p><strong>不足</strong>：</p>
+
+    <ul>
+
+    <li>SignalDetector 是纯规则引擎，无法检测语义级别的失败（如"代码能跑但结果不对"）。</li>
+
+    <li>SkillOptimizer 依赖 LLM 调用生成改进，引入了额外的成本和延迟——在 Code 模式下频繁触发可能导致 token 消耗显著增加。</li>
+
+    <li>evolutions.json → SKILL.md 的 solidify 过程可能覆盖用户手工编辑的内容，需要更精细的冲突解决策略。</li>
+
+    </ul>
+
+
+    <h3>综合评分</h3>
+
+
+    <table>
+
+    <tr><th>维度</th><th>评分</th><th>核心优势</th><th>主要短板</th></tr>
+
+    <tr><td>架构设计</td><td>⭐⭐⭐⭐☆ 4/5</td><td>分层清晰、Adapter 优雅、Rail 系统完善</td><td>Adapter
+    单文件 4,718 行过度膨胀、框架闭源、无 Reasoning 模式</td></tr>
+
+    <tr><td>执行能力</td><td>⭐⭐⭐⭐⭐ 5/5</td><td>三层架构、语义退出码、流式执行、文件前置验证</td><td>STRICT 安全模式默认关闭、两套
+    Shell 实现并存</td></tr>
+
+    <tr><td>安全模型</td><td>⭐⭐⭐⭐☆ 4/5</td><td>5 层防御、JiuwenBox(bubblewrap+Landlock+Seccomp)</td><td>沙箱仅限
+    Linux、正则可能被绕过</td></tr>
+
+    <tr><td>记忆系统</td><td>⭐⭐⭐⭐⭐ 5/5</td><td>三套记忆协同、向量+BM25 混合检索、非阻塞预取</td><td>依赖外部
+    Embedding API、无本地 fallback</td></tr>
+
+    <tr><td>协作机制</td><td>⭐⭐⭐⭐☆ 4/5</td><td>Subagent 分工明确、pyzmq 分布式、独立 Code profile</td><td>迭代上限固定、Subagent
+    间无直连、分布式状态存储瓶颈</td></tr>
+
+    <tr><td>可演进性</td><td>⭐⭐⭐⭐⭐ 5/5</td><td>604行 SignalDetector、SkillDev 10 阶段、原生 RL
+    训练</td><td>纯规则检测、LLM 优化成本、solidify 覆盖风险</td></tr>
+
+    <tr><td><strong>综合</strong></td><td><strong>⭐⭐⭐⭐½ 4.5/5</strong></td><td colspan="2">工业级
+    Code Agent 基础设施，在记忆系统和可演进性上领先，主要扣分项在架构膨胀和框架闭源</td></tr>
+
+    </table>
+
+
+    <h3>技术债务与风险提示</h3>
+
+
+    <ul>
+
+    <li><strong>Adapter 膨胀风险</strong>：JiuWenClawDeepAdapter (4,718行) 继续增长将变成 God Object。建议拆分：ModelConfigAdapter
+    + MCPAdapter + PermissionAdapter + PromptAdapter。</li>
+
+    <li><strong>双 Shell 实现分歧</strong>：command_tools.py (JiuwenClaw) 和 BashTool (openjiuwen)
+    功能重叠但 API 不同。长期应统一到 BashTool，废弃前者。</li>
+
+    <li><strong>测试覆盖率 16%</strong>：对于 415K LOC 的生产级 Agent 系统，这个覆盖率意味着大量关键路径（LSP 懒加载、混合检索、信号检测）可能缺少回归保护。</li>
+
+    <li><strong>openjiuwen 版本锁定</strong>：JiuwenClaw 的 uv.lock 锁定了 openjiuwen 的特定版本。框架升级可能引入
+    Adapter 层兼容性问题。</li>
+
+    <li><strong>文档分散</strong>：架构知识分布在 AGENTS.md、.claude/rules/*.md、docs/en/、docs/zh/
+    四个位置，缺乏统一入口。</li>
+
+    </ul>
+
+
+    <h3>适用场景建议</h3>
+
+
+    <table>
+
+    <tr><th>场景</th><th>推荐度</th><th>原因</th></tr>
+
+    <tr><td>企业级长期项目 (3+ 月)</td><td>⭐⭐⭐⭐⭐</td><td>CodingMemory+ProjectMemory 的长期记忆能力是最佳匹配</td></tr>
+
+    <tr><td>多人协作的大型代码库</td><td>⭐⭐⭐⭐⭐</td><td>Subagent 分工 + Team 模式 + LSP 全局诊断</td></tr>
+
+    <tr><td>需要频繁部署/运维的项目</td><td>⭐⭐⭐⭐☆</td><td>JiuwenBox 沙箱安全 + BashTool 流式执行，但仅限
+    Linux</td></tr>
+
+    <tr><td>个人快速原型开发</td><td>⭐⭐⭐☆☆</td><td>过于重量级，Hermes/Cursor 更合适</td></tr>
+
+    <tr><td>需要自定义底层行为的场景</td><td>⭐⭐☆☆☆</td><td>框架闭源，只能通过 Adapter 外挂扩展</td></tr>
+
+    <tr><td>macOS/Windows 为主的环境</td><td>⭐⭐⭐☆☆</td><td>核心功能可用，但 JiuwenBox 沙箱不可用，安全降级</td></tr>
+
+    </table>
+
+    <hr>
+
+
+    <p><em>分析日期：2026-05-12 (更新) | openjiuwen agent-core + JiuwenClaw 联合分析 | 总代码量：~415,000
+    Python | 分析方法：双层源码阅读 + 架构文档 + 测试分析</em></p>'
+- title: SkillOS 深度分析：RL 训练 8B 模型做技能策展，超越 Gemini-2.5-Pro——Google 最新论文解读
+  date: May 10, 2026
+  excerpt: Google Cloud AI 联合 UIUC/MIT 发布 SkillOS：通过分组任务流 RL 训练，8B 小模型学会自动 insert/update/delete
+    技能，在 ALFWorld 上 SR 提升 13.3pp，超越 Gemini-2.5-Pro 零样本策展。Executor-grounded 训练比模型规模更重要。
+  content: ' <p>想象一下：你部署了一个 AI Agent，它今天能解决 100 个任务。一周后，它还是只能解决 100 个任务——因为每次新任务到来，它都从零开始，完全记不住上次是怎么成功的。</p>
+
+
+    <p>这正是当前 LLM Agent 的困境。2026 年 5 月 7 日，Google Cloud AI 联合 UIUC 和 MIT 的 16 位研究者发布了
+    <strong>SkillOS</strong>，首次系统性地证明：<strong>一个 8B 参数的小模型，经过 RL 训练学会"技能策展"后，可以超越
+    Gemini-2.5-Pro 直接做策展的效果</strong>。</p>
+
+
+    <p>论文链接：<a href="https://arxiv.org/abs/2605.06614">arXiv:2605.06614</a></p>
+
+
+    <h2>问题：Agent 为什么不能"记住"经验？</h2>
+
+
+    <p>在流式部署场景（streaming setting）中，任务按时间顺序不断到来。一个理想的 Agent 应该：</p>
+
+
+    <ol>
+
+    <li>从每个任务中提炼可复用的经验</li>
+
+    <li>将经验组织成可检索、可更新的技能库</li>
+
+    <li>在后续相关任务中利用这些技能提升表现</li>
+
+    </ol>
+
+
+    <p>但现实是，大多数 Agent 是 "one-off problem solver"——每次新任务从零开始。为什么？因为<strong>技能策展（Skill
+    Curation）极其困难</strong>：</p>
+
+
+    <ul>
+
+    <li><strong>人工策展</strong>：Anthropic 维护了高质量的 skills 仓库，但依赖大量专家时间，无法规模化</li>
+
+    <li><strong>启发式规则</strong>：固定规则（如"成功则 insert，失败不操作"）缺乏下游性能反馈，无法适应 executor 的实际需求</li>
+
+    <li><strong>短期 RL</strong>：现有研究训练 agent 使用技能或优化短期操作，但 <code>update</code> 和 <code>delete</code>
+    这类复杂操作的回报是延迟的、间接的</li>
+
+    </ul>
+
+
+    <p>核心难点：策展操作（insert/update/delete）本身不产生直接结果——你需要等到<strong>未来相关任务</strong>的表现出来，才能判断上次的策展决策是好是坏。</p>
+
+
+    <h2>SkillOS 架构：双组件 + RL 训练</h2>
+
+
+    <p>SkillOS 的核心思想简洁而优雅：</p>
+
+
+    <pre><code class="language-text">
+
+    ┌─────────────────┐          ┌──────────────────┐
+
+    │ Frozen Executor  │  ←──────→│ Trainable Curator │
+
+    │ (执行任务，不变)   │  Skills  │ (8B, RL训练)      │
+
+    └────────┬─────────┘          └────────┬─────────┘
+
+    │ 检索技能                    │ insert/update/delete
+
+    │                             │
+
+    ▼                             ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  SkillRepo (Markdown 文件，类 OS I/O)  │
+
+    │  skill_1.md  skill_2.md  ...          │
+
+    └─────────────────────────────────────┘
+
+    </code></pre>
+
+
+    <h3>组件一：Frozen Agent Executor</h3>
+
+
+    <p>Executor 是<strong>冻结的</strong>——完全不参与训练。给定当前任务，它用 BM25 从 SkillRepo 检索相关技能，然后用
+    ReAct/CoT 执行。执行完成后，产生轨迹（trajectory）传回给 Curator。</p>
+
+
+    <h3>组件二：Trainable Skill Curator</h3>
+
+
+    <p>Curator 是唯一可训练的部分。它观察 executor 的执行轨迹 + 自评结果，然后通过结构化 function call 操作 SkillRepo：</p>
+
+
+    <ul>
+
+    <li><code>insert_skill</code>：从成功/失败轨迹中提炼新技能</li>
+
+    <li><code>update_skill</code>：精炼已有技能，合并冲突知识</li>
+
+    <li><code>delete_skill</code>：移除过时、冗余、有害技能</li>
+
+    </ul>
+
+
+    <p>每个技能遵循 Anthropic 的 SKILL.md 格式——YAML frontmatter（名称 + 使用条件描述）+ Markdown 可执行指令。</p>
+
+
+    <h3>训练方式：GRPO + 复合奖励</h3>
+
+
+    <p>基于 Qwen3-8B，使用 GRPO（Grouped Reward Policy Optimization）在 16×H100 GPU 上训练，框架为字节跳动的
+    verl。关键奖励函数：</p>
+
+
+    <pre><code class="language-text">r = r_task + r_fc + 0.1·r_cnt + 0.05·r_comp</code></pre>
+
+
+    <ul>
+
+    <li><strong>r_task</strong>：后续任务的平均成功率（从 group 中第 2 个任务开始计，第 1 个用空 SkillRepo 无策展影响）——<em>核心信号，锚定策展对下游的实际价值</em></li>
+
+    <li><strong>r_fc</strong>：有效函数调用比例——<em>防止生成无效 JSON 或空技能</em></li>
+
+    <li><strong>r_cnt</strong>：Qwen3-32B 外部评委内容质量评分——<em>训练早期的密集信号</em></li>
+
+    <li><strong>r_comp</strong>：压缩奖励 = 1 − |SkillRepo|/|input context|——<em>惩罚复制粘贴整条轨迹</em></li>
+
+    </ul>
+
+
+    <h2>创新 1：分组任务流训练（Grouped Task Streams）</h2>
+
+
+    <p>这是 SkillOS 最精妙的设计，也是消融实验中<strong>影响最大的组件</strong>（去掉后 SR 从 61.2% 暴跌到 57.3%）。</p>
+
+
+    <p>不按随机顺序训练，而是：</p>
+
+
+    <ol>
+
+    <li>用 Gemini-2.5-Pro 为每个任务标注技能相关属性标签</li>
+
+    <li>基于属性相似度将任务聚合成组</li>
+
+    <li>每组训练从空的 SkillRepo 开始</li>
+
+    <li>早期任务的策展决策由后续相关任务验证</li>
+
+    </ol>
+
+
+    <p>这解决了核心难题：<strong>如何把延迟且间接的监督信号转化为有效的学习信号</strong>。在随机任务流中，策展操作的效果被无关后续任务稀释；而在分组流中，策展质量直接体现在后续相关任务的表现上。</p>
+
+
+    <h2>创新 2：Executor-Grounded 策展</h2>
+
+
+    <p>SkillOS 对比了一个关键实验：</p>
+
+
+    <ul>
+
+    <li><strong>SkillOS-gemini</strong>：Gemini-2.5-Pro 直接做 curator（零样本策展）</li>
+
+    <li><strong>SkillOS</strong>：Qwen3-8B RL 训练做 curator</li>
+
+    </ul>
+
+
+    <p>结果：8B 训练的 curator <strong>80.2% SR vs 79.3%</strong>，超过了 Gemini-2.5-Pro。当 executor
+    是较小的 Qwen3-8B 时差距更大：<strong>61.2% vs 50.7%</strong>。</p>
+
+
+    <p><strong>关键洞察</strong>：Gemini 策展出的"高质量技能"可能与较小 executor 的使用模式不匹配——过于复杂、跳过 executor
+    能力范围外的步骤、或包含 executor 无法利用的抽象策略。而 RL 训练的 curator 通过 executor-grounded 反馈，学习生成的技能精确匹配下游
+    agent 的实际需求。</p>
+
+
+    <p>这颠覆了"用更强模型策展更好"的直觉——<strong>与 executor 对齐的策展比模型规模更重要</strong>。</p>
+
+
+    <h2>完整实验结果</h2>
+
+
+    <h3>ALFWorld（多轮 agent 任务）</h3>
+
+
+    <table>
+
+    <tr><th>Executor</th><th>No Memory</th><th>SkillOS</th><th>提升</th></tr>
+
+    <tr><td>Qwen3-8B</td><td>47.9%</td><td>61.2%</td><td>+13.3pp</td></tr>
+
+    <tr><td>Qwen3-32B</td><td>54.5%</td><td>68.6%</td><td>+14.1pp</td></tr>
+
+    <tr><td>Gemini-2.5-Pro</td><td>66.4%</td><td>80.2%</td><td>+13.8pp</td></tr>
+
+    </table>
+
+
+    <p>同时执行步骤减少：21.1 → 18.9（−10.4%）。效率不是靠更多试错换来的——技能让 executor 直接走捷径，绕过冗余探索。</p>
+
+
+    <h3>WebShop + 推理任务（AIME24/25, GPQA）</h3>
+
+
+    <table>
+
+    <tr><th>基准</th><th>No Memory</th><th>SkillOS</th><th>提升</th></tr>
+
+    <tr><td>WebShop SR</td><td>9.8%</td><td>16.5%</td><td>+6.7pp</td></tr>
+
+    <tr><td>AIME24 Acc</td><td>76.0%</td><td>80.0%</td><td>+4.0pp</td></tr>
+
+    <tr><td>AIME25 Acc</td><td>71.1%</td><td>76.7%</td><td>+5.6pp</td></tr>
+
+    <tr><td>GPQA Acc</td><td>61.8%</td><td>64.6%</td><td>+2.8pp</td></tr>
+
+    </table>
+
+
+    <p>agent 任务（ALFWorld/WebShop）的增益普遍大于推理任务——前者暴露更多程序化规律（行动顺序、探索策略、环境约束），后者可复用知识更抽象（分解启发式、验证模式），但
+    SkillOS 在所有基准上均有提升。</p>
+
+
+    <h2>技能的"自我进化"</h2>
+
+
+    <p>训练过程中策展行为发生了清晰的阶段性转变：</p>
+
+
+    <ul>
+
+    <li><strong>早期</strong>：insert 占绝对主导——疯狂扩张技能库</li>
+
+    <li><strong>中期</strong>：update 逐渐增多，insert 下降——从扩张转向精炼</li>
+
+    <li><strong>后期</strong>：delete 缓慢增长——开始清理低效技能</li>
+
+    </ul>
+
+
+    <p>技能内容也经历了从"虚胖"到"结实"的演化：</p>
+
+
+    <ul>
+
+    <li><strong>训练早期</strong>：技能充满空洞的 guidance/tips/recommendations，增加篇幅但不增操作价值</li>
+
+    <li><strong>训练后期</strong>：涌现出 <strong>failure-handling logic、conditional branches、meta-strategy
+    skills</strong>（验证策略、fallback 规划、系统搜索、策略调整）</li>
+
+    </ul>
+
+
+    <p>技能仓库从任务特定操作集合 → 跨任务控制知识体系。这不是简单的"存了更多东西"，而是<strong>技能的组织方式发生了质变</strong>。</p>
+
+
+    <h2>跨任务泛化：训练的策展能力可迁移</h2>
+
+
+    <p>从推理任务训练的 curator 迁移到 ALFWorld/WebShop 仍有效——因为推理技能提炼了分解、验证、自适应规划等抽象策略。反向迁移较弱——WebShop/ALFWorld
+    的技能更绑定于环境特定知识。</p>
+
+
+    <h2>与 Hermes 的关联</h2>
+
+
+    <p>这篇论文与 Hermes Agent 的技能系统高度相关：</p>
+
+
+    <ul>
+
+    <li><strong>同源格式</strong>：SkillOS 和 Hermes 都遵循 Anthropic SKILL.md（YAML frontmatter
+    + Markdown 指令）</li>
+
+    <li><strong>当前差距</strong>：Hermes 的 skill 是人工维护的静态资产；SkillOS 证明了可以用 RL 自动学习技能策展</li>
+
+    <li><strong>可操作的启示</strong>：</li>
+
+    <ul>
+
+    <li>复合奖励设计（内容质量 + 压缩 + 下游验证）可直接启发 Hermes skill 质量的自动化评估</li>
+
+    <li>Grouped Task Streams 思路 → 在关联任务组中评估技能质量，而非单独评测</li>
+
+    <li>8B 模型超越 Gemini-2.5-Pro → 本地小模型做技能管理的可行性</li>
+
+    <li>技能演化趋势 → 预期技能从任务特定向 meta-strategic 演化</li>
+
+    </ul>
+
+    </ul>
+
+
+    <h2>局限与展望</h2>
+
+
+    <ul>
+
+    <li><strong>检索简单</strong>：BM25 未学习检索策略——未来应联合学习检索+策展</li>
+
+    <li><strong>技能表征简化</strong>：单文件 Markdown vs Anthropic 完整文件夹结构</li>
+
+    <li><strong>Executor 冻结</strong>：未联合优化 executor + curator</li>
+
+    <li><strong>训练成本</strong>：3-5 天 × 16×H100</li>
+
+    </ul>
+
+
+    <p>论文提出的未来方向包括：Agentic Search over Experiential Memory（学习检索什么而不仅是策展什么）、层次化/组合式技能、多
+    Agent 共享记忆。</p>
+
+
+    <h2>总结</h2>
+
+
+    <p>SkillOS 回答了一个根本问题：<strong>如何让 Agent 自己学会写 SKILL.md？</strong></p>
+
+
+    <p>通过分组任务流 + 复合奖励 + executor-grounded 训练，一个 8B 小模型学会了从经验中持续提炼高质量技能——效果超过 Gemini-2.5-Pro
+    零样本策展，跨 executor 和跨任务均有泛化性。这篇论文为"自进化 Agent"提供了一条可操作的、工程化的实现路径，也是 Hermes 技能系统向自动化演进的理论基础。</p>
+
+
+    <blockquote>
+
+    <p>Stronger reasoning ≠ better curation. The curator that understands its executor
+    beats the curator that only understands itself.</p>
+
+    </blockquote>'
 - title: Graph of Skills 深度分析：基于 PPR 的图结构 Skill 检索——GraSP 的开源参考实现
   date: May 8, 2026
   excerpt: GoS（142⭐）是 Lehigh University 团队开源的结构化 skill 检索框架，通过离线技能图构建 + 在线 PPR 图游走实现精准检索。本文深度拆解其四阶段
