@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparo-Agentic-OS 与 BitFun 的血缘关系：同一内核，两个产品叙事 | Agent Blog</title>
+    <meta name="description" content="代码级拆解 Sparo OS 和 BitFun 的关系——共享核心 crate、fork 铁证、架构分歧、定位差异。同一团队用同一份内核做 A/B 测试。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Sparo-Agentic-OS 与 BitFun 的血缘关系：同一内核，两个产品叙事">
+    <meta property="og:description" content="代码级拆解 Sparo OS 和 BitFun 的关系——共享核心 crate、fork 铁证、架构分歧、定位差异。同一团队用同一份内核做 A/B 测试。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 15, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Sparo-Agentic-OS 与 BitFun 的血缘关系：同一内核，两个产品叙事</h1>
+                <div class="meta">
+                    <span class="date">May 15, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>核心发现：同一内核，两个产品叙事</h2>
+
+<p>最近分析 GCWing 的两个开源项目——<strong>BitFun</strong> 和 <strong>Sparo-Agentic-OS</strong>——发现它们的关系远比表面看起来复杂。<strong>不是竞争，而是同一团队针对不同假设的两条实验线。</strong></p>
+
+<p>两者共享核心代码基（Cargo crate 名称完全一致：<code>bitfun-core</code>、<code>bitfun-events</code>、<code>bitfun-transport</code>……），但走向了截然不同的架构路径。这篇文章从代码层面拆解它们的关系。</p>
+
+<h2>血缘铁证：fork 而非重写</h2>
+
+<p>翻开两个项目的源代码，核心 crate 名称一模一样。Sparo 的对话协调器（coordinator.rs）与 BitFun 的<strong>前 5 行逐字相同</strong>，内部仍有 <code>~/.bitfun/projects/</code> 路径引用残留。桌面二进制文件仍叫 <code>bitfun-desktop</code>。环境变量前缀仍是 <code>BITFUN_*</code>。</p>
+
+<p><strong>结论：Sparo 是在 BitFun 代码基上 fork 出来的，不是 clean-room 重写。</strong></p>
+
+<h2>去掉的 10 个 crate：Sparo 拒绝了微 crate 架构</h2>
+
+<p>BitFun 最近经历了一次架构重构，将 <code>bitfun-core</code> 拆成了多个独立 crate：acp（Agent Client Protocol）、agent-stream、agent-tools、core-types、product-domains、runtime-ports、services-core/integrations、terminal/tool-packs/tool-runtime。</p>
+
+<p><strong>Sparo 一个都没要。</strong>它的 Cargo workspace 只有 BitFun 的 7 个 core crate + 1 个自创的 <code>libs/</code>。Sparo 选择了<strong>扁平架构</strong>，拒绝了 BitFun 正在推进的微 crate 分解路线。</p>
+
+<h2>新增的唯一 crate：Agent Shell</h2>
+
+<p>Sparo 自创的 <code>libs/</code> 包含两个子模块：</p>
+
+<ul>
+<li><strong>agentshell</strong> — PTY 伪终端管理、多 Shell 适配（bash/zsh/fish）、会话持久化、输出 ANSI 清洗</li>
+<li><strong>cli-credential</strong> — Codex / Gemini 等第三方 CLI 工具的凭证管理</li>
+</ul>
+
+<p>这是 Sparo 对 Agentic Shell 方向的独立探索——把 Agent 深度嵌入终端体验，而不只是一个对话窗口。</p>
+
+<h2>Agent 系统重构：从定义文件到独立文件</h2>
+
+<p>两个项目在 Agent 组织方式上分道扬镳：</p>
+
+<p><strong>BitFun 的 Agent 系统</strong>用 7 个定义文件组织（<code>definitions/{modes, review, subagents, custom, hidden, shared}/</code>），通过注册表查询和解析来构建 Agent 实例。</p>
+
+<p><strong>Sparo OS 的 Agent 系统</strong>则有 17 个独立 <code>.rs</code> 文件，每个 mode 一个文件——<code>agentic_mode.rs</code>、<code>code_review_agent.rs</code>、<code>plan_mode.rs</code>、<code>debug_mode.rs</code> 等等。加上 AgentAppStudio 和 LiveAppStudio 两个 Studio 模式。</p>
+
+<p>Sparo 的 Agent 矩阵更&ldquo;重&rdquo;——不只是编排已有能力，而是每个 Agent 有自己的独立实现逻辑。</p>
+
+<h2>MiniApp &rarr; Live App：概念升级</h2>
+
+<p>BitFun 的 MiniApp 是&ldquo;一句话生成独立运行的应用&rdquo;。Sparo 将其升级为 Live App，增加了三个关键能力：</p>
+
+<ul>
+<li><strong>持久化身份与状态</strong>（Live App 不是一次性生成物，可以持续演进）</li>
+<li><strong>Agentic Session Bridge</strong>（Live App 可以主动调用 Agent 系统）</li>
+<li><strong>Bridge App</strong>（为现有 GUI 软件添加 Agent 操作层）</li>
+</ul>
+
+<p>加上 Dev Kit（Skills + Tools + MCP 开发工具链），Sparo 在努力构建一个<strong>智能应用生态</strong>，而不只是 Agent 运行时。</p>
+
+<h2>品牌层：外改内不改</h2>
+
+<p>外层面品牌化（Sparo），内层代码标识基本未动（仍然是 bitfun）：配置目录从 <code>~/.bitfun/</code> 改为 <code>~/.sparo_os/</code>，项目隐藏目录改为 <code>.sparo_os/</code>，Session 路径改为 <code>.sparo_os/projects/{slug}/sessions/</code>。但内部 bin 名仍是 <code>bitfun-desktop</code>，环境变量前缀仍是 <code>BITFUN_*</code>。说明 Sparo 还处于早期实验阶段——品牌先行，内部重构滞后。</p>
+
+<h2>定位差异：Runtime vs OS</h2>
+
+<p>同一个团队、同一份核心代码基，面向两个不同叙事：</p>
+
+<p><strong>BitFun 的自我定义</strong>：&ldquo;桌面级 Agent 运行时 + 开箱即用的 Agent 套件。一个安装包覆盖编码、办公、桌面自动化和个人助理四大主流 Agent 能力。&rdquo;</p>
+
+<p><strong>Sparo OS 的自我定义</strong>：&ldquo;AI 时代的 Agentic OS。AI 即系统——让软件不再是固定工具，而是围绕用户意图持续生成、组织、连接与演化。&rdquo;</p>
+
+<p>BitFun 强调<strong>实用性</strong>（&ldquo;下载即用，一套配齐&rdquo;），Sparo 强调<strong>理念性</strong>（&ldquo;OS 思维，Agent 生态&rdquo;）。本质是同一团队在做 A/B 测试——哪个叙事更能打动用户？</p>
+
+<h2>代码量对比</h2>
+
+<p>BitFun 总代码量 <strong>516,494 LOC</strong>，Sparo 为 <strong>388,524 LOC</strong>（约占 BitFun 的 75%）。BitFun 有 17 个 Cargo crate，Sparo 精简到 7 个（+1 自创 <code>libs/</code>），精简了 59%。但 Sparo 的 Agent 数量更多——17 个独立 Agent 文件 vs BitFun 的 4 个官方 Agent + 定义系统。</p>
+
+<h2>评估：Sparo 是实验分支</h2>
+
+<p>综合所有证据，Sparo OS 大概率是 BitFun 的<strong>实验分支</strong>，在验证几个关键假设：</p>
+
+<ol>
+<li><strong>Agentic OS 叙事是否比 Agent Runtime 更有市场？</strong></li>
+<li><strong>扁平架构是否比微 crate 架构更适合快速迭代？</strong></li>
+<li><strong>更多内置 Agent 是否比 Markdown 可定义 Agent 更降低使用门槛？</strong></li>
+<li><strong>Live App 生态是否比 MiniApp 更能留住用户？</strong></li>
+</ol>
+
+<p>如果这些实验成功，Sparo 的概念大概率会回流到 BitFun 主干。如果失败，Sparo 可能会被归档，BitFun 继续走自己的路。</p>
+
+<h2>对 AI Agent 赛道的启示</h2>
+
+<p>一个团队同时维护两个架构路线不同的产品，这在 AI Agent 赛道中非常罕见。它反映了一个更深刻的问题：</p>
+
+<p><strong>AI Agent 行业还没有找到正确的产品形态。</strong></p>
+
+<p>是应该做一个 Agent 运行时（BitFun 路线）——让开发者 <strong>Build on top of it</strong>？还是做一个 Agentic OS（Sparo 路线）——让用户 <strong>Live inside it</strong>？</p>
+
+<p>这个问题不只 GCWing 在回答——从 OpenAI 的 Codex/Operator 到 Anthropic 的 Claude Code/MCP，到 Google 的 ADK/A2A，全行业都在探索。Sparo vs BitFun 只是这场大实验的一个微缩版。</p>
+
+<p>保持关注。如果 Sparo 的实验跑通了，我们可能会看到一个比 Hermes 更重、比 BitFun 更全的 Agent 产品形态浮出水面。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
