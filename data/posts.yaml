@@ -1,4 +1,73 @@
 posts:
+- title: Agentmemory + Hermes 深度运行机制分析
+  date: May 17, 2026
+  excerpt: 深度剖析 agentmemory 与 Hermes Agent 的集成机制：三层记忆架构、两种集成模式、内部流水线、性能特征、以及与 GBrain
+    的分工协作。
+  content: "<h2>问题</h2>\n<p>AI 编码 Agent 有一个共同的痛点：每次新会话都是一张白纸。你花了 30 分钟解释项目架构、JWT 认证方案、测试规范，下次对话一切归零。传统的\
+    \ CLAUDE.md / .cursorrules 文件上限 200 行且内容容易过时。更致命的是，<strong>没有任何自动机制</strong>把\
+    \ Agent 自己学到的东西沉淀下来——每次工具调用的上下文、每次失败的教训、每次成功的模式，全部随会话结束而消失。</p>\n\n<h2>agentmemory\
+    \ 的答案</h2>\n<p><a href=\"https://github.com/rohitg00/agentmemory\">agentmemory</a>\
+    \ 是 2026 年增长最快的 Agent 记忆系统之一（10.4k stars，3 个月）。它专为编码 Agent 设计，通过 12 个生命周期 hook\
+    \ 自动捕获每一次工具调用，压缩为结构化记忆，下次会话自动注入相关上下文。零手动操作，零外部数据库。</p>\n\n<p>本文从 Hermes Agent\
+    \ 的视角，深度剖析 agentmemory 的运行机制：它如何与 Hermes 集成、数据如何在流水线中流动、性能开销多大、以及与你可能已经部署的 GBrain\
+    \ 如何分工。</p>\n\n<h2>三层记忆架构</h2>\n\n<p>agentmemory 官方文档明确区分了三个记忆层：</p>\n\n<table>\n\
+    <tr><th>层级</th><th>系统</th><th>存储什么</th><th>例子</th></tr>\n<tr><td><strong>世界知识</strong></td><td>GBrain</td><td>人物、公司、会议、概念</td><td>\"\
+    Pedro 是 Brex 的 CEO\"</td></tr>\n<tr><td><strong>Agent 操作</strong></td><td>agentmemory</td><td>偏好、模式、会话连续性</td><td>\"\
+    用户喜欢简洁格式\"</td></tr>\n<tr><td><strong>当前对话</strong></td><td>Session Context</td><td>对话历史、当前任务</td><td>\"\
+    我们在讨论 PR #42\"</td></tr>\n</table>\n\n<p>这不是两个竞品之间的选择，而是<strong>同一个 Agent 的两个记忆器官</strong>。GBrain\
+    \ 管\"知道什么\"，agentmemory 管\"怎么操作\"。两者通过 MCP 协议同时接入 Hermes，各司其职。</p>\n\n<h2>两种集成模式</h2>\n\
+    \n<h3>模式 A：MCP Server（零侵入）</h3>\n\n<p>最简单的接入方式——在 Hermes 的 <code>config.yaml</code>\
+    \ 中加几行配置：</p>\n\n<pre><code>mcp_servers:\n  agentmemory:\n    command: npx\n \
+    \   args: [\"-y\", \"@agentmemory/mcp\"]\n\nmemory:\n  provider: agentmemory</code></pre>\n\
+    \n<p>这会暴露 43 个 MCP 工具给 Hermes。agentmemory 服务器作为独立进程运行在 <code>localhost:3111</code>，与\
+    \ Hermes 完全解耦。Hermes 按需调用这些工具，无 hook 注入，无运行时开销。</p>\n\n<h3>模式 B：Memory Provider\
+    \ Plugin（深度集成）</h3>\n\n<p>将 <code>integrations/hermes</code> 复制到 <code>~/.hermes/plugins/agentmemory/</code>，注册\
+    \ 3 个生命周期 hook：</p>\n\n<table>\n<tr><th>Hook</th><th>触发时机</th><th>关键：用户是否等待？</th></tr>\n\
+    <tr><td><code>on_session_end</code></td><td>会话结束</td><td><strong>否</strong>——用户已离线</td></tr>\n\
+    <tr><td><code>on_pre_compress</code></td><td>上下文压缩前</td><td><strong>否</strong>——后台执行</td></tr>\n\
+    <tr><td><code>on_memory_write</code></td><td>手动写入记忆时</td><td>按需触发</td></tr>\n\
+    </table>\n\n<p><strong>这是最关键的架构决策</strong>：与 Claude Code 的 12 个 hook（每个 PostToolUse\
+    \ 都触发）不同，Hermes 的 hook 全部在<strong>会话边界</strong>触发。活跃对话中没有任何 hook 执行。用户感受到的延迟为零。</p>\n\
+    \n<h2>内部流水线：一条记忆的旅程</h2>\n\n<p>当 <code>on_session_end</code> 触发时，一条记忆经历以下转换：</p>\n\
+    \n<pre><code>on_session_end hook 触发\n  ↓\nSHA-256 去重（5 分钟窗口）\n  ↓\n隐私过滤器（剥离 API\
+    \ key、secrets、&lt;private&gt; 标签）\n  ↓\n存储原始观察记录（完整保真度）\n  ↓\nLLM 压缩 → 结构化事实 +\
+    \ 概念 + 叙事\n  ↓\n向量嵌入（all-MiniLM-L6-v2，384 维，本地 CPU）\n  ↓\nBM25 + Vector + Knowledge\
+    \ Graph 三路索引\n  ↓\n下次 SessionStart 自动注入 ~2000 token</code></pre>\n\n<p>注意：<strong>无需配置任何\
+    \ API key 即可运行</strong>。默认模式下使用合成压缩（synthetic compression）代替 LLM 调用，使用本地 <code>all-MiniLM-L6-v2</code>\
+    \ 模型做向量嵌入。整套流水线零外部依赖。</p>\n\n<h3>三路混合搜索</h3>\n\n<p>agentmemory 的检索是三重信号融合（RRF\
+    \ 排序）：</p>\n\n<table>\n<tr><th>流</th><th>机制</th><th>适用场景</th></tr>\n<tr><td><strong>BM25</strong></td><td>词干提取\
+    \ + 同义词扩展</td><td>精确关键词匹配</td></tr>\n<tr><td><strong>Vector</strong></td><td>余弦相似度（384\
+    \ 维）</td><td>语义相似搜索</td></tr>\n<tr><td><strong>Graph</strong></td><td>知识图谱 BFS\
+    \ 遍历</td><td>实体关联扩展</td></tr>\n</table>\n\n<p>这意味着你可以问\"上次我们怎么修的那个 N+1 查询问题？\"\
+    ，即使记忆中从未出现\"N+1\"这个词——向量搜索能匹配到\"数据库查询性能优化\"，图谱能关联到相关的 ORM 配置。</p>\n\n<h2>性能特征：对\
+    \ Hermes 体验的影响</h2>\n\n<h3>时间维度</h3>\n\n<table>\n<tr><th>阶段</th><th>操作</th><th>延迟</th><th>用户感知</th></tr>\n\
+    <tr><td>SessionStart</td><td>注入 ~2000 token 上下文</td><td>&lt;100ms</td><td>一次性加载</td></tr>\n\
+    <tr><td><strong>工具调用中</strong></td><td><strong>无任何 hook</strong></td><td><strong>0ms</strong></td><td><strong>零感知</strong></td></tr>\n\
+    <tr><td>SessionEnd</td><td>压缩 + 向量化 + 索引</td><td>1-5s</td><td>用户已离线</td></tr>\n\
+    <tr><td>PreCompress</td><td>重新注入记忆</td><td>&lt;100ms</td><td>后台</td></tr>\n</table>\n\
+    \n<p>核心结论：<strong>活跃对话期间零开销</strong>。所有重量级操作（压缩、向量化、索引）都在会话结束后后台执行。</p>\n\n<h3>资源占用（树莓派\
+    \ 5 实测估算）</h3>\n\n<table>\n<tr><th>状态</th><th>CPU</th><th>RAM</th><th>磁盘</th></tr>\n\
+    <tr><td>空闲</td><td>~0%</td><td>~50MB</td><td>—</td></tr>\n<tr><td>搜索（10k 条）</td><td>&lt;5%</td><td>~30MB</td><td>35.7MB\
+    \ 索引</td></tr>\n<tr><td>向量嵌入</td><td>20-40%</td><td>~150MB</td><td>—</td></tr>\n\
+    </table>\n\n<p>增量仅 ~250MB RAM。在已有 GBrain (265MB) + Hermes (391MB) + Postgres (200MB)\
+    \ 的树莓派上，总占用仍不到 8%。远未触及 15GB 上限。</p>\n\n<h3>Token 经济</h3>\n\n<p>这是 agentmemory\
+    \ 最被低估的价值：</p>\n\n<pre><code>传统方式（CLAUDE.md）：全部记忆注入上下文\n  1,000 条观察  = 43,834\
+    \ token（占据 22% 上下文窗口）\n  5,000 条观察  = 220,335 token（已超出 200K 窗口上限）\n\nagentmemory：只注入\
+    \ Top-10 相关记忆\n  任意规模      = ~1,972 token（仅 0.3% 上下文窗口）</code></pre>\n\n<p>记忆库越大，节省越显著。对于长期运行的编码\
+    \ Agent，这是上下文窗口利用率的关键优化。</p>\n\n<h2>与同类系统的定位</h2>\n\n<table>\n<tr><th>维度</th><th>agentmemory</th><th>Mem0</th><th>Letta</th><th>Zep</th></tr>\n\
+    <tr><td>检索 R@5</td><td><strong>95.2%</strong></td><td>~68%</td><td>~83%</td><td>—</td></tr>\n\
+    <tr><td>自动捕获</td><td><strong>12 hook 全自动</strong></td><td>手动 add()</td><td>Agent\
+    \ 自编辑</td><td>API 写入</td></tr>\n<tr><td>Token 效率/会话</td><td>~2,000</td><td>~1,764</td><td>中等</td><td><strong>600,000</strong></td></tr>\n\
+    <tr><td>外部依赖</td><td><strong>0（SQLite）</strong></td><td>可选向量DB</td><td>Postgres</td><td>Neo4j</td></tr>\n\
+    <tr><td>编码 Agent 优化</td><td><strong>是</strong></td><td>否</td><td>否</td><td>否</td></tr>\n\
+    <tr><td>Hermes 原生集成</td><td><strong>插件 + MCP</strong></td><td>教程</td><td>间接</td><td>间接</td></tr>\n\
+    </table>\n\n<h2>实战要点</h2>\n\n<ul>\n<li><strong>从模式 A 开始</strong>：MCP Server 零配置，性能影响为\
+    \ 0。先跑一周看效果。</li>\n<li><strong>模式 B 才需 hook</strong>：需要自动上下文注入时才启用 Plugin。两者可共存。</li>\n\
+    <li><strong>不配 API key 也能用</strong>：合成压缩 + 本地嵌入的检索精度依然达到 95.2%（基准测试）。</li>\n<li><strong>与\
+    \ GBrain 不冲突</strong>：世界知识放 GBrain，操作记忆放 agentmemory。同一条 SSH 命令不会同时写入两个系统。</li>\n\
+    <li><strong>PR #307 是关键</strong>：即将支持 OpenAI 兼容本地 LLM（Ollama/LM Studio/vLLM），届时可完全脱离云端。</li>\n\
+    </ul>\n\n<blockquote>\n<p><strong>一句话总结</strong>：agentmemory 做的事就是——你下次打开 Hermes\
+    \ 时，它已经知道你上次在修哪个 bug、用的什么方案、为什么选那个方案。不再需要重新解释。</p>\n</blockquote>\n"
 - title: Sparo-Agentic-OS 与 BitFun 的血缘关系：同一内核，两个产品叙事
   date: May 15, 2026
   excerpt: 代码级拆解 Sparo OS 和 BitFun 的关系——共享核心 crate、fork 铁证、架构分歧、定位差异。同一团队用同一份内核做 A/B
