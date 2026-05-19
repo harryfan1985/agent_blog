@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harness Engineering：Agent 时代的约束系统工程 | Agent Blog</title>
+    <meta name="description" content="Agent 本身不难，难的是让 Agent 不出错的 Harness 系统。从 Prompt Engineering 到 Harness Engineering 的范式转变——五层技术架构、两条反直觉原则，以及 Anthropic 收购 Stainless 背后的战略逻辑。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Harness Engineering：Agent 时代的约束系统工程">
+    <meta property="og:description" content="Agent 本身不难，难的是让 Agent 不出错的 Harness 系统。从 Prompt Engineering 到 Harness Engineering 的范式转变——五层技术架构、两条反直觉原则，以及 Anthropic 收购 Stainless 背后的战略逻辑。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 19, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Harness Engineering：Agent 时代的约束系统工程</h1>
+                <div class="meta">
+                    <span class="date">May 19, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>核心命题</h2>
+
+<blockquote>
+  <p>"Agents aren't hard; the Harness is hard."<br>
+  ——Anthropic & OpenAI 共同验证</p>
+</blockquote>
+
+<p>2026 年 5 月 18 日，Anthropic 以超 3 亿美元收购了 SDK 生成公司 Stainless——一家被 OpenAI、Google、Cloudflare 共同使用的开发者工具初创公司。这笔收购看似是 AI 巨头之间的常规军备竞赛，但它暴露了 Agent 时代正在浮现的一个深层范式转变：<strong>竞争重心正从模型质量上移到 Agent 周围的运行环境——也就是 Harness Engineering。</strong></p>
+
+<p>Harness Engineering 不是优化 Agent 的输入（那是 Prompt Engineering），而是构建 Agent 的完整操作环境和约束系统。它的核心方法论可以概括为一句话：<strong>每次发现 Agent 犯错，就工程化一个方案，让它永远不能再犯同一个错误。</strong></p>
+
+<h2>三个演化阶段</h2>
+
+<p>要理解 Harness Engineering 为什么是必然方向，需要回溯 Agent 开发的三个阶段：</p>
+
+<h3>阶段一：Prompt Engineering</h3>
+<p>通过精心设计的自然语言指令引导 Agent 行为。问题很明显——Agent <strong>可以选择忽略</strong> Prompt 中的约束。你写了"不要删文件"，它还是可能删。</p>
+
+<h3>阶段二：Context Engineering</h3>
+<p>通过结构化上下文（Skill 系统、RAG、Few-shot 示例）扩展 Agent 能力。这比纯 Prompt 更好，但约束力仍然依赖于 Agent 的"遵守意愿"。</p>
+
+<h3>阶段三：Harness Engineering</h3>
+<p>在 Agent 周围构建<strong>不可绕过的</strong>规则引擎、沙箱、验证管线。不是"请 Agent 不要犯错"，而是"Agent 无法犯错"。从自然语言约束升级为编译时/运行时的代码级约束。</p>
+
+<h2>五层技术架构</h2>
+
+<p>完整的 Harness 工程体系由下至上分为五层：</p>
+
+<div class="mermaid">
+graph TB
+    subgraph L5[⑤ 编排层]
+        FSM[Agent 状态机]
+        MULTI[多 Agent 协作模式]
+    end
+    subgraph L4[④ 验证层]
+        CI[编译时验证阵列]
+        ATG[自动测试生成]
+        SLA[SLA 围栏]
+        SEM[语义等价验证]
+    end
+    subgraph L3[③ 可观测层]
+        TRACE[决策链路追踪]
+        FINGER[变更指纹]
+        HALLU[幻觉检测]
+        REPLAY[确定性回放]
+    end
+    subgraph L2[② 约束层]
+        RULES[规则即代码]
+        OPA[OPA 策略引擎]
+        SANDBOX[沙箱执行]
+        DIFF[差异审批]
+    end
+    subgraph L1[① 接口层]
+        MCP[MCP 协议]
+        REGISTRY[工具注册表]
+    end
+
+    MCP --> RULES
+    REGISTRY --> OPA
+    RULES --> TRACE
+    SANDBOX --> FINGER
+    TRACE --> CI
+    FINGER --> ATG
+    CI --> FSM
+    ATG --> MULTI
+
+    style L1 fill:#1a1a2e,stroke:#16213e,color:#e8e8e8
+    style L2 fill:#16213e,stroke:#0f3460,color:#e8e8e8
+    style L3 fill:#0f3460,stroke:#533483,color:#e8e8e8
+    style L4 fill:#533483,stroke:#e94560,color:#e8e8e8
+    style L5 fill:#e94560,stroke:#ff6b6b,color:#fff
+</div>
+
+<h3>① 接口层：Agent 的工具总线</h3>
+<p>Agent 需要与外部世界交互。MCP（Model Context Protocol）正快速成为这个层的标准协议——它定义工具发现、调用、结果返回的统一格式。就像 USB 统一了外设连接，MCP 在统一 Agent 的工具连接。Harness 层还需要<strong>工具能力注册表</strong>（带权限声明、速率限制、成本标签），让 Agent 在调用前就知道某个工具能不能用、代价多大。</p>
+
+<h3>② 约束层：不可绕过的规则引擎</h3>
+<p>这是 Harness 工程最有别于 Prompt 工程的层。<strong>规则即代码（Rules-as-Code）</strong>用编译器/Lint 替代自然语言约束——生成的代码必须通过 ESLint/TypeScript 编译，失败则自动回退修正。借鉴 Kubernetes 准入控制，<strong>OPA/Rego 策略引擎</strong>在 Agent 的每个操作真正执行前进行拦截裁决。关键是：Agent <strong>不能绕过</strong>这些约束。</p>
+
+<p>实际案例：Agent 想执行 <code>kubectl delete pod --all</code>，策略引擎拦截 → 检查操作类型（删除）、范围（全局）、环境（生产）→ <strong>拒绝</strong>。要求人工确认+输入生产环境名称。</p>
+
+<h3>③ 可观测层：决策追溯与行为审计</h3>
+<p>当部署出问题时，需要回答的核心问题是：Agent 做了什么、为什么这么做？<strong>决策链路追踪</strong>记录了 Agent 的完整推理链——就像分布式追踪的 Span，但追踪的是思维过程而非微服务调用。<strong>幻觉检测</strong>要求 Harness 独立验证 Agent 声明的结果与工具实际返回值是否一致——这个验证必须独立于 Agent 本身执行。</p>
+
+<h3>④ 验证层：多维度质量围栏</h3>
+<p>验证管线不是简单的 CI。完整链路是：<strong>类型检查 → Lint → 安全扫描 → 依赖审计 → 测试生成 → 测试执行 → 突变测试</strong>。每一步失败都会把错误反馈回 Agent 触发自动修复循环。<strong>SLA 围栏</strong>设定硬性指标——单次变更最大文件数 < 20、P99 响应延迟 < 200ms——超标自动回滚。</p>
+
+<p>最高阶的验证是<strong>语义等价验证</strong>：Agent 重构了代码，如何确保新旧代码行为一致？务实方案是用差分模糊测试同时对旧代码和新代码输入大量随机数据，对比输出差异。</p>
+
+<h3>⑤ 编排层：多 Agent 协同与状态机</h3>
+<p>单个 Agent 的行为被约束在显式的<strong>有限状态机</strong>内：分析 → 规划 → 实现 → 自审 → 测试 → 修复 → 提交 → 人工审批 → 部署。每个状态有明确的进入条件、退出条件、超时时间。</p>
+
+<p>多 Agent 协作有三类模式：</p>
+<ul>
+  <li><strong>Critic-Generator</strong>：一个生成，一个专职批评。不是对话，是结构化的评审→修改循环</li>
+  <li><strong>Orchestrator-Worker</strong>：编排 Agent 分解任务，Worker 并行执行。编排 Agent 不写代码，只分配和合并。Worker 向 Orchestrator 汇报时<strong>只传递结构化摘要</strong>，防止原始对话中的错误在多 Agent 间级联放大</li>
+  <li><strong>Consensus</strong>：N 个 Agent 独立解决同一问题，投票决定结果。成本高但适合高风险变更</li>
+</ul>
+
+<h2>两条反直觉的核心原则</h2>
+
+<h3>原则一：约束不是限制，是生产力</h3>
+
+<p>被 Anthropic 和 OpenAI 团队反复验证的发现：<strong>Agent 产出质量与自由度的平方成反比。</strong>给 Agent 更多规则、更窄的操作范围、更严格的验证，产出质量反而更高。因为 Agent 在明确边界内操作时，所有推理资源都聚焦在边界内的最优解。</p>
+
+<h3>原则二：Harness 的可累积性</h3>
+
+<p>Prompt 技巧不可累积——每次换模型、每次换任务，之前的好 Prompt 可能完全失效。但 Harness 工程构建的 Lint 规则、验证管线、策略引擎、沙箱——<strong>无论底层模型怎么换，始终生效</strong>。这是 Harness 工程比 Prompt 工程有长期战略价值的原因。</p>
+
+<table class="comparison">
+  <thead>
+    <tr><th>维度</th><th>Prompt Engineering</th><th>Harness Engineering</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>作用对象</td><td>Agent 的输入文本</td><td>Agent 的运行环境</td></tr>
+    <tr><td>可绕过性</td><td>Agent 可选择忽略</td><td>编译时/运行时强制</td></tr>
+    <tr><td>跨模型可移植性</td><td>低（每个模型不同）</td><td>高</td></tr>
+    <tr><td>可累积性</td><td>低（每次从头调）</td><td>高（约束持续增值）</td></tr>
+    <tr><td>维护成本</td><td>模型升级即重写</td><td>只需增删规则</td></tr>
+  </tbody>
+</table>
+
+<h2>Anthropic 收购 Stainless 的 Harness 视角</h2>
+
+<p>回到开篇的收购事件。Stainless 做的核心产品是从 API spec 自动生成并持续维护多语言 SDK——这本质上是 <strong>Harness 工程接口层的标准化工具</strong>。当 AI Agent 需要调用外部 API 时，它需要一个可靠、自动更新的 SDK——而 Stainless 提供的就是这个。</p>
+
+<p>Anthropic 收购后立即宣布<strong>关停所有托管产品</strong>，意味着 OpenAI、Google、Cloudflare 等竞争对手将失去这个 Harness 基础设施的访问权。这是典型的「买赛道」战略——买入的不是收入，是竞争对手的开发效率。</p>
+
+<p>更深层看：Anthropic 正在从模型公司转型为 <strong>Agent 全栈平台</strong>——Claude（模型）+ Stainless（接口层）+ Bun（运行时）+ Vercept（计算机操作）= Agent 需要的完整 Harness 体系。</p>
+
+<h2>技术成熟度展望</h2>
+
+<table class="roadmap">
+  <thead>
+    <tr><th>层级</th><th>现在（2026 Q2）</th><th>近期（12个月）</th><th>远期（3年+）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>接口层</td><td>MCP 趋于稳定</td><td>工具注册表标准化</td><td>Agent 自动发现+动态绑定</td></tr>
+    <tr><td>约束层</td><td>Lint+基础沙箱</td><td>OPA 策略引擎普及</td><td>语义级约束（"不能有SQL注入"）</td></tr>
+    <tr><td>可观测层</td><td>日志+基础追踪</td><td>决策链路结构化存储</td><td>完整确定性回放</td></tr>
+    <tr><td>验证层</td><td>CI 自动化+测试生成</td><td>差分模糊测试</td><td>形式化语义等价验证</td></tr>
+    <tr><td>编排层</td><td>单Agent+简单回退</td><td>多Agent协作+FSM</td><td>自主Agent编队+动态角色</td></tr>
+  </tbody>
+</table>
+
+<h2>结论</h2>
+
+<p>Agent 时代最被低估的事实是：<strong>Agent 本身不难，难的是让 Agent 不出错的 Harness 系统。</strong>Prompt 工程的边际收益在递减——再好的 Prompt 也不能阻止 Agent 执行 `rm -rf /`。Harness 工程才是把可靠性从 80% 推到 99.9% 的关键路径。</p>
+
+<p>当下最值得投入的方向不是更好的 Prompt，而是<strong>构建可累积、跨模型、不可绕过的约束层</strong>——因为约束是 Agent 时代唯一能持续增值的工程资产。</p>
+
+<hr>
+<p><small>参考：Epsilla Blog "Why Harness Engineering Replaced Prompting in 2026"；TechCrunch "Anthropic has acquired the dev tools startup used by OpenAI, Google, and Cloudflare" (2026-05-18)；Harness 平台 "Harness AI February 2026 Updates"</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
+</body>
+</html>
