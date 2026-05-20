@@ -1,4 +1,101 @@
 posts:
+- title: 端侧模型时代的 Agent 基础设施：当模型退化，Harness 如何升级
+  date: May 20, 2026
+  excerpt: 当模型从云端几千亿参数下沉到端侧1-7B，推理深度5x下降、上下文窗口10x缩小、工具调用准确率降至60-80%。Agent基础设施需要从"模型会处理好"翻转为永久性的"失效假设"。本文提出7项关键技术和Harness架构升级路线图。
+  content: "<p>当模型从云端几千亿参数下沉到手机、眼镜、IoT 设备上的 1-7B 参数，Agent 基础设施面对的挑战将从 \"模型会处理好\" 翻转为\
+    \ <strong>\"模型一定会出错\"</strong>。这不是渐进优化，而是设计哲学的根本转向。本文将系统分析端侧模型的能力衰减维度，提出 7 项 Agent\
+    \ 必须掌握的核心技术，并给出 Harness 架构的升级路线图。</p>\n\n<h2>一、能力衰减：端侧模型的真实面貌</h2>\n\n<table>\n\
+    \  <tr><th>维度</th><th>云端 (GPT-5/Gemini 3.5)</th><th>端侧 (1-7B Q4)</th><th>衰减</th></tr>\n\
+    \  <tr><td><strong>推理深度</strong></td><td>10+ 步链式推理</td><td>2-3 步后漂移</td><td><strong>~5x↓</strong></td></tr>\n\
+    \  <tr><td><strong>上下文窗口</strong></td><td>1M tokens</td><td>32K-128K</td><td><strong>10x↓</strong></td></tr>\n\
+    \  <tr><td><strong>工具调用准确率</strong></td><td>95%+ 格式正确</td><td>60-80%，参数幻觉</td><td><strong>~30%↓</strong></td></tr>\n\
+    \  <tr><td><strong>指令遵循</strong></td><td>复杂多约束</td><td>单约束，冲突时随机选</td><td><strong>显著↓</strong></td></tr>\n\
+    \  <tr><td><strong>多模态</strong></td><td>原生全模态</td><td>文本为主，视觉退化</td><td><strong>取决于硬件</strong></td></tr>\n\
+    \  <tr><td><strong>延迟</strong></td><td>200-500ms</td><td>10-50ms (NPU 本地)</td><td><strong>10x↑\
+    \ (利好)</strong></td></tr>\n  <tr><td><strong>可用性</strong></td><td>99.9% SLA</td><td>离线/间歇网络</td><td><strong>新约束</strong></td></tr>\n\
+    </table>\n\n<p>注意延迟这一项：端侧 NPU 推理比云端 API 调用快 10 倍以上。这为数倍的计算开销（验证、重试、多模型投票）提供了空间——我们可以用延迟优势换取可靠性。</p>\n\
+    \n<h2>二、需要的 7 项关键 Agent 技术</h2>\n\n<h3>1. 层级委托与混合路由</h3>\n\n<p>这是端侧 Agent 最重要的能力：<strong>简单任务本地解决，复杂任务透明升级到云端</strong>。</p>\n\
+    \n<pre><code>Task → Capability Router → 三类路径:\n  ├─ 本地模型可处理 (80%) → 端侧执行, <50ms延迟\n\
+    \  ├─ 需要推理深度 → 云端代理, 异步返回\n  └─ 需要确定性 → 规则引擎, 零延迟\n</code></pre>\n\n<p><strong>Harness\
+    \ 需要实现</strong>：</p>\n<ul>\n  <li>任务复杂度分类器（token 数、工具链深度、历史相似任务难度）</li>\n  <li>云端/本地透明切换（用户无感）</li>\n\
+    \  <li>连接中断时的优雅降级队列——离线任务排队，上线后自动同步</li>\n</ul>\n\n<h3>2. 验证执行而非信任输出</h3>\n\n\
+    <p>当模型只有 70% 的工具调用准确率，harness 必须在执行前、执行中、执行后三层验证，而非信任模型输出。核心原则：<strong>模型输出是 suggestion，harness\
+    \ 是 executor + enforcer</strong>。</p>\n\n<pre><code>Tool Call → Schema Validation\
+    \ → Sandbox Dry-Run → Commit/Rollback\n                ↓                    ↓\n\
+    \          Pydantic/JSON     bash -n / python -c \"compile()\"\n          Schema\
+    \ 校验         语法/副作用检查\n</code></pre>\n\n<p><strong>关键机制</strong>：</p>\n<ul>\n\
+    \  <li><strong>Double-check pattern</strong>：关键操作（文件写、命令执行）要求模型生成校验和，harness 回读验证\
+    \ <code>hash(content)</code></li>\n  <li><strong>输出签名验证</strong>：<code>write_file(path,\
+    \ content)</code> → 写入后立即 <code>hashlib.sha256(read(path)).hexdigest()</code>\
+    \ 比对</li>\n  <li><strong>Sandbox 试运行</strong>：Docker/Wasm 隔离环境中先执行，验证无副作用后再提交到真实文件系统</li>\n\
+    </ul>\n\n<h3>3. 确定性后备与规则引擎</h3>\n\n<p>当模型工具调用格式错误或参数不可恢复时，<strong>不重试</strong>（重试在低准确率模型上是浪费\
+    \ token），直接走确定路径。</p>\n\n<pre><code># 不是：重试 3 次 → 放弃\n# 而是：解析失败 → 规则引擎模板匹配 → 直接执行\n\
+    TOOL_FALLBACKS = {\n    \"run_command\": lambda args: safe_command_whitelist.get(\n\
+    \        args.get(\"command\", \"\").split()[0], \n        deny\n    ),\n    \"\
+    write_file\": lambda args: write_if_path_in_workspace(args),\n}\n</code></pre>\n\
+    \n<p>设计原则：<strong>永远有一条确定性后备路径</strong>。模型不可靠时，harness 接管决策。</p>\n\n<h3>4. 激进上下文管理</h3>\n\
+    \n<p>端侧 32K-128K 上下文极其珍贵。Harness 必须从 \"压缩辅助\" 变成 <strong>\"上下文守门人\"</strong>。</p>\n\
+    \n<table>\n  <tr><th>策略</th><th>云端做法</th><th>端侧做法</th></tr>\n  <tr><td>工具输出</td><td>全量返回</td><td>只返回\
+    \ exit code + 首行 + 尾行</td></tr>\n  <tr><td>对话历史</td><td>滑动窗口</td><td>结构化摘要 + 关键决策点</td></tr>\n\
+    \  <tr><td>错误信息</td><td>完整 traceback</td><td>错误类型 + 建议（不含堆栈）</td></tr>\n  <tr><td>系统提示</td><td>2000\
+    \ tokens</td><td>500 tokens，最多 3 条规则</td></tr>\n</table>\n\n<p><strong>具体技术</strong>：</p>\n\
+    <ul>\n  <li><strong>Structured summarization</strong>：每个 turn 后自动生成 <code>&lt;决策点,\
+    \ 结果, 下一步&gt;</code> 三元组替代原始对话</li>\n  <li><strong>Tool output truncation</strong>：<code>ls\
+    \ -la</code> 返回文件计数 + 最近修改的 5 个文件，不返回完整列表</li>\n  <li><strong>Dynamic system prompt</strong>：根据当前任务只注入相关规则，不是全量注入——<code>if\
+    \ task == \"code_review\": inject(rules.code_review)</code></li>\n</ul>\n\n<h3>5.\
+    \ 预编译技能包</h3>\n\n<p>端侧模型的推理能力不足以 \"从零规划\"。需要将复杂工作流 <strong>预编译为状态机</strong>，模型只做参数填空。</p>\n\
+    \n<pre><code>云端: \"帮我部署这个项目\" → 模型自己规划 10 步\n端侧: \"帮我部署这个项目\" → 匹配 skill \"deploy-python-app\"\
+    \n      → 执行预定义状态机 (5 步)\n      → 每步验证，模型只负责填空（端口、路径）\n</code></pre>\n\n<p><strong>Harness\
+    \ 需要支持</strong>：</p>\n<ul>\n  <li><strong>Skill registry</strong>：可检索的技能库，按任务类型索引</li>\n\
+    \  <li><strong>参数化模板</strong>：<code>deploy(app_type=\"python\", port={{model_suggest}},\
+    \ path={{model_suggest}})</code>——模型只填空，不规划</li>\n  <li><strong>Skill → 状态机编译</strong>：将\
+    \ skill 描述编译为可执行的状态机，减少模型自由度</li>\n</ul>\n\n<h3>6. 多模型协同</h3>\n\n<p>单一端侧模型无法覆盖所有场景。Harness\
+    \ 需要管理 <strong>多个专用模型的协同工作</strong>。</p>\n\n<pre><code>Agent Request\n    ├─ Router:\
+    \ 任务类型分类\n    ├─ 代码生成 → CodeGemma-7B (专用)\n    ├─ 摘要/翻译 → Phi-4-mini (低延迟)\n \
+    \   ├─ 推理/规划 → Llama-4-7B (通用)\n    ├─ 嵌入/检索 → nomic-embed (本地)\n    └─ 复杂任务 →\
+    \ 异步升级云端\n</code></pre>\n\n<p><strong>Harness 升级要点</strong>：</p>\n<ul>\n  <li>模型池管理（load/unload\
+    \ 策略，内存预算——端侧通常只有 4-8GB 可用）</li>\n  <li>任务→模型映射表（基于实际准确率数据，非基准测试——<strong>实测数据比\
+    \ benchmark 重要 10 倍</strong>）</li>\n  <li>模型热切换（同一对话中根据子任务类型切换最优模型）</li>\n</ul>\n\
+    \n<h3>7. 人机协同升级</h3>\n\n<p>端侧模型的 \"未知\" 率远高于云端。Harness 必须知道 <strong>什么时候该闭嘴问人</strong>，而不是强行给出错误答案。</p>\n\
+    \n<pre><code>置信度评估:\n  ├─ High (>0.9) → 自动执行\n  ├─ Medium (0.7-0.9) → 执行 + 通知\n\
+    \  ├─ Low (0.5-0.7) → 生成建议 + 等待确认\n  └─ Very Low (<0.5) → \"我不知道，建议升级到云端或人工处理\"\
+    \n</code></pre>\n\n<p><strong>这不是简单的 ask_user 工具</strong>。Harness 层面需要：</p>\n\
+    <ul>\n  <li><strong>Schema 匹配置信度</strong>：工具调用格式与预期的匹配程度</li>\n  <li><strong>参数合理性检查</strong>：路径在白名单内？命令在允许列表？参数值在合理范围？</li>\n\
+    \  <li><strong>历史相似操作成功率</strong>：同样类型的工具调用，过去 10 次的成功率</li>\n</ul>\n\n<h2>三、Harness\
+    \ 架构升级路线图</h2>\n\n<p>从 \"云端假设\" 到 \"失效假设\"，Harness 需要新增 8 个核心组件：</p>\n\n<pre><code>\n\
+    当前 Harness (云端假设):\n  Model → Prompt → Tool Call → Execute → Return\n  ─────────────────────────────────────────────\n\
+    \  \n端侧 Harness (失效假设):\n                    ┌─→ 本地执行 (80%)\n  Task → Router ────┤\n\
+    \                    ├─→ 云端委托 (15%)\n                    │\n                 \
+    \   └─→ 规则引擎 (5%)\n                              │\n  Model → Suggestion ─────────┤\n\
+    \                              ├─ Schema 验证\n                              ├─\
+    \ Sandbox 试运行\n                              ├─ 输出签名校验\n                     \
+    \         │    ↓\n                              ├─ 成功 → 提交\n                 \
+    \             └─ 失败 → Fallback 规则 / 用户确认 / 云端升级\n</code></pre>\n\n<table>\n  <tr><th>组件</th><th>职责</th></tr>\n\
+    \  <tr><td><strong>Capability Router</strong></td><td>任务复杂度评估 + 路由决策（本地/云端/规则）</td></tr>\n\
+    \  <tr><td><strong>Model Pool Manager</strong></td><td>多模型加载/卸载/热切换，内存预算控制</td></tr>\n\
+    \  <tr><td><strong>Validation Layer</strong></td><td>Schema + 语法 + Sandbox 三层验证</td></tr>\n\
+    \  <tr><td><strong>Context Budget Controller</strong></td><td>激进的 token 预算管理，结构化摘要替代滑动窗口</td></tr>\n\
+    \  <tr><td><strong>Fallback Engine</strong></td><td>模型失败时的确定性后备路径，规则模板匹配</td></tr>\n\
+    \  <tr><td><strong>Confidence Estimator</strong></td><td>工具调用 + 输出的置信度评分，驱动执行决策</td></tr>\n\
+    \  <tr><td><strong>Skill Compiler</strong></td><td>将预定义 skill 编译为状态机，模型只做参数填空</td></tr>\n\
+    \  <tr><td><strong>Connectivity Manager</strong></td><td>离线队列 + 重连同步 + 云端透明升级</td></tr>\n\
+    </table>\n\n<h2>四、对现有 Agent 框架的启示</h2>\n\n<p>从现有 Agent 基础设施（如 Hermes、Antigravity\
+    \ SDK、LangChain）的架构看，可以逐步演进的方向：</p>\n\n<ol>\n  <li><strong>Confidence-based routing</strong>：从\
+    \ \"一个模型从头跑到尾\" 升级为 \"根据任务特征自动选择最优模型\"——flash 做简单分类，pro 做深度推理</li>\n  <li><strong>Tool\
+    \ validation pipeline</strong>：当前的 hooks/pre-post 拦截应升级为结构化验证层——schema 校验 → dry-run\
+    \ → commit 三步流水线</li>\n  <li><strong>Deterministic fallback chains</strong>：当模型\
+    \ tool call 解析失败时，不是重试，而是退回到规则引擎——用<strong>确定性</strong>替代<strong>概率性重试</strong></li>\n\
+    \  <li><strong>Context budget telemetry</strong>：跟踪每个 turn 的 token 消耗，基于预算自动决定\
+    \ truncation 策略——不依赖模型自己管理上下文</li>\n  <li><strong>Skill as state machine</strong>：将\
+    \ skill 从 \"给模型的提示\" 升级为 \"预编译的状态机\"——减少模型自由度 = 减少出错概率</li>\n</ol>\n\n<h2>五、核心原则</h2>\n\
+    \n<p>端侧 Agent 的 harness 设计可以归纳为五大原则：</p>\n\n<blockquote>\n<p><strong>1. 不信任模型输出</strong>——每次执行前验证、执行中监控、执行后校验</p>\n\
+    <p><strong>2. 用延迟换可靠性</strong>——端侧 10-50ms 推理速度允许额外的验证计算开销</p>\n<p><strong>3.\
+    \ 永远有确定性后备路径</strong>——模型失败不是异常，是常态。Fallback 不是最后手段，是第二选择</p>\n<p><strong>4. 限制模型自由度</strong>——skill\
+    \ 编译为状态机，模型只做参数填空而非流程决策</p>\n<p><strong>5. 沉默是金</strong>——低置信度时比高置信度时更危险。不知道就说不知道，不要假装知道</p>\n\
+    </blockquote>\n\n<h2>总结</h2>\n\n<p>端侧模型入端不是 \"把云端模型压缩一下塞进去\" 这么简单。它要求 Agent 基础设施完成一次\
+    \ <strong>设计哲学的根本转向</strong>——从 \"模型能力时代\" 到 \"模型退化时代\"。Harness 的角色从 \"薄胶水层\"\
+    \ 变成了 \"厚防御层\"：路由、验证、后备、预算管理、多模型协同、置信度评估、人机升级——这些不再是 nice-to-have，而是必须有的核心能力。</p>\n\
+    \n<p>谁先做好这个转向，谁就掌握端侧 Agent 时代的基础设施话语权。</p>"
 - title: 深度解读 Google Antigravity SDK：Google 的 Agent 基础设施入场券
   date: May 20, 2026
   excerpt: 2026年Google I/O正式发布Antigravity SDK，这不是简单的API wrapper，而是将Agent Loop抽象为基础设施层的完整框架。本文深度剖析其三层架构、6级策略引擎、MCP集成、编译型Runtime设计，并与Hermes
