@@ -1,4 +1,54 @@
 posts:
+- title: '[AI IDE 深度洞察 #6] OpenCode：开源的"BYOK"终端 Agent，ACP 协议的多 Agent 集成枢纽'
+  date: May 20, 2026
+  excerpt: AI IDE 洞察系列第 6 篇。OpenCode 的三大技术壁垒：模型无关的 BYOK 架构（DeepSeek/Qwen/Claude/GPT
+    任意切换）、ACP 协议标准化（VS Code/Zed/JetBrains IDE 集成 + Hermes subagent 调用）、完全开源可审计（MIT
+    许可）。它不是你最强大的选择，但它是你最自由的选择。
+  content: "<h2>引言：当你不需要\"信仰\"任何一个模型提供商</h2>\n\n<p>Cursor 绑定 Claude/GPT。Antigravity\
+    \ 绑定 Gemini。Claude Code 绑定 Anthropic。GitHub Copilot 绑定 Microsoft。如果你不想被任何一个模型提供商锁定，你只有一个选择：<strong>OpenCode</strong>。</p>\n\
+    \n<p>OpenCode 是完全开源的终端编程 Agent，核心设计哲学：<strong>Bring Your Own Key (BYOK)</strong>——你可以使用\
+    \ DeepSeek、Qwen、Claude、GPT 或任何 OpenAI-compatible 的 Provider。MIT 许可证，社区驱动。</p>\n\
+    \n<p>更重要的是：OpenCode 支持 <strong>ACP 协议</strong>（Agent Client Protocol），可以被 VS Code、Zed、JetBrains\
+    \ 等 IDE 作为 subagent 集成。<strong>Hermes 已经通过 ACP 集成了 OpenCode。</strong></p>\n\n\
+    <h2>技术全景</h2>\n\n<pre><code class=\"language-mermaid\">\ngraph TB\n    subgraph\
+    \ \"OpenCode 核心架构\"\n        CLI[\"OpenCode CLI<br/>终端原生 Agent\"]\n        ACP[\"\
+    ACP 协议适配器<br/>VS Code / Zed / JetBrains<br/>Hermes 集成\"]\n        BYOK[\"BYOK\
+    \ 模型层<br/>DeepSeek / Qwen / Claude<br/>GPT / Gemini<br/>任意 OpenAI-compatible\"\
+    ]\n        TOOLS[\"工具系统<br/>文件读写 / Shell<br/>代码搜索 / Git\"]\n    end\n\n    CLI\
+    \ --> ACP\n    CLI --> BYOK\n    CLI --> TOOLS\n    ACP --> HERMES[\"Hermes Agent<br/>subagent\
+    \ 调用\"]\n    ACP --> VSCODE[\"VS Code / Zed\"]\n\n    style ACP fill:#2563eb,stroke:#1d4ed8,color:#fff\n\
+    \    style BYOK fill:#10b981,stroke:#059669,color:#fff\n    style CLI fill:#f59e0b,stroke:#d97706,color:#000\n\
+    </code></pre>\n\n<h2>核心技术壁垒</h2>\n\n<h3>壁垒 1：模型无关的 BYOK 架构</h3>\n\n<p>OpenCode\
+    \ 的模型无关性不是\"支持多个模型\"——而是<strong>对任何 OpenAI-compatible 的 Provider 一视同仁</strong>。这意味着：</p>\n\
+    \n<ul>\n<li><strong>成本自由</strong>：用 DeepSeek V3.2 编码成本是 Claude Code 的 1/50</li>\n\
+    <li><strong>隐私自由</strong>：数据不经过任何第三方（用自己的 API Key + 本地或自建推理）</li>\n<li><strong>模型自由</strong>：今天用\
+    \ DeepSeek，明天换 Qwen，后天用自己微调的模型</li>\n<li><strong>审计自由</strong>：完全开源，每一行代码都可审计——企业合规团队的梦想</li>\n\
+    </ul>\n\n<p>这个架构在 Agent 安全性讨论日益升温的 2026 年，可能被证明是最有远见的设计。</p>\n\n<h3>壁垒 2：ACP 协议\
+    \ — Agent 互操作的标准接口</h3>\n\n<p>ACP（Agent Client Protocol）是 OpenCode 最重要的技术贡献——一个标准的\
+    \ IDE-Agent 通信协议：</p>\n\n<ul>\n<li><strong>编辑推送</strong>：Agent 可以直接推送代码修改到 IDE\
+    \ 编辑器</li>\n<li><strong>文件同步</strong>：IDE 文件变更实时同步到 Agent 上下文</li>\n<li><strong>多\
+    \ IDE 兼容</strong>：VS Code、Zed、JetBrains 都可通过 ACP 集成</li>\n<li><strong>被调能力</strong>：OpenCode\
+    \ 可以作为 subagent 被其他系统（如 Hermes）通过 ACP 调用</li>\n</ul>\n\n<p>ACP 之于 Agent IDE 集成，就像\
+    \ LSP 之于语言服务器。它让 Agent 从\"终端里的独立进程\"变成\"可被 IDE 和其他 Agent 编排的服务\"。</p>\n\n<h3>壁垒\
+    \ 3：开源 + 社区驱动的飞轮</h3>\n\n<p>OpenCode 没有公司背书，但它有一个所有商业产品都无法复制的优势：</p>\n\n<ul>\n\
+    <li><strong>社区模型适配</strong>：新模型发布后几小时内就有社区 PR 添加适配</li>\n<li><strong>零商业 bias</strong>：不会因为商业合作优先推荐某个模型</li>\n\
+    <li><strong>可定制 Agent 行为</strong>：完全控制 Agent 的工具集、提示词、权限策略</li>\n<li><strong>Hermes\
+    \ 集成先例</strong>：已经证明可以作为多 Agent 系统中的通用 subagent</li>\n</ul>\n\n<h2>与 Hermes 的集成架构</h2>\n\
+    \n<p>Hermes 通过 ACP 协议将 OpenCode 作为 subagent 集成：</p>\n\n<pre><code class=\"language-mermaid\"\
+    >\nsequenceDiagram\n    participant User as 用户\n    participant Hermes as Hermes\
+    \ Agent\n    participant ACP as ACP 协议\n    participant OpenCode as OpenCode Agent\n\
+    \    participant Model as LLM (BYOK)\n\n    User->>Hermes: 编码任务\n    Hermes->>Hermes:\
+    \ 任务分解\n    Hermes->>ACP: delegate_task(OpenCode)\n    ACP->>OpenCode: ACP 协议调用\n\
+    \    OpenCode->>Model: API 调用 (带你的 Key)\n    Model-->>OpenCode: 代码生成\n    OpenCode-->>ACP:\
+    \ 结果 + 编辑推送\n    ACP-->>Hermes: subagent 完成\n    Hermes-->>User: 汇总结果\n</code></pre>\n\
+    \n<p>这个架构揭示了一个深层趋势：<strong>未来的 Agent 基础设施不是单体应用，而是通过标准协议互联的 Agent 网络</strong>。Hermes\
+    \ 负责编排，OpenCode 负责编码——各司其职。</p>\n\n<h2>面向未来的演进趋势</h2>\n\n<p><strong>趋势 1：BYOK\
+    \ 从\"极客选择\"到\"企业需求\"</strong>：随着 AI 版权和数据安全法规的收紧，BYOK 不再是成本问题——是合规问题。</p>\n\n\
+    <p><strong>趋势 2：ACP 成为 Agent 互操作事实标准</strong>：正如 LSP 统一了语言服务器，ACP 可能统一\"Agent\
+    \ 如何被 IDE 和其他 Agent 调用\"。</p>\n\n<p><strong>趋势 3：开源 Agent 作为商业 Agent 的\"消毒剂\"\
+    </strong>：当企业不能信任任何商业 Agent 提供商时，可审计的开源 Agent 是唯一选择。</p>\n\n<h2>一句话总结</h2>\n\n\
+    <p>OpenCode 的技术壁垒不是任何单一技术——而是<strong>模型无关的 BYOK 架构 + ACP 协议标准化 + 完全开源可审计</strong>的三位一体。它不是你最强大的选择，但它是你最自由的选择。在\
+    \ Agent 信任危机日益加深的 2026 年，自由可能比强大更重要。</p>"
 - title: '[AI IDE 深度洞察 #5] OpenAI Codex：用开源模型搅局，ChatGPT 生态的"终端 Agent"布局'
   date: May 20, 2026
   excerpt: AI IDE 洞察系列第 5 篇。OpenAI Codex 的技术架构与战略布局：GPT-5-2 Codex 代码 Agent 专用模型（SWE-bench
