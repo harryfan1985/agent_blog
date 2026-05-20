@@ -1,4 +1,102 @@
 posts:
+- title: '[AI IDE 深度洞察 #2] Claude Code：98.4% 是确定性基础设施，只有 1.6% 是 AI'
+  date: May 20, 2026
+  excerpt: AI IDE 洞察系列第 2 篇。Claude Code 源码分析揭示：512K 行代码中仅 1.6% 是 AI 决策逻辑，98.4% 是确定性基础设施。五大技术壁垒：统一所有入口的
+    queryLoop 代理循环、5 级非破坏性压缩管线、7 级权限 x 7 层纵深防御、OS 级双重隔离沙箱 srt、子代理 + Sidechain Transcripts
+    协调机制。Claude Code 不是 AI Agent——它是为 Agent 设计的操作系统。
+  content: "<h2>引言：一个反直觉的事实</h2>\n\n<p>2025 年底，Claude Code 的源码被泄露。VILA-Lab 的团队分析后发现了一个令人震惊的事实：</p>\n\
+    \n<p><strong>Claude Code 约 512,000 行 TypeScript 代码中，只有约 1.6%（约 8,000 行）是 AI 决策逻辑。其余\
+    \ 98.4% 是确定性基础设施。</strong></p>\n\n<p>这意味着什么？意味着 Claude Code 不是\"一个聪明的 AI 被塞进了终端\"\
+    ——它是一个<strong>为 Agent 精密设计的操作系统</strong>，AI 只是在其中扮演\"大脑\"的角色。肌肉、骨骼、神经系统——全部是工程代码。</p>\n\
+    \n<p>这是本系列最特别的一篇。因为 Claude Code 不是 IDE——它是<strong>终端 Agent</strong>。它与 Cursor/Antigravity/Copilot\
+    \ 有本质的架构差异。</p>\n\n<h2>技术全景：7 组件 × 5 层架构</h2>\n\n<pre><code class=\"language-mermaid\"\
+    >\ngraph TB\n    subgraph \"Surface 层：入口点\"\n        CLI[\"CLI<br/>React + Ink\
+    \ 终端 UI\"]\n        HEADLESS[\"Headless<br/>SDK / CI 模式\"]\n        IDE[\"IDE\
+    \ 集成<br/>VS Code / JetBrains\"]\n    end\n\n    subgraph \"Core 层：代理循环\"\n   \
+    \     QUERY[\"queryLoop<br/>1,700 行 AsyncGenerator\"]\n        COMPRESS[\"5 级压缩管线<br/>Budget→Snip→Microcompact<br/>→Collapse→Auto-Compact\"\
+    ]\n        SUBAGENT[\"子代理生成<br/>6 种内置 + 自定义\"]\n    end\n\n    subgraph \"Safety\
+    \ 层：权限与沙箱\"\n        PERM[\"7 级权限模式<br/>plan→default→auto→bypass\"]\n        CLASSIFIER[\"\
+    Auto-Mode ML 分类器<br/>独立 LLM 安全评估\"]\n        SANDBOX[\"沙箱 srt<br/>bubblewrap /\
+    \ sandbox-exec<br/>双重隔离模型\"]\n    end\n\n    subgraph \"State 层：持久化\"\n      \
+    \  JSONL[\"JSONL 会话转录\"]\n        CLAUDE[\"CLAUDE.md 4 级层级<br/>Managed→User→Project→Local\"\
+    ]\n        MEMORY[\"自动记忆<br/>文件化 · 无向量DB\"]\n    end\n\n    subgraph \"Backend\
+    \ 层：执行\"\n        SHELL[\"Shell 执行<br/>7 种传输类型\"]\n        MCP[\"MCP Servers<br/>54\
+    \ 内置工具\"]\n        HOOKS[\"27 个钩子事件<br/>4 种执行类型\"]\n    end\n\n    CLI --> QUERY\n\
+    \    HEADLESS --> QUERY\n    IDE --> QUERY\n    QUERY --> PERM\n    QUERY -->\
+    \ COMPRESS\n    QUERY --> SUBAGENT\n    PERM --> SANDBOX\n    PERM --> CLASSIFIER\n\
+    \    CLI --> CLAUDE\n    CLI --> JSONL\n    SHELL --> SANDBOX\n    MCP --> SHELL\n\
+    \n    style QUERY fill:#ef4444,stroke:#dc2626,color:#fff\n    style COMPRESS fill:#2563eb,stroke:#1d4ed8,color:#fff\n\
+    \    style SANDBOX fill:#7c3aed,stroke:#6d28d9,color:#fff\n    style PERM fill:#f59e0b,stroke:#d97706,color:#000\n\
+    </code></pre>\n\n<h2>核心技术壁垒</h2>\n\n<h3>壁垒 1：queryLoop — 统一所有入口的单一代理循环</h3>\n\n\
+    <p>Claude Code 的核心引擎是一个约 1,700 行的 AsyncGenerator 函数 <code>queryLoop</code>。关键是：<strong>所有入口点共享同一个\
+    \ queryLoop</strong>。CLI、headless SDK、IDE 集成——它们的外壳不同，但核心逻辑完全相同。</p>\n\n<p>每轮循环执行\
+    \ <strong>9 步管线</strong>：</p>\n\n<pre><code class=\"language-mermaid\">\nsequenceDiagram\n\
+    \    participant Setup as 1.设置解析\n    participant Init as 2.状态初始化\n    participant\
+    \ Ctx as 3.上下文组装\n    participant Compress as 4.压缩管线x5\n    participant Model\
+    \ as 5.模型调用\n    participant Tool as 6.工具分发\n    participant Gate as 7.权限门控\n\
+    \    participant Exec as 8.工具执行\n    participant Stop as 9.停止条件\n\n    Setup->>Init:\
+    \ 加载配置\n    Init->>Ctx: 恢复会话\n    Ctx->>Compress: 传入原始上下文\n    Compress->>Model:\
+    \ 压缩后上下文\n    Model-->>Tool: tool_calls\n    Tool->>Gate: 权限检查\n    Gate-->>Exec:\
+    \ 通过 -> 执行\n    Gate-->>Stop: 拒绝 -> 终止\n    Exec->>Ctx: 结果回传\n    Ctx->>Compress:\
+    \ 下一轮\n    Note over Stop: 5种停止条件：<br/>无工具调用 | 最大轮数<br/>上下文溢出 | 钩子干预 | 显式中止\n\
+    </code></pre>\n\n<p><strong>两条执行路径</strong>：StreamingToolExecutor 用于边流式输出边执行（延迟优化），回退\
+    \ runTools 将工具分类为可并发或互斥执行。</p>\n\n<p><strong>恢复机制</strong>：最大输出 Token 升级重试（每轮最多\
+    \ 3 次）、每轮最多触发 1 次反应式压缩、Prompt-too-long 的逐级降级。</p>\n\n<h3>壁垒 2：5 级压缩管线 — 上下文管理的工程艺术</h3>\n\
+    \n<p>这是 Claude Code 最精妙的部分。每次模型调用前，执行 <strong>5 级压缩管线</strong>，按成本从低到高依次触发：</p>\n\
+    \n<table>\n<tr><th>阶段</th><th>策略</th><th>触发条件</th><th>破坏性</th></tr>\n<tr><td><strong>Budget\
+    \ Reduction</strong></td><td>每消息大小上限</td><td>始终活跃</td><td>否 — 截断</td></tr>\n<tr><td><strong>Snip</strong></td><td>修剪较旧历史</td><td>功能门控\
+    \ HISTORY_SNIP</td><td>否 — 跳帧</td></tr>\n<tr><td><strong>Microcompact</strong></td><td>缓存感知细粒度压缩</td><td>始终（基于时间）</td><td>否</td></tr>\n\
+    <tr><td><strong>Context Collapse</strong></td><td>读取时虚拟投影</td><td>功能门控 CONTEXT_COLLAPSE</td><td>否\
+    \ — 非破坏性！</td></tr>\n<tr><td><strong>Auto-Compact</strong></td><td>完整模型生成摘要</td><td>最后手段</td><td>是\
+    \ — 但仅当其他全部失败</td></tr>\n</table>\n\n<p>最精妙的设计：<strong>Chain Patching</strong>。压缩边界记录\
+    \ headUuid/anchorUuid/tailUuid，会话加载器在<strong>读取时</strong>修补消息链。磁盘上没有任何内容被破坏性编辑。这意味着压缩是可逆的——你随时可以\"\
+    解压\"回到完整历史。这与大多数 Agent 框架的\"暴力截断\"有天壤之别。</p>\n\n<h3>壁垒 3：7 级权限 + 7 层纵深防御</h3>\n\
+    \n<p>Claude Code 的权限系统不是简单的\"允许/拒绝\"——它是一个<strong>渐进信任光谱</strong>：</p>\n\n<pre><code\
+    \ class=\"language-mermaid\">\ngraph LR\n    PLAN[\"plan<br/>仅思考不行动\"] --> DEFAULT[\"\
+    default<br/>每次工具调用询问\"]\n    DEFAULT --> ACCEPT[\"acceptEdits<br/>自动接受编辑\"]\n\
+    \    ACCEPT --> AUTO[\"auto<br/>ML 分类器判断\"]\n    AUTO --> DONT[\"dontAsk<br/>信任所有\"\
+    ]\n    DONT --> BYPASS[\"bypassPermissions<br/>完全绕过\"]\n    BYPASS --> BUBBLE[\"\
+    bubble<br/>内部子代理专用\"]\n\n    style PLAN fill:#10b981,stroke:#059669,color:#fff\n\
+    \    style AUTO fill:#f59e0b,stroke:#d97706,color:#000\n    style BYPASS fill:#ef4444,stroke:#dc2626,color:#fff\n\
+    </code></pre>\n\n<p>内部是 <strong>7 层纵深防御</strong>，请求必须通过所有适用层，任何一层都可阻止：</p>\n\n\
+    <ol>\n<li><strong>工具预过滤</strong> — 从模型视野中完全移除被拒绝的工具</li>\n<li><strong>Deny-first\
+    \ 规则评估</strong> — Deny 始终覆盖 Allow</li>\n<li><strong>权限模式约束</strong> — 当前模式决定基线处理方式</li>\n\
+    <li><strong>Auto-mode ML 分类器</strong> — 独立 LLM 调用评估安全性（两阶段：快速过滤 + CoT）</li>\n\
+    <li><strong>Shell 沙箱</strong> — 文件系统 + 网络双重隔离</li>\n<li><strong>恢复时不恢复权限</strong>\
+    \ — 跨会话边界永不复原权限</li>\n<li><strong>钩子拦截</strong> — PreToolUse 钩子可修改或阻止操作</li>\n\
+    </ol>\n\n<p><strong>Auto-mode ML 分类器</strong>值得单独说明：当用户选择 auto 模式时，每次工具调用都会触发一个<strong>独立的\
+    \ LLM 调用</strong>来评估安全性。两阶段——快速过滤 + Chain-of-Thought 深度分析。这意味着即使是\"自动信任\"模式，也有一个独立的\
+    \ AI 在做安全审查。</p>\n\n<h3>壁垒 4：双重隔离沙箱 (srt)</h3>\n\n<p>Anthropic 开源了 Sandbox Runtime\
+    \ (<code>srt</code>)，这是一个<strong>OS 级的双重隔离模型</strong>：</p>\n\n<ul>\n<li><strong>文件系统隔离</strong>：拒绝-然后-允许模式。写入默认全局拒绝，必须显式允许</li>\n\
+    <li><strong>网络隔离</strong>：仅允许模式。默认拒绝所有网络访问。通过宿主机 Unix socket 代理路由流量</li>\n</ul>\n\
+    \n<p>OS 级原语：macOS 使用 <code>sandbox-exec</code> + 动态生成的 Seatbelt 配置，Linux 使用 <code>bubblewrap</code>\
+    \ + 网络命名空间隔离。</p>\n\n<p>关键区别：Claude Code 的沙箱在<strong>终端进程外</strong>运行。Cursor 的沙箱在<strong>IDE\
+    \ 进程内</strong>。</p>\n\n<h3>壁垒 5：子代理 + Sidechain Transcripts</h3>\n\n<p>Claude\
+    \ Code 的子代理机制是其最独特的能力之一：</p>\n\n<ul>\n<li><strong>6 种内置子代理类型</strong>：Explore、Plan、General-purpose、Guide、Verification、Statusline-setup</li>\n\
+    <li><strong>自定义子代理</strong>：<code>.claude/agents/*.md</code>，YAML frontmatter\
+    \ 定义 tools/model/permissions/hooks/skills</li>\n<li><strong>SkillTool vs AgentTool</strong>：SkillTool\
+    \ 将指令注入当前上下文（低成本），AgentTool 生成隔离上下文窗口（高成本 ~7x token）</li>\n</ul>\n\n<p><strong>Sidechain\
+    \ Transcripts</strong> 是设计精髓：每个子代理写自己的 <code>.jsonl</code> 文件。只有<strong>摘要返回给父代理</strong>。完整历史从不进入父代理的上下文。多实例协调通过\
+    \ <strong>POSIX flock()</strong>——零外部依赖。</p>\n\n<h2>架构洞察：98.4% 是基础设施</h2>\n\n\
+    <p>VILA-Lab 的源码分析揭示了一个冷酷的事实：Claude Code 的竞争力不在于模型，而在于<strong>围绕模型构建的工程体系</strong>：</p>\n\
+    \n<ul>\n<li><strong>54 个内置工具</strong>的提示工程（约 60,000 token 的提示文本）</li>\n<li><strong>27\
+    \ 个钩子事件</strong> + 4 种执行类型（shell、LLM、webhook、子代理验证器）</li>\n<li><strong>89 个功能门控</strong>——精细控制哪些功能在什么条件下激活</li>\n\
+    <li><strong>38,000 行安全代码</strong>（7.5%）</li>\n</ul>\n\n<p>这意味着<strong>任何想\"做个\
+    \ Claude Code 替代品\"的人，需要复制的不是那 8,000 行 AI 逻辑——而是 50 万行的工程基础设施</strong>。</p>\n\n\
+    <h2>与 IDE 工具的架构差异</h2>\n\n<table>\n<tr><th>维度</th><th>Claude Code</th><th>Cursor\
+    \ / Copilot</th></tr>\n<tr><td>执行模型</td><td>终端中的自主代理循环</td><td>IDE 中的补全/内联建议</td></tr>\n\
+    <tr><td>操作范围</td><td>完整 OS 访问（shell、文件系统、网络）</td><td>IDE 沙箱范围内的代码编辑</td></tr>\n\
+    <tr><td>用户交互</td><td>异步——提交任务后离开</td><td>同步——与编辑器紧密耦合</td></tr>\n<tr><td>上下文</td><td>读取整个代码库\
+    \ + 运行命令 + 搜索网络</td><td>当前文件 + 附近文件</td></tr>\n<tr><td>权限</td><td>7 级渐进信任 + deny-first</td><td>基本允许/拒绝</td></tr>\n\
+    <tr><td>持久化</td><td>JSONL 会话转录 + CLAUDE.md 文件记忆</td><td>无跨会话持久化</td></tr>\n<tr><td>子代理</td><td>内置子代理生成（Task\
+    \ 工具）</td><td>无原生子代理</td></tr>\n<tr><td>沙箱</td><td>OS 级（bubblewrap/sandbox-exec）</td><td>容器/IDE\
+    \ 沙箱</td></tr>\n</table>\n\n<h2>面向未来的演进趋势</h2>\n\n<p><strong>趋势 1：终端 Agent 作为操作系统级接口</strong>：Claude\
+    \ Code 已可嵌入 GitHub Actions、CI/CD 管道、被其他 Agent 调用。终端不是辅助窗口——是 Agent 的原生栖息地。</p>\n\
+    \n<p><strong>趋势 2：权限系统的自动驾驶化</strong>：auto-mode ML 分类器是第一步。未来可能演化为基于 session 历史的动态权限调整——Agent\
+    \ 证明自己在某个领域可靠，就自动获得更多自主权。</p>\n\n<p><strong>趋势 3：子代理的团队协作化</strong>：Sidechain\
+    \ Transcripts + flock() 协调已展示多代理协作的基础设施。Plan 模式下的代理团队约消耗 7x token——效率不高，但范式正确。</p>\n\
+    \n<h2>一句话总结</h2>\n\n<p>Claude Code 不是一个聪明的 AI Agent——它是一个<strong>为 Agent 设计的操作系统</strong>，AI\
+    \ 只是其中的 CPU。真正的技术壁垒是那 98.4% 的确定性基础设施——7 层防御、5 级压缩、OS 级沙箱、54 个工具的工程化——这些是任何竞争者都需要数年才能复制的护城河。</p>"
 - title: '[AI IDE 深度洞察 #1] Cursor：从 VS Code Fork 到 AI-Native IDE 的架构跃迁'
   date: May 20, 2026
   excerpt: AI IDE 洞察系列第 1 篇。Cursor 的五大技术壁垒：Speculative Edits 以 1000 tok/s 实现 13x 编辑加速、Tree-sitter
