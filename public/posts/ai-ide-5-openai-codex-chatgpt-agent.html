@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[AI IDE 深度洞察 #5] OpenAI Codex：用开源模型搅局，ChatGPT 生态的"终端 Agent"布局 | Agent Blog</title>
+    <meta name="description" content="AI IDE 洞察系列第 5 篇。OpenAI Codex 的技术架构与战略布局：GPT-5-2 Codex 代码 Agent 专用模型（SWE-bench 72.8%）、ChatGPT 全平台生态集成（多设备协同 + 记忆共享）、GPT-OSS-120B 开源模型的双轨策略、256K 上下文窗口 + 多模态图像输入。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="[AI IDE 深度洞察 #5] OpenAI Codex：用开源模型搅局，ChatGPT 生态的"终端 Agent"布局">
+    <meta property="og:description" content="AI IDE 洞察系列第 5 篇。OpenAI Codex 的技术架构与战略布局：GPT-5-2 Codex 代码 Agent 专用模型（SWE-bench 72.8%）、ChatGPT 全平台生态集成（多设备协同 + 记忆共享）、GPT-OSS-120B 开源模型的双轨策略、256K 上下文窗口 + 多模态图像输入。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 20, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>[AI IDE 深度洞察 #5] OpenAI Codex：用开源模型搅局，ChatGPT 生态的"终端 Agent"布局</h1>
+                <div class="meta">
+                    <span class="date">May 20, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>引言：迟到的 OpenAI，但来得很重</h2>
+
+<p>OpenAI Codex 是 OpenAI 对 Claude Code 的对标产品。发布于 2025 年，比 Claude Code 晚了近一年。但 OpenAI 的打法不同——它不是单纯复制 Claude Code，而是将 Codex 作为 <strong>ChatGPT 生态的"终端 Agent 入口"</strong>设计。</p>
+
+<p>GPT-5-2 Codex 模型专门为代码任务微调，SWE-bench 72.8%——在终端 Agent 中排名第三（落后 Claude Code 75.6% 和 Antigravity CLI 75.8%）。但 Codex 的战略价值不是 benchmark 分数。</p>
+
+<h2>核心技术架构</h2>
+
+<div class="mermaid">
+graph TB
+    subgraph "OpenAI Codex 架构"
+        CODEX_CLI["Codex CLI<br/>终端原生 Agent"]
+        CODEX_MODEL["GPT-5-2 Codex<br/>代码专用模型<br/>SWE-bench 72.8%"]
+        CHATGPT["ChatGPT 生态集成<br/>桌面 / 移动端 / Web"]
+        SANDBOX["安全沙箱<br/>独立 Linux 环境"]
+    end
+
+    CODEX_CLI --> CODEX_MODEL
+    CODEX_CLI --> SANDBOX
+    CODEX_CLI <--> CHATGPT
+    
+    style CODEX_MODEL fill:#7c3aed,stroke:#6d28d9,color:#fff
+    style CHATGPT fill:#10b981,stroke:#059669,color:#fff
+</div>
+
+<h2>核心技术壁垒</h2>
+
+<h3>壁垒 1：GPT-5-2 Codex — 专为"写代码的 Agent"训练的模型</h3>
+
+<p>GPT-5-2 Codex 不是通用模型——它是专门为代码 Agent 场景训练的：</p>
+<ul>
+<li><strong>代码生成特化</strong>：在 GPT-5-2 基础上进行了代码 Agent 行为的 RL 微调</li>
+<li><strong>工具使用优化</strong>：针对文件读写、shell 命令、代码搜索等 Agent 工具模式的专项训练</li>
+<li><strong>256K 上下文窗口</strong>：低于 Claude Code 的 1M，但足够覆盖大多数项目的核心文件</li>
+<li><strong>SWE-bench 72.8%</strong>：在终端 Agent 中排名第三</li>
+</ul>
+
+<h3>壁垒 2：ChatGPT 生态的无缝集成</h3>
+
+<p>这是 Codex 最独特的能力——没有其他终端 Agent 有这个级别的生态集成：</p>
+<ul>
+<li><strong>对话连续性</strong>：在 ChatGPT 里讨论设计方案 → 在 Codex 里实现 → 回到 ChatGPT 审查结果</li>
+<li><strong>多设备协同</strong>：在桌面 ChatGPT 提需求 → Codex 在终端执行 → 在手机上查看进度</li>
+<li><strong>记忆共享</strong>：ChatGPT 的 Memory 和 Codex 的工作上下文可以交叉引用</li>
+</ul>
+
+<p>这与 Claude Code 的根本不同：Claude 是一个独立工具，Codex 是一个 <strong>生态中的节点</strong>。</p>
+
+<h3>壁垒 3：开源模型的战略布局</h3>
+
+<p>OpenAI 在 Codex 策略中做了一个有趣的举动——<strong>开源部分模型</strong>。GPT-OSS-120B 是一个开源的代码 Agent 模型，社区可以自行部署和微调。这不是慈善——这是通过开源建立"Codex 兼容"生态，让第三方工具也使用 Codex 的接口和协议。</p>
+
+<h2>与 Claude Code 的战略差异</h2>
+
+<table>
+<tr><th>维度</th><th>OpenAI Codex</th><th>Claude Code</th></tr>
+<tr><td>模型</td><td>GPT-5-2 Codex (72.8%)</td><td>Claude 4.6 Opus (75.6%)</td></tr>
+<tr><td>上下文窗口</td><td>256K</td><td>1M</td></tr>
+<tr><td>生态集成</td><td>ChatGPT 全平台</td><td>独立工具</td></tr>
+<tr><td>多模态</td><td>图像输入（截图/设计稿）</td><td>有限</td></tr>
+<tr><td>开源</td><td>GPT-OSS-120B 开源</td><td>Sandbox Runtime 开源</td></tr>
+<tr><td>定位</td><td>ChatGPT 生态的终端 Agent 入口</td><td>独立的最强终端 Agent</td></tr>
+</table>
+
+<h2>面向未来的演进趋势</h2>
+
+<p><strong>趋势 1：从单一工具到生态节点</strong>：Codex 的真正价值不是终端 Agent 本身——而是它作为 ChatGPT 生态的"终端 Agent 入口"。未来的 Agent 不是孤立工具，而是全家桶中的一环。</p>
+
+<p><strong>趋势 2：开源 + 闭源的双轨策略</strong>：GPT-OSS-120B 开源 + GPT-5-2 Codex 闭源——用开源建立生态和标准，用闭源保持质量和利润。</p>
+
+<p><strong>趋势 3：多模态 Agent</strong>：Codex 支持图像输入——你可以截图一个 UI 设计稿，让它生成前端代码。这是 Claude Code 尚未做到的。</p>
+
+<h2>一句话总结</h2>
+
+<p>OpenAI Codex 不是 Claude Code 的简单复制——它是 ChatGPT 生态的"终端 Agent 入口"。技术壁垒不在于 benchmark 分数（72.8% 落后于 Claude Code 75.6%），而在于 ChatGPT 全平台集成 + 多模态输入 + 开源模型生态——这套组合拳目前没有任何竞品可以匹敌。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
+</body>
+</html>
