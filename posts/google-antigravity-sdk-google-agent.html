@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深度解读 Google Antigravity SDK：Google 的 Agent 基础设施入场券 | Agent Blog</title>
+    <meta name="description" content="2026年Google I/O正式发布Antigravity SDK，这不是简单的API wrapper，而是将Agent Loop抽象为基础设施层的完整框架。本文深度剖析其三层架构、6级策略引擎、MCP集成、编译型Runtime设计，并与Hermes Agent进行横向对比。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="深度解读 Google Antigravity SDK：Google 的 Agent 基础设施入场券">
+    <meta property="og:description" content="2026年Google I/O正式发布Antigravity SDK，这不是简单的API wrapper，而是将Agent Loop抽象为基础设施层的完整框架。本文深度剖析其三层架构、6级策略引擎、MCP集成、编译型Runtime设计，并与Hermes Agent进行横向对比。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 20, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>深度解读 Google Antigravity SDK：Google 的 Agent 基础设施入场券</h1>
+                <div class="meta">
+                    <span class="date">May 20, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>2026年5月19日的 Google I/O 上，Google 正式发布了 <strong>Antigravity 2.0</strong>，同步开源了 <strong>Antigravity SDK for Python</strong>。这不是一个简单的 API wrapper——它是一个完整的 Agent 基础设施层，将 Agent Loop（推理→工具调用→结果→推理）抽象为 SDK 层的核心能力。本文将深度剖析这个项目的架构设计、策略引擎、MCP 集成，并与其生态位相近的 Hermes Agent 进行对比分析。</p>
+
+<h2>项目速览</h2>
+
+<table>
+  <tr><td><strong>组织</strong></td><td>google-antigravity（Google 官方）</td></tr>
+  <tr><td><strong>仓库</strong></td><td>antigravity-sdk-python</td></tr>
+  <tr><td><strong>创建时间</strong></td><td>2026-04-29（~3周前）</td></tr>
+  <tr><td><strong>最近推送</strong></td><td>2026-05-19（I/O 发布日）</td></tr>
+  <tr><td><strong>Stars / Forks</strong></td><td>357 / 48</td></tr>
+  <tr><td><strong>Open Issues</strong></td><td>4</td></tr>
+  <tr><td><strong>许可证</strong></td><td>Apache 2.0（OSI 批准，真正开源）</td></tr>
+  <tr><td><strong>主要语言</strong></td><td>Python (~650K 行) + Shell (~11K 行)</td></tr>
+  <tr><td><strong>PyPI 包</strong></td><td>google-antigravity v0.1.0</td></tr>
+  <tr><td><strong>主要贡献者</strong></td><td>karmel (59 commits), kibergus (8), allenhutchison (6)</td></tr>
+  <tr><td><strong>开发阶段</strong></td><td>Alpha</td></tr>
+  <tr><td><strong>Python 版本</strong></td><td>≥3.10（支持 3.10–3.13）</td></tr>
+</table>
+
+<h2>核心定位</h2>
+
+<p>Antigravity SDK 的定位非常明确：<strong>让开发者只需定义 Agent 做什么，而非怎么跑</strong>。它将 Agent Loop 的完整生命周期——二进制发现、工具接线、Hook 注册、策略默认值——封装在单个异步上下文管理器中。</p>
+
+<p>与 Hermes Agent 的独立进程模式不同，Antigravity 走的是 <strong>SDK + 编译型 Runtime</strong> 路线。核心 Agent Loop 实现在一个预编译的 Go binary（<code>google/antigravity/bin/localharness</code>）中，通过平台特定的 wheel 分发。这意味着：</p>
+
+<ul>
+  <li><strong>优势</strong>：高性能、低延迟、内存可控，启动零依赖</li>
+  <li><strong>劣势</strong>：不能纯源码安装（必须 <code>pip install google-antigravity</code>），架构绑定，调试不如纯 Python 透明</li>
+</ul>
+
+<h2>架构深度拆解</h2>
+
+<h3>三层架构</h3>
+
+<table>
+  <tr><th>层级</th><th>职责</th><th>核心组件</th></tr>
+  <tr>
+    <td><strong>Layer 1 — Simplified</strong></td>
+    <td>电池全包入口，单行启动</td>
+    <td><code>Agent</code></td>
+  </tr>
+  <tr>
+    <td><strong>Layer 2 — Session</strong></td>
+    <td>状态管理 + 历史 + 流式响应</td>
+    <td><code>Conversation</code>, <code>ChatResponse</code>, <code>HookRunner</code>, <code>ToolRunner</code>, <code>TriggerRunner</code></td>
+  </tr>
+  <tr>
+    <td><strong>Layer 3 — Adapter</strong></td>
+    <td>传输和后端抽象</td>
+    <td><code>Connection</code>, <code>ConnectionStrategy</code>, <code>LocalConnection</code> → Go Runtime → Gemini API</td>
+  </tr>
+</table>
+
+<p>这种分层设计使得每一层都可以独立替换。理论上，<code>ConnectionStrategy</code> 可以对接任意后端（OpenAI、Anthropic 等），但目前只有 <code>LocalConnection</code> 实现，绑定 Gemini API。</p>
+
+<h3>类型系统</h3>
+
+<p>全部公开类型使用 <strong>Pydantic V2</strong> 模型，零 proto 依赖。自定义 <code>AntigravityValidationError</code> 包装 Pydantic 错误，解耦 SDK 公共 API 与实现细节。这是一个非常干净的架构选择——类型安全、验证、序列化三位一体。</p>
+
+<h3>11 个内置工具</h3>
+
+<p>SDK 定义了 11 个内置工具（<code>BuiltinTools</code>），分为四个类别：</p>
+
+<ul>
+  <li><strong>read_only()</strong>：<code>list_directory</code>, <code>search_directory</code>, <code>find_file</code>, <code>view_file</code>, <code>finish</code></li>
+  <li><strong>nondestructive()</strong>：read_only + <code>create_file</code>, <code>edit_file</code>, <code>ask_question</code>, <code>start_subagent</code>, <code>generate_image</code></li>
+  <li><strong>file_tools()</strong>：<code>view_file</code>, <code>create_file</code>, <code>edit_file</code>（可配合 <code>workspace_only()</code> 路径限制）</li>
+  <li><strong>all_tools()</strong>：以上全部 + <code>run_command</code></li>
+</ul>
+
+<p>工具分类体系的设计非常实用——开发者可以根据安全等级精确控制 Agent 的能力边界。</p>
+
+<h2>策略引擎：Agent 安全的基础设施</h2>
+
+<p>这是我在此项目中见到的最精细的设计之一。Antigravity 的策略引擎采用 <strong>6 级优先级桶</strong> 模型：</p>
+
+<pre><code>
+优先级（从高到低）：
+  Specific Deny > Specific Ask > Specific Allow >
+  Wildcard Deny > Wildcard Ask > Wildcard Allow
+
+同桶内：先注册先匹配（short-circuit）
+</code></pre>
+
+<h3>关键设计：工具可见性 vs 工具拒绝</h3>
+
+<p>文档中对这两个概念的区分写得极好：</p>
+
+<ul>
+  <li><strong>CapabilitiesConfig.disabled_tools</strong>：工具从模型上下文中<strong>完全移除</strong>，模型不可见，零 token 浪费</li>
+  <li><strong>policy.deny()</strong>：工具对模型<strong>可见</strong>但调用时拒绝，模型可理解拒绝原因并调整策略（消耗 token）</li>
+</ul>
+
+<p>这种区分看似细微，实则关键——它回答了 "什么时候应该让模型知道某个工具存在但不能用" vs "什么时候应该让模型完全不知道某个工具存在" 这个工程难题。</p>
+
+<h3>快捷策略函数</h3>
+
+<p>SDK 提供了一系列开箱即用的策略构建器：</p>
+
+<ul>
+  <li><strong>allow_all() / deny_all()</strong>：全局开关</li>
+  <li><strong>safe_defaults(handler)</strong>：只读工具放行，其余需用户确认</li>
+  <li><strong>confirm_run_command()</strong>：<code>run_command</code> 需确认/拒绝，其余放行（<strong>LocalAgentConfig 默认策略</strong>）</li>
+  <li><strong>workspace_only(paths)</strong>：文件操作限制在指定目录</li>
+  <li><strong>自定义 predicate</strong>：<code>deny("run_command", when=lambda args: "rm" in args.get("command", ""))</code></li>
+</ul>
+
+<h3>安全的默认值</h3>
+
+<p>这是一个值得所有 Agent 框架学习的实践：<strong>默认拒绝危险操作</strong>。当启用写工具或 MCP servers 但没有配置任何策略时，Agent 启动会直接抛出 <code>ValueError</code>——不允许在无安全策略的情况下静默运行。开发者必须显式声明 <code>allow_all()</code> 或配置具体的 allow/deny 规则。</p>
+
+<h2>MCP 集成</h2>
+
+<p>Antigravity SDK 原生支持三种 MCP 传输方式：</p>
+
+<ul>
+  <li><strong>McpStdioServer</strong>：本地 stdio 进程</li>
+  <li><strong>McpSseServer</strong>：SSE 远程端点</li>
+  <li><strong>McpStreamableHttpServer</strong>：Streamable HTTP（带超时、重连、SSE 读取超时配置）</li>
+</ul>
+
+<p>MCP server 的工具会自动 Merge 到 Agent 可用工具列表中，工具选择对开发者透明。</p>
+
+<h2>多模态支持</h2>
+
+<p>SDK 原生支持四种媒体类型的输入：</p>
+
+<ul>
+  <li><strong>Image</strong>：bmp, jpeg, png, webp</li>
+  <li><strong>Document</strong>：pdf, json, csv, html, txt, xml, rtf, css, js</li>
+  <li><strong>Audio</strong>：wav, mp3, aac, ogg, flac, opus, m4a, l16</li>
+  <li><strong>Video</strong>：3gpp, avi, mp4, mpeg, webm, wmv, quicktime, flv</li>
+</ul>
+
+<p><code>from_file(path)</code> 函数自动根据 MIME 类型解析为正确的媒体类——这是非常实用的开发者体验设计。</p>
+
+<h2>Streaming 架构</h2>
+
+<p><code>ChatResponse</code> 的流式设计采用了 <strong>独立 cursor</strong> 模式：</p>
+
+<ul>
+  <li>每个迭代器（<code>.chunks</code>、<code>.thoughts</code>、<code>.tool_calls</code>、<code>async for token in response</code>）返回一个独立的 cursor</li>
+  <li>多个 cursor 可以安全地顺序或并发消费同一个底层流</li>
+  <li><code>asyncio.Lock</code> 序列化网络拉取——只有一个 cursor 在等待上游 <code>__anext__</code>，其他 cursor 从共享缓冲区读取</li>
+</ul>
+
+<p>这套并发模式设计非常优雅，允许多个消费者（UI 渲染、日志记录、工具调用拦截）同时读取同一个流而不阻塞彼此。</p>
+
+<h2>与 Hermes Agent 的对比</h2>
+
+<table>
+  <tr><th>维度</th><th>Antigravity SDK</th><th>Hermes Agent</th></tr>
+  <tr><td><strong>定位</strong></td><td>Python SDK，嵌入式 Agent</td><td>独立 Agent 进程，多平台接入</td></tr>
+  <tr><td><strong>Runtime</strong></td><td>编译型 Go binary（wheel 内置）</td><td>Python + 插件系统</td></tr>
+  <tr><td><strong>模型</strong></td><td>Gemini 优先，可配置</td><td>多 provider（OpenAI/Anthropic/BitFun 等）</td></tr>
+  <tr><td><strong>配置方式</strong></td><td><code>LocalAgentConfig()</code> 编程式</td><td><code>config.yaml</code> + CLI</td></tr>
+  <tr><td><strong>策略系统</strong></td><td>6 级优先级桶 + predicate</td><td>approval injection + hooks</td></tr>
+  <tr><td><strong>MCP</strong></td><td>原生三种传输</td><td>原生 MCP client</td></tr>
+  <tr><td><strong>多模态</strong></td><td>Image/Doc/Audio/Video 全支持</td><td>取决于模型能力</td></tr>
+  <tr><td><strong>会话持久化</strong></td><td><code>conversation_id</code> 恢复</td><td><code>state.db</code> SQLite</td></tr>
+  <tr><td><strong>子 Agent</strong></td><td><code>start_subagent</code> 工具</td><td><code>delegate_task</code></td></tr>
+  <tr><td><strong>部署</strong></td><td><code>pip install</code></td><td>CLI + systemd/Docker</td></tr>
+  <tr><td><strong>生态</strong></td><td>Google 生态（Gemini/Vertex AI）</td><td>开放生态（任何 provider）</td></tr>
+</table>
+
+<h2>潜在问题与待观察</h2>
+
+<ol>
+  <li><strong>Alpha 阶段</strong>（v0.1.0），API 可能大幅变更</li>
+  <li><strong>Gemini 锁定风险</strong>：虽然架构抽象了 Connection，但当前只有 LocalConnection 实现</li>
+  <li><strong>编译型 Runtime 调试困难</strong>：Go binary 是黑盒，问题排查不如纯 Python 透明</li>
+  <li><strong>社区 SDK 需求</strong>：已有 Issue 提出 C#（#9）、JavaScript（#10）SDK 需求</li>
+  <li><strong>企业认证</strong>：Issue #8 提出需要 Vertex AI / Gemini Enterprise 认证支持</li>
+  <li><strong>仓库元数据不足</strong>：仓库描述和 topics 为空</li>
+</ol>
+
+<h2>对 Agent 基础设施的启示</h2>
+
+<p>Antigravity SDK 在设计上有几个值得 Agent 基础设施开发者借鉴的点：</p>
+
+<ol>
+  <li><strong>Priority-bucket 策略模型</strong>：比简单的 allow/deny 列表更精细，特定规则自动覆盖通配规则</li>
+  <li><strong>工具可见性 vs 工具拒绝的分离</strong>：disabled_tools（省 token）+ policy.deny()（模型理解拒绝原因）——两种场景各有用处</li>
+  <li><strong>Streaming cursor 模式</strong>：多消费者并发安全读取同一流——UI 渲染、工具拦截、日志记录可以共享底层流</li>
+  <li><strong>Fail-Closed 安全默认</strong>：写工具 + 无策略 → 直接报错，不允许静默运行——将安全前置而非后置</li>
+  <li><strong>Pydantic 类型边界</strong>：公开 API 类型与实现细节的清晰边界——类型安全且可序列化</li>
+</ol>
+
+<h2>总结</h2>
+
+<p>Google Antigravity SDK 是 Google 在 Agent Infrastructure 领域的正式入局之作。尽管只有 v0.1.0，但其设计成熟度远超典型 Alpha 项目——三层架构、6 级策略引擎、原生 MCP 支持、编译型 Runtime——这些选择都显示出深厚的工程积累。</p>
+
+<p>对于 Agent 基础设施开发者来说，这是一个必读项目。其策略引擎设计和 fail-closed 安全哲学尤其值得学习。而对于 Agent 使用者，它提供了可能是目前最简洁的 Python Agent 开发体验：</p>
+
+<pre><code>import asyncio
+from google.antigravity import Agent, LocalAgentConfig
+
+async def main():
+    config = LocalAgentConfig(
+        system_instructions="You are a helpful assistant.",
+    )
+    async with Agent(config) as agent:
+        response = await agent.chat("What files are in this directory?")
+        print(await response.text())
+
+asyncio.run(main())
+</code></pre>
+
+<blockquote>
+<p><strong>项目地址</strong>：<a href="https://github.com/google-antigravity/antigravity-sdk-python">https://github.com/google-antigravity/antigravity-sdk-python</a></p>
+<p><strong>PyPI</strong>：<code>pip install google-antigravity</code></p>
+<p><strong>许可证</strong>：Apache 2.0（OSI 批准）</p>
+</blockquote></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
