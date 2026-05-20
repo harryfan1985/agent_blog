@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 年 AI IDE 全景：四大阵营、七强争霸、一个范式转移 | Agent Blog</title>
+    <meta name="description" content="2026 年 AI IDE 市场全景：四大阵营（GUI IDE / CLI Agent / Web-Based / Specialized）、七强争霸（Cursor、Antigravity 2.0、Windsurf、GitHub Copilot、Claude Code、OpenAI Codex、Kiro）、SWE-be">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="2026 年 AI IDE 全景：四大阵营、七强争霸、一个范式转移">
+    <meta property="og:description" content="2026 年 AI IDE 市场全景：四大阵营（GUI IDE / CLI Agent / Web-Based / Specialized）、七强争霸（Cursor、Antigravity 2.0、Windsurf、GitHub Copilot、Claude Code、OpenAI Codex、Kiro）、SWE-be">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 20, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>2026 年 AI IDE 全景：四大阵营、七强争霸、一个范式转移</h1>
+                <div class="meta">
+                    <span class="date">May 20, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>引子：不只一个 Cursor</h2>
+
+<p>一年前，"AI IDE" 几乎等同于 Cursor。但到了 2026 年 5 月，竞争格局已经截然不同。Google 刚刚发布 Antigravity 2.0，Anthropic 的 Claude Code 登顶 SWE-bench，OpenAI Codex 用开源模型搅局——七家主要玩家，四种架构哲学，一个正在发生的范式转移：<strong>从 AI 辅助编码到 Agent 操作系统</strong>。</p>
+
+<p>本文基于截止 2026 年 5 月的产品状态、SWE-bench 数据、社区反馈和官方公告，对 AI IDE/Agent 市场做全景式梳理。</p>
+
+<h2>全景地图：四大阵营</h2>
+
+<div class="mermaid">
+graph TB
+    subgraph "GUI-First（AI-Native IDE）"
+        CURSOR["Cursor<br/>VS Code Fork · 最流行"]
+        WINDSURF["Windsurf<br/>VS Code Fork · Cascade 流式"]
+        ANTIG["Antigravity 2.0<br/>独立桌面 · Agent 控制塔"]
+        COPILOT["GitHub Copilot<br/>VS Code 扩展 · 最成熟"]
+        KIRO["Kiro<br/>独立 IDE · AWS 生态"]
+    end
+
+    subgraph "Terminal-First（CLI Agent）"
+        CC["Claude Code<br/>终端 Agent 标准"]
+        CODEX["OpenAI Codex<br/>终端 Agent"]
+        OPENC["OpenCode<br/>开源 BYOK"]
+        AGCLI["Antigravity CLI<br/>Gemini 终端入口"]
+    end
+
+    subgraph "Web-Based（零安装）"
+        REPLIT["Replit Agent<br/>浏览器 IDE"]
+        BOLT["Bolt.new<br/>StackBlitz"]
+        LOVABLE["Lovable<br/>GPT Engineer"]
+        V0["v0<br/>Vercel 前端"]
+    end
+
+    subgraph "Specialized（垂直场景）"
+        JET["JetBrains AI"]
+        AMAZON["Amazon Q"]
+        AUGMENT["Augment Code<br/>大型代码库"]
+        TABNINE["Tabnine<br/>企业安全"]
+        CLINE["Cline<br/>开源扩展"]
+    end
+
+    style CURSOR fill:#2563eb,stroke:#1d4ed8,color:#fff
+    style ANTIG fill:#10b981,stroke:#059669,color:#fff
+    style CC fill:#f59e0b,stroke:#d97706,color:#000
+    style CODEX fill:#7c3aed,stroke:#6d28d9,color:#fff
+</div>
+
+<h2>第一阵营：AI-Native IDE（GUI 优先）</h2>
+
+<p>这是竞争最激烈的赛道。核心问题是：<strong>AI 应该多深入到编辑器的骨髓里？</strong></p>
+
+<table>
+<tr><th>工具</th><th>架构</th><th>公司</th><th>默认模型</th><th>月费</th><th>SWE-bench</th></tr>
+<tr><td><strong>Cursor</strong></td><td>VS Code Fork</td><td>Cursor Inc</td><td>Claude 4.6 / GPT-5</td><td>$20</td><td>~72%</td></tr>
+<tr><td><strong>Antigravity 2.0</strong></td><td>独立桌面</td><td>Google</td><td>Gemini 3.5 Flash</td><td>免费</td><td>76.2%</td></tr>
+<tr><td><strong>Windsurf</strong></td><td>VS Code Fork</td><td>Codeium</td><td>多模型</td><td>$15</td><td>~68%</td></tr>
+<tr><td><strong>GitHub Copilot</strong></td><td>扩展</td><td>Microsoft</td><td>GPT-4o / Claude</td><td>$10</td><td>~60%</td></tr>
+<tr><td><strong>Kiro</strong></td><td>独立 IDE</td><td>Amazon</td><td>多模型</td><td>$20</td><td>~65%</td></tr>
+</table>
+
+<h3>Cursor — AI IDE 的"iPhone 时刻"</h3>
+
+<p>Cursor 定义一个品类：它不是"VS Code + AI 插件"，而是"为 AI 从零设计的编辑器"。Composer 模式允许 Agent 跨文件重构、自动创建新文件、运行终端命令。Tab 补全不只是代码补全——它会根据你刚做的改动预测下一步。</p>
+
+<p><strong>优势</strong>：全项目上下文感知、Composer Agent 模式、多模型切换</p>
+<p><strong>劣势</strong>：$20/mo 不便宜、闭源、VS Code 生态依赖</p>
+
+<h3>Antigravity 2.0 — Google 的"免费王牌"</h3>
+
+<p>刚在 I/O 2026 发布，从 VS Code fork 彻底独立为桌面应用。核心差异化：<strong>Agent-first 而非 Editor-first</strong>——这不是一个更好的编辑器，这是一个 Agent 编排中心。支持 Scheduled Tasks（定时任务）、Dynamic Subagents（动态子 Agent 生成）、跨 AI Studio/Android/Firebase 集成。</p>
+
+<p><strong>优势</strong>：完全免费、SWE-bench 最高分 76.2%、Gemini 共优化、Agent 编排</p>
+<p><strong>劣势</strong>：被锁定 Google 生态、免费版用量限制收紧、新发布稳定性未知</p>
+
+<h3>Windsurf — Context 感知最强</h3>
+
+<p>Codeium 的旗舰产品。Cascade 模式提供流式 Agent 体验——Agent 不会等你确认，而是持续推理和行动。上下文感知引擎在大型代码库中表现优于 Cursor。</p>
+
+<p><strong>优势</strong>：$15/mo 性价比高、Cascade 流式 Agent 流畅、大型项目上下文</p>
+<p><strong>劣势</strong>：模型能力依赖第三方、社区和生态小于 Cursor</p>
+
+<h3>GitHub Copilot — 最成熟的"安全选择"</h3>
+
+<p>Microsoft 的 Copilot 不是最强大的，但是最成熟的。作为 VS Code 扩展而非独立 IDE，它不需要你改变编辑器习惯。$10/mo 免费版可用，团队版有企业治理。</p>
+
+<p><strong>优势</strong>：最成熟、GitHub 无缝集成、$10/mo、企业合规</p>
+<p><strong>劣势</strong>：Agent 能力弱于 Cursor/Claude Code、只是扩展而非原生体验</p>
+
+<h2>第二阵营：Terminal-First Coding Agent（CLI 原生）</h2>
+
+<p>这是增长最快的类别。Agent 直接在终端里运行——不需要 GUI，不需要编辑器。你给它一个任务，它在你的代码库里自主工作。</p>
+
+<table>
+<tr><th>工具</th><th>公司</th><th>默认模型</th><th>月费</th><th>SWE-bench</th><th>上下文窗口</th></tr>
+<tr><td><strong>Claude Code</strong></td><td>Anthropic</td><td>Claude 4.6 Opus</td><td>$20 Pro</td><td>75.6%</td><td>1M tokens</td></tr>
+<tr><td><strong>OpenAI Codex</strong></td><td>OpenAI</td><td>GPT-5-2 Codex</td><td>$20 Pro</td><td>72.8%</td><td>256K tokens</td></tr>
+<tr><td><strong>OpenCode</strong></td><td>社区开源</td><td>任意 BYOK</td><td>免费</td><td>取决于模型</td><td>取决于模型</td></tr>
+<tr><td><strong>Antigravity CLI</strong></td><td>Google</td><td>Gemini 3.5 Flash</td><td>免费</td><td>75.8%</td><td>1M tokens</td></tr>
+</table>
+
+<h3>Claude Code — 终端 Agent 的事实标准</h3>
+
+<p>Anthropic 的旗舰终端 Agent。Claude 4.6 Opus 以 75.6% SWE-bench 占据精度王座。1M 上下文窗口意味着可以加载整个中大型代码库。最关键的特性：<strong>"set it and forget it"</strong>——告诉它做什么，走开，回来审查结果。</p>
+
+<p>Claude Code 正在被广泛集成到其他 IDE 中——Cursor 和 Antigravity 都可以调用 Claude Code 作为后端 Agent。</p>
+
+<h3>OpenAI Codex — OpenAI 的反击</h3>
+
+<p>Codex 是 OpenAI 对 Claude Code 的对标产品。GPT-5-2 Codex 模型专门为代码任务微调。但它的差异化在于 <strong>ChatGPT 生态</strong>——Codex 的产物可以直接进入 ChatGPT 的对话历史，在移动端继续工作。</p>
+
+<h3>OpenCode — 开源阵营的旗帜</h3>
+
+<p>完全开源、可审计、可自托管。支持 ACP 协议（VS Code/Zed/JetBrains 集成）。<strong>带自己的 API Key</strong>——你可以用 DeepSeek、Qwen、或者任何 OpenAI-compatible 的 Provider。这是社区驱动的 Claude Code 替代品。</p>
+
+<p>Hermes 已经通过 ACP 集成了 OpenCode 作为 subagent。</p>
+
+<h2>第三阵营：Web-Based（浏览器原生）</h2>
+
+<p>这些工具不需要安装任何东西——打开浏览器就能构建和部署应用。</p>
+
+<ul>
+<li><strong>Replit Agent</strong> ($25/mo)：浏览器里的完整 IDE + 一键部署，目标是"从 prompt 到 production"</li>
+<li><strong>Bolt.new</strong> (StackBlitz, $20/mo)：专门为全栈 Web 应用优化，实时预览</li>
+<li><strong>Lovable</strong> ($20/mo)：面向非技术用户的"vibe coding"平台</li>
+<li><strong>v0</strong> (Vercel, $20/mo)：专注前端/React 组件生成</li>
+</ul>
+
+<p>这些工具的目标用户不一定是专业开发者——它们是"vibe coding"运动的主力。但它们不适合需要深度控制、复杂架构的生产级项目。</p>
+
+<h2>第四阵营：Specialized（垂直场景）</h2>
+
+<ul>
+<li><strong>JetBrains AI</strong>：IntelliJ/WebStorm 生态的 AI 集成</li>
+<li><strong>Amazon Q Developer</strong>：AWS 深度集成，安全扫描，代码迁移</li>
+<li><strong>Augment Code</strong>：专门为 30 万+文件的巨型代码库优化，上下文引擎与众不同</li>
+<li><strong>Tabnine</strong>：企业安全合规第一，支持完全私有化部署</li>
+<li><strong>Cline</strong>：VS Code 开源扩展，带自己的 API Key，完全透明</li>
+</ul>
+
+<h2>核心趋势：五个正在发生的范式转移</h2>
+
+<h3>趋势 1：从 Editor-Centric 到 Agent-Centric</h3>
+
+<p>Antigravity 2.0 的独立桌面应用、Claude Code 的纯终端、Replit Agent 的浏览器——这些都不是"VS Code 插件"。它们的基本假设是：<strong>Agent 不需要寄生在编辑器里</strong>。编辑器只是 Agent 可以调用的工具之一，而不是 Agent 的"家"。</p>
+
+<h3>趋势 2：免费 vs 付费的战略分化</h3>
+
+<div class="mermaid">
+pie title 2026 AI IDE 定价分布
+    "免费（Google 补贴）" : 2
+    "$10-15/月" : 2
+    "$20/月" : 5
+    "$25+/月" : 1
+</div>
+
+<p>Google 用"免费换市场"的激进策略猛攻。Anthropic 和 Microsoft 靠模型质量守住付费用户。但 Antigravity 免费版的用量限制正在收紧——免费策略不是永久的。</p>
+
+<h3>趋势 3：多模型支持的不可逆</h3>
+
+<p>Cursor 支持 Claude + GPT + Gemini。Windsurf 支持全模型切换。Copilot 也加入了 Claude。纯单一模型的 IDE 正在消失——<strong>开发者不想被绑定到一个模型上</strong>。</p>
+
+<h3>趋势 4：CLI Agent 正在成为"操作系统级"接口</h3>
+
+<p>Claude Code + Codex + OpenCode + Antigravity CLI——终端不再是编辑器的辅助窗口，而是 Agent 的原生栖息地。CLI Agent 可以：</p>
+<ul>
+<li>作为 GitHub Actions 的一环自动运行</li>
+<li>被其他 Agent 作为 subagent 调用（ACP 协议）</li>
+<li>在 CI/CD 管道中执行代码审查和修复</li>
+</ul>
+
+<h3>趋势 5：SWE-bench 成为"AI IDE 的高考"</h3>
+
+<table>
+<tr><th>排名</th><th>工具/模型</th><th>SWE-bench Verified</th><th>备注</th></tr>
+<tr><td>1</td><td>Gemini 3 Flash (Antigravity)</td><td>75.8%</td><td>速度 4x 竞品</td></tr>
+<tr><td>2</td><td>Claude 4.6 Opus (Claude Code)</td><td>75.6%</td><td>精度王，1M 上下文</td></tr>
+<tr><td>3</td><td>GPT-5-2 Codex</td><td>72.8%</td><td>OpenAI 旗舰</td></tr>
+<tr><td>4</td><td>DeepSeek V3.2</td><td>70.0%</td><td>开源最强</td></tr>
+</table>
+
+<p>Antigravity 以 0.2 个百分点微弱领先。但 benchmark 分数只是<strong>必要不充分条件</strong>——真正的差异在于使用体验、工作流集成和生态系统。</p>
+
+<h2>选型决策框架</h2>
+
+<p>根据你的身份和工作场景：</p>
+
+<table>
+<tr><th>如果你...</th><th>推荐</th><th>理由</th></tr>
+<tr><td>是 VS Code 重度用户，想要最好的 AI 体验</td><td><strong>Cursor</strong></td><td>最成熟的 AI IDE，Composer 模式强大</td></tr>
+<tr><td>预算敏感，需要强大 Agent 能力</td><td><strong>Antigravity 2.0</strong></td><td>免费、SWE-bench 最高、多 Agent 编排</td></tr>
+<tr><td>在终端里工作，需要自主 Agent</td><td><strong>Claude Code</strong></td><td>终端 Agent 标准、1M 上下文、set-and-forget</td></tr>
+<tr><td>想要开源、可审计、BYOK</td><td><strong>OpenCode</strong></td><td>完全开源、带自己的 Key、ACP 协议</td></tr>
+<tr><td>是企业团队，需要合规和治理</td><td><strong>GitHub Copilot</strong></td><td>最成熟的企业方案、GitHub 无缝集成</td></tr>
+<tr><td>管理超大代码库（30 万+文件）</td><td><strong>Augment Code</strong></td><td>上下文引擎专为巨型代码库优化</td></tr>
+<tr><td>是非技术用户，想 prompt → app</td><td><strong>Lovable / Bolt</strong></td><td>浏览器原生、零安装、快速原型</td></tr>
+<tr><td>在做 AI Agent 基础设施（如 Hermes）</td><td><strong>OpenCode + Claude Code</strong></td><td>作为 subagent 集成、ACP 协议标准</td></tr>
+</table>
+
+<h2>总结</h2>
+
+<p>2026 年上半年的 AI IDE 竞争已经从"谁是更好的编辑器"变为"<strong>谁的 Agent 更自主、更可靠、更可编排</strong>"。GUI IDE 和 CLI Agent 的边界正在模糊——Antigravity 同时有桌面和 CLI，Claude Code 被嵌入 Cursor。最终赢家可能不是一个产品，而是一个<strong>协议和生态</strong>：MCP（Agent↔Tool）+ A2A（Agent↔Agent）+ ACP（IDE↔Agent）构成了 Agent 时代的通信基础设施。产品的竞争将让位于协议的竞争。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
+</body>
+</html>
