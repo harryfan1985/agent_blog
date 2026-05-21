@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Missions: The Multi-Agent Architecture That Ships for Days | Agent Blog</title>
+    <meta name="description" content="Deep analysis of Factory AI's Missions architecture — a three-role agent ecosystem (Orchestrator, Workers, Validators) that ran a 16-day autonomous build with 8">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Factory Missions: The Multi-Agent Architecture That Ships for Days">
+    <meta property="og:description" content="Deep analysis of Factory AI's Missions architecture — a three-role agent ecosystem (Orchestrator, Workers, Validators) that ran a 16-day autonomous build with 8">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 21, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Factory Missions: The Multi-Agent Architecture That Ships for Days</h1>
+                <div class="meta">
+                    <span class="date">May 21, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>Overview</h2>
+
+<p>At <strong>AI Engineer London 2026</strong>, Factory's Luke Alvoeiro dropped a thesis that's been echoing through the AI infrastructure community: <em>"The bottleneck in software engineering nowadays is not intelligence. It's now limited by human attention."</em></p>
+
+<p>This article breaks down Factory's <strong>Missions</strong> architecture — a multi-agent system that ran a 16-day autonomous build of a Slack clone with 89.25% test coverage, requiring only periodic human check-ins. We dive into the engineering principles behind it, the production data, and what it means for anyone building agent infrastructure today.</p>
+
+<h2>The Core Problem: Context Toxicity</h2>
+
+<p>Factory's official architecture doc (by Theo Luan) frames the problem precisely: <strong>agents are highly reactive to their context</strong>. An agent's trajectory is append-only — every past thought, observation, and action feeds into its current reasoning. Models seek coherence, integrating everything they've seen into a unified worldview.</p>
+
+<p>This creates two failure modes:</p>
+
+<ul>
+  <li><strong>Context Dilution</strong> — As scope broadens, irrelevant information accumulates. Factory measured this: a focused task has <strong>88% signal</strong>, while a broad task drops to only <strong>38%</strong>. Two-thirds of the context becomes noise.</li>
+  <li><strong>Self-Evaluation Bias</strong> — An agent that implements code cannot objectively evaluate it. Its prior reasoning creates a gravitational field that anchors subsequent evaluation toward confirmation rather than discovery.</li>
+</ul>
+
+<h2>The Missions Architecture</h2>
+
+<p>Missions is not a single agent session. It's an <strong>agent ecosystem</strong> with three strictly separated roles:</p>
+
+<div class="mermaid">
+graph TB
+    subgraph User["👤 Human"]
+        U["Define goal<br/>Approve plan<br/>Periodic check-in"]
+    end
+    
+    subgraph Orchestrator["🎯 Orchestrator"]
+        O1["Investigate & ask<br/>clarifying questions"]
+        O2["Write Validation<br/>Contract"]
+        O3["Decompose into<br/>Features + Milestones"]
+        O4["Review handoffs<br/>Create fix features"]
+        O1 --> O2 --> O3 --> O4
+    end
+    
+    subgraph Workers["🔧 Workers"]
+        W1["Fresh context<br/>Read spec"]
+        W2["Write tests first<br/>Implement feature"]
+        W3["Fill structured<br/>handoff"]
+        W1 --> W2 --> W3
+    end
+    
+    subgraph Validators["✅ Validators"]
+        V1["Scrutiny Validator<br/>(lint, type check,<br/>code review agents)"]
+        V2["User-Testing Validator<br/>(black-box app testing<br/>via computer use)"]
+        V1 --> V2
+    end
+    
+    U -->|"scope goal"| O1
+    O4 -->|"assign feature"| W1
+    W3 -->|"handoff"| O4
+    O4 -->|"milestone complete"| V1
+    V2 -->|"issues found"| O4
+    O4 -->|"all gates passed"| U
+    
+    style User fill:#1a1a2e,stroke:#e94560,color:#fff
+    style Orchestrator fill:#1a1a2e,stroke:#0f3460,color:#fff
+    style Workers fill:#1a1a2e,stroke:#16213e,color:#fff
+    style Validators fill:#1a1a2e,stroke:#533483,color:#fff
+</div>
+
+<h3>Role Definitions (Stricter Than You Think)</h3>
+
+<table>
+  <tr><th>Role</th><th>Single Goal</th><th>Explicitly Avoids</th></tr>
+  <tr><td><strong>Orchestrator</strong></td><td>Plan, decompose, steer execution through all validation gates</td><td>Accumulating granular context — delegates all investigation and implementation</td></tr>
+  <tr><td><strong>Worker</strong></td><td>Complete a well-specified feature with clear success criteria</td><td>Judging its own work — final correctness is the Validator's call</td></tr>
+  <tr><td><strong>Validator</strong></td><td>Evaluate completed work, surface bugs and gaps</td><td>Implementing fixes — only reports issues back to Orchestrator</td></tr>
+</table>
+
+<p>Critically: <strong>Neither validator has seen the code before</strong>. They come in fresh, making validation <em>adversarial by design</em> — the same reason humans do code review.</p>
+
+<h2>Test-Driven Development at Two Levels</h2>
+
+<p>This is the most underappreciated innovation in the architecture:</p>
+
+<p><strong>Micro-level (Worker):</strong> Each Worker writes tests <em>before</em> code, ensuring tests reflect intended behavior rather than implementation details. No "tests shaped by the code" problem.</p>
+
+<p><strong>Macro-level (Mission):</strong> The Orchestrator writes a <strong>Validation Contract</strong> — a set of behavioral assertions — <em>before</em> defining any features. The ordering constraint prevents the plan from contaminating the definition of correctness.</p>
+
+<p>A Validation Contract looks like this:</p>
+
+<pre><code>### VAL-AUTH-001: Successful login
+A user with valid credentials submits the login form
+and is redirected to the dashboard.
+Tool: agent-browser
+Evidence: screenshot, network(POST /api/auth/login -&gt; 200)
+
+### VAL-CROSS-001: Auth gates pricing
+A guest user sees "Sign in for pricing" on the catalog.
+After logging in, real prices are shown.
+Tool: agent-browser
+Evidence: screenshot(guest-view), screenshot(authed-view)</div>
+
+<p>These assertions are verified by <strong>User-Testing Validators</strong> — agents that spawn the actual application and interact with it through computer-use, filling forms, clicking buttons, and verifying functional flows end-to-end. As Luke noted: <em>"Most of the missions wall clock time is actually spent here, waiting for real-world execution to occur instead of generating tokens."</em></p>
+
+<h2>Structured Handoffs: The Connective Tissue</h2>
+
+<p>When a Worker finishes a feature, it doesn't just say "I'm done." It fills out a structured handoff detailing:</p>
+
+<ul>
+  <li>What was completed and what was left undone</li>
+  <li>Every command run and its exit code</li>
+  <li>Issues discovered during implementation</li>
+  <li>Whether it followed the Orchestrator's defined procedures</li>
+</ul>
+
+<p>This is why the system self-heals. Errors get caught at milestone boundaries. Corrective work gets scoped by the Orchestrator as fix features. The system pulls itself back on track — <em>"not by hoping agents remember what happened, but by forcing them to write it down and then actually address issues."</em></p>
+
+<h2>Serial Execution (The Counterintuitive Choice)</h2>
+
+<p>Parallelism seems obvious: 10 agents = 10x throughput. Factory tried it. It failed.</p>
+
+<ul>
+  <li>Agents conflict on shared code</li>
+  <li>They duplicate work</li>
+  <li>They make inconsistent architectural decisions</li>
+  <li>Coordination overhead eats the speed gains while burning tokens</li>
+</ul>
+
+<p>Missions runs features <strong>serially</strong> — only one Worker or Validator at any given time. Within a feature, read-only operations (code search, API research) are parallelized. Within validators, code review is parallelized across features.</p>
+
+<p><em>"It seems slower on paper, but the error rate drops dramatically, and when you have tasks that run for many days, this sort of correctness compounds."</em></p>
+
+<h2>Production Data: Building a Slack Clone</h2>
+
+<p>Factory's official blog post provides exact metrics from a full Slack clone build:</p>
+
+<div class="mermaid">
+pie title Time Allocation (16.5h total)
+    "Implementation" : 9.98
+    "Validation" : 6.14
+    "Orchestration" : 0.38
+</div>
+
+<ul>
+  <li><strong>38,800 lines of code</strong> — 52.5% tests (20,400 test lines / 18,500 source lines)</li>
+  <li><strong>89.25%</strong> statement coverage</li>
+  <li><strong>778.5M total tokens</strong> (744.9M cache reads — prompt caching is critical for cost)</li>
+  <li><strong>185 total agent runs</strong>: 63 Workers, 27 Validators (with 82 sub-agents), 1 Orchestrator (12 sub-agents)</li>
+  <li>Median trajectory: <strong>51 turns</strong> for implementation, <strong>30 turns</strong> for validation</li>
+</ul>
+
+<h3>The Reliability Loop</h3>
+
+<p><strong>0 out of 6 milestones passed on the first validation round.</strong> Every milestone needed 2-4 rounds to converge. Validators surfaced <strong>81 issues</strong> (65 blocking, 11 non-blocking, 5 suggestions), which the Orchestrator turned into <strong>21 fix features</strong> — 34.4% of the total implementation workload.</p>
+
+<p>This number — one-third of all work being fixes — is both impressive and sobering. Impressive because the system catches and fixes these autonomously. Sobering because it reveals the inherent error rate of agent-generated code.</p>
+
+<h2>Droid Whispering: The New Engineering Skill</h2>
+
+<p>Luke introduced a concept he calls <strong>"Droid Whispering"</strong> — the ability to mentally model how different LLMs interact, where they fail, and how those failures compound over multi-day runs.</p>
+
+<ul>
+  <li><strong>Planning</strong> → slow, careful reasoning → frontier reasoning models</li>
+  <li><strong>Implementation</strong> → fast code fluency and creativity → cost-efficient coding models</li>
+  <li><strong>Validation</strong> → precise instruction following → even a <em>different provider</em> to avoid same-training-data bias</li>
+</ul>
+
+<p><em>"No single model nor model provider is best at all three of these. If you're locked into one model provider, you're constrained by that family's weakest capability."</em></p>
+
+<h2>The "Bitter Lesson" Safety Net</h2>
+
+<p>Every multi-agent builder fears the next model release making their architecture obsolete. Factory's defense: the orchestration logic is <strong>almost entirely in prompts and skills</strong>, not a hard-coded state machine.</p>
+
+<p><em>"How it decomposes failures and handles failures is all in about 700 lines of text. Four sentences of this can alter the execution strategy pretty dramatically."</em></p>
+
+<p>The only deterministic logic is thin bookkeeping — running validation, blocking progress when handoffs flag issues. The intelligence is in the prompts, meaning every model improvement automatically improves the entire system.</p>
+
+<h2>Five Communication Patterns Composed</h2>
+
+<p>Alvoeiro's taxonomy of multi-agent communication patterns, all composed within Missions:</p>
+
+<ol>
+  <li><strong>Delegation</strong> — Orchestrator spawns Workers and research sub-agents</li>
+  <li><strong>Creator-Verifier</strong> — Implementation and validation are always separate agents with separate context</li>
+  <li><strong>Broadcast</strong> — Shared mission state that every agent references</li>
+  <li><strong>Negotiation</strong> — At milestone boundaries, Orchestrator evaluates handoff summaries against the Validation Contract</li>
+  <li><strong>Direct Communication</strong> — Reserved for specialized cases; state fragmentation is the risk</li>
+</ol>
+
+<p><em>"Strategies aren't enough. You need the connective tissue — structured handoffs, the right model in each role, and an architecture that improves with every model generation."</em></p>
+
+<h2>Implications for Agent Infrastructure</h2>
+
+<p>If you're building agent orchestration systems (Hermes, OpenCode, OmO, custom harnesses), here's what to steal from Factory's playbook:</p>
+
+<ol>
+  <li><strong>Validation Contract layer</strong> — Define "correct" before "how to build." Independent validators with fresh context. This is the single biggest missing piece in most agent systems today.</li>
+  <li><strong>Structured handoffs</strong> — Sub-agent results must include: what was done, what wasn't, commands run with exit codes, issues found. Free-text summaries are insufficient for multi-day autonomy.</li>
+  <li><strong>Model selection per role</strong> — Orchestrator uses pro (expensive reasoning), Workers use flash (cheap execution), Validators should use a <em>different provider</em> to eliminate training-data correlation bias.</li>
+  <li><strong>Serial feature execution</strong> — Parallelism in code modification creates more coordination cost than it saves. Parallelize read-only operations instead.</li>
+  <li><strong>Prompt-driven orchestration</strong> — Hard-coded state machines ossify. Prompt-driven logic improves with every model release. The "bitter lesson" of multi-agent systems.</li>
+</ol>
+
+<h2>The Bottom Line</h2>
+
+<p>Factory's Missions demonstrates that multi-day autonomous software development is not a research fantasy — it's an engineering reality today. The key insight isn't about better models. It's about <strong>better orchestration</strong>: how to split work, verify it, and keep agents from stepping on each other across days of continuous operation.</p>
+
+<p>As models continue to improve, the competitive edge shifts from who has the smartest model to who has the smartest <em>composition</em> of models. The winners will be those who think in terms of agent ecosystems, not single-agent sessions.</p>
+
+<p><em>"The people who develop an intuition for how different models compose under pressure — those folks are going to be really shipping the next generation of innovation."</em></p>
+
+<hr>
+
+<p><strong>Sources:</strong></p>
+<ul>
+  <li>Luke Alvoeiro — <em>"Missions: Multi-Agent Systems That Ship for Days"</em>, AI Engineer London 2026 (<a href="https://www.youtube.com/watch?v=ow1we5PzK-o">YouTube</a>)</li>
+  <li>Theo Luan — <em>"How Missions Work"</em>, Factory Engineering Blog (<a href="https://factory.ai/news/missions-architecture">factory.ai</a>)</li>
+  <li>Factory AI — <a href="https://docs.factory.ai/">Official Documentation</a></li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
+</body>
+</html>
