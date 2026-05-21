@@ -1,9 +1,9 @@
 posts:
-- title: AI 时代开发环境的核心技术依赖：从意图表达到异常干预
+- title: Agent 时代开发环境的核心技术依赖：从意图表达到异常干预
   date: May 21, 2026
-  excerpt: 如果开发者的角色从"写代码"变成"定意图 + 管异常"，需要什么样的技术底座？拆解 12 项核心技术依赖——Behavior Contract
-    DSL、Intent VCS、Agent Trajectory Observability、Architecture Drift Detection 等——并分析现状：6
-    项完全不存在，4 项仅有雏形。结论：最重要的依赖不是 AI 工具，而是确定性 SE 工具的升级。
+  excerpt: Agent 时代，如果开发者的角色从"写代码"变成"定意图 + 管异常"，需要什么样的技术底座？拆解 12 项核心技术依赖——Behavior
+    Contract DSL、Intent VCS、Agent Trajectory Observability、Architecture Drift Detection
+    等——并分析现状：6 项完全不存在，4 项仅有雏形。结论：最重要的依赖不是 AI 工具，而是确定性 SE 工具的升级。
   content: "<h2>从\"是什么\"到\"依赖什么\"</h2>\n\n<p>这是 AI 时代开发环境三部曲的第三篇：</p>\n\n<ol>\n  <li><a\
     \ href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
     >Factory Missions 深度分析</a> — Agent 系统能自主构建什么</li>\n  <li><a href=\"/agent_blog/posts/ai-ide.html\"\
