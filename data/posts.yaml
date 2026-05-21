@@ -222,180 +222,108 @@ posts:
     >YouTube</a>)</li>\n</ul>\n"
 - title: 'Factory Missions: The Multi-Agent Architecture That Ships for Days'
   date: May 21, 2026
-  excerpt: Deep analysis of Factory AI's Missions architecture — a three-role agent
-    ecosystem (Orchestrator, Workers, Validators) that ran a 16-day autonomous build
-    with 89.25% test coverage. Covers validation contracts, structured handoffs, two-level
-    TDD, Droid Whispering, and production data from a Slack clone build.
-  content: "<h2>Overview</h2>\n\n<p>At <strong>AI Engineer London 2026</strong>, Factory's\
-    \ Luke Alvoeiro dropped a thesis that's been echoing through the AI infrastructure\
-    \ community: <em>\"The bottleneck in software engineering nowadays is not intelligence.\
-    \ It's now limited by human attention.\"</em></p>\n\n<p>This article breaks down\
-    \ Factory's <strong>Missions</strong> architecture — a multi-agent system that\
-    \ ran a 16-day autonomous build of a Slack clone with 89.25% test coverage, requiring\
-    \ only periodic human check-ins. We dive into the engineering principles behind\
-    \ it, the production data, and what it means for anyone building agent infrastructure\
-    \ today.</p>\n\n<h2>The Core Problem: Context Toxicity</h2>\n\n<p>Factory's official\
-    \ architecture doc (by Theo Luan) frames the problem precisely: <strong>agents\
-    \ are highly reactive to their context</strong>. An agent's trajectory is append-only\
-    \ — every past thought, observation, and action feeds into its current reasoning.\
-    \ Models seek coherence, integrating everything they've seen into a unified worldview.</p>\n\
-    \n<p>This creates two failure modes:</p>\n\n<ul>\n  <li><strong>Context Dilution</strong>\
-    \ — As scope broadens, irrelevant information accumulates. Factory measured this:\
-    \ a focused task has <strong>88% signal</strong>, while a broad task drops to\
-    \ only <strong>38%</strong>. Two-thirds of the context becomes noise.</li>\n \
-    \ <li><strong>Self-Evaluation Bias</strong> — An agent that implements code cannot\
-    \ objectively evaluate it. Its prior reasoning creates a gravitational field that\
-    \ anchors subsequent evaluation toward confirmation rather than discovery.</li>\n\
-    </ul>\n\n<h2>The Missions Architecture</h2>\n\n<p>Missions is not a single agent\
-    \ session. It's an <strong>agent ecosystem</strong> with three strictly separated\
-    \ roles:</p>\n\n<pre><code class=\"language-mermaid\">\ngraph TB\n    subgraph\
-    \ User[\"\U0001F464 Human\"]\n        U[\"Define goal<br/>Approve plan<br/>Periodic\
-    \ check-in\"]\n    end\n    \n    subgraph Orchestrator[\"\U0001F3AF Orchestrator\"\
-    ]\n        O1[\"Investigate & ask<br/>clarifying questions\"]\n        O2[\"Write\
-    \ Validation<br/>Contract\"]\n        O3[\"Decompose into<br/>Features + Milestones\"\
-    ]\n        O4[\"Review handoffs<br/>Create fix features\"]\n        O1 --> O2\
-    \ --> O3 --> O4\n    end\n    \n    subgraph Workers[\"\U0001F527 Workers\"]\n\
-    \        W1[\"Fresh context<br/>Read spec\"]\n        W2[\"Write tests first<br/>Implement\
-    \ feature\"]\n        W3[\"Fill structured<br/>handoff\"]\n        W1 --> W2 -->\
-    \ W3\n    end\n    \n    subgraph Validators[\"✅ Validators\"]\n        V1[\"\
-    Scrutiny Validator<br/>(lint, type check,<br/>code review agents)\"]\n       \
-    \ V2[\"User-Testing Validator<br/>(black-box app testing<br/>via computer use)\"\
-    ]\n        V1 --> V2\n    end\n    \n    U -->|\"scope goal\"| O1\n    O4 -->|\"\
-    assign feature\"| W1\n    W3 -->|\"handoff\"| O4\n    O4 -->|\"milestone complete\"\
-    | V1\n    V2 -->|\"issues found\"| O4\n    O4 -->|\"all gates passed\"| U\n  \
-    \  \n    style User fill:#1a1a2e,stroke:#e94560,color:#fff\n    style Orchestrator\
-    \ fill:#1a1a2e,stroke:#0f3460,color:#fff\n    style Workers fill:#1a1a2e,stroke:#16213e,color:#fff\n\
-    \    style Validators fill:#1a1a2e,stroke:#533483,color:#fff\n</code></pre>\n\n\
-    <h3>Role Definitions (Stricter Than You Think)</h3>\n\n<table>\n  <tr><th>Role</th><th>Single\
-    \ Goal</th><th>Explicitly Avoids</th></tr>\n  <tr><td><strong>Orchestrator</strong></td><td>Plan,\
-    \ decompose, steer execution through all validation gates</td><td>Accumulating\
-    \ granular context — delegates all investigation and implementation</td></tr>\n\
-    \  <tr><td><strong>Worker</strong></td><td>Complete a well-specified feature with\
-    \ clear success criteria</td><td>Judging its own work — final correctness is the\
-    \ Validator's call</td></tr>\n  <tr><td><strong>Validator</strong></td><td>Evaluate\
-    \ completed work, surface bugs and gaps</td><td>Implementing fixes — only reports\
-    \ issues back to Orchestrator</td></tr>\n</table>\n\n<p>Critically: <strong>Neither\
-    \ validator has seen the code before</strong>. They come in fresh, making validation\
-    \ <em>adversarial by design</em> — the same reason humans do code review.</p>\n\
-    \n<h2>Test-Driven Development at Two Levels</h2>\n\n<p>This is the most underappreciated\
-    \ innovation in the architecture:</p>\n\n<p><strong>Micro-level (Worker):</strong>\
-    \ Each Worker writes tests <em>before</em> code, ensuring tests reflect intended\
-    \ behavior rather than implementation details. No \"tests shaped by the code\"\
-    \ problem.</p>\n\n<p><strong>Macro-level (Mission):</strong> The Orchestrator\
-    \ writes a <strong>Validation Contract</strong> — a set of behavioral assertions\
-    \ — <em>before</em> defining any features. The ordering constraint prevents the\
-    \ plan from contaminating the definition of correctness.</p>\n\n<p>A Validation\
-    \ Contract looks like this:</p>\n\n<pre><code>### VAL-AUTH-001: Successful login\n\
-    A user with valid credentials submits the login form\nand is redirected to the\
-    \ dashboard.\nTool: agent-browser\nEvidence: screenshot, network(POST /api/auth/login\
-    \ -&gt; 200)\n\n### VAL-CROSS-001: Auth gates pricing\nA guest user sees \"Sign\
-    \ in for pricing\" on the catalog.\nAfter logging in, real prices are shown.\n\
-    Tool: agent-browser\nEvidence: screenshot(guest-view), screenshot(authed-view)</code></pre>\n\
-    \n<p>These assertions are verified by <strong>User-Testing Validators</strong>\
-    \ — agents that spawn the actual application and interact with it through computer-use,\
-    \ filling forms, clicking buttons, and verifying functional flows end-to-end.\
-    \ As Luke noted: <em>\"Most of the missions wall clock time is actually spent\
-    \ here, waiting for real-world execution to occur instead of generating tokens.\"\
-    </em></p>\n\n<h2>Structured Handoffs: The Connective Tissue</h2>\n\n<p>When a\
-    \ Worker finishes a feature, it doesn't just say \"I'm done.\" It fills out a\
-    \ structured handoff detailing:</p>\n\n<ul>\n  <li>What was completed and what\
-    \ was left undone</li>\n  <li>Every command run and its exit code</li>\n  <li>Issues\
-    \ discovered during implementation</li>\n  <li>Whether it followed the Orchestrator's\
-    \ defined procedures</li>\n</ul>\n\n<p>This is why the system self-heals. Errors\
-    \ get caught at milestone boundaries. Corrective work gets scoped by the Orchestrator\
-    \ as fix features. The system pulls itself back on track — <em>\"not by hoping\
-    \ agents remember what happened, but by forcing them to write it down and then\
-    \ actually address issues.\"</em></p>\n\n<h2>Serial Execution (The Counterintuitive\
-    \ Choice)</h2>\n\n<p>Parallelism seems obvious: 10 agents = 10x throughput. Factory\
-    \ tried it. It failed.</p>\n\n<ul>\n  <li>Agents conflict on shared code</li>\n\
-    \  <li>They duplicate work</li>\n  <li>They make inconsistent architectural decisions</li>\n\
-    \  <li>Coordination overhead eats the speed gains while burning tokens</li>\n\
-    </ul>\n\n<p>Missions runs features <strong>serially</strong> — only one Worker\
-    \ or Validator at any given time. Within a feature, read-only operations (code\
-    \ search, API research) are parallelized. Within validators, code review is parallelized\
-    \ across features.</p>\n\n<p><em>\"It seems slower on paper, but the error rate\
-    \ drops dramatically, and when you have tasks that run for many days, this sort\
-    \ of correctness compounds.\"</em></p>\n\n<h2>Production Data: Building a Slack\
-    \ Clone</h2>\n\n<p>Factory's official blog post provides exact metrics from a\
-    \ full Slack clone build:</p>\n\n<pre><code class=\"language-mermaid\">\npie title\
-    \ Time Allocation (16.5h total)\n    \"Implementation\" : 9.98\n    \"Validation\"\
-    \ : 6.14\n    \"Orchestration\" : 0.38\n</code></pre>\n\n<ul>\n  <li><strong>38,800\
-    \ lines of code</strong> — 52.5% tests (20,400 test lines / 18,500 source lines)</li>\n\
-    \  <li><strong>89.25%</strong> statement coverage</li>\n  <li><strong>778.5M total\
-    \ tokens</strong> (744.9M cache reads — prompt caching is critical for cost)</li>\n\
-    \  <li><strong>185 total agent runs</strong>: 63 Workers, 27 Validators (with\
-    \ 82 sub-agents), 1 Orchestrator (12 sub-agents)</li>\n  <li>Median trajectory:\
-    \ <strong>51 turns</strong> for implementation, <strong>30 turns</strong> for\
-    \ validation</li>\n</ul>\n\n<h3>The Reliability Loop</h3>\n\n<p><strong>0 out\
-    \ of 6 milestones passed on the first validation round.</strong> Every milestone\
-    \ needed 2-4 rounds to converge. Validators surfaced <strong>81 issues</strong>\
-    \ (65 blocking, 11 non-blocking, 5 suggestions), which the Orchestrator turned\
-    \ into <strong>21 fix features</strong> — 34.4% of the total implementation workload.</p>\n\
-    \n<p>This number — one-third of all work being fixes — is both impressive and\
-    \ sobering. Impressive because the system catches and fixes these autonomously.\
-    \ Sobering because it reveals the inherent error rate of agent-generated code.</p>\n\
-    \n<h2>Droid Whispering: The New Engineering Skill</h2>\n\n<p>Luke introduced a\
-    \ concept he calls <strong>\"Droid Whispering\"</strong> — the ability to mentally\
-    \ model how different LLMs interact, where they fail, and how those failures compound\
-    \ over multi-day runs.</p>\n\n<ul>\n  <li><strong>Planning</strong> → slow, careful\
-    \ reasoning → frontier reasoning models</li>\n  <li><strong>Implementation</strong>\
-    \ → fast code fluency and creativity → cost-efficient coding models</li>\n  <li><strong>Validation</strong>\
-    \ → precise instruction following → even a <em>different provider</em> to avoid\
-    \ same-training-data bias</li>\n</ul>\n\n<p><em>\"No single model nor model provider\
-    \ is best at all three of these. If you're locked into one model provider, you're\
-    \ constrained by that family's weakest capability.\"</em></p>\n\n<h2>The \"Bitter\
-    \ Lesson\" Safety Net</h2>\n\n<p>Every multi-agent builder fears the next model\
-    \ release making their architecture obsolete. Factory's defense: the orchestration\
-    \ logic is <strong>almost entirely in prompts and skills</strong>, not a hard-coded\
-    \ state machine.</p>\n\n<p><em>\"How it decomposes failures and handles failures\
-    \ is all in about 700 lines of text. Four sentences of this can alter the execution\
-    \ strategy pretty dramatically.\"</em></p>\n\n<p>The only deterministic logic\
-    \ is thin bookkeeping — running validation, blocking progress when handoffs flag\
-    \ issues. The intelligence is in the prompts, meaning every model improvement\
-    \ automatically improves the entire system.</p>\n\n<h2>Five Communication Patterns\
-    \ Composed</h2>\n\n<p>Alvoeiro's taxonomy of multi-agent communication patterns,\
-    \ all composed within Missions:</p>\n\n<ol>\n  <li><strong>Delegation</strong>\
-    \ — Orchestrator spawns Workers and research sub-agents</li>\n  <li><strong>Creator-Verifier</strong>\
-    \ — Implementation and validation are always separate agents with separate context</li>\n\
-    \  <li><strong>Broadcast</strong> — Shared mission state that every agent references</li>\n\
-    \  <li><strong>Negotiation</strong> — At milestone boundaries, Orchestrator evaluates\
-    \ handoff summaries against the Validation Contract</li>\n  <li><strong>Direct\
-    \ Communication</strong> — Reserved for specialized cases; state fragmentation\
-    \ is the risk</li>\n</ol>\n\n<p><em>\"Strategies aren't enough. You need the connective\
-    \ tissue — structured handoffs, the right model in each role, and an architecture\
-    \ that improves with every model generation.\"</em></p>\n\n<h2>Implications for\
-    \ Agent Infrastructure</h2>\n\n<p>If you're building agent orchestration systems\
-    \ (Hermes, OpenCode, OmO, custom harnesses), here's what to steal from Factory's\
-    \ playbook:</p>\n\n<ol>\n  <li><strong>Validation Contract layer</strong> — Define\
-    \ \"correct\" before \"how to build.\" Independent validators with fresh context.\
-    \ This is the single biggest missing piece in most agent systems today.</li>\n\
-    \  <li><strong>Structured handoffs</strong> — Sub-agent results must include:\
-    \ what was done, what wasn't, commands run with exit codes, issues found. Free-text\
-    \ summaries are insufficient for multi-day autonomy.</li>\n  <li><strong>Model\
-    \ selection per role</strong> — Orchestrator uses pro (expensive reasoning), Workers\
-    \ use flash (cheap execution), Validators should use a <em>different provider</em>\
-    \ to eliminate training-data correlation bias.</li>\n  <li><strong>Serial feature\
-    \ execution</strong> — Parallelism in code modification creates more coordination\
-    \ cost than it saves. Parallelize read-only operations instead.</li>\n  <li><strong>Prompt-driven\
-    \ orchestration</strong> — Hard-coded state machines ossify. Prompt-driven logic\
-    \ improves with every model release. The \"bitter lesson\" of multi-agent systems.</li>\n\
-    </ol>\n\n<h2>The Bottom Line</h2>\n\n<p>Factory's Missions demonstrates that multi-day\
-    \ autonomous software development is not a research fantasy — it's an engineering\
-    \ reality today. The key insight isn't about better models. It's about <strong>better\
-    \ orchestration</strong>: how to split work, verify it, and keep agents from stepping\
-    \ on each other across days of continuous operation.</p>\n\n<p>As models continue\
-    \ to improve, the competitive edge shifts from who has the smartest model to who\
-    \ has the smartest <em>composition</em> of models. The winners will be those who\
-    \ think in terms of agent ecosystems, not single-agent sessions.</p>\n\n<p><em>\"\
-    The people who develop an intuition for how different models compose under pressure\
-    \ — those folks are going to be really shipping the next generation of innovation.\"\
-    </em></p>\n\n<hr>\n\n<p><strong>Sources:</strong></p>\n<ul>\n  <li>Luke Alvoeiro\
-    \ — <em>\"Missions: Multi-Agent Systems That Ship for Days\"</em>, AI Engineer\
-    \ London 2026 (<a href=\"https://www.youtube.com/watch?v=ow1we5PzK-o\">YouTube</a>)</li>\n\
-    \  <li>Theo Luan — <em>\"How Missions Work\"</em>, Factory Engineering Blog (<a\
-    \ href=\"https://factory.ai/news/missions-architecture\">factory.ai</a>)</li>\n\
-    \  <li>Factory AI — <a href=\"https://docs.factory.ai/\">Official Documentation</a></li>\n\
-    </ul>\n"
+  excerpt: 深度拆解 Factory AI 的 Missions 架构：三层角色分工（编排器/执行器/验证器）、两个层次的 TDD、验证合约机制、16 天自主构建
+    Slack 克隆版的生产数据（38.8k 行代码、89.25% 覆盖率）。核心洞察：竞争优势从"模型智能"转向"模型组合智能"。
+  content: "<h2>概述</h2>\n\n<p>2026 年 5 月，在 <strong>AI Engineer London</strong> 大会上，Factory\
+    \ 的 Luke Alvoeiro 抛出了一个在 AI 基础设施圈持续发酵的论点：<em>\"软件工程的瓶颈不再是模型的智能水平，而是人类的注意力带宽。\"\
+    </em></p>\n\n<p>本文深度拆解 Factory 的 <strong>Missions</strong> 架构——一个让多 Agent 系统自主运行\
+    \ 16 天、构建出 Slack 克隆版、测试覆盖率达 89.25% 的工程系统。我们将从设计原理、生产数据、架构取舍三个维度，分析这对每一个正在构建 Agent\
+    \ 基础设施的人意味着什么。</p>\n\n<h2>核心问题：上下文的\"毒性\"</h2>\n\n<p>Factory 官方架构文档（作者 Theo Luan）对问题的定义非常精确：<strong>Agent\
+    \ 对上下文高度敏感</strong>。Agent 的执行轨迹是只追加的——模型在任一点的推理，是其迄今为止看到的每一个思考、每一次观察、每一步操作的函数。模型天然寻求连贯性，会把上下文中的一切整合成一个统一的世界观。</p>\n\
+    \n<p>这导致了两种致命失败模式：</p>\n\n<ul>\n  <li><strong>上下文稀释（Context Dilution）</strong>——随着任务范围变宽，无关信息不断堆积。Factory\
+    \ 给出了量化数据：聚焦任务中，<strong>有用信号占 88%</strong>；宽泛任务中，信号占比暴跌至 <strong>38%</strong>。近三分之二的上下文变成了噪音。</li>\n\
+    \  <li><strong>自我评估偏差（Self-Evaluation Bias）</strong>——一个实现了某段代码的 Agent，天然无法客观评估自己的工作。它在实现过程中积累的推理步骤形成了一个\"\
+    引力场\"，后续的评估被这个场锚定，倾向于确认而非发现错误。</li>\n</ul>\n\n<h2>Missions 架构全景</h2>\n\n<p>Missions\
+    \ 不是一个单 Agent 会话。它是以三个角色严格分工的 <strong>Agent 生态系统</strong>：</p>\n\n<pre><code class=\"\
+    language-mermaid\">\ngraph TB\n    subgraph User[\"\U0001F464 人类\"]\n        U[\"\
+    定义目标<br/>审批计划<br/>周期性检查\"]\n    end\n    \n    subgraph Orchestrator[\"\U0001F3AF\
+    \ 编排器\"]\n        O1[\"调研需求<br/>澄清歧义\"]\n        O2[\"撰写验证合约<br/>(Validation Contract)\"\
+    ]\n        O3[\"分解为<br/>Feature + Milestone\"]\n        O4[\"审查 Handoff<br/>生成修复\
+    \ Feature\"]\n        O1 --> O2 --> O3 --> O4\n    end\n    \n    subgraph Workers[\"\
+    \U0001F527 执行器\"]\n        W1[\"全新上下文<br/>读取规格\"]\n        W2[\"先写测试<br/>再实现\"\
+    ]\n        W3[\"填写结构化<br/>Handoff\"]\n        W1 --> W2 --> W3\n    end\n    \n\
+    \    subgraph Validators[\"✅ 验证器\"]\n        V1[\"审查验证器<br/>(lint, 类型检查,<br/>Code\
+    \ Review Agent)\"]\n        V2[\"用户测试验证器<br/>(黑盒应用测试<br/>通过 computer use)\"]\n\
+    \        V1 --> V2\n    end\n    \n    U -->|\"定目标\"| O1\n    O4 -->|\"分配 Feature\"\
+    | W1\n    W3 -->|\"Handoff 交接\"| O4\n    O4 -->|\"Milestone 完成\"| V1\n    V2 -->|\"\
+    发现问题\"| O4\n    O4 -->|\"全部验证通过\"| U\n    \n    style User fill:#1a1a2e,stroke:#e94560,color:#fff\n\
+    \    style Orchestrator fill:#1a1a2e,stroke:#0f3460,color:#fff\n    style Workers\
+    \ fill:#1a1a2e,stroke:#16213e,color:#fff\n    style Validators fill:#1a1a2e,stroke:#533483,color:#fff\n\
+    </code></pre>\n\n<h3>角色定义（比你想象的更严格）</h3>\n\n<table>\n  <tr><th>角色</th><th>唯一目标</th><th>刻意避免什么</th></tr>\n\
+    \  <tr><td><strong>编排器<br/>Orchestrator</strong></td><td>规划、分解、引导执行直到通过所有验证门控</td><td>积累细粒度上下文——所有调查和实现全部委托出去</td></tr>\n\
+    \  <tr><td><strong>执行器<br/>Worker</strong></td><td>完成一个有明确验收标准的 Feature</td><td>判断自己工作的最终正确性——那是验证器的职责</td></tr>\n\
+    \  <tr><td><strong>验证器<br/>Validator</strong></td><td>评估已完成工作的正确性和完整性，暴露 Bug 和缺口</td><td>实现修复——只把问题报告给编排器，由编排器生成\
+    \ Fix Feature</td></tr>\n</table>\n\n<p>关键约束：<strong>两个验证器都从未见过代码实现</strong>。它们带着全新的上下文进入，这使得验证天然具有对抗性——就像人类做\
+    \ Code Review 时，审查者比实现者更容易发现问题。</p>\n\n<h2>两个层次的 TDD——最被低估的设计</h2>\n\n<p>这是 Missions\
+    \ 架构中最精巧、也最容易被忽视的创新。TDD 在两个尺度上同时运作：</p>\n\n<p><strong>微观层（Worker 级别）：</strong>每个\
+    \ Worker <em>先写测试再写代码</em>，确保测试反映的是<strong>意图行为</strong>（intended behavior），而非实现细节。彻底消除了\"\
+    测试跟着代码走\"的确认偏差。</p>\n\n<p><strong>宏观层（Mission 级别）：</strong>编排器在定义任何 Feature <em>之前</em>，先撰写一份\
+    \ <strong>验证合约（Validation Contract）</strong>——一组可测试的行为断言，独立于实现定义\"什么是正确\"。</p>\n\
+    \n<p>这个顺序约束至关重要：如果编排器先创建了 Feature，验证合约就会不可避免地被它已经形成的实现方案所污染。先定义\"对\"，再分解\"怎么做\"\
+    ——这个顺序本身就是一道防火墙。</p>\n\n<p>验证合约长这样：</p>\n\n<pre><code>### VAL-AUTH-001: 登录成功\n\
+    拥有有效凭证的用户提交登录表单后，\n被重定向到 dashboard。\n工具：agent-browser\n证据：截图, network(POST /api/auth/login\
+    \ -> 200)\n\n### VAL-CROSS-001: 认证控制定价页可见性\n未登录用户在 catalog 页看到\"登录后查看价格\"。\n登录后，真实价格展示。\n\
+    工具：agent-browser\n证据：screenshot(未登录视图), screenshot(已登录视图)</code></pre>\n\n<p>这些断言由<strong>用户测试验证器（User-Testing\
+    \ Validator）</strong>以黑盒方式验证——启动真实应用、通过 computer use 交互、填写表单、点击按钮、验证端到端功能流程。如\
+    \ Luke 在演讲中所说：<em>\"Missions 的大部分 wall clock time 其实花在这里——等待真实世界执行发生，而非生成 token。\"\
+    </em></p>\n\n<h2>结构化 Handoff：系统的结缔组织</h2>\n\n<p>Worker 完成一个 Feature 时，不会只说\"做完了\"\
+    。它必须填写一份<strong>结构化 Handoff</strong>，包含：</p>\n\n<ul>\n  <li>完成了什么、未完成什么</li>\n\
+    \  <li>执行过的每一条命令及其退出码</li>\n  <li>实现过程中发现的问题</li>\n  <li>是否遵循了编排器定义的操作规程</li>\n\
+    </ul>\n\n<p>这就是系统自我修复的机制。错误在 Milestone 边界被捕获。编排器将纠正工作转化为 Fix Feature 分配给新 Worker。系统自己把自己拉回正轨——<em>\"\
+    不是靠 Agent 记住发生了什么，而是强制它们写下来，然后真正去解决问题。\"</em></p>\n\n<h2>串行执行——反直觉的正确选择</h2>\n\
+    \n<p>并行看似理所当然：10 个 Agent = 10 倍吞吐量。Factory 试过了。行不通。</p>\n\n<ul>\n  <li>Agent 在共享代码上发生冲突</li>\n\
+    \  <li>重复工作大量出现</li>\n  <li>架构决策不一致</li>\n  <li>协调开销吞噬了速度收益，同时狂烧 token</li>\n\
+    </ul>\n\n<p>Missions 采用 <strong>串行执行 Feature</strong>——同一时间只有一个 Worker 或 Validator\
+    \ 在运行。但在 Feature 内部，只读操作（代码搜索、API 调研）被并行化。在验证阶段，Code Review 跨 Feature 并发执行。</p>\n\
+    \n<p><em>\"纸面上看起来更慢，但错误率大幅下降。当任务需要跑很多天时，这种正确性的复利效应远超并行带来的表面加速。\"</em></p>\n\n\
+    <h2>生产数据：构建一个 Slack 克隆版</h2>\n\n<p>Factory 官方博客提供了完整 Slack 克隆版构建的精确指标：</p>\n\n\
+    <pre><code class=\"language-mermaid\">\npie title 时间分配 (总计 16.5 小时)\n    \"实现\
+    \ (Implementation)\" : 9.98\n    \"验证 (Validation)\" : 6.14\n    \"编排 (Orchestration)\"\
+    \ : 0.38\n</code></pre>\n\n<ul>\n  <li><strong>38,800 行代码</strong>——其中 <strong>52.5%\
+    \ 是测试</strong>（20,400 行测试 / 18,500 行业务代码）</li>\n  <li><strong>89.25%</strong>\
+    \ 语句覆盖率</li>\n  <li><strong>7.785 亿总 token</strong>（其中 7.449 亿是缓存读取——Prompt Caching\
+    \ 是成本控制的关键）</li>\n  <li><strong>185 次 Agent 运行</strong>：63 次 Worker、27 次 Validator（含\
+    \ 82 个子 Agent）、1 次编排器（含 12 个子 Agent）</li>\n  <li>中位轨迹长度：实现 <strong>51 轮</strong>（P90=123），验证\
+    \ <strong>30 轮</strong>（P90=37）</li>\n</ul>\n\n<h3>可靠性闭环</h3>\n\n<p><strong>6\
+    \ 个 Milestone 中，0 个在第一轮验证通过。</strong>每个 Milestone 需要 2-4 轮验证才能收敛。验证器共发现 <strong>81\
+    \ 个问题</strong>（65 个阻塞级、11 个非阻塞、5 个建议），编排器将其转化为 <strong>21 个 Fix Feature</strong>——占实现总工作量的\
+    \ <strong>34.4%</strong>。</p>\n\n<p>这个数字——超过三分之一的工作是修复——既令人震撼，又令人清醒。震撼是因为系统自主发现并修复了这些问题，清醒是因为它揭示了\
+    \ Agent 生成代码的固有错误率。</p>\n\n<h2>Droid Whispering：一种新的工程技能</h2>\n\n<p>Luke 提出了一个他称之为\
+    \ <strong>\"Droid Whispering\"（机器低语者）</strong> 的概念——一种能够在大脑中模拟不同 LLM 如何交互、在哪些点会失败、这些失败如何在多天运行中复合并放大，然后有意识地选择哪个模型坐在哪个位置上的能力。</p>\n\
+    \n<ul>\n  <li><strong>规划（Planning）</strong>→ 需要慢速、谨慎的推理 → 顶尖推理模型</li>\n  <li><strong>实现（Implementation）</strong>→\
+    \ 需要快速的代码流畅性和创造力 → 高性价比编程模型</li>\n  <li><strong>验证（Validation）</strong>→ 需要精确的指令遵循\
+    \ → 甚至使用<em>不同的模型提供商</em>，消除相同训练数据的偏差</li>\n</ul>\n\n<p><em>\"没有一个模型或模型提供商能在这三者上都做到最好。如果你被锁定在一个模型提供商上，你就被那个模型家族最弱的能力所限制。\"\
+    </em></p>\n\n<h2>\"苦涩教训\"安全网</h2>\n\n<p>每个多 Agent 系统的构建者都怕下一个模型版本一夜之间让自己的架构过时。Factory\
+    \ 的防御策略：编排逻辑<strong>几乎全在 Prompt 和 Skill 中</strong>，而非硬编码的状态机。</p>\n\n<p><em>\"\
+    特征分解和失败处理的所有逻辑，大约在 700 行文本里。其中四句话的改动，就能显著改变执行策略。\"</em></p>\n\n<p>唯一确定性的逻辑是非常薄的簿记层——运行验证、当\
+    \ Handoff 标记问题时阻塞进度。真正的智能在 Prompt 中，意味着每一次模型升级都自动提升整套系统的能力。</p>\n\n<h2>五种通信模式，全部编排其中</h2>\n\
+    \n<p>Alvoeiro 提出的多 Agent 通信模式分类法，在 Missions 中全部被有机组合：</p>\n\n<ol>\n  <li><strong>委派（Delegation）</strong>——编排器生成\
+    \ Worker 和调研子 Agent</li>\n  <li><strong>创作者-验证者（Creator-Verifier）</strong>——实现和验证永远是不同的\
+    \ Agent，拥有不同的上下文</li>\n  <li><strong>广播（Broadcast）</strong>——所有 Agent 共享同一份 Mission\
+    \ 状态</li>\n  <li><strong>协商（Negotiation）</strong>——在 Milestone 边界，编排器根据验证合约审查\
+    \ Handoff 摘要的正确性</li>\n  <li><strong>直接通信（Direct Communication）</strong>——为特定场景保留；状态碎片化是主要风险</li>\n\
+    </ol>\n\n<p><em>\"策略本身不够。你需要结缔组织——结构化 Handoff、每个角色匹配正确的模型、以及一个随每一代模型改进而自动进步的架构。\"\
+    </em></p>\n\n<h2>对 Agent 基础设施的启示</h2>\n\n<p>如果你在构建 Agent 编排系统（Hermes、OpenCode、OmO、自定义\
+    \ Harness），以下是 Factory 的工程手册中可以直接借鉴的东西：</p>\n\n<ol>\n  <li><strong>验证合约层（Validation\
+    \ Contract）</strong>——在\"怎么做\"之前定义\"什么算对\"。用全新上下文的独立验证器来执行。这是目前大多数 Agent 系统最缺失的一环。</li>\n\
+    \  <li><strong>结构化 Handoff</strong>——子 Agent 的返回结果必须包含：完成了什么、未完成什么、执行的命令和退出码、发现的问题。自由文本摘要在多天自主运行中完全不够用。</li>\n\
+    \  <li><strong>按角色选模型</strong>——编排器用 Pro（昂贵推理），执行器用 Flash（低成本执行），验证器应该用<em>不同的模型提供商</em>来消除训练数据相关性偏差。</li>\n\
+    \  <li><strong>串行 Feature 执行</strong>——代码修改上的并行带来的协调成本远超收益。并行化读操作即可。</li>\n  <li><strong>Prompt\
+    \ 驱动的编排</strong>——硬编码状态机会僵化。Prompt 驱动的逻辑随每次模型发布自动提升。这是多 Agent 系统的\"苦涩教训\"。</li>\n\
+    </ol>\n\n<h2>结论</h2>\n\n<p>Factory 的 Missions 证明了一件事：多天自主软件开发不是研究幻想，而是今天的工程现实。但真正的洞察不在于\"\
+    更好的模型\"——在于<strong>更好的编排</strong>：如何拆分工作、独立验证、以及让 Agent 在连续数天的运行中不互相踩脚。</p>\n\n\
+    <p>随着模型持续进步，竞争优势从\"谁拥有最聪明的模型\"转移到\"谁拥有最聪明的<strong>模型组合</strong>\"。赢家将是那些用 Agent\
+    \ 生态系统而非单 Agent 会话的视角思考问题的人。</p>\n\n<p><em>\"发展出对不同模型在压力下如何组合的直觉的人——将是下一代创新的真正推动者。\"\
+    </em></p>\n\n<hr>\n\n<p><strong>系列文章：</strong></p>\n<ol>\n  <li><strong>本文</strong>\
+    \ — Factory Missions：真正能交付的多 Agent 架构</li>\n  <li><a href=\"/agent_blog/posts/ai-ide.html\"\
+    >AI 时代，开发者是否还需要 IDE？</a></li>\n  <li><a href=\"/agent_blog/posts/agent.html\"\
+    >Agent 时代开发环境的核心技术依赖</a></li>\n</ol>\n\n<p><strong>来源：</strong></p>\n<ul>\n  <li>Luke\
+    \ Alvoeiro — <em>\"Missions: Multi-Agent Systems That Ship for Days\"</em>, AI\
+    \ Engineer London 2026（<a href=\"https://www.youtube.com/watch?v=ow1we5PzK-o\"\
+    >YouTube 视频</a>）</li>\n  <li>Theo Luan — <em>\"How Missions Work\"</em>, Factory\
+    \ Engineering Blog, 2026 年 4 月（<a href=\"https://factory.ai/news/missions-architecture\"\
+    >factory.ai</a>）</li>\n  <li>Factory AI — <a href=\"https://docs.factory.ai/\"\
+    >官方文档</a></li>\n</ul>\n"
 - title: 端侧模型时代的 Agent 基础设施：当模型退化，Harness 如何升级
   date: May 20, 2026
   excerpt: 当模型从云端几千亿参数下沉到端侧1-7B，推理深度5x下降、上下文窗口10x缩小、工具调用准确率降至60-80%。Agent基础设施需要从"模型会处理好"翻转为永久性的"失效假设"。本文提出7项关键技术和Harness架构升级路线图。
