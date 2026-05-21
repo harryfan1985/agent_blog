@@ -6,10 +6,10 @@ posts:
     等——并分析现状：6 项完全不存在，4 项仅有雏形。结论：最重要的依赖不是 AI 工具，而是确定性 SE 工具的升级。
   content: "<h2>从\"是什么\"到\"依赖什么\"</h2>\n\n<p>这是 AI 时代开发环境三部曲的第三篇：</p>\n\n<ol>\n  <li><a\
     \ href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
-    >Factory Missions 深度分析</a> — Agent 系统能自主构建什么</li>\n  <li><a href=\"/agent_blog/posts/ai-ide.html\"\
-    >AI 时代，开发者是否还需要 IDE？</a> — 开发者的角色从\"写代码\"转向\"定意图 + 管异常\"</li>\n  <li><strong>本篇</strong>\
-    \ — 这两个新角色需要什么技术基础？</li>\n</ol>\n\n<p>前两篇描绘了一个愿景：开发者不再逐行写代码，而是定义\"什么算对\"（意图表达），并在\
-    \ Agent 系统偏离轨道时介入（异常干预）。但愿景和落地之间有一个 gap——<strong>这些新角色需要什么工程工具？</strong></p>\n\
+    >Factory Missions：真正能交付的多 Agent 架构</a> — Agent 系统能自主构建什么</li>\n  <li><a href=\"\
+    /agent_blog/posts/ai-ide.html\">AI 时代，开发者是否还需要 IDE？</a> — 开发者的角色从\"写代码\"转向\"定意图\
+    \ + 管异常\"</li>\n  <li><strong>本篇</strong> — 这两个新角色需要什么技术基础？</li>\n</ol>\n\n<p>前两篇描绘了一个愿景：开发者不再逐行写代码，而是定义\"\
+    什么算对\"（意图表达），并在 Agent 系统偏离轨道时介入（异常干预）。但愿景和落地之间有一个 gap——<strong>这些新角色需要什么工程工具？</strong></p>\n\
     \n<p>答案可能会让你意外：最重要的依赖不在 AI 领域，在传统软件工程工具的升级。</p>\n\n<h2>NII Shonan 222 的启示</h2>\n\
     \n<p>2025 年 10 月，33 位来自 SE、AI、HCI 领域的顶级学者在日本湘南会议中心召开闭门研讨会（Shonan Meeting No.222），主题正是\"\
     The Future of Development Environments with AI Foundation Models\"。会议产生了四个 breakout\
@@ -135,14 +135,14 @@ posts:
     \ Detector、Intent VCS、Handoff Pattern Analyzer、Intervention Authorization、Conflict\
     \ Topology Visualization——每一个都是新工具品类的潜在定义者。</p>\n\n<hr>\n\n<p><strong>系列文章：</strong></p>\n\
     <ol>\n  <li><a href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
-    >Factory Missions: The Multi-Agent Architecture That Ships for Days</a></li>\n\
-    \  <li><a href=\"/agent_blog/posts/ai-ide.html\">AI 时代，开发者是否还需要 IDE？</a></li>\n\
-    \  <li><strong>本文</strong> — AI 时代开发环境的核心技术依赖</li>\n</ol>\n\n<p><strong>引用：</strong></p>\n\
-    <ul>\n  <li>NII Shonan Meeting Report No.222 — <em>\"The Future of Development\
-    \ Environments with AI Foundation Models\"</em>, October 2025. <a href=\"https://shonan.nii.ac.jp/docs/No.222.pdf\"\
-    >PDF</a></li>\n  <li>Theo Luan — <em>\"How Missions Work\"</em>, Factory Engineering\
-    \ Blog, April 2026. <a href=\"https://factory.ai/news/missions-architecture\"\
-    >factory.ai</a></li>\n</ul>\n"
+    >Factory Missions：真正能交付的多 Agent 架构</a></li>\n  <li><a href=\"/agent_blog/posts/ai-ide.html\"\
+    >AI 时代，开发者是否还需要 IDE？</a></li>\n  <li><strong>本文</strong> — Agent 时代开发环境的核心技术依赖</li>\n\
+    </ol>\n\n<p><strong>引用：</strong></p>\n<ul>\n  <li>NII Shonan Meeting Report No.222\
+    \ — <em>\"The Future of Development Environments with AI Foundation Models\"</em>,\
+    \ October 2025. <a href=\"https://shonan.nii.ac.jp/docs/No.222.pdf\">PDF</a></li>\n\
+    \  <li>Theo Luan — <em>\"How Missions Work\"</em>, Factory Engineering Blog, April\
+    \ 2026. <a href=\"https://factory.ai/news/missions-architecture\">factory.ai</a></li>\n\
+    </ul>\n"
 - title: AI 时代，开发者是否还需要 IDE？
   date: May 21, 2026
   excerpt: 从 Factory Missions 的自主构建数据出发，推演 IDE 的三次身份剥离：代码补全→代码审查→代码编写。IDE 这个产品品类可能消亡，但"开发驾驶舱"的需求不会——它会进化成
@@ -214,12 +214,13 @@ posts:
     在一个集成的界面中理解、控制和验证软件构建过程\"的需求——这个需求只会变得更重要，不会消失。</strong></p>\n\n<p>就像 Luke Alvoeiro\
     \ 在 AI Engineer London 结尾说的：</p>\n\n<blockquote>\"在这个房间里，用 Agent 生态系统的方式思考的人，发展出对不同模型在压力下如何组合的直觉的人——这些人将是下一代创新的真正推动者。\"\
     </blockquote>\n\n<p>IDE 会在这一波浪潮中被重新发明。只是它不会再叫 \"Integrated Development Environment\"\
-    。它会有个新名字，也许就叫 \"Mission Control\"。</p>\n\n<hr>\n\n<p><strong>相关阅读：</strong></p>\n\
-    <ul>\n  <li><a href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
-    >Factory Missions: The Multi-Agent Architecture That Ships for Days</a></li>\n\
-    \  <li>Luke Alvoeiro — <em>\"Missions: Multi-Agent Systems That Ship for Days\"\
-    </em>, AI Engineer London 2026 (<a href=\"https://www.youtube.com/watch?v=ow1we5PzK-o\"\
-    >YouTube</a>)</li>\n</ul>\n"
+    。它会有个新名字，也许就叫 \"Mission Control\"。</p>\n\n<hr>\n\n<p><strong>系列文章：</strong></p>\n\
+    <ol>\n  <li><a href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
+    >Factory Missions：真正能交付的多 Agent 架构</a></li>\n  <li><strong>本文</strong> — AI 时代，开发者是否还需要\
+    \ IDE？</li>\n  <li><a href=\"/agent_blog/posts/agent.html\">Agent 时代开发环境的核心技术依赖</a></li>\n\
+    </ol>\n\n<p><strong>引用：</strong></p>\n<ul>\n  <li>Luke Alvoeiro — <em>\"Missions:\
+    \ Multi-Agent Systems That Ship for Days\"</em>, AI Engineer London 2026（<a href=\"\
+    https://www.youtube.com/watch?v=ow1we5PzK-o\">YouTube</a>）</li>\n</ul>\n"
 - title: 'Factory Missions: The Multi-Agent Architecture That Ships for Days'
   date: May 21, 2026
   excerpt: 深度拆解 Factory AI 的 Missions 架构：三层角色分工（编排器/执行器/验证器）、两个层次的 TDD、验证合约机制、16 天自主构建
