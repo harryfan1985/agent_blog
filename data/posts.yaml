@@ -5,10 +5,10 @@ posts:
     Contract DSL、Intent VCS、Agent Trajectory Observability、Architecture Drift Detection
     等——并分析现状：6 项完全不存在，4 项仅有雏形。结论：最重要的依赖不是 AI 工具，而是确定性 SE 工具的升级。
   content: "<h2>从\"是什么\"到\"依赖什么\"</h2>\n\n<p>这是 AI 时代开发环境三部曲的第三篇：</p>\n\n<ol>\n  <li><a\
-    \ href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
+    \ href=\"/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
     >Factory Missions：真正能交付的多 Agent 架构</a> — Agent 系统能自主构建什么</li>\n  <li><a href=\"\
-    /agent_blog/posts/ai-ide.html\">AI 时代，开发者是否还需要 IDE？</a> — 开发者的角色从\"写代码\"转向\"定意图\
-    \ + 管异常\"</li>\n  <li><strong>本篇</strong> — 这两个新角色需要什么技术基础？</li>\n</ol>\n\n<p>前两篇描绘了一个愿景：开发者不再逐行写代码，而是定义\"\
+    /posts/ai-ide.html\">AI 时代，开发者是否还需要 IDE？</a> — 开发者的角色从\"写代码\"转向\"定意图 + 管异常\"</li>\n\
+    \  <li><strong>本篇</strong> — 这两个新角色需要什么技术基础？</li>\n</ol>\n\n<p>前两篇描绘了一个愿景：开发者不再逐行写代码，而是定义\"\
     什么算对\"（意图表达），并在 Agent 系统偏离轨道时介入（异常干预）。但愿景和落地之间有一个 gap——<strong>这些新角色需要什么工程工具？</strong></p>\n\
     \n<p>答案可能会让你意外：最重要的依赖不在 AI 领域，在传统软件工程工具的升级。</p>\n\n<h2>NII Shonan 222 的启示</h2>\n\
     \n<p>2025 年 10 月，33 位来自 SE、AI、HCI 领域的顶级学者在日本湘南会议中心召开闭门研讨会（Shonan Meeting No.222），主题正是\"\
@@ -134,8 +134,8 @@ posts:
     \n<p>回头看那 12 行表格。6 个红色标记不是 bug——是<strong>机会地图</strong>。Behavioral Contract DSL、Ambiguity\
     \ Detector、Intent VCS、Handoff Pattern Analyzer、Intervention Authorization、Conflict\
     \ Topology Visualization——每一个都是新工具品类的潜在定义者。</p>\n\n<hr>\n\n<p><strong>系列文章：</strong></p>\n\
-    <ol>\n  <li><a href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
-    >Factory Missions：真正能交付的多 Agent 架构</a></li>\n  <li><a href=\"/agent_blog/posts/ai-ide.html\"\
+    <ol>\n  <li><a href=\"/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
+    >Factory Missions：真正能交付的多 Agent 架构</a></li>\n  <li><a href=\"/posts/ai-ide.html\"\
     >AI 时代，开发者是否还需要 IDE？</a></li>\n  <li><strong>本文</strong> — Agent 时代开发环境的核心技术依赖</li>\n\
     </ol>\n\n<p><strong>引用：</strong></p>\n<ul>\n  <li>NII Shonan Meeting Report No.222\
     \ — <em>\"The Future of Development Environments with AI Foundation Models\"</em>,\
@@ -147,7 +147,7 @@ posts:
   date: May 21, 2026
   excerpt: 从 Factory Missions 的自主构建数据出发，推演 IDE 的三次身份剥离：代码补全→代码审查→代码编写。IDE 这个产品品类可能消亡，但"开发驾驶舱"的需求不会——它会进化成
     Agent 时代的 Mission Control。
-  content: "<h2>从 Factory Missions 说起</h2>\n\n<p>写完 <a href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
+  content: "<h2>从 Factory Missions 说起</h2>\n\n<p>写完 <a href=\"/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
     >Factory Missions 的深度分析</a>后，一个自然的问题浮现出来：当 Agent 能在 16.5 小时内自主构建一个 38,800 行的 Slack\
     \ 克隆，验证器独立发现 81 个 bug 并生成 21 个修复 feature——<strong>开发者还需要 IDE 吗？</strong></p>\n\
     \n<p>这不是一个学术问题。它直接关系到：你明年要学什么工具？你团队的钱要投向哪里？AI coding 的终局到底是什么？</p>\n\n<h2>三重时间线：IDE\
@@ -215,9 +215,9 @@ posts:
     \ 在 AI Engineer London 结尾说的：</p>\n\n<blockquote>\"在这个房间里，用 Agent 生态系统的方式思考的人，发展出对不同模型在压力下如何组合的直觉的人——这些人将是下一代创新的真正推动者。\"\
     </blockquote>\n\n<p>IDE 会在这一波浪潮中被重新发明。只是它不会再叫 \"Integrated Development Environment\"\
     。它会有个新名字，也许就叫 \"Mission Control\"。</p>\n\n<hr>\n\n<p><strong>系列文章：</strong></p>\n\
-    <ol>\n  <li><a href=\"/agent_blog/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
+    <ol>\n  <li><a href=\"/posts/factory-missions-the-multi-agent-architecture-that-ships-for-days.html\"\
     >Factory Missions：真正能交付的多 Agent 架构</a></li>\n  <li><strong>本文</strong> — AI 时代，开发者是否还需要\
-    \ IDE？</li>\n  <li><a href=\"/agent_blog/posts/agent.html\">Agent 时代开发环境的核心技术依赖</a></li>\n\
+    \ IDE？</li>\n  <li><a href=\"/posts/agent.html\">Agent 时代开发环境的核心技术依赖</a></li>\n\
     </ol>\n\n<p><strong>引用：</strong></p>\n<ul>\n  <li>Luke Alvoeiro — <em>\"Missions:\
     \ Multi-Agent Systems That Ship for Days\"</em>, AI Engineer London 2026（<a href=\"\
     https://www.youtube.com/watch?v=ow1we5PzK-o\">YouTube</a>）</li>\n</ul>\n"
@@ -316,15 +316,14 @@ posts:
     <p>随着模型持续进步，竞争优势从\"谁拥有最聪明的模型\"转移到\"谁拥有最聪明的<strong>模型组合</strong>\"。赢家将是那些用 Agent\
     \ 生态系统而非单 Agent 会话的视角思考问题的人。</p>\n\n<p><em>\"发展出对不同模型在压力下如何组合的直觉的人——将是下一代创新的真正推动者。\"\
     </em></p>\n\n<hr>\n\n<p><strong>系列文章：</strong></p>\n<ol>\n  <li><strong>本文</strong>\
-    \ — Factory Missions：真正能交付的多 Agent 架构</li>\n  <li><a href=\"/agent_blog/posts/ai-ide.html\"\
-    >AI 时代，开发者是否还需要 IDE？</a></li>\n  <li><a href=\"/agent_blog/posts/agent.html\"\
-    >Agent 时代开发环境的核心技术依赖</a></li>\n</ol>\n\n<p><strong>来源：</strong></p>\n<ul>\n  <li>Luke\
-    \ Alvoeiro — <em>\"Missions: Multi-Agent Systems That Ship for Days\"</em>, AI\
-    \ Engineer London 2026（<a href=\"https://www.youtube.com/watch?v=ow1we5PzK-o\"\
-    >YouTube 视频</a>）</li>\n  <li>Theo Luan — <em>\"How Missions Work\"</em>, Factory\
-    \ Engineering Blog, 2026 年 4 月（<a href=\"https://factory.ai/news/missions-architecture\"\
-    >factory.ai</a>）</li>\n  <li>Factory AI — <a href=\"https://docs.factory.ai/\"\
-    >官方文档</a></li>\n</ul>\n"
+    \ — Factory Missions：真正能交付的多 Agent 架构</li>\n  <li><a href=\"/posts/ai-ide.html\"\
+    >AI 时代，开发者是否还需要 IDE？</a></li>\n  <li><a href=\"/posts/agent.html\">Agent 时代开发环境的核心技术依赖</a></li>\n\
+    </ol>\n\n<p><strong>来源：</strong></p>\n<ul>\n  <li>Luke Alvoeiro — <em>\"Missions:\
+    \ Multi-Agent Systems That Ship for Days\"</em>, AI Engineer London 2026（<a href=\"\
+    https://www.youtube.com/watch?v=ow1we5PzK-o\">YouTube 视频</a>）</li>\n  <li>Theo\
+    \ Luan — <em>\"How Missions Work\"</em>, Factory Engineering Blog, 2026 年 4 月（<a\
+    \ href=\"https://factory.ai/news/missions-architecture\">factory.ai</a>）</li>\n\
+    \  <li>Factory AI — <a href=\"https://docs.factory.ai/\">官方文档</a></li>\n</ul>\n"
 - title: 端侧模型时代的 Agent 基础设施：当模型退化，Harness 如何升级
   date: May 20, 2026
   excerpt: 当模型从云端几千亿参数下沉到端侧1-7B，推理深度5x下降、上下文窗口10x缩小、工具调用准确率降至60-80%。Agent基础设施需要从"模型会处理好"翻转为永久性的"失效假设"。本文提出7项关键技术和Harness架构升级路线图。
@@ -536,14 +535,14 @@ posts:
   excerpt: AI IDE 洞察系列最终篇。六大 AI IDE 横向对比：技术壁垒矩阵（模型策略/上下文管理/代码编辑/安全沙箱/多Agent/企业合规）、三大不可复制层（工程深度/生态独占/协议标准化）、三种终局场景推演、八场景选型决策矩阵。核心结论：2026
     年的竞争已从模型强弱转向工程体系深度和协议开放度。
   content: "<h2>系列回顾</h2>\n\n<p>本系列用 6 篇深度文章逐一剖析了 2026 年主流 AI IDE/Agent 的核心技术栈：</p>\n\
-    \n<ol>\n<li><a href=\"https://harryfan1985.github.io/agent_blog/posts/ai-ide-1-cursor-vs-code-fork-ai-native-ide.html\"\
+    \n<ol>\n<li><a href=\"https://harryfan1985.github.io/posts/ai-ide-1-cursor-vs-code-fork-ai-native-ide.html\"\
     >Cursor</a>：Speculative Edits + Tree-sitter + Composer 2 自研模型</li>\n<li><a href=\"\
-    https://harryfan1985.github.io/agent_blog/posts/ai-ide-2-claude-code-98-4-1-6-ai.html\"\
-    >Claude Code</a>：98.4% 确定性基础设施，5 级压缩 + 7 层防御 + OS 级沙箱</li>\n<li><a href=\"https://harryfan1985.github.io/agent_blog/posts/ai-ide-3-github-copilot-4-agent.html\"\
-    >GitHub Copilot</a>：全球代码版权匹配 + 多云路由 + FedRAMP 企业治理</li>\n<li><a href=\"https://harryfan1985.github.io/agent_blog/posts/ai-ide-4-windsurf-agent.html\"\
-    >Windsurf</a>：主动式上下文 + M-Query 混合检索 + 意图预测</li>\n<li><a href=\"https://harryfan1985.github.io/agent_blog/posts/ai-ide-5-openai-codex-chatgpt-agent.html\"\
+    https://harryfan1985.github.io/posts/ai-ide-2-claude-code-98-4-1-6-ai.html\">Claude\
+    \ Code</a>：98.4% 确定性基础设施，5 级压缩 + 7 层防御 + OS 级沙箱</li>\n<li><a href=\"https://harryfan1985.github.io/posts/ai-ide-3-github-copilot-4-agent.html\"\
+    >GitHub Copilot</a>：全球代码版权匹配 + 多云路由 + FedRAMP 企业治理</li>\n<li><a href=\"https://harryfan1985.github.io/posts/ai-ide-4-windsurf-agent.html\"\
+    >Windsurf</a>：主动式上下文 + M-Query 混合检索 + 意图预测</li>\n<li><a href=\"https://harryfan1985.github.io/posts/ai-ide-5-openai-codex-chatgpt-agent.html\"\
     >OpenAI Codex</a>：ChatGPT 生态终端 Agent + GPT-5-2 Codex 开源布局</li>\n<li><a href=\"\
-    https://harryfan1985.github.io/agent_blog/posts/ai-ide-6-opencode-byok-agent-acp-agent.html\"\
+    https://harryfan1985.github.io/posts/ai-ide-6-opencode-byok-agent-acp-agent.html\"\
     >OpenCode</a>：BYOK 模型无关 + ACP 协议 + 完全开源可审计</li>\n</ol>\n\n<p>本文是系列的收尾——将这六个产品放在一起，做系统工程级别的横向对比和终局推演。</p>\n\
     \n<h2>架构哲学六分法</h2>\n\n<pre><code class=\"language-mermaid\">\ngraph TB\n    subgraph\
     \ \"GUI-First — IDE 中心主义\"\n        CURSOR[\"Cursor<br/>VS Code Fork<br/>Agent\
