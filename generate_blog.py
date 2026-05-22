@@ -111,10 +111,11 @@ def generate_post(post):
     template = Path(__file__).parent / "templates" / "post.html"
     content = open(template).read()
     excerpt_clean = re.sub(r'<[^>]+>', '', post.get("excerpt", ""))[:160]
-    # Convert Mermaid code blocks to Mermaid divs
-    content_body = post["content"].replace(
-        '<pre><code class="language-mermaid">', '<div class="mermaid">').replace(
-        '</code></pre>', '</div>')
+    # Convert Mermaid code blocks to Mermaid divs (regex avoids breaking non-mermaid <pre><code>)
+    content_body = re.sub(
+        r'<pre><code class="language-mermaid">(.*?)</code></pre>',
+        r'<div class="mermaid">\1</div>',
+        post["content"], flags=re.DOTALL)
     
     # Add Mermaid.js support
     if 'class="mermaid"' in content_body:

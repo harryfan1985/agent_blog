@@ -256,7 +256,7 @@ sequenceDiagram
 ├── Generation: LLM call 1
 │   └── output: final answer
 └── Score: answer_relevance = 0.92
-</div>
+</code></pre>
 
 <h2>与 Hermes Agent 的集成</h2>
 
@@ -270,7 +270,7 @@ sequenceDiagram
 
 <p>启用只需两步：</p>
 <pre><code>pip install langfuse
-hermes plugins enable observability/langfuse</div>
+hermes plugins enable observability/langfuse</code></pre>
 
 <p>然后在 <code>~/.hermes/.env</code> 中配置 Langfuse 的 public key 和 secret key 即可。插件是 <strong>fail-open</strong> 设计——SDK 未安装或 key 缺失时静默 no-op，不影响 Agent 正常运行。</p>
 

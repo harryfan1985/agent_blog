@@ -148,7 +148,7 @@ graph TD
 <pre><code>type FeatureMapper = {
   name: string;
   map(root: string, context: MapperContext): Promise&lt;FeatureSeed[]&gt;
-}</div>
+}</code></pre>
 
 <p>输出统一的 <code>FeatureSeed</code> 结构——这是 map 子系统的"内部通货"：</p>
 
@@ -200,7 +200,7 @@ graph TD
   seed.source,     // "python-django-route"
   seed.entryPath,  // "config/urls.py"
   seed.identityKey ?? seed.command ?? seed.route ?? seed.symbol ?? ""
-])</div>
+])</code></pre>
 <p>同一 feature 在不同运行中产生相同 ID——这是后续 review → fix → revalidate 链路的锚点。</p>
 
 <p><strong>② 自动测试发现</strong></p>
@@ -212,7 +212,7 @@ graph TD
 
 // 如果 ownedFiles 变了，且之前是 "reviewed"/"revalidated"/"fixed"
 // → 自动重置为 "pending"
-</div>
+</code></pre>
 
 <p><strong>④ FileGroup 智能分区</strong></p>
 <p>当 mapper 遇到大量源文件（如 Python <code>src/</code> 下 45 个 .py），<code>partitionFileGroups()</code> 使用层级分区算法：</p>
@@ -323,13 +323,13 @@ graph TD
   runs/*.json         — 运行记录（可审计）
   reports/*.md        — Markdown 报告
   locks/              — 并发锁
-</div>
+</code></pre>
 
 <p>Finding 去重通过 <code>signature</code> 字段（hash of category + evidence + title）实现。所有 run 可审计。</p>
 
 <h3>5. Tribunal Ledger 导出</h3>
 <p><code>--export-tribunal-ledger</code> 将 finding 转为 JSONL 格式，供下游 Tribunal 系统签名和消费：</p>
-<pre><code>{"kind":"clawpatch-review","finding_id":"...","claim_hash":"...","severity":"high","category":"bug","agent_label":"clawpatch-codex"}</div>
+<pre><code>{"kind":"clawpatch-review","finding_id":"...","claim_hash":"...","severity":"high","category":"bug","agent_label":"clawpatch-codex"}</code></pre>
 <p>这是一个 agent-to-agent 审计链的设计思路——允许多个审查 agent 交叉验证彼此发现。</p>
 
 <h2>Provider 矩阵</h2>

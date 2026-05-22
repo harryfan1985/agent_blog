@@ -141,7 +141,7 @@ claude -p "summarize this diff as a commit message" | git commit -F -
 # shell 脚本中批量处理
 for file in src/*.ts; do
   claude -p "add JSDoc to $file" --allowedTools edit
-done</div>
+done</code></pre>
 
 <p>IDE 插件做不到这种级别的可编排性。</p>
 
