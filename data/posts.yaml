@@ -1,4 +1,158 @@
 posts:
+- title: Harness Engineering（三）：Parametric vs. Externalized — 那条移动的边界
+  date: May 22, 2026
+  excerpt: Agent 能力的真正分界线不是模型大小，而是「什么留在权重里、什么外化到基础设施中」。基于 Externalization 框架的四个工程维度，分析参数化与外化的决策权衡框架、动态边界、风险与治理，以及面向
+    Agent 构建者的五条工程实践指南。
+  content: "<p>在上一篇文章中，我们深入分析了两篇关于 Harness Engineering 的奠基性论文（arXiv:2604.08224 和 arXiv:2604.14228）。其中论文一提出的核心框架——「Externalization（外化）」——揭示了当代\
+    \ AI Agent 系统最根本的设计问题：一个认知负担应该放在模型权重里，还是应该外化到基础设施中？这不是二选一的哲学问题，而是一个需要在四个工程维度上持续做判断的系统分界问题。</p>\n\
+    \n<h2>理解「外化」：从 Norman 的认知人工物说起</h2>\n\n<p>Externalization 框架的理论锚点是 Donald Norman\
+    \ 在 1991 年提出的「认知人工物（Cognitive Artifacts）」概念。核心洞见是：外部辅助工具不是在增强不变的内部能力，而是在<strong>改变任务本身的结构</strong>。一张购物清单不是扩充生物记忆，而是把一个困难的回忆问题变成了简单的识别问题。一张地图不是让导航「更强」，而是把隐藏的空间关系转化为可见的结构。</p>\n\
+    \n<p>论文将这个逻辑应用于 LLM Agent 设计：</p>\n\n<pre><code class=\"language-mermaid\">\n\
+    graph TB\n    subgraph Human[\"人类认知外化史\"]\n        H1[\"口语: 思想→可共享符号\"] --> H2[\"\
+    文字: 记忆→持久物质记录\"]\n        H2 --> H3[\"印刷: 知识→社会级复制\"]\n        H3 --> H4[\"数字计算:\
+    \ 脑力→可编程机器\"]\n    end\n    \n    subgraph LLM[\"LLM Agent 外化弧\"]\n        L1[\"\
+    Memory: 状态外化<br/>recall → recognition\"] --> L2[\"Skills: 专业知识外化<br/>generation\
+    \ → composition\"]\n        L2 --> L3[\"Protocols: 交互结构外化<br/>ad-hoc → structured\"\
+    ]\n        L3 --> L4[\"Harness: 统一运行环境<br/>不是第四种外化，是协调层\"]\n    end\n    \n  \
+    \  Human -.->|\"同构映射\"| LLM\n    \n    style Human fill:#1a1a2e,stroke:#e94560,color:#eee\n\
+    \    style LLM fill:#1a1a2e,stroke:#0f3460,color:#eee\n</code></pre>\n\n<p>论文的核心主张：<strong>可靠\
+    \ Agent 能力越来越不来自模型本身，而来自系统性重构任务需求——让内部能力（参数化）和外部基础设施（外化）联合覆盖完整的能力谱系</strong>。你在\
+    \ Hermes 的 config.yaml 里调整 compression_threshold，本质上就是在管理「外化 infrastructure 占多少上下文预算」这个系统工程决策。</p>\n\
+    \n<h2>四维决策框架</h2>\n\n<p>论文 §7.3 给出的框架可以用一个组合图来概括：</p>\n\n<pre><code class=\"language-mermaid\"\
+    >\ngraph TD\n    Q[\"认知负担 X<br/>放哪里？\"] --> D1[\"维度1: 更新频率\"]\n    Q --> D2[\"\
+    维度2: 复用半径\"]\n    Q --> D3[\"维度3: 治理需求\"]\n    Q --> D4[\"维度4: 延迟/上下文成本\"]\n \
+    \   \n    D1 -->|\"高频变更<br/>（天~周）\"| EXT[\"\U0001F3AF 外化\"]\n    D1 -->|\"低频稳定<br/>（年+）\"\
+    | PARAM[\"\U0001F9E0 参数化\"]\n    \n    D2 -->|\"跨 agent/跨 session 复用\"| EXT\n\
+    \    D2 -->|\"一次性/特异的\"| PARAM\n    \n    D3 -->|\"需要审计/回滚/合规\"| EXT\n    D3 -->|\"\
+    纯风格/概率性约束\"| PARAM\n    \n    D4 -->|\"低延迟容忍+简单语义\"| PARAM\n    D4 -->|\"高延迟容忍+复杂结构\"\
+    | EXT\n    \n    EXT --> DECISION[\"决策: 外化到<br/>memory/skill/protocol/harness\"\
+    ]\n    PARAM --> DECISION2[\"决策: 留在模型权重<br/>或 in-context reasoning\"]\n    \n\
+    \    DECISION --> CHECK{\"最小充分性检验:<br/>是否真正减少了模型<br/>的认知负担？\"}\n    CHECK -->|\"\
+    是\"| DEPLOY[\"部署 + 治理层同步设计\"]\n    CHECK -->|\"否\"| REVERT[\"回退: 该模块只增加了<br/>复杂性而没有减少负担\"\
+    ]\n    \n    style EXT fill:#0f3460,stroke:#e94560,color:#eee\n    style PARAM\
+    \ fill:#1a1a2e,stroke:#533483,color:#eee\n    style CHECK fill:#16213e,stroke:#e94560,color:#eee\n\
+    </code></pre>\n\n<h3>维度 1: 更新频率与时效性衰减</h3>\n\n<p><strong>论文原文:</strong> \"Fast-changing\
+    \ knowledge and procedures are strong candidates for externalization. APIs, organization\
+    \ structures, and live environment state decay too quickly to maintain reliably\
+    \ in model weights.\"</p>\n\n<p>这个维度最直观。判断公式：</p>\n\n<table>\n  <thead><tr><th>知识类型</th><th>半衰期</th><th>归宿</th><th>原因</th></tr></thead>\n\
+    \  <tbody>\n    <tr><td>API 签名/端点</td><td>天~周</td><td>外化（MCP schema / tool defs）</td><td>continual\
+    \ fine-tuning 会导致灾难性遗忘且跟不上频率</td></tr>\n    <tr><td>组织架构/权限策略</td><td>月</td><td>外化（config\
+    \ / policy files）</td><td>需要审计追溯 + 即时生效</td></tr>\n    <tr><td>代码库结构/项目规则</td><td>天~周</td><td>外化（CLAUDE.md\
+    \ / AGENTS.md）</td><td>每次 prompt 都不同，不可能 bake into weights</td></tr>\n    <tr><td>编程语言语法</td><td>年</td><td>参数化</td><td>深层语法知识已\
+    \ baked in，受益于深层表征整合</td></tr>\n    <tr><td>常识推理/语言理解</td><td>极慢</td><td>参数化</td><td>受益于快速检索和深层表征整合</td></tr>\n\
+    \  </tbody>\n</table>\n\n<p><strong>关键警示:</strong> 论文明确指出，不能靠「多 fine-tune 几次」来解决时效性问题——continual\
+    \ fine-tuning 会导致 catastrophic forgetting，而且跟不上一周甚至几天的更新频率。这就是为什么 Hermes skill\
+    \ 系统存在的根本原因：改 skill 文件即刻生效，不需要重训模型。</p>\n\n<h3>维度 2: 复用半径与跨 Agent 可移植性</h3>\n\n\
+    <p><strong>论文原文:</strong> \"If a capability is repeatedly needed across tasks,\
+    \ users, or agents, externalization improves portability and composition. ...\
+    \ One-off or highly idiosyncratic behavior may not justify the overhead.\"</p>\n\
+    \n<p>这是最实用的工程决策维度。量化公式：</p>\n\n<pre><code>外化价值 = (复用频次 × 跨 agent 数量 × 维护成本) /\
+    \ 外化开销\n外化开销 = spec 制定 + discovery 机制 + execution binding + context 占用</code></pre>\n\
+    \n<p><strong>实例分析:</strong></p>\n\n<table>\n  <thead><tr><th>场景</th><th>复用频次</th><th>跨\
+    \ agent 数</th><th>外化?</th><th>理由</th></tr></thead>\n  <tbody>\n    <tr><td>Hermes\
+    \ 通用 skill（如 hermes-agent）</td><td>每 session 都加载</td><td>所有 agent 实例</td><td>✅\
+    \ 必须外化</td><td>一次编写持续受益，progressive disclosure 控制上下文开销</td></tr>\n    <tr><td>一次性查询（\"\
+    查 API 文档修一行代码\"）</td><td>1</td><td>1</td><td>❌ 不外化</td><td>外化开销 > 收益，直接 prompt\
+    \ 描述即可</td></tr>\n    <tr><td>特定项目 CI/CD 流程</td><td>中等（每次发版）</td><td>低（一个项目）</td><td>⚠️\
+    \ 边界案例</td><td>外化到 .github/workflows/ 但不需要 skill 级别</td></tr>\n    <tr><td>triton-agent\
+    \ 的 Ascend NPU 算子知识</td><td>高</td><td>多个 NPU 应用</td><td>✅ 必须外化</td><td>硬件特定 +\
+    \ 高频迭代 + 跨应用复用</td></tr>\n  </tbody>\n</table>\n\n<p>Paper 2（Claude Code 源码分析）验证了这一点：CLAUDE.md\
+    \ 的四层 hierarchy（Managed → User → Project → Directory）正是按复用半径分层的——每一层覆盖的 agent/user\
+    \ 范围不同，外化深度也不同。</p>\n\n<h3>维度 3: 可审计性与治理——最被低估的维度</h3>\n\n<p><strong>论文原文:</strong>\
+    \ \"Alignment fine-tuning provides probabilistic behavioral shaping, but externalized\
+    \ constraints provide deterministic enforcement at the interface level.\"</p>\n\
+    \n<p>论文区分了两种「安全」：</p>\n\n<table>\n  <thead><tr><th></th><th>Probabilistic（参数化\
+    \ / RLHF）</th><th>Deterministic（外化 / 声明式规则）</th></tr></thead>\n  <tbody>\n   \
+    \ <tr><td>机制</td><td>RLHF/DPO 塑造概率分布</td><td>声明式规则在运行时强制执行</td></tr>\n    <tr><td>可靠性</td><td>概率性的，可能被\
+    \ jailbreak</td><td>确定性的，结构上不可绕过</td></tr>\n    <tr><td>可审计性</td><td>黑盒，无法追溯单个行为</td><td>白盒，每个决策有明确规则来源</td></tr>\n\
+    \    <tr><td>适用场景</td><td>风格、语气、泛化安全性</td><td>数据访问控制、操作边界、合规约束</td></tr>\n  </tbody>\n\
+    </table>\n\n<p><strong>Paper 2 的具体验证:</strong> Claude Code 的七种 permission 模式、deny-first\
+    \ 规则引擎、ML 分类器、hook pipeline——全部是外化治理层。而且 Anthropic 发现了一个关键事实：用户批准了 93% 的权限提示——这意味着审批疲劳使人类不可靠，安全必须独立于人类警觉。</p>\n\
+    \n<p><strong>工程规则:</strong></p>\n<ul>\n  <li>如果某个行为约束是「绝对不能做」（如删除生产数据库）→ <strong>必须外化为声明式\
+    \ deny 规则</strong>，不能只靠 RLHF</li>\n  <li>如果某个行为约束是「最好别这样」（如代码风格偏好）→ 参数化 + 外化（lint\
+    \ rules）组合</li>\n</ul>\n\n<h3>维度 4: 延迟、简单性与上下文成本——外化的代价</h3>\n\n<p><strong>论文原文:</strong>\
+    \ \"For ultra-fast, low-variance, or purely semantic tasks, allowing the model\
+    \ to rely on its internal parametric knowledge remains substantially simpler and\
+    \ often more reliable.\"</p>\n\n<p>这是外化的代价面。外化不是在「加功能」——每个外化模块都会消耗计算和认知资源。论文识别了三种具体\
+    \ failure mode：</p>\n\n<ol>\n  <li><strong>Memory over-retrieval:</strong> 检索过多边际相关的记忆，淹没上下文</li>\n\
+    \  <li><strong>Skill verbosity:</strong> 技能文件过长或过多，挤占 token budget</li>\n  <li><strong>Tool\
+    \ sprawl:</strong> 工具数量膨胀，把 action selection 变成不必要的消歧义问题</li>\n</ol>\n\n<pre><code>上下文预算分配\
+    \ = 系统 prompt + memory 检索 + skill 加载 + protocol schema + 对话历史 + 推理空间\n\n外化成本 =\
+    \ skill token 开销 + retrieval 延迟 + parsing 开销 + routing 判断\n参数化成本 = 0（已经 baked\
+    \ in，forward pass 不变）</code></pre>\n\n<p><strong>决策启发式:</strong></p>\n<ul>\n \
+    \ <li>纯语义判断（情绪分类、意图识别）→ 参数化即可</li>\n  <li>需要精确 schema 的 API 调用 → 必须外化 protocol\
+    \ schema，否则幻觉</li>\n  <li>简单 shell 命令（ls/cat/grep）→ tool description 够用，不需要 skill</li>\n\
+    \  <li>复杂多步骤工作流（CI/CD、数据库迁移）→ 必须外化，靠 prompt 每次重建不可靠</li>\n</ul>\n\n<h2>边界是动态的：The\
+    \ Expanding Frontier</h2>\n\n<p>论文最深刻的洞察是：<strong>参数化与外化的边界不是静态的，它在双向移动。</strong></p>\n\
+    \n<pre><code class=\"language-mermaid\">\ngraph LR\n    subgraph IN[\"向内收缩（模型变强）\"\
+    ]\n        I1[\"更好的结构化输出<br/>→ 少需要格式验证\"]\n        I2[\"更大的上下文窗口<br/>→ 更简单的 memory\
+    \ 架构\"]\n        I3[\"更强的 intrinsic tool-use<br/>→ 少需要 intent-capture\"]\n   \
+    \ end\n    \n    subgraph OUT[\"向外扩展（基础设施成熟）\"]\n        O1[\"Planning → 持久化 plan\
+    \ objects<br/>（目前 ephemeral）\"]\n        O2[\"Evaluation → runtime verification<br/>（目前\
+    \ in CoT）\"]\n        O3[\"Orchestration → harness 自身<br/>可被 agent 检查/修改\"]\n\
+    \    end\n    \n    IN -->|\"回撤外化\"| BOUNDARY[\"移动的边界\"]\n    OUT -->|\"新增外化\"\
+    | BOUNDARY\n    \n    style BOUNDARY fill:#e94560,stroke:#fff,color:#fff,stroke-width:3px\n\
+    \    style IN fill:#0f3460,stroke:#533483,color:#eee\n    style OUT fill:#1a1a2e,stroke:#533483,color:#eee\n\
+    </code></pre>\n\n<p><strong>向内收缩:</strong> 当模型自身能力提升时，一些原本需要外化的负担可以回撤到参数化。比如当模型的上下文窗口从\
+    \ 128K 扩展到 1M 时，memory 架构可以从精细的分层检索退化为更简单的整体加载。</p>\n\n<p><strong>向外扩展:</strong>\
+    \ 三个当前仍在模型内的认知工作最可能被外化：</p>\n\n<table>\n  <thead><tr><th>当前在模型内</th><th>外化后形态</th><th>现状</th></tr></thead>\n\
+    \  <tbody>\n    <tr><td>Planning（任务分解）</td><td>持久化 plan objects，可检查/修订/跨 agent\
+    \ 共享</td><td>BabyAGI 已实验，InfiAgent 推进中</td></tr>\n    <tr><td>Evaluation（输出评判）</td><td>runtime\
+    \ verification 组件，独立于生成</td><td>Self-refine loops 初现</td></tr>\n    <tr><td>Orchestration\
+    \ logic</td><td>harness 配置成为 agent 可修改的对象</td><td>最递归的形式——让 agent 改自己的 harness</td></tr>\n\
+    \  </tbody>\n</table>\n\n<p><strong>Paper 2 提供了量化锚点:</strong> Claude Code 的 98.4%\
+    \ 代码是 operational harness，仅 1.6% 是决策逻辑。这说明当前最优分界点已经极度偏向外化——几乎所有东西都在 harness 里，模型只是被调用的推理引擎。</p>\n\
+    \n<h2>两个关键风险与治理</h2>\n\n<pre><code class=\"language-mermaid\">\ngraph TD\n   \
+    \ subgraph RISK[\"外化的两种积累性成本\"]\n        R1[\"认知开销 Cognitive Overhead<br/>外化模块本身也成为负担\"\
+    ]\n        R2[\"安全风险 Security Risk<br/>外化 artifacts 成为攻击面\"]\n    end\n    \n\
+    \    R1 --> R1A[\"Memory over-retrieval<br/>淹没上下文\"]\n    R1 --> R1B[\"Skill verbosity<br/>挤占\
+    \ token budget\"]\n    R1 --> R1C[\"Tool sprawl<br/>action selection 变消歧义\"]\n\
+    \    \n    R2 --> R2A[\"Memory poisoning<br/>静默扭曲未来推理\"]\n    R2 --> R2B[\"Malicious\
+    \ skill injection<br/>嵌入对抗性流程\"]\n    R2 --> R2C[\"Protocol spoofing<br/>伪造 tool\
+    \ manifests\"]\n    \n    R1A --> MIT1[\"缓解: Minimal sufficiency<br/>只外化真正减少负担的\"\
+    ]\n    R1B --> MIT2[\"缓解: Lazy loading<br/>任务需要时才加载详细指导\"]\n    R1C --> MIT3[\"\
+    缓解: Budget-aware routing<br/>上下文分配作为显式优化变量\"]\n    \n    R2A --> GOV[\"治理层同步设计\"\
+    ]\n    R2B --> GOV\n    R2C --> GOV\n    \n    GOV --> GOV1[\"强制审查门\"]\n    GOV\
+    \ --> GOV2[\"来源追踪\"]\n    GOV --> GOV3[\"确定性回滚\"]\n    GOV --> GOV4[\"回归测试\"]\n\
+    \    \n    style RISK fill:#1a1a2e,stroke:#e94560,color:#eee\n    style GOV fill:#0f3460,stroke:#533483,color:#eee\n\
+    </code></pre>\n\n<p><strong>外化的悖论:</strong> 你增加模块来减轻模型的认知负担，但模块本身也在增加认知负担。过度外化时，\"\
+    the model spends more effort discovering, parsing, and coordinating modules than\
+    \ solving the task itself\"。</p>\n\n<p><strong>论文提出的三项缓解策略:</strong></p>\n<ol>\n\
+    \  <li><strong>Minimal sufficiency:</strong> 不是最大化外化，而是最小化足够——只外化真正减少负担的部分</li>\n\
+    \  <li><strong>Lazy loading / progressive disclosure:</strong> 技能详细指导只在任务结构需要时才加载</li>\n\
+    \  <li><strong>Budget-aware routing:</strong> 把上下文分配当作显式优化变量，按任务阶段动态调整 memory/skill/protocol\
+    \ 的占比</li>\n</ol>\n\n<p>安全风险的教训对实际运维者尤其重要：你从社区安装的每个 Hermes skill / MCP server\
+    \ 都是潜在的攻击面。这就是为什么 skill 来源验证和 tap 信任机制如此关键——Paper 2 指出 Claude Code 的多个 CVE 恰恰利用了\
+    \ pre-trust 阶段的 hook 和 MCP 服务器初始化。</p>\n\n<h2>工程实践指南</h2>\n\n<p>基于两个论文的框架，总结了五条操作规则：</p>\n\
+    \n<pre><code class=\"language-mermaid\">\ngraph TD\n    R1[\"Rule 1: 四问决策\"] -->\
+    \ R2[\"Rule 2: 最小充分性\"]\n    R2 --> R3[\"Rule 3: 区分描述性 vs 规范性\"]\n    R3 --> R4[\"\
+    Rule 4: 边界是动态变量\"]\n    R4 --> R5[\"Rule 5: 治理层同步设计\"]\n    \n    subgraph R1D[\"\
+    每纳入一个认知负担，问自己四个问题\"]\n        Q1[\"多久变一次？< 月 → 外化\"]\n        Q2[\"多少 agent/任务用？>\
+    \ 3 → 外化\"]\n        Q3[\"失败后果需要追溯吗？→ 外化\"]\n        Q4[\"延迟/上下文成本能承受吗？否 → 参数化\"\
+    ]\n    end\n    \n    R1 -.-> R1D\n    \n    style R1 fill:#e94560,stroke:#fff,color:#fff\n\
+    \    style R2 fill:#e94560,stroke:#fff,color:#fff\n    style R3 fill:#e94560,stroke:#fff,color:#fff\n\
+    \    style R4 fill:#e94560,stroke:#fff,color:#fff\n    style R5 fill:#e94560,stroke:#fff,color:#fff\n\
+    </code></pre>\n\n<h3>Rule 1: 四问决策法</h3>\n<p>每当你考虑「这个能力要不要外化成一个 skill / config\
+    \ / protocol」，依次问四个问题。四个维度都指向同一个方向时决策明确；方向冲突时（比如高频变更 + 低延迟），就需要工程权衡。</p>\n\n<h3>Rule\
+    \ 2: 最小充分性</h3>\n<p>不是最大化外化。一个好的 harness 简化模型的决策问题，而非创造第二个需要模型去理解的复杂系统。新加一个模块前，先问：它真的减少了认知负担吗，还是只是多了一层抽象？</p>\n\
+    \n<h3>Rule 3: 区分描述性外化与规范性外化</h3>\n<ul>\n  <li><strong>描述性（memory/context）:</strong>\
+    \ 帮助模型知道「现在是什么状态」</li>\n  <li><strong>规范性（skills/policies）:</strong> 告诉模型「应该怎么做」</li>\n\
+    \  <li>两者共享上下文预算，混合时注意竞争——planning 阶段需要更多 memory，execution 阶段需要更多 skill</li>\n\
+    </ul>\n\n<h3>Rule 4: 边界是动态变量</h3>\n<p>模型升级后审计：哪些外化组件可以回撤到参数化？新能力出现后审计：哪些参数化负担应该外化？这就是为什么每次\
+    \ Hermes 版本升级后，都应该重新审视 config.yaml 里的 compression_threshold 和 skill 加载策略。</p>\n\
+    \n<h3>Rule 5: 治理层与外化层同步设计</h3>\n<p>引入一个新 skill 的同时，就设计它的验证机制、回滚策略和版本管理。这是 Hermes\
+    \ skill curator + config backup cron job 存在的深层工程原因——不是运维便利，是架构必需。</p>\n\n<h2>实践对照：你的系统已经在外化什么？</h2>\n\
+    \n<table>\n  <thead><tr><th>你的系统</th><th>外化了什么</th><th>对应维度</th></tr></thead>\n\
+    \  <tbody>\n    <tr><td>Hermes config.yaml</td><td>运行时策略、模型选择、压缩阈值</td><td>更新频率（高频变更）+\
+    \ 可审计性</td></tr>\n    <tr><td>Hermes skills/</td><td>程序性专业知识</td><td>复用半径（跨 session）</td></tr>\n\
+    \    <tr><td>Hermes memory</td><td>跨 session 持久化状态</td><td>更新频率 + 上下文限制</td></tr>\n\
+    \    <tr><td>~/.hermes/.env</td><td>API keys, secrets</td><td>治理需求（不可进 prompt）</td></tr>\n\
+    \    <tr><td>triton-agent</td><td>NPU 算子优化知识</td><td>更新频率（硬件特定）+ 复用</td></tr>\n\
+    \  </tbody>\n</table>\n\n<p>你的每一个配置文件本质上都是在做「这个 burden 放在哪里最合适」的系统工程决策——即使你之前没有用\
+    \ Externalization 这个术语。</p>\n\n<h2>总结</h2>\n\n<p>论文的核心论点用一句话概括：</p>\n\n<blockquote>\n\
+    <p><strong>Agent 能力的真正分界线不是模型大小，而是「什么留在权重里、什么外化到基础设施中」。</strong>决定一个认知负担放在哪里，不看它重不重要，而看四个维度：更新频率、复用半径、治理需求、延迟/上下文成本。边界在双向移动——模型变强时回撤外化，基础设施成熟时新增外化。工程上不是追求最大化外化，而是追求最小充分性：只外化真正减少认知负担的部分。</p>\n\
+    </blockquote>\n\n<p>Harness Engineering 的核心不再是「给模型加更多工具」，而是设计一个认知环境——其中 memory\
+    \ 让 recall 变成 recognition、skill 让生成变成组合、protocol 让自由交互变成结构化契约、permission 让行为约束从概率性变成确定性。</p>"
 - title: Claude Code 的产品哲学：从 Unix 工具到 Agent 平台的底层逻辑
   date: May 22, 2026
   excerpt: 深入剖析 Claude Code 创建者 Boris Cherny 的产品设计底层逻辑：潜需求驱动、简单优先、6 个月规则、终端至上——以及这些原则如何让一个内部压测工具进化为重新定义工程师角色的
