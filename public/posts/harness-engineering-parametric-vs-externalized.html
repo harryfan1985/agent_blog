@@ -125,8 +125,10 @@ graph TD
 
 <p>这是最实用的工程决策维度。量化公式：</p>
 
-<pre><code>外化价值 = (复用频次 × 跨 agent 数量 × 维护成本) / 外化开销
-外化开销 = spec 制定 + discovery 机制 + execution binding + context 占用</div>
+<div style="background:#1a1a2e; border:1px solid #e94560; border-radius:8px; padding:1.2rem 1.5rem; margin:1.5rem 0; font-family:monospace; font-size:0.95rem; line-height:1.8; color:#e0e0e0;">
+<span style="color:#e94560;">外化价值</span> = (复用频次 × 跨 agent 数量 × 维护成本) / 外化开销<br>
+<span style="color:#e94560;">外化开销</span> = spec 制定 + discovery 机制 + execution binding + context 占用
+</div>
 
 <p><strong>实例分析:</strong></p>
 
@@ -178,10 +180,11 @@ graph TD
   <li><strong>Tool sprawl:</strong> 工具数量膨胀，把 action selection 变成不必要的消歧义问题</li>
 </ol>
 
-<pre><code>上下文预算分配 = 系统 prompt + memory 检索 + skill 加载 + protocol schema + 对话历史 + 推理空间
-
-外化成本 = skill token 开销 + retrieval 延迟 + parsing 开销 + routing 判断
-参数化成本 = 0（已经 baked in，forward pass 不变）</div>
+<div style="background:#1a1a2e; border:1px solid #533483; border-radius:8px; padding:1.2rem 1.5rem; margin:1.5rem 0; font-family:monospace; font-size:0.95rem; line-height:1.8; color:#e0e0e0;">
+<span style="color:#e94560;">上下文预算分配</span> = 系统 prompt + memory 检索 + skill 加载 + protocol schema + 对话历史 + 推理空间<br><br>
+<span style="color:#e94560;">外化成本</span> = skill token 开销 + retrieval 延迟 + parsing 开销 + routing 判断<br>
+<span style="color:#e94560;">参数化成本</span> = 0（已经 baked in，forward pass 不变）
+</div>
 
 <p><strong>决策启发式:</strong></p>
 <ul>
