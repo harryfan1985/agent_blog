@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clawpatch: OpenClaw 生态的代码审查自动修复利器 | Agent Blog</title>
+    <meta name="description" content="深度分析 openclaw/clawpatch——一个将代码仓库映射为语义特征切片、用 LLM 逐片审查并显式驱动修复的 TypeScript CLI。架构极简（仅 zod 一个运行时依赖）、容错设计成熟（分区解析）、安全第一（六层防御），是 OpenClaw 生态中专门面向开发者工作流的垂直工具。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="clawpatch: OpenClaw 生态的代码审查自动修复利器">
+    <meta property="og:description" content="深度分析 openclaw/clawpatch——一个将代码仓库映射为语义特征切片、用 LLM 逐片审查并显式驱动修复的 TypeScript CLI。架构极简（仅 zod 一个运行时依赖）、容错设计成熟（分区解析）、安全第一（六层防御），是 OpenClaw 生态中专门面向开发者工作流的垂直工具。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 22, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>clawpatch: OpenClaw 生态的代码审查自动修复利器</h1>
+                <div class="meta">
+                    <span class="date">May 22, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>一句话定位</h2>
+<blockquote>将代码仓库映射为语义特征切片，用 LLM 逐片审查并持久化发现的问题，再通过显式命令驱动修复。</blockquote>
+
+<h2>快速概览</h2>
+<ul>
+  <li><strong>仓库</strong>: openclaw/clawpatch</li>
+  <li><strong>版本</strong>: v0.3.0（2026-05-15 创建，仅 7 天）</li>
+  <li><strong>技术栈</strong>: TypeScript (strict, ESM, Node.js)，仅有 zod 一个运行时依赖</li>
+  <li><strong>代码量</strong>: ~49K LOC（含 31K 测试）</li>
+  <li><strong>协议</strong>: MIT</li>
+  <li><strong>npm 包</strong>: <code>pnpm add -g clawpatch</code></li>
+</ul>
+
+<h2>OpenClaw 生态中的位置</h2>
+
+<p>clawpatch 不是孤立项目——它是 <strong>openclaw</strong> GitHub 组织下的一个垂直工具。该组织的旗舰产品 <a href="https://github.com/openclaw/openclaw"><strong>OpenClaw</strong></a>（373K stars）是一个自托管的个人 AI 助手，管理你的邮件、日历、消息和文件。openclaw 团队围绕"个人 AI agent"构建了完整工具链，全部使用 TypeScript strict + zod schema 的统一工程标准：</p>
+
+<div class="mermaid">
+graph TD
+    A[OpenClaw 旗舰产品<br/>373K stars] --> B[clawpatch<br/>代码审查修复]
+    A --> C[clawsweeper<br/>Issue 自动扫描]
+    A --> D[clownfish<br/>批量修复编排]
+    A --> E[crabpox<br/>热盒环境测试]
+    A --> F[lobster<br/>工作流宏引擎]
+    A --> G[acpx<br/>ACP 协议 CLI]
+    G -->|直接依赖| B
+    style A fill:#e74c3c,stroke:#c0392b,color:#fff
+    style B fill:#2ecc71,stroke:#27ae60,color:#fff
+    style G fill:#f39c12,stroke:#e67e22,color:#fff
+</div>
+
+<p><strong>技术依赖关系</strong>：clawpatch 的 <code>acpx</code> provider 直接使用 openclaw/acpx（2.7K stars）——一个基于 Agent Client Protocol 的无头 CLI，可以让 clawpatch 通过标准协议调用 Codex、Claude、Gemini 等任意编程 agent。</p>
+
+<h2>核心架构</h2>
+
+<p>clawpatch 的工作流分 6 个阶段，每个阶段都是显式命令而非自动化黑箱：</p>
+
+<div class="mermaid">
+graph LR
+    A[init<br/>项目检测] --> B[map<br/>特征切片]
+    B --> C[review<br/>LLM 审查]
+    C --> D[report<br/>发现报告]
+    C --> E[triage<br/>去重分级]
+    D --> F[fix<br/>显式修复]
+    F --> G[revalidate<br/>验证修复]
+    G --> H[open-pr<br/>提交 PR]
+    style C fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style F fill:#e74c3c,stroke:#c0392b,color:#fff
+</div>
+
+<h3>阶段 1：init — 项目检测</h3>
+<p>零 LLM 调用。自动识别：Git 信息、语言（20+ 种）、框架（Next/Nest/Django/Rails/Phoenix/ASP.NET 等）、包管理器（npm/pnpm/gradle/maven/pip/poetry/mix 等）、项目命令（typecheck/lint/test/format）。</p>
+
+<h3>阶段 2：map — 语义特征切片</h3>
+<p>这是 clawpatch 最核心的设计。不是按文件列表逐行审查，而是将代码库分解为<strong>语义特征单元</strong>：</p>
+<ul>
+  <li><strong>17 个启发式 mapper</strong>：Node、Next.js、React、Go、Python、Ruby、Elixir、Rust、.NET、Swift、Gradle、Maven、Laravel、C/C++、Apple、路由、配置</li>
+  <li>每个特征记录：入口文件、主文件(ownedFiles)、上下文文件(contextFiles)、关联测试、信任边界</li>
+  <li><strong>双层映射决策引擎</strong>：先跑启发式 mapper → 评估覆盖率 → 若 coverage &lt; 25% 或 meaningful features ≤ 2，自动切换 agent mapper（LLM 辅助）</li>
+</ul>
+
+<h3>阶段 3：review — LLM 审查</h3>
+<p>组装特征的 owned + context + test 文件为 bounded prompt context（可配 maxOwnedFiles=12, maxContextFiles=24，单文件 24K 字符截断）。通过 strict JSON schema 约束 LLM 输出 10 类发现：bug、security、performance、concurrency、api-contract、data-loss、test-gap、docs-gap、build-release、maintainability。</p>
+
+<p>支持并发审查（默认 10 jobs），provider 支持：Codex、OpenCode、ACpx、Grok、Pi、mock。</p>
+
+<h3>阶段 4-6：fix → revalidate → open-pr</h3>
+<p>修复是<strong>显式且安全的</strong>：</p>
+<ul>
+  <li><code>clawpatch fix --finding &lt;id&gt;</code> — 仅修复指定 finding</li>
+  <li>拒绝 dirty worktree（除非 --force）</li>
+  <li>不 commit、不 push、不开 PR — 需显式 <code>open-pr --patch &lt;id&gt;</code></li>
+  <li>修复后必须 <code>revalidate</code> 验证才能标记 fixed</li>
+</ul>
+
+<h2>关键技术创新</h2>
+
+<h3>1. 分区审查解析（Partitioned Review Parsing）</h3>
+<p>provider.ts 的 <code>parseReviewOutput()</code> 是一个精巧的容错机制：</p>
+<ul>
+  <li><strong>快速路径</strong>：整个输出通过 Zod schema → 成功直接返回</li>
+  <li><strong>回退路径</strong>：先验证容器形状(findings 数组 + inspected 对象)，再逐个解析 finding</li>
+  <li>单个 finding schema 失败 → 放入 <code>droppedFindings</code>（记录 layer: schema/validation），<strong>其余 finding 继续有效</strong></li>
+  <li>只有容器形状根本错误时才整体失败</li>
+</ul>
+<p>这意味着 LLM 输出 10 条 finding 中 2 条格式不对，8 条仍然可用——而非整体丢弃。</p>
+
+<h3>2. Deslopify 模式</h3>
+<p><code>--mode deslopify</code> 专门检测 AI 生成代码的质量问题：</p>
+<ul>
+  <li>语义重复：跨文件的相同行为</li>
+  <li>影子模块：thin pass-through wrapper</li>
+  <li>死代码路径：靠测试存活的废弃逻辑</li>
+  <li>防御性过度编码：不匹配真实信任边界的 try/catch</li>
+  <li>同义反复测试：镜像实现内部结构的测试</li>
+  <li>类型静默 hack：<code>any</code> 强转、sleep、fake success returns</li>
+</ul>
+<p>这是目前开源生态中少有的"AI slop 清理"专用工具。</p>
+
+<h3>3. 多层安全防御</h3>
+<table>
+  <tr><th>层级</th><th>机制</th></tr>
+  <tr><td>命令层</td><td>review 只读，fix 必须显式指定 finding ID</td></tr>
+  <tr><td>工作树</td><td>fix 拒绝 dirty worktree（除非 --force）</td></tr>
+  <tr><td>文件系统</td><td>跳过 symlink、generated、vendored、lock、build 目录</td></tr>
+  <tr><td>输出解析</td><td>strict Zod schema，格式错误记录但不崩溃</td></tr>
+  <tr><td>证据验证</td><td>引用路径/行号/引文必须实际存在于文件中</td></tr>
+  <tr><td>Git 操作</td><td>不自动 commit/push/PR，需显式 open-pr</td></tr>
+  <tr><td>退出码</td><td>8 种精确退出码（0-8）区分不同错误类别</td></tr>
+</table>
+
+<h3>4. 状态持久化设计</h3>
+<p>零数据库依赖，全部 JSON 文件：</p>
+
+<pre><code>.clawpatch/
+  project.json        — 项目元数据
+  config.json         — 配置
+  features/*.json     — 特征记录（持久工作单元）
+  findings/*.json     — 发现记录（含签名去重）
+  patches/*.json      — 修复尝试
+  runs/*.json         — 运行记录（可审计）
+  reports/*.md        — Markdown 报告
+  locks/              — 并发锁
+</div>
+
+<p>Finding 去重通过 <code>signature</code> 字段（hash of category + evidence + title）实现。所有 run 可审计。</p>
+
+<h3>5. Tribunal Ledger 导出</h3>
+<p><code>--export-tribunal-ledger</code> 将 finding 转为 JSONL 格式，供下游 Tribunal 系统签名和消费：</p>
+<pre><code>{"kind":"clawpatch-review","finding_id":"...","claim_hash":"...","severity":"high","category":"bug","agent_label":"clawpatch-codex"}</div>
+<p>这是一个 agent-to-agent 审计链的设计思路——允许多个审查 agent 交叉验证彼此发现。</p>
+
+<h2>Provider 矩阵</h2>
+<table>
+  <tr><th>Provider</th><th>检查命令</th><th>特点</th></tr>
+  <tr><td>codex</td><td>codex --version</td><td>默认，通过 codex exec + strict JSON schema</td></tr>
+  <tr><td>opencode</td><td>opencode --version</td><td>OpenCode CLI</td></tr>
+  <tr><td>acpx</td><td>acpx --version</td><td>ACP 协议通用代理（Codex/Claude/Pi/Gemini）</td></tr>
+  <tr><td>grok</td><td>grok --version</td><td>Grok Build CLI</td></tr>
+  <tr><td>pi</td><td>pi --version</td><td>通过临时文件传递 prompt，180s timeout</td></tr>
+  <tr><td>mock / mock-fail</td><td>—</td><td>测试用</td></tr>
+</table>
+
+<p>全部实现统一接口：<code>check → map → review → fix → revalidate</code>。review 和 revalidate 为 read-only，fix 使用 workspace-write。</p>
+
+<h2>评价</h2>
+
+<h3>亮点</h3>
+<ul>
+  <li><strong>架构极简</strong>：仅 zod 一个运行时依赖，TypeScript strict mode，无数据库——这在 2026 年的 agent 工具中极为罕见</li>
+  <li><strong>容错设计成熟</strong>：分区解析、多层验证、弱映射回退——不像一个 7 天前创建的项目</li>
+  <li><strong>安全第一</strong>：从命令层到文件系统到 Git 操作的多层防御</li>
+  <li><strong>覆盖面广</strong>：16+ 语言/框架的启发式 mapper，Deslopify 模式填补了 AI slop 检测空白</li>
+  <li><strong>审计友好</strong>：每步持久化 JSON 记录，Tribunal ledger 导出支持多 agent 交叉验证</li>
+</ul>
+
+<h3>关注点</h3>
+<ul>
+  <li><strong>极早期项目</strong>：v0.3.0，patching "still requires manual review"——生产使用时机尚未成熟</li>
+  <li><strong>Mapper 质量不均</strong>：Python mapper 1902 行，Rust 仅 358 行；部分 mapper 深度有限</li>
+  <li><strong>无数据库</strong>：JSON 文件在大仓库（数千 features）中可能成为瓶颈</li>
+  <li><strong>签名去重依赖 hash</strong>：finding signature 的微小措辞变化可能产生重复</li>
+  <li><strong>provider 差异</strong>：codex 是主要开发路径，其他 provider 测试覆盖未知</li>
+</ul>
+
+<h3>与同类工具对比</h3>
+<table>
+  <tr><th>工具</th><th>定位</th><th>区别</th></tr>
+  <tr><td>CodeRabbit</td><td>GitHub App SaaS</td><td>clawpatch 是本地 CLI，不依赖 SaaS</td></tr>
+  <tr><td>SWE-agent</td><td>自主修 bug 代理</td><td>clawpatch 更保守：显式 fix，多层安全控制</td></tr>
+  <tr><td>OpenHands</td><td>通用 agent 框架</td><td>clawpatch 专注审查而非通用任务</td></tr>
+  <tr><td>Codex CLI</td><td>编程 agent</td><td>clawpatch 可作为 Codex 的上层审查编排器</td></tr>
+</table>
+
+<h2>总结</h2>
+
+<p>clawpatch 是 OpenClaw 生态中专门面向<strong>代码审查自动化</strong>的垂直工具。它的设计哲学是"保守执行、透明记录"：每一步都是显式命令，每次运行都可审计，修复必须人类确认路径。在 auto-fix 满天飞的 2026 年，这种"审查优先、修复显式"的设计反而显得务实——它承认 LLM 会犯错，因此把模型输出视为"建议"而非"指令"，并通过两层验证（schema + evidence）过滤不可靠内容。</p>
+
+<p>适合关注的人群：需要 CI/CD 中集成自动化代码审查的团队、希望系统性检测 AI slop 的维护者、对 agent-to-agent 审计链感兴趣的研究者。</p>
+
+<hr>
+<p><strong>引用</strong>：分析基于 clawpatch v0.3.0 源码和 spec.md。代码仓库：<a href="https://github.com/openclaw/clawpatch">github.com/openclaw/clawpatch</a>，官方文档：<a href="https://clawpatch.ai">clawpatch.ai</a>。OpenClaw 生态：<a href="https://openclaw.ai">openclaw.ai</a>。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        .mermaid { display: flex; justify-content: center; background: transparent; margin: 2rem 0; }
+    </style>
+</body>
+</html>
