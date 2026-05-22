@@ -101,6 +101,922 @@ posts:
     \ takeaways from Boris Cherny interview</li>\n  <li>Product Artistry: \"Building\
     \ for Demand That Already Exists\"</li>\n</ul>\n\n<p><em>Boris Cherny 也是 O'Reilly《Programming\
     \ TypeScript》的作者，前 Meta Principal Engineer（IC8），现 Anthropic Claude Code 负责人。</em></p>"
+- title: OpenAI Codex 团队核心成员解析
+  date: May 20, 2026
+  excerpt: 深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。
+  content: '<h2>目录</h2>
+
+
+    <p>1. <a href="#1-核心领导层">核心领导层</a></p>
+
+    <p>2. <a href="#2-技术骨干">技术骨干</a></p>
+
+    <p>3. <a href="#3-团队工作方式">团队工作方式</a></p>
+
+    <p>4. <a href="#4-技术选型">技术选型</a></p>
+
+    <p>5. <a href="#5-参考资源">参考资源</a></p>
+
+
+    <hr>
+
+
+    <h2 id="1-核心领导层">1. 核心领导层</h2>
+
+
+    <h3>Thibault "Tibo" Sottiaux — Head of Codex</h3>
+
+
+    <p>Tibo 是 Codex 的工程负责人，直接向 OpenAI 高层汇报。他的背景非常有趣：</p>
+
+
+    <p>- <strong>前 Google 软件工程师</strong>，在 Google 期间积累了大规模系统开发经验</p>
+
+    <p>- <strong>应用研究背景</strong>：专注于决策系统、预测建模和数据库系统</p>
+
+    <p>- 在 OpenAI 的职级是 <strong>Member of Technical Staff</strong></p>
+
+
+    <p>Tibo 在多个公开场合分享了 Codex 的愿景，包括 OpenAI Forum 和 Software Engineering Daily 播客。他强调
+    Codex 的目标不仅是代码生成，而是<strong>"agentic SDLC"</strong>（代理驱动的软件开发生命周期）。</p>
+
+
+    <blockquote>
+
+    <p>"Greg 和 Sam 有强烈的信念：''最终，我们应该有一个自主软件工程师与我们一起工作''……时机就是现在。"</p>
+
+    <p>—— Thibault Sottiaux</p>
+
+    </blockquote>
+
+
+    <h3>Greg Brockman — OpenAI Co-founder</h3>
+
+
+    <p>Greg Brockman 是推动 Codex 成为 OpenAI 战略重点的关键人物：</p>
+
+
+    <p>- 2024 年底，他将 <strong>aSWE (Autonomous Software Engineer)</strong> 定为 2025 年的
+    top-line goal</p>
+
+    <p>- 与 Sam Altman 共同推动了 Codex 从实验项目到核心产品的转变</p>
+
+    <p>- 在 Apple Podcasts 的访谈中与 Tibo 一起讨论 Codex 的演进</p>
+
+
+    <h3>Sam Altman — OpenAI CEO</h3>
+
+
+    <p>Sam Altman 对 Codex 的评价非常直接：</p>
+
+
+    <blockquote>
+
+    <p>"Codex 是我们最受喜爱的内部产品。"</p>
+
+    </blockquote>
+
+
+    <p>这一评价反映了 Codex 在 OpenAI 内部的使用深度——不仅是面向外部的产品，也是 OpenAI 工程师日常工作的核心工具。</p>
+
+
+    <hr>
+
+
+    <h2 id="2-技术骨干">2. 技术骨干</h2>
+
+
+    <h3>Michael Bolin — Tech Lead（开源仓库）</h3>
+
+
+    <p>Michael Bolin 负责 Codex 开源仓库的技术方向：</p>
+
+
+    <p>- <strong>前 Meta Distinguished Engineer (E9)</strong>：Meta 的最高工程职级之一</p>
+
+    <p>- 曾在 <strong>Google 和 Meta</strong> 工作，积累了丰富的 Big Tech 工程经验</p>
+
+    <p>- 主导了 Codex CLI 的架构设计，包括 agent loop 的 state machine 实现</p>
+
+    <p>- 发表了技术博客 <a href="https://openai.com/index/unrolling-the-codex-agent-loop/">"Unrolling
+    the Codex Agent Loop"</a></p>
+
+
+    <p>Michael 在访谈中提到，他在 OpenAI 学到的关键经验是：<strong>"技术上正确是不够的"</strong>——必须考虑用户体验和实际影响。</p>
+
+
+    <h3>Gabriel Peal — Engineering Lead（IDE Extension & Desktop App）</h3>
+
+
+    <p>Gabriel 负责 Codex 的 IDE 扩展和桌面应用：</p>
+
+
+    <p>- <strong>前 Airbnb</strong>：React Native 迁移决策的核心人物，主导了 Airbnb 从 React Native
+    回归原生开发的工程</p>
+
+    <p>- <strong>前 Google</strong>：Android GSE (Google Software Engineer)</p>
+
+    <p>- <strong>前 Watershed、Tonal</strong>：气候科技和健身科技领域的工程经验</p>
+
+    <p>- <strong>Lo 维护者</strong>：一个开源动画库</p>
+
+
+    <p>Gabriel 几乎是独立构建了 VS Code 扩展，并奠定了桌面应用的基础。他的多领域经验（移动端、桌面端、云）让 Codex 的多平台策略更加扎实。</p>
+
+
+    <h3>Fouad Matin — Safety & Security Lead</h3>
+
+
+    <p>Fouad 负责 Codex 的安全和沙箱机制：</p>
+
+
+    <p>- <strong>前 Indent 联合创始人/CEO</strong>（2018-2024）：云访问管理领域的网络安全创业公司</p>
+
+    <p>- <strong>前 Segment 工程师</strong>（2016-2017）：数据基础设施</p>
+
+    <p>- <strong>VotePlz 联合创始人</strong>：帮助数百万人投票的公益项目</p>
+
+    <p>- 在 OpenAI 专注于<strong>代码执行代理的安全和沙箱技术</strong></p>
+
+
+    <p>Fouad 的背景在 Codex 团队中至关重要——Codex 的核心差异化之一就是<strong>默认安全沙箱</strong>，这让非技术用户也能安全使用。</p>
+
+
+    <hr>
+
+
+    <h2 id="3-团队工作方式">3. 团队工作方式</h2>
+
+
+    <h3>Agent-First 开发</h3>
+
+
+    <p>Codex 团队是<strong>自己产品的重度用户</strong>：</p>
+
+
+    <p>- 典型工程师同时运行 <strong>4-8 个并行 agent</strong></p>
+
+    <p>- 工程师的角色从"写代码"转变为<strong>"agent 管理者"</strong></p>
+
+    <p>- 每天到达工位时，多个 agent 已经在处理：代码审查、功能实现、安全审计、代码库理解、计划总结、bug 修复等</p>
+
+
+    <h3>自举开发（Self-Hosted）</h3>
+
+
+    <p>Codex 团队实现了真正的<strong>自举</strong>：</p>
+
+
+    <p>- <strong>>90% 的 Codex 代码由 Codex 自己生成</strong></p>
+
+    <p>- 这与 Anthropic 的 Claude Code 团队报告的数据一致</p>
+
+    <p>- GPT-5.3-Codex 是第一个<strong>帮助创造自己</strong>的模型</p>
+
+
+    <h3>发布频率</h3>
+
+
+    <p>- <strong>内部发布</strong>：每天 3-4 次</p>
+
+    <p>- <strong>外部发布</strong>：每几天一次（通过 Homebrew、npm）</p>
+
+    <p>- 截至 2026 年 4 月，Codex CLI 已有 <strong>709 个 release</strong></p>
+
+
+    <h3>技能系统（Skills）</h3>
+
+
+    <p>团队内部有 <strong>100+ 个 skill</strong>，持续在内部共享：</p>
+
+
+    <table>
+
+    <tr><th>Skill</th><th>功能</th></tr>
+
+    <tr><td>Security best-practices</td><td>检查代码是否符合安全规范，生成补丁</td></tr>
+
+    <tr><td>"Yeet"</td><td>从计划自动生成 PR 标题/描述，一键创建 draft PR</td></tr>
+
+    <tr><td>Datadog integration</td><td>连接 Datadog，审查告警/问题，尝试生成修复</td></tr>
+
+    </table>
+
+
+    <h3>分层代码审查</h3>
+
+
+    <p>- <strong>AI 审查</strong>： bespoke 模型自动运行，约 90% 的 AI 评论指出有效问题</p>
+
+    <p>- <strong>非关键代码</strong>：AI 审查后即可合并，无需人工</p>
+
+    <p>- <strong>核心代码</strong>（agent、开源部分）：强制人工审查</p>
+
+
+    <hr>
+
+
+    <h2 id="4-技术选型">4. 技术选型</h2>
+
+
+    <h3>为什么用 Rust？</h3>
+
+
+    <p>团队曾对比 TypeScript、Go 和 Rust，最终选择 Rust：</p>
+
+
+    <p>- <strong>性能</strong>：大规模场景下每毫秒都重要</p>
+
+    <p>- <strong>正确性</strong>：强类型和内存管理</p>
+
+    <p>- <strong>工程文化</strong>：Rust 设定了高门槛</p>
+
+    <p>- <strong>依赖少</strong>：避免 npm 依赖链的脆弱性</p>
+
+    <p>- <strong>长期愿景</strong>：agent 需要在嵌入式系统、数据中心、笔记本上运行</p>
+
+
+    <p>团队甚至雇佣了 <strong>Ratatui</strong>（Rust TUI 库）的维护者全职加入。</p>
+
+
+    <h3>Agent Loop 架构</h3>
+
+
+    <p>核心是一个 state machine：</p>
+
+
+    <p>1. <strong>Prompt assembly</strong>：用户输入 + 系统指令 + 工具列表 + 文件 + 环境</p>
+
+    <p>2. <strong>Inference</strong>：token 发送到模型，流式返回推理步骤、工具调用或响应</p>
+
+    <p>3. <strong>Response</strong>：流式输出到终端；如果是工具调用，执行（读文件、运行 bash、写代码）</p>
+
+    <p>4. <strong>Tool response</strong>（可选）：失败时错误返回模型诊断/重试</p>
+
+    <p>5. <strong>Assistant message</strong>：最终消息给用户，循环重启</p>
+
+
+    <h3>Compaction 机制</h3>
+
+
+    <p>当对话超过 token 阈值时，特殊的 Responses API endpoint 生成紧凑表示，避免二次推理成本。</p>
+
+
+    <h3>安全沙箱</h3>
+
+
+    <p>- 默认在沙箱中运行（限制网络/文件系统）</p>
+
+    <p>- 用户可以禁用，但默认安全</p>
+
+    <p>- 这是 Codex 区别于其他终端 agent 的关键设计</p>
+
+
+    <hr>
+
+
+    <h2 id="5-参考资源">5. 参考资源</h2>
+
+
+    <p>- <a href="https://newsletter.pragmaticengineer.com/p/how-codex-is-built">How
+    Codex is Built - Pragmatic Engineer</a>（Gergely Orosz, 2026年2月）</p>
+
+    <p>- <a href="https://github.com/openai/codex">OpenAI Codex GitHub</a></p>
+
+    <p>- <a href="https://openai.com/index/unrolling-the-codex-agent-loop/">Unrolling
+    the Codex Agent Loop - Michael Bolin</a></p>
+
+    <p>- <a href="https://www.reddit.com/r/ChatGPT/comments/1ko3tp1/ama_with_openai_codex_team">AMA
+    with OpenAI Codex team - Reddit</a></p>
+
+    <p>- <a href="https://softwareengineeringdaily.com/2026/01/29/openai-and-codex-with-thibault-sottiaux-and-ed-bayes">OpenAI
+    and Codex - Software Engineering Daily</a></p>'
+- title: Serena 深度解析：给 AI Agent 的 IDE 级语义代码能力
+  date: May 20, 2026
+  excerpt: Serena 是一个开源 MCP 工具包，为 AI 编码代理提供 IDE 级别的语义代码检索、编辑和重构能力。
+  content: '<h2>目录</h2>
+
+
+    <p>1. <a href="#1-什么是-serena">什么是 Serena</a></p>
+
+    <p>2. <a href="#2-核心定位-the-ide-for-your-agent">核心定位：The IDE for Your Agent</a></p>
+
+    <p>3. <a href="#3-双后端架构">双后端架构</a></p>
+
+    <p>4. <a href="#4-mcp-tools-全景">MCP Tools 全景</a></p>
+
+    <p>5. <a href="#5-记忆系统">记忆系统</a></p>
+
+    <p>6. <a href="#6-性能测评数据">性能测评数据</a></p>
+
+    <p>7. <a href="#7-与其他方案的对比">与其他方案的对比</a></p>
+
+    <p>8. <a href="#8-安装与使用">安装与使用</a></p>
+
+    <p>9. <a href="#9-总结与思考">总结与思考</a></p>
+
+
+    <hr>
+
+
+    <h2 id="1-什么是-serena">1. 什么是 Serena</h2>
+
+
+    <p><strong>Serena</strong> 是由 <a href="https://oraios-software.de/">Oraios Software</a>
+    开发的开源 MCP（Model Context Protocol）工具包，专为 AI 编码代理设计。它通过提供 IDE 级别的语义代码检索、编辑和重构能力，将
+    LLM 从"文本操作员"升级为"语义级开发者"。</p>
+
+
+    <p><strong>关键信息</strong>：</p>
+
+
+    <p>- <strong>License</strong>: MIT（完全开源）</p>
+
+    <p>- <strong>GitHub</strong>: <a href="https://github.com/oraios/serena">oraios/serena</a></p>
+
+    <p>- <strong>语言</strong>: Python，UV 管理依赖</p>
+
+    <p>- <strong>集成方式</strong>: MCP Server，支持 Claude Code、Codex CLI、Copilot CLI、Claude
+    Desktop 等</p>
+
+    <p>- <strong>语言支持</strong>: 40+ 种（Language Server 后端）/ JetBrains 全家桶（Plugin 后端）</p>
+
+
+    <hr>
+
+
+    <h2 id="2-核心定位-the-ide-for-your-agent">2. 核心定位：The IDE for Your Agent</h2>
+
+
+    <p>Serena 的 slogan 是 <strong>"The IDE for Your Coding Agent"</strong>。这个定位非常精准——它不是要替代
+    Claude Code 或 Codex，而是要成为这些代理的<strong>语义后端</strong>。</p>
+
+
+    <h3>Agent-First 设计哲学</h3>
+
+
+    <p>Serena 的工具设计完全围绕 AI agent 的工作流，而非人类开发者：</p>
+
+
+    <p>- <strong>高阶抽象</strong>: 操作"符号"（symbol）而非"行号"，如 <code>replace_symbol_body</code>
+    直接替换整个函数定义</p>
+
+    <p>- <strong>原子化操作</strong>: 跨文件 rename 是一个 MCP 调用，不是 8-12 个 grep + sed 步骤</p>
+
+    <p>- <strong>语言无关</strong>: 统一的符号级接口，底层由 Language Server 处理语言差异</p>
+
+
+    <p>用 Serena 开发者的话说：</p>
+
+
+    <blockquote>
+
+    <p>"Serena 让我从脆弱的文本手术变成冷静、快速、自信的语义级代码修改。"</p>
+
+    <p>—— GPT 5.4 in Codex CLI</p>
+
+    </blockquote>
+
+
+    <hr>
+
+
+    <h2 id="3-双后端架构">3. 双后端架构</h2>
+
+
+    <p>Serena 采用双后端设计，满足不同场景需求：</p>
+
+
+    <h3>3.1 Language Server 后端（免费）</h3>
+
+
+    <p>基于开源 LSP（Language Server Protocol），支持 40+ 种语言：</p>
+
+
+    <p><strong>支持语言</strong>: Ada/SPARK, AL, Angular, Ansible, Bash, BSL, C#, C/C++,
+    Clojure, Crystal, CUE, Dart, Elixir, Elm, Erlang, Fortran, F#, GDScript, GLSL,
+    Go, Groovy, Haskell, Haxe, HLSL, HTML, Java, JavaScript, JSON, Julia, Kotlin,
+    Lean 4, Lua, Luau, Markdown, MATLAB, mSL, Nix, OCaml, Perl, PHP, PowerShell, Python,
+    R, Ruby, Rust, Scala, SCSS/Sass/CSS, Solidity, Svelte, Swift, TOML, TypeScript,
+    WGSL, YAML, Zig。</p>
+
+
+    <p><strong>能力矩阵</strong>:</p>
+
+
+    <table>
+
+    <tr><th>能力</th><th>支持</th></tr>
+
+    <tr><td>Find symbol</td><td>✅</td></tr>
+
+    <tr><td>Symbol overview (file outline)</td><td>✅</td></tr>
+
+    <tr><td>Find referencing symbols</td><td>✅</td></tr>
+
+    <tr><td>Find declaration</td><td>✅*</td></tr>
+
+    <tr><td>Find implementations</td><td>✅**</td></tr>
+
+    <tr><td>Diagnostics/inspections</td><td>✅</td></tr>
+
+    <tr><td>Rename symbol</td><td>✅ symbols only</td></tr>
+
+    <tr><td>Type hierarchy</td><td>❌</td></tr>
+
+    <tr><td>Search in project dependencies</td><td>❌</td></tr>
+
+    </table>
+
+
+    <p>* May not work for declarations in external dependencies.</p>
+
+    <p>** Only for some languages.</p>
+
+
+    <h3>3.2 JetBrains Plugin 后端（付费）</h3>
+
+
+    <p>连接 JetBrains IDE 的分析引擎，提供更强大的能力：</p>
+
+
+    <table>
+
+    <tr><th>能力</th><th>Language Server</th><th>JetBrains</th></tr>
+
+    <tr><td>Rename</td><td>symbols only</td><td>symbols + files + dirs</td></tr>
+
+    <tr><td>Move</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>Inline</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>Safe delete</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>Type hierarchy</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>Interactive debugging</td><td>❌</td><td>✅ [BETA]</td></tr>
+
+    <tr><td>Propagate deletions</td><td>❌</td><td>✅</td></tr>
+
+    </table>
+
+
+    <p><strong>支持 IDE</strong>: IntelliJ IDEA, PyCharm, Android Studio, WebStorm,
+    PhpStorm, RubyMine, GoLand（不支持 Rider 和 CLion）。</p>
+
+
+    <hr>
+
+
+    <h2 id="4-mcp-tools-全景">4. MCP Tools 全景</h2>
+
+
+    <p>Serena 提供 <strong>30+ 个 MCP Tools</strong>，分为以下几类：</p>
+
+
+    <h3>4.1 语义检索工具（核心）</h3>
+
+
+    <table>
+
+    <tr><th>Tool</th><th>功能</th></tr>
+
+    <tr><td><code>find_symbol</code></td><td>全局符号搜索</td></tr>
+
+    <tr><td><code>find_declaration</code></td><td>找符号定义/声明</td></tr>
+
+    <tr><td><code>find_implementations</code></td><td>找符号实现（如接口实现类）</td></tr>
+
+    <tr><td><code>find_referencing_symbols</code></td><td>找引用该符号的所有位置</td></tr>
+
+    <tr><td><code>get_symbols_overview</code></td><td>获取文件的顶层符号大纲</td></tr>
+
+    <tr><td><code>get_diagnostics_for_file</code></td><td>获取文件诊断信息（按严重程度和符号分组）</td></tr>
+
+    <tr><td><code>get_diagnostics_for_symbol</code></td><td>获取符号及其引用的诊断（可选）</td></tr>
+
+    </table>
+
+
+    <h3>4.2 符号级编辑工具（差异化能力）</h3>
+
+
+    <p>这是 Serena 最核心的差异化能力——<strong>操作符号而非文本</strong>：</p>
+
+
+    <table>
+
+    <tr><th>Tool</th><th>功能</th></tr>
+
+    <tr><td><code>replace_symbol_body</code></td><td>替换符号的完整定义体</td></tr>
+
+    <tr><td><code>insert_after_symbol</code></td><td>在符号定义结束后插入内容</td></tr>
+
+    <tr><td><code>insert_before_symbol</code></td><td>在符号定义开始前插入内容</td></tr>
+
+    <tr><td><code>rename_symbol</code></td><td>跨文件重命名符号（Language Server）</td></tr>
+
+    <tr><td><code>safe_delete_symbol</code></td><td>安全删除符号（检查引用）</td></tr>
+
+    </table>
+
+
+    <h3>4.3 JetBrains 专属工具</h3>
+
+
+    <table>
+
+    <tr><th>Tool</th><th>功能</th><th>状态</th></tr>
+
+    <tr><td><code>jet_brains_rename</code></td><td>重命名符号/文件/目录</td><td>稳定</td></tr>
+
+    <tr><td><code>jet_brains_move</code></td><td>移动符号/文件/目录并更新引用</td><td>[BETA]</td></tr>
+
+    <tr><td><code>jet_brains_inline_symbol</code></td><td>内联符号（替换调用点为函数体）</td><td>[BETA]</td></tr>
+
+    <tr><td><code>jet_brains_safe_delete</code></td><td>安全删除（检查剩余引用）</td><td>[BETA]</td></tr>
+
+    <tr><td><code>jet_brains_type_hierarchy</code></td><td>获取类型层次（父类/子类）</td><td>稳定</td></tr>
+
+    <tr><td><code>jet_brains_debug</code></td><td>交互式调试（断点、变量检查、表达式求值）</td><td>[BETA]</td></tr>
+
+    <tr><td><code>jet_brains_run_inspections</code></td><td>运行 JetBrains inspections
+    并返回结果</td><td>稳定</td></tr>
+
+    </table>
+
+
+    <h3>4.4 记忆系统工具</h3>
+
+
+    <table>
+
+    <tr><th>Tool</th><th>功能</th></tr>
+
+    <tr><td><code>write_memory</code></td><td>写入项目记忆（.md 格式）</td></tr>
+
+    <tr><td><code>read_memory</code></td><td>读取记忆文件</td></tr>
+
+    <tr><td><code>list_memories</code></td><td>列出所有记忆</td></tr>
+
+    <tr><td><code>edit_memory</code></td><td>通过正则替换修改记忆</td></tr>
+
+    <tr><td><code>rename_memory</code></td><td>重命名记忆（自动更新 <code>mem:</code> 前缀引用）</td></tr>
+
+    <tr><td><code>delete_memory</code></td><td>删除记忆文件</td></tr>
+
+    </table>
+
+
+    <p>记忆系统让 Serena 能够<strong>跨会话共享项目知识</strong>，常与 agent 的内部系统（如 <code>AGENTS.md</code>）配合使用。</p>
+
+
+    <h3>4.5 基础工具（通常与 Claude Code/Codex 重叠）</h3>
+
+
+    <table>
+
+    <tr><th>Tool</th><th>功能</th></tr>
+
+    <tr><td><code>search_for_pattern</code></td><td>模式搜索</td></tr>
+
+    <tr><td><code>replace_content</code></td><td>内容替换（支持正则）</td></tr>
+
+    <tr><td><code>read_file</code></td><td>读取文件</td></tr>
+
+    <tr><td><code>list_dir</code></td><td>列出目录</td></tr>
+
+    <tr><td><code>find_file</code></td><td>查找文件</td></tr>
+
+    <tr><td><code>execute_shell_command</code></td><td>执行 shell 命令</td></tr>
+
+    </table>
+
+
+    <p>这些工具在 Claude Code/Codex 中已有等价实现，通常默认禁用以避免重复。</p>
+
+
+    <hr>
+
+
+    <h2 id="5-记忆系统">5. 记忆系统</h2>
+
+
+    <p>Serena 内置了一个简单的记忆管理系统，用于<strong>跨会话、跨用户、跨项目</strong>共享知识。</p>
+
+
+    <h3>5.1 记忆文件格式</h3>
+
+
+    <p>记忆以 <code>.md</code> 文件存储，使用有意义的名称，内容格式自由。例如：</p>
+
+
+    <pre><code># Project Conventions
+
+
+    - Use camelCase for variable names
+
+    - Imports must be ordered: stdlib → third-party → local
+
+    - ESLint config must be in .cjs format
+
+    - Redis is the cache, use get()/set()
+
+    </code></pre>
+
+
+    <h3>5.2 记忆引用</h3>
+
+
+    <p>记忆之间可以通过 <code>mem:</code> 前缀相互引用，<code>rename_memory</code> 会自动更新这些引用。</p>
+
+
+    <h3>5.3 与 AGENTS.md 的关系</h3>
+
+
+    <p>Serena 的记忆系统常与 agent 的 <code>AGENTS.md</code> 配合使用：</p>
+
+
+    <p>- <strong>AGENTS.md</strong>: Agent 的"长期记忆"，存储项目级约定和模式</p>
+
+    <p>- <strong>Serena Memories</strong>: 更细粒度的技术笔记，可跨项目共享</p>
+
+
+    <p>ManoMano 团队的实践是将 <code>.serena</code> 文件夹（项目记忆）推送到所有仓库，让贡献者共享上下文。</p>
+
+
+    <hr>
+
+
+    <h2 id="6-性能测评数据">6. 性能测评数据</h2>
+
+
+    <h3>6.1 ManoMano AEGIS 基准测试（2026年2月）</h3>
+
+
+    <p><strong>测试场景</strong>: Java 支付服务，381 个类，36,407 LOC，1,017 个测试</p>
+
+
+    <p><strong>任务</strong>: 重构 <code>Payment</code> 类——提取 <code>expirationTime</code>、<code>dueTime</code>、<code>createdAt</code>、<code>updatedAt</code>
+    到 <code>PaymentDates</code> 记录，更新所有引用，确保构建通过。</p>
+
+
+    <table>
+
+    <tr><th>配置</th><th>时间</th><th>成本</th><th>Subagents</th><th>结果</th></tr>
+
+    <tr><td>Vanilla Claude</td><td>1 小时</td><td>$23.54</td><td>12</td><td>❌ Build
+    失败</td></tr>
+
+    <tr><td>Claude Code + 内置 LSP</td><td>1 小时</td><td>$28.63</td><td>-</td><td>❌ 9
+    tests 失败</td></tr>
+
+    <tr><td><strong>Claude + Serena</strong></td><td><strong>45 分钟</strong></td><td><strong>$27.30</strong></td><td><strong>4</strong></td><td>✅
+    全部 1,017 tests 通过</td></tr>
+
+    </table>
+
+
+    <p><strong>关键发现</strong>:</p>
+
+
+    <p>- Serena 的专用语义缓存让它只 spawn <strong>4 个 subagent</strong>（vanilla 要 12 个）</p>
+
+    <p>- 读了 <strong>6900 万 token</strong> 但成本可控</p>
+
+    <p>- Claude Code 内置 LSP 会 <strong>hallucinate 方法名</strong>、遗漏 test classes</p>
+
+
+    <h3>6.2 Agent 自述反馈</h3>
+
+
+    <p>Serena 的评估方法很独特——让 agent 自己评价工具价值：</p>
+
+
+    <blockquote>
+
+    <p>"Serena 的 IDE-backed 语义工具是我工具箱中最具影响力的补充——跨文件 rename、move 和 reference lookup
+    原本需要 8-12 个谨慎且容易出错的步骤，现在坍缩为一个原子调用。"</p>
+
+    <p>—— Opus 4.6 in Claude Code（大型 Python 代码库）</p>
+
+    </blockquote>
+
+
+    <blockquote>
+
+    <p>"作为编码 AI agent，我会要求我的主人添加 Serena，因为它给了我缺失的 IDE 级别理解——符号、引用和重构，将脆弱的文本手术转变为冷静、快速、自信的语义级代码修改。"</p>
+
+    <p>—— GPT 5.4 in Codex CLI（Java 代码库）</p>
+
+    </blockquote>
+
+
+    <hr>
+
+
+    <h2 id="7-与其他方案的对比">7. 与其他方案的对比</h2>
+
+
+    <h3>7.1 Serena vs Claude Code 内置 LSP</h3>
+
+
+    <table>
+
+    <tr><th>维度</th><th>Claude Code LSP</th><th>Serena</th></tr>
+
+    <tr><td>实现</td><td>官方插件，基础 LSP 包装</td><td>专用语义层 + 记忆系统</td></tr>
+
+    <tr><td>编辑能力</td><td>无（只有检索）</td><td>符号级编辑、重构</td></tr>
+
+    <tr><td>跨文件 rename</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>记忆/上下文</td><td>❌</td><td>✅（memory tools）</td></tr>
+
+    <tr><td>稳定性</td><td>会 hallucinate</td><td>更可靠</td></tr>
+
+    <tr><td>成本</td><td>内置免费</td><td>免费（LSP 后端）</td></tr>
+
+    </table>
+
+
+    <h3>7.2 Serena vs 语义索引工具（Semble/grepai）</h3>
+
+
+    <table>
+
+    <tr><th>维度</th><th>Semble/grepai</th><th>Serena</th></tr>
+
+    <tr><td>核心能力</td><td>语义搜索（找代码）</td><td>语义检索 + 编辑 + 重构</td></tr>
+
+    <tr><td>编辑操作</td><td>无</td><td>符号级原子操作</td></tr>
+
+    <tr><td>索引方式</td><td>Embedding（Model2Vec/Ollama）</td><td>Language Server（编译器级）</td></tr>
+
+    <tr><td>准确性</td><td>高（0.854 NDCG@10）</td><td>编译器级准确</td></tr>
+
+    <tr><td>适用场景</td><td>代码探索、概念匹配</td><td>深度重构、精确编辑</td></tr>
+
+    </table>
+
+
+    <p><strong>互补关系</strong>: 语义索引擅长"找代码"（概念匹配），Serena 擅长"改代码"（精确语义操作）。</p>
+
+
+    <h3>7.3 Serena vs lsp-mcp / lsp-skill</h3>
+
+
+    <table>
+
+    <tr><th>维度</th><th>lsp-mcp</th><th>lsp-skill</th><th>Serena</th></tr>
+
+    <tr><td>定位</td><td>通用 LSP MCP bridge</td><td>LSAP 协议 + skill 系统</td><td>Agent-first
+    IDE 后端</td></tr>
+
+    <tr><td>编辑工具</td><td>基础</td><td>中等</td><td>丰富（30+ tools）</td></tr>
+
+    <tr><td>记忆系统</td><td>❌</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>JetBrains 支持</td><td>❌</td><td>❌</td><td>✅</td></tr>
+
+    <tr><td>交互式调试</td><td>❌</td><td>❌</td><td>✅ [BETA]</td></tr>
+
+    </table>
+
+
+    <hr>
+
+
+    <h2 id="8-安装与使用">8. 安装与使用</h2>
+
+
+    <h3>8.1 安装</h3>
+
+
+    <pre><code># 通过 uv（推荐）
+
+    uv tool install serena
+
+
+    # 或 pip
+
+    pip install serena
+
+    </code></pre>
+
+
+    <h3>8.2 配置 MCP</h3>
+
+
+    <p><strong>Claude Code</strong>:</p>
+
+
+    <pre><code>claude mcp add serena -- uvx serena
+
+    </code></pre>
+
+
+    <p><strong>其他 MCP 客户端</strong>: 提供启动命令或 HTTP 模式 URL。</p>
+
+
+    <h3>8.3 项目激活</h3>
+
+
+    <p>首次使用时，Serena 需要识别项目结构：</p>
+
+
+    <pre><code># Serena 会自动执行 onboarding
+
+    # 识别项目类型、构建系统、测试命令等
+
+    </code></pre>
+
+
+    <h3>8.4 配置层</h3>
+
+
+    <p>Serena 支持多层 YAML 配置：</p>
+
+
+    <p>- 全局配置</p>
+
+    <p>- 项目级配置</p>
+
+    <p>- 用户级配置</p>
+
+
+    <p>可配置项包括：激活的工具、工具描述、提示词、语言后端细节等。</p>
+
+
+    <hr>
+
+
+    <h2 id="9-总结与思考">9. 总结与思考</h2>
+
+
+    <h3>9.1 Serena 解决了什么问题</h3>
+
+
+    <p>当前 AI 编码代理的核心痛点：</p>
+
+
+    <p>1. <strong>文本级操作脆弱</strong>: grep + sed 容易破坏代码结构</p>
+
+    <p>2. <strong>上下文理解不足</strong>: 不知道符号间的引用关系</p>
+
+    <p>3. <strong>跨文件操作困难</strong>: rename 一个函数需要手动改多处</p>
+
+    <p>4. <strong>知识无法沉淀</strong>: 每次会话从零开始理解项目</p>
+
+
+    <p>Serena 通过<strong>符号级抽象</strong>和<strong>记忆系统</strong>解决了这些问题。</p>
+
+
+    <h3>9.2 局限性</h3>
+
+
+    <p>- <strong>Language Server 质量依赖</strong>: 不同语言的 LSP 成熟度差异大</p>
+
+    <p>- <strong>JetBrains Plugin 付费</strong>: 最强功能需要购买</p>
+
+    <p>- <strong>Agent 信任问题</strong>: 模型可能不信任新工具，回退到 grep</p>
+
+    <p>- <strong>配置复杂度</strong>: 多语言项目需要配置多个 language server</p>
+
+
+    <h3>9.3 未来展望</h3>
+
+
+    <p>Serena 代表了 AI 编码工具的一个重要方向——<strong>从文本操作到语义操作</strong>。随着 LSP 生态的成熟和 agent
+    对工具的信任度提升，这类工具将成为复杂工程任务的标配。</p>
+
+
+    <p>ManoMano 的结论已经很明确：</p>
+
+
+    <blockquote>
+
+    <p>"Serena 现在是我们复杂工程任务的绝对必备工具。"</p>
+
+    </blockquote>
+
+
+    <hr>
+
+
+    <h2>参考资源</h2>
+
+
+    <p>- <a href="https://github.com/oraios/serena">Serena GitHub</a></p>
+
+    <p>- <a href="https://oraios.github.io/serena/">Serena 文档</a></p>
+
+    <p>- <a href="https://medium.com/manomano-tech/project-aegis-benchmarking-ai-agents-and-why-serena-is-our-new-must-have-311673db35dd">ManoMano
+    AEGIS 基准测试</a></p>
+
+    <p>- <a href="https://github.com/erans/lsp-mcp">lsp-mcp（通用 LSP MCP bridge）</a></p>
+
+    <p>- <a href="https://github.com/lsp-client/lsp-skill">lsp-skill（LSAP 协议实现）</a></p>'
 - title: 'clawpatch: OpenClaw 生态的代码审查自动修复利器'
   date: May 22, 2026
   excerpt: 深度分析 openclaw/clawpatch——一个将代码仓库映射为语义特征切片、用 LLM 逐片审查并显式驱动修复的 TypeScript
