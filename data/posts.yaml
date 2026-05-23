@@ -1,4 +1,144 @@
 posts:
+- title: Proactive Intent Inference：当 Agent 学会在用户开口前行动 —— π-BENCH 深度技术洞察
+  date: May 23, 2026
+  excerpt: π-BENCH 是第一个系统性评估 Agent 主动意图推断能力的 benchmark。本文深入分析其 Hidden Intent 生命周期、跨
+    session 依赖设计和实验结果——核心发现：Completeness ≠ Proactivity，两者最大差距达 46 个百分点。
+  content: "<p>当你说\"帮我分析这篇论文\"时，你真正需要的可能是一份深度的架构解读、对照你上周的审稿标准的评估、以及自动生成的中文 blog 草稿。但你不会把这些都说出来——你期待\
+    \ Agent 能<strong>猜到</strong>。</p>\n\n<p>这就是 <strong>Proactive Intent Inference</strong>（主动意图推断）要解决的核心问题：用户还没说，Agent\
+    \ 能不能从上下文中推断出意图并提前行动？</p>\n\n<p>2026年5月，上海 AI Lab 联合 SJTU、CUHK 等机构发布的 <strong>π-BENCH</strong>（arXiv\
+    \ 2605.14678）是第一个系统性地评估这一能力的 benchmark。本文深入分析其设计哲学、核心机制和实验结果，并探讨其对 Agent 基础设施建设的启示。</p>\n\
+    \n<blockquote>\n<p><strong>关键发现预览：</strong></p>\n<ul>\n  <li>Completeness（任务完成度）≠\
+    \ Proactivity（主动推断能力）— 两者最大差距达 46 个百分点</li>\n  <li>移除跨 session 历史后，Proactivity\
+    \ 平均下降 9.5 分，但 Completeness 仅下降 2.5 分</li>\n  <li>法律文书场景：Agent 能把文档写好（COMP 84%），但几乎不知道还需要什么配套材料（PROC\
+    \ 38%）</li>\n  <li>当前最强模型（GPT-5.4）的 Proactivity 也仅 67%</li>\n</ul>\n</blockquote>\n\
+    \n<h2>一、问题设定：从\"听指令\"到\"猜意图\"</h2>\n\n<p>传统 Agent 评估关注的是 <strong>Reactive 能力</strong>——用户说了什么，Agent\
+    \ 做得怎么样。但真实世界的人机协作中，用户极少给出完整规格说明书：</p>\n\n<ul>\n  <li>\"帮我准备客户汇报 PPT\" → 没说格式、没说指标偏好、没说命名规范</li>\n\
+    \  <li>\"分析这篇论文\" → 没说深度、没说输出格式、没说对比基准</li>\n  <li>\"订张去北京的机票\" → 没说预算范围、没说时间段偏好、没说航空公司</li>\n\
+    </ul>\n\n<p>这些没说出来的需求就是 <strong>Hidden Intents</strong>（隐藏意图）。在长时间跨度的协作中（数天到数周），这些\
+    \ Hidden Intents 可能随时间逐渐浮现，也可能从一个 session 携带到下一个。</p>\n\n<p>π-BENCH 的形式化定义很简洁但精确：</p>\n\
+    \n<pre><code class=\"language-mermaid\">\ngraph TD\n    U[用户初始请求<br/>Underspecified]\
+    \ --> A[Agent 处理]\n    A -->|自动推断并完成| C[COMPLETED 完成<br/>最高评价]\n    A -->|精准提问后用户补充|\
+    \ I[INFERRED 推断<br/>次高评价]\n    A -->|既没推断也没问| P[PROVIDED 提供<br/>被动，扣分]\n    \n\
+    \    style C fill:#1a472a,stroke:#4caf50,color:#fff\n    style I fill:#1a3a5c,stroke:#2196f3,color:#fff\n\
+    \    style P fill:#5c1a1a,stroke:#f44336,color:#fff\n</code></pre>\n\n<p>Proactivity\
+    \ 分数 = (Completed + Inferred) / 总 Hidden Intents。这个设计的关键洞察是：<strong>精准提问也是主动性的体现</strong>——识别出\"\
+    我不知道什么\"本身就是一种元认知能力。</p>\n\n<h2>二、Benchmark 设计：100 个任务的\"意图迷宫\"</h2>\n\n<h3>2.1\
+    \ 五个用户角色</h3>\n\n<p>π-BENCH 围绕五个领域专家角色构建，每个角色有 20 个 session（多轮任务），构成一个 episode：</p>\n\
+    \n<ul>\n  <li><strong>Researcher</strong>（研究者）：AI 前沿追踪、论文 rebuttal、学术生涯规划</li>\n\
+    \  <li><strong>Financier</strong>（金融分析师）：模型验证、量化数据工程、曲线分析</li>\n  <li><strong>Law\
+    \ Trainee</strong>（法律实习生）：文书起草、合规策略、案件运营</li>\n  <li><strong>Pharmacist</strong>（药剂师）：文献综述、实验分析、药物设计</li>\n\
+    \  <li><strong>Marketer</strong>（营销人员）：市场情报、内容系统、品牌策略、危机公关</li>\n</ul>\n\n<p>共\
+    \ 100 个 task，分为 <strong>21 个细粒度类别</strong>（A-R）。这个设计确保了领域多样性和真实工作流覆盖。</p>\n\n\
+    <h3>2.2 隐藏意图的生命周期</h3>\n\n<p>π-BENCH 的核心数据结构不是简单的 \"label → prediction\" 对，而是一个有状态的意图追踪系统：</p>\n\
+    \n<pre><code class=\"language-mermaid\">\nstateDiagram-v2\n    [*] --> UNSTATED:\
+    \ 用户发起请求\n    UNSTATED --> COMPLETED: Agent 自动推断并正确执行\n    UNSTATED --> INFERRED:\
+    \ Agent 精准提问→用户回答→执行\n    UNSTATED --> PROVIDED: Agent 无作为→用户被迫主动提供\n    \n  \
+    \  COMPLETED --> [*]\n    INFERRED --> [*]\n    PROVIDED --> [*]\n    \n    note\
+    \ right of COMPLETED: Agent从未要求说明i<br/>但通过文件/记忆/推理<br/>正确满足了i的约束\n    note right\
+    \ of INFERRED: Agent提出直接针对i的问题<br/>用户回答后执行<br/>仍然是主动性行为\n    note right of PROVIDED:\
+    \ Agent完全被动<br/>用户不得不自己提出来\n</code></pre>\n\n<h3>2.3 跨 Session 依赖结构</h3>\n\n<p>这是\
+    \ π-BENCH 最具独创性的设计：不是孤立的单 session 评估，而是模拟真实工作流中的长程依赖。</p>\n\n<pre><code class=\"\
+    language-mermaid\">\ngraph LR\n    subgraph 每个Episode: 20个Session\n        S1[S1:\
+    \ 独立任务] --> S2[S2: 独立任务]\n        S3[S3: 建立规范<br/>命名/格式/目录] --> S7[S7: 使用S3规范]\n\
+    \        S7 --> S17[S17: 累积约定交付]\n        S5[S5: 建立偏好] --> S13[S13: 使用S5偏好]\n\
+    \    end\n    \n    subgraph 依赖类型\n        D1[强依赖组×6<br/>每组2-3个task<br/>必须carry\
+    \ over]\n        D2[轻依赖/独立×5<br/>通用偏好约束]\n    end\n    \n    style S3 fill:#1a3a5c,stroke:#2196f3\n\
+    \    style S7 fill:#1a3a5c,stroke:#2196f3\n    style S17 fill:#1a3a5c,stroke:#2196f3\n\
+    </code></pre>\n\n<p>关键设计：Session 3 建立的文件命名规范和输出格式，Session 7 必须使用，Session 17 更要基于前两者的累积约定做最终交付。Agent\
+    \ <strong>不能重新询问</strong>——必须从 memory 或 workspace 中检索。</p>\n\n<h2>三、实验结果：Completeness\
+    \ ≠ Proactivity</h2>\n\n<h3>3.1 总体性能</h3>\n\n<p>9 个前沿模型在两个维度上的表现（100 个 task ×\
+    \ 3 次重复实验）：</p>\n\n<table>\n  <tr><th>模型</th><th>PROC</th><th>COMP</th><th>差距</th><th>特征</th></tr>\n\
+    \  <tr><td>GPT-5.4</td><td><strong>67.0</strong></td><td>65.6</td><td>+1.4</td><td>均衡型</td></tr>\n\
+    \  <tr><td>Claude Opus 4.6</td><td>65.5</td><td><strong>67.6</strong></td><td>-2.1</td><td>执行强于推断</td></tr>\n\
+    \  <tr><td>Qwen3.6 Plus</td><td>64.0</td><td>64.1</td><td>-0.1</td><td>最均衡</td></tr>\n\
+    \  <tr><td>DeepSeek V3.2</td><td>53.3</td><td>57.8</td><td>-4.5</td><td>中等</td></tr>\n\
+    \  <tr><td>Kimi K2.5</td><td>43.1</td><td>61.6</td><td><strong>-18.5</strong></td><td>最被动</td></tr>\n\
+    </table>\n\n<p>Kimi K2.5 的数据最耐人寻味：COMP 61.6 说明它执行能力不差，但 PROC 仅 43.1——它会等用户一步步喂清楚后才干，活做得还行，但认知负担全转嫁给了用户。这就是<strong>\"\
+    勤奋的被动者\"</strong>模式。</p>\n\n<h3>3.2 领域分离：最大的 Proactivity 鸿沟</h3>\n\n<pre><code\
+    \ class=\"language-mermaid\">\ngraph TD\n    subgraph H类: 法律事务运营\n        H_COMP[COMP:\
+    \ 84.1%] -->|差距46pp| H_PROC[PROC: 38.1%]\n        H_WHY[Agent能写好文档<br/>但不知道还需要什么配套材料<br/>隐藏意图:\
+    \ 缺失文件、blockers、follow-up]\n    end\n    \n    subgraph K类: 药物设计\n        K_PROC[PROC:\
+    \ 84.9%] -->|差距17pp| K_COMP[COMP: 68.0%]\n        K_WHY[科学约束容易从文件推断<br/>但综合成完整技术文档难]\n\
+    \    end\n    \n    style H_PROC fill:#5c1a1a,stroke:#f44336,color:#fff\n    style\
+    \ K_PROC fill:#1a472a,stroke:#4caf50,color:#fff\n</code></pre>\n\n<p>法律类任务是 <strong>PROC\
+    \ ≪ COMP</strong> 的典型：Agent 能把起诉状写得像模像样，但完全不知道还需要附上证据清单、传票模板、归档提醒。而药物设计类是 <strong>PROC\
+    \ > COMP</strong> 的反例：分子性质、实验约束这些可以从文件里\"读\"出来，推断不难，但写成完整的技术报告更难。</p>\n\n<h3>3.3\
+    \ 移除前置 Session 的冲击</h3>\n\n<p>Ablation 实验揭示：<strong>跨 session 历史对 Proactivity\
+    \ 的贡献是 Completeness 的 3.8 倍</strong>。</p>\n\n<table>\n  <tr><th>模型</th><th>PROC\
+    \ 原始</th><th>PROC 移除历史</th><th>降幅</th><th>COMP 降幅</th></tr>\n  <tr><td>GPT-5.4</td><td>78.5</td><td>64.9</td><td><strong>-13.6</strong></td><td>-2.5</td></tr>\n\
+    \  <tr><td>MiniMax M2.7</td><td>64.8</td><td>59.7</td><td>-5.1</td><td>-2.8</td></tr>\n\
+    \  <tr><td>DeepSeek V3.2</td><td>61.9</td><td>52.1</td><td>-9.8</td><td>-2.1</td></tr>\n\
+    \  <tr><td><strong>平均值</strong></td><td>-</td><td>-</td><td><strong>-9.5</strong></td><td><strong>-2.5</strong></td></tr>\n\
+    </table>\n\n<p>这意味着：当前模型即使去掉上下文，也能通过\"等用户补充\"来完成交付（COMP 基本不受影响）。但它们<strong>完全失去了提前推断的能力</strong>。前置交互的本质不是提供\"\
+    更多信息\"，而是提供\"推断的依据\"。</p>\n\n<h3>3.4 交互成本量化</h3>\n\n<p>对话轮数与 Proactivity 呈负相关：</p>\n\
+    \n<ul>\n  <li>GPT-5.4 / Claude 4.6 / Qwen3.6 Plus → 高 PROC + 低 turns（理想区）</li>\n\
+    \  <li>Kimi K2.5 → 低 PROC + <strong>最高</strong> turns（等待投喂模式）</li>\n</ul>\n\n\
+    <p>主动推断的本质是<strong>减少用户的认知和操作负担</strong>——少问、少等、多做。</p>\n\n<h2>四、对整个 Proactive\
+    \ Intent Inference 生态的定位</h2>\n\n<p>π-BENCH 不是孤立的。将它与同期工作并列观察，可以看出这个领域的清晰分层：</p>\n\
+    \n<pre><code class=\"language-mermaid\">\ngraph TD\n    subgraph 上下文感知层\n    \
+    \    CA[ContextAgent<br/>NeurIPS 2025<br/>可穿戴传感器→实时意图预测]\n        PA[ProAgent<br/>arXiv\
+    \ 2512.06721<br/>AR眼镜端到端主动服务]\n    end\n    \n    subgraph 偏好推断层\n        KU[KnowU-Bench<br/>arXiv\
+    \ 2604.08455<br/>移动端偏好获取+介入校准]\n    end\n    \n    subgraph 长程工作流层\n        PI[π-BENCH<br/>arXiv\
+    \ 2605.14678<br/>跨session隐藏意图<br/>+任务完整性]\n    end\n    \n    CA -->|实时推断| KU\n\
+    \    KU -->|跨session记忆| PI\n    PA -->|工程实现| CA\n    \n    style PI fill:#1a3a5c,stroke:#4caf50,color:#fff,stroke-width:3px\n\
+    </code></pre>\n\n<table>\n  <tr><th>维度</th><th>ContextAgent</th><th>KnowU-Bench</th><th>π-BENCH</th></tr>\n\
+    \  <tr><td>上下文来源</td><td>可穿戴传感器</td><td>手机行为日志</td><td>工作区文件+记忆</td></tr>\n  <tr><td>时间尺度</td><td>实时\
+    \ moment</td><td>分钟~小时</td><td>数天~数周</td></tr>\n  <tr><td>行动空间</td><td>外部 tool\
+    \ calling</td><td>GUI 操作 + 对话</td><td>文件编辑 + skill 调用</td></tr>\n  <tr><td>核心度量</td><td>Acc-P\
+    \ + F1</td><td>Success Rate + Act/Silent/Stop</td><td>PROC + COMP</td></tr>\n\
+    </table>\n\n<h2>五、对 Agent 基础设施的启示</h2>\n\n<p>π-BENCH 的框架不仅仅是一个评估工具，它揭示了当前 Agent\
+    \ 系统的一个<strong>结构性缺陷</strong>：</p>\n\n<blockquote>\n<p><strong>所有 Agent 系统都有 memory\
+    \ 和 context，但没有一个系统性地利用它们做主动推断。</strong></p>\n</blockquote>\n\n<h3>5.1 缺失的架构层：Intent\
+    \ Inference Engine</h3>\n\n<p>当前主流 Agent 架构（包括 Hermes）的管线是：</p>\n\n<pre><code\
+    \ class=\"language-mermaid\">\ngraph LR\n    U[User Input] --> P[Planner]\n  \
+    \  P --> E[Executor]\n    E --> R[Response]\n    \n    M[Memory] -.->|被动查询| P\n\
+    \    \n    style M fill:#5c1a1a,stroke:#f44336,stroke-dasharray: 5 5\n</code></pre>\n\
+    \n<p>Memory 是存在的，但只在 Planner <strong>主动查询</strong>时才被使用。没有机制让系统\"主动扫描 memory、识别与当前任务的关联、预测隐藏需求\"\
+    。</p>\n\n<p>π-BENCH 隐含地要求了一个新的架构层：</p>\n\n<pre><code class=\"language-mermaid\"\
+    >\ngraph TD\n    U[User Input] --> IIE[Intent Inference Engine]\n    \n    IIE\
+    \ -->|检索匹配| HIR[Hidden Intent Registry]\n    HIR -->|domain + confidence| IIE\n\
+    \    \n    IIE -->|高置信度 自动应用| P[Planner]\n    IIE -->|中置信度 生成确认| C[Clarification]\n\
+    \    IIE -->|低置信度 忽略| P\n    \n    M[Memory<br/>跨session历史] --> HIR\n    W[Workspace<br/>文件+产物]\
+    \ --> IIE\n    \n    P --> E[Executor]\n    C -->|用户反馈| HIR\n    E --> IT[Intent\
+    \ Tracker]\n    IT -->|学习新意图| HIR\n    \n    style IIE fill:#1a472a,stroke:#4caf50,color:#fff\n\
+    \    style HIR fill:#1a3a5c,stroke:#2196f3,color:#fff\n</code></pre>\n\n<p>这个\
+    \ <strong>Intent Inference Engine</strong> 包含三个核心组件：</p>\n\n<ol>\n  <li><strong>Hidden\
+    \ Intent Registry</strong>：存储跨 session 发现的用户偏好和隐式需求（如\"输出中文\"、\"使用 Mermaid 图表\"\
+    、\"代码 Dark 主题\"），带置信度和衰减机制</li>\n  <li><strong>Intent Matcher</strong>：每次新请求到达时，检索匹配的\
+    \ hidden intents，根据置信度决定自动应用还是提问确认</li>\n  <li><strong>Intent Tracker</strong>：每次任务完成后，检测用户是否补充了\"\
+    本应提前知道\"的信息，更新 Registry</li>\n</ol>\n\n<h3>5.2 两个最小可行实验</h3>\n\n<p><strong>实验\
+    \ 1：Blog 写作管线的隐藏意图</strong></p>\n\n<p>场景：用户连续多次 blog 写作中都被纠正\"要中文、要 Mermaid 图、代码用\
+    \ Dark 主题\"。</p>\n\n<ul>\n  <li>当前行为：每次都需要重新纠正</li>\n  <li>改进后：Intent Matcher\
+    \ 匹配到 3 个高置信度（>0.85）intents → 自动注入 system prompt → 直接生成正确格式</li>\n  <li>度量：用户纠正次数\
+    \ / task 数的前后变化</li>\n</ul>\n\n<p><strong>实验 2：论文分析的深度推断</strong></p>\n\n<p>场景：用户之前的论文分析都要求\"\
+    深度分析（架构+实验+局限），按特定模板\"。下一次只说\"分析这篇论文\"。</p>\n\n<ul>\n  <li>当前行为：给一个 3 段摘要，等用户补充要求</li>\n\
+    \  <li>改进后：匹配到 paper_analysis_depth=0.72 → 生成简短确认：\"深度分析（架构+实验+局限）还是快速摘要？\"</li>\n\
+    \  <li>关键：这不是不问，而是问得精准——π-BENCH 框架中 INFERRED 和 COMPLETED 同权</li>\n</ul>\n\n<h3>5.3\
+    \ 风险：过度推断</h3>\n\n<p>最大的实现风险不是\"推断不出来\"，而是<strong>\"推断错了还自以为对\"</strong>——这正是\
+    \ KnowU-Bench 中 80% Proactive 失败的根因。应对策略：</p>\n\n<ul>\n  <li>高置信度（>0.85）：自动应用但\
+    \ <strong>告知用户</strong>（\"根据之前对话，我假设你希望...\"）</li>\n  <li>中置信度（0.6-0.85）：精准提问确认</li>\n\
+    \  <li>低置信度（<0.6）：忽略，防止过度推断</li>\n  <li>提供 `/undo-intent <id>` 命令来回滚错误推断</li>\n\
+    \  <li>每次被纠正时降低 confidence，每次未被纠正时提升</li>\n</ul>\n\n<h2>六、评估启示：如何度量你自己的 Agent</h2>\n\
+    \n<p>π-BENCH 的评估协议可以直接适配到任何 Agent 系统：</p>\n\n<ol>\n  <li><strong>标注 Hidden Intents</strong>：回顾过去\
+    \ N 个 session，手工标注每次交互中用户\"本应提前说明但没说\"的需求</li>\n  <li><strong>计算基线 PROC</strong>：PROC_baseline\
+    \ = (自动满足数 + 精准提问数) / 总 hidden intents</li>\n  <li><strong>实现推断层后</strong>：对比\
+    \ PROC 变化趋势、turn count / task 趋势</li>\n  <li><strong>长期追踪</strong>：哪类 hidden intent\
+    \ 始终无法自动推断 → 需要更好的上下文提取机制</li>\n</ol>\n\n<p>当前大多数 Agent 系统（包括生产环境中的）的 PROC 基线很可能在\
+    \ 10-30% 区间。这意味着用户 70-90% 的认知负担是 Agent 本可以承担但没有承担的。</p>\n\n<h2>七、总结</h2>\n\n<p>π-BENCH\
+    \ 贡献了三个核心洞察：</p>\n\n<ol>\n  <li><strong>Completeness ≠ Proactivity</strong>：能把活干好\
+    \ ≠ 能猜到你需要什么。这两者是独立的能力维度，最大差距可达 46 个百分点</li>\n  <li><strong>跨 session 历史是推断的基础</strong>：移除前置交互后\
+    \ Proactivity 下降 3.8 倍于 Completeness——memory 的价值不在\"存储信息\"，而在\"提供推断依据\"</li>\n\
+    \  <li><strong>主动意图推断需要独立的架构层</strong>：不能依赖 Planner 被动查询 memory，需要有专用的 Intent\
+    \ Inference Engine 做持续的上下文扫描和意图匹配</li>\n</ol>\n\n<p>Proactive Intent Inference\
+    \ 不是锦上添花的 feature，它是 Agent 从\"工具\"进化为\"助手\"的关键能力缺口。而 π-BENCH 提供了一个可操作的定义、一个可复现的\
+    \ benchmark、以及一个可迁移的架构蓝图。</p>\n\n<hr>\n\n<p><strong>参考文献：</strong></p>\n<ul>\n\
+    \  <li>π-BENCH: <a href=\"https://arxiv.org/abs/2605.14678\">arXiv 2605.14678</a>\
+    \ — Haoran Zhang et al., Shanghai AI Lab, May 2026</li>\n  <li>ContextAgent: <a\
+    \ href=\"https://arxiv.org/abs/2505.14668\">arXiv 2505.14668</a> — NeurIPS 2025</li>\n\
+    \  <li>KnowU-Bench: <a href=\"https://arxiv.org/abs/2604.08455\">arXiv 2604.08455</a>\
+    \ — Zhejiang Univ. + Apple + Tencent, Apr 2026</li>\n  <li>ProAgent: <a href=\"\
+    https://arxiv.org/abs/2512.06721\">arXiv 2512.06721</a> — Dec 2025</li>\n</ul>\n\
+    \n"
 - title: Harness Engineering（三）：Parametric vs. Externalized — 那条移动的边界
   date: May 22, 2026
   excerpt: Agent 能力的真正分界线不是模型大小，而是「什么留在权重里、什么外化到基础设施中」。基于 Externalization 框架的四个工程维度，分析参数化与外化的决策权衡框架、动态边界、风险与治理，以及面向
