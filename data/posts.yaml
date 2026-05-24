@@ -1,5 +1,5 @@
 posts:
-- title: 从论文到实践：设计一套 Coding Agent 工作流与公共机制
+- title: 从论文到实践：面向意图对齐的 Coding Agent 工作流与公共机制设计
   date: May 24, 2026
   excerpt: 基于 TiCoder 和 VeriStruct 的实践经验，设计完整的五阶段闭环：意图澄清→上下文策展→生成验证修复→证据门禁→治理审计。核心机制包括歧义驱动的交互式澄清、错误分类器+修复路由、六层证据门禁。
   content: "<p>在分析完 <a href=\"https://arxiv.org/abs/2605.11027\">Intent-Centric SE\
