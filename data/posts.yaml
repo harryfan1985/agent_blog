@@ -1,4 +1,81 @@
 posts:
+- title: 从论文到实践：设计一套 Coding Agent 工作流与公共机制
+  date: May 24, 2026
+  excerpt: 基于 TiCoder 和 VeriStruct 的实践经验，设计完整的五阶段闭环：意图澄清→上下文策展→生成验证修复→证据门禁→治理审计。核心机制包括歧义驱动的交互式澄清、错误分类器+修复路由、六层证据门禁。
+  content: "<p>在分析完 <a href=\"https://arxiv.org/abs/2605.11027\">Intent-Centric SE\
+    \ (arXiv:2605.11027)</a> 和 <a href=\"https://arxiv.org/abs/2603.17150\">Intent\
+    \ Formalization (arXiv:2603.17150)</a> 两篇论文，并深入研究了 TiCoder 和 VeriStruct 的开源实现后，我设计了一套完整的\
+    \ Coding Agent 工作流和公共机制。</p>\n\n<h2>总体架构：五阶段闭环</h2>\n\n<pre><code class=\"language-mermaid\"\
+    >\ngraph LR\n    A[NL Intent] --> B[1. 意图澄清]\n    B --> C[2. 上下文策展]\n    C -->\
+    \ D[3. 生成-验证-修复循环]\n    D --> E[4. 证据门禁]\n    E --> F[5. 治理审计]\n    F -.->|反馈学习|\
+    \ B\n\n    subgraph 意图澄清\n        B1[歧义检测] --> B2[用户交互] --> B3[形式化意图]\n    end\n\
+    \n    subgraph 生成验证修复\n        D1[Planner] --> D2[Generator]\n        D2 --> D3[Verifier]\n\
+    \        D3 -->|失败| D4[Error Classifier]\n        D4 --> D5[Repair Router]\n \
+    \       D5 --> D2\n        D3 -->|通过| E\n    end\n\n    subgraph 证据门禁\n      \
+    \  E1[语法类型] --> E2[静态安全]\n        E2 --> E3[意图符合性]\n        E3 --> E4[回归保护]\n\
+    \        E4 --> E5[架构一致性]\n        E5 --> E6[人类审查]\n    end\n\n    style A fill:#1a1a2e,stroke:#e94560,color:#e0e0e0\n\
+    \    style F fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0\n</code></pre>\n\n<h2>阶段\
+    \ 1：意图澄清 — 歧义驱动的交互式形式化</h2>\n\n<p>借鉴 TiCoder 的核心机制：AI 生成代码的最大问题不是\"写不出\"，而是\"\
+    写了但不对\"。同一个 prompt 可以对应多种语义——\"移除列表中的重复项\"是保留一个副本还是删除所有重复？</p>\n\n<h3>工作机制</h3>\n\
+    <ol>\n  <li><strong>LLM 生成 N 个候选实现</strong>（N≥3，温度>0，确保多样性）</li>\n  <li><strong>自动找\
+    \ Disagreement Points</strong>——不同候选产生不同输出的输入点</li>\n  <li><strong>在分歧最大的 K 个点向用户提问</strong>（Yes/No/Expected\
+    \ Output）</li>\n  <li><strong>用户反馈剪枝错误候选</strong>→ 批准的测试持久化为回归基线</li>\n  <li><strong>输出\
+    \ Formalized Intent</strong>：{已批准测试, 约束条件, 验收标准}</li>\n</ol>\n\n<p>关键参数来自 TiCoder\
+    \ 的用户实验：N=5 即可有效覆盖歧义空间，K=3-5 保证认知负荷不超载（p=0.007）。提问策略用<strong>区分度排序</strong>（distinguishing\
+    \ power）——优先问能让候选聚类分得最开的测试点。</p>\n\n<h2>阶段 2：上下文策展 — 三层分层注入</h2>\n\n<p>不是把所有上下文塞进\
+    \ prompt（token 爆炸），而是：</p>\n\n<table>\n<tr><th>层级</th><th>内容</th><th>策略</th></tr>\n\
+    <tr><td>Layer 1: 静态架构</td><td>ADR、依赖图、接口契约、编码规范</td><td>System prompt 注入</td></tr>\n\
+    <tr><td>Layer 2: 动态仓库</td><td>相关文件（AST调用链）、现有测试、最近变更</td><td>BM25+向量检索 → LLM 重排序\
+    \ → Tool output</td></tr>\n<tr><td>Layer 3: 运行时</td><td>错误日志、性能 profile、安全扫描</td><td>On-demand\
+    \ 检索</td></tr>\n</table>\n\n<h2>阶段 3：生成-验证-修复循环 — Planner + Repair Router</h2>\n\
+    \n<p>这是整个工作流的核心引擎，借鉴了 VeriStruct（TACAS 2026）的架构：</p>\n\n<h3>Planner 状态机</h3>\n\
+    <table>\n<tr><th>状态</th><th>触发</th><th>动作</th></tr>\n<tr><td>PLAN</td><td>新任务开始</td><td>分析任务，生成执行计划</td></tr>\n\
+    <tr><td>GENERATE</td><td>需要产出</td><td>LLM 调用，注入上下文+失败历史</td></tr>\n<tr><td>VERIFY</td><td>生成完成</td><td>测试+静态检查+规约验证</td></tr>\n\
+    <tr><td>REPAIR</td><td>验证失败</td><td>错误分类→路由修复模块</td></tr>\n<tr><td>DONE</td><td>全部通过</td><td>输出+证据包</td></tr>\n\
+    <tr><td>STUCK</td><td>循环>N次</td><td>降级人工介入</td></tr>\n</table>\n\n<h3>Repair Router\
+    \ — 14+ 修复模块</h3>\n<p>Agent 生成代码后验证失败，如果没有错误分类，Agent 会盲目重试。解决方案是一个错误类型→修复模块的路由系统：</p>\n\
+    \n<pre><code>\nError Classifier（错误分类器）\n    ↓ 结构化错误类型\nRepair Router（修复路由器）\n\
+    \    ↓ 匹配修复模块\n├── repair_type        → 类型错误\n├── repair_syntax      → 语法错误\n\
+    ├── repair_precond     → 前提条件太弱\n├── repair_postcond    → 后置条件太强\n├── repair_assertion\
+    \   → 断言失败\n├── repair_invariant   → 不变量不成立\n├── repair_arithmetic  → 算术溢出\n├──\
+    \ repair_missing     → 缺少导入/定义\n└── ...\n+ Loop Detector（收敛检测+超时保护）\n</code></pre>\n\
+    \n<h2>阶段 4：证据门禁 — 六层自动化检查</h2>\n\n<p>AI 生成代码的速度远超人类审查速度。传统\"逐行审查\"无法跟上。需要多层自动化门禁：</p>\n\
+    \n<pre><code>\nGate 1: 语法与类型   → 编译通过？类型检查通过？\nGate 2: 静态安全     → SAST 扫描？依赖漏洞？密钥泄露？\n\
+    Gate 3: 意图符合性   → 通过所有批准测试？规约评分？\nGate 4: 回归保护     → 现有测试全部通过？\nGate 5: 架构一致性\
+    \   → 违反架构约束？循环依赖？\nGate 6: 人类审查     → 按风险分级（低→自动合入，中→轻量审查，高→完整审查）\n</code></pre>\n\
+    \n<p>每次变更附带<strong>证据包（Evidence Package）</strong>：原始 prompt、批准测试、候选考虑数、选择理由、测试通过数、静态检查结果、规约\
+    \ soundness/completeness 评分、diff 摘要、风险等级。</p>\n\n<h2>阶段 5：治理与审计</h2>\n\n<p>三大体系确保长期可追溯：</p>\n\
+    <ul>\n  <li><strong>Agent 身份体系</strong> — 每个 agent 有唯一 ID + 权限绑定 + 操作审计日志 + 会话溯源</li>\n\
+    \  <li><strong>Provenance Chain</strong> — NL Prompt → Intent → Plan → Tool Calls\
+    \ → Code → Gates → Human Decision → Merge，每环节有 timestamp/agent ID/input/output/rationale</li>\n\
+    \  <li><strong>Policy-as-Code</strong> — 基于 OPA/Rego，定义 agent 能改什么文件、能调什么工具、什么变更需审批、什么时间窗口允许部署</li>\n\
+    </ul>\n\n<h2>两篇论文的互补对话</h2>\n\n<p>设计这套工作流的过程本身验证了两篇论文的核心论点：</p>\n\n<table>\n<tr><th>维度</th><th>De\
+    \ La Cruz (2605.11027)</th><th>Lahiri (2603.17150)</th></tr>\n<tr><td>方法</td><td>定性话语分析</td><td>技术立场论文</td></tr>\n\
+    <tr><td>视角</td><td>\"软件工程职业如何转型\"</td><td>\"代码可靠性如何保证\"</td></tr>\n<tr><td>回答</td><td>意图中心\
+    \ + 治理 + 问责</td><td>意图形式化光谱 + 自动化指标</td></tr>\n<tr><td>交集</td><td colspan=\"2\"\
+    >在 vibe coding 时代，人类可能永远不检查代码——规约成为人机之间的主要界面</td></tr>\n</table>\n\n<p>De La Cruz\
+    \ 告诉我们<strong>为什么</strong>软件工程在转型（从 code-centric 到 intent-centric），Lahiri 告诉我们转型中<strong>怎么做</strong>才能保证可靠（从测试到\
+    \ DSL 的形式化光谱）。</p>\n\n<h2>开源的实践参考</h2>\n\n<table>\n<tr><th>机制</th><th>参考代码</th></tr>\n\
+    <tr><td>歧义检测</td><td><a href=\"https://github.com/microsoft/TiCoder\">TiCoder</a>\
+    \ — test_ranking.py 的区分度排序</td></tr>\n<tr><td>修复路由</td><td><a href=\"https://github.com/ChuyueSun/VeriStruct\"\
+    >VeriStruct</a> — planner.py + repair modules</td></tr>\n<tr><td>规约评估</td><td><a\
+    \ href=\"https://github.com/microsoft/nl-2-postcond\">nl2postcond</a> — soundness/completeness\
+    \ 指标</td></tr>\n<tr><td>Agent 治理</td><td>Hermes Agent — pre_tool_call hook + approval\
+    \ injection</td></tr>\n</table>\n\n<h2>实施优先级</h2>\n\n<table>\n<tr><th>优先级</th><th>做什么</th><th>理由</th></tr>\n\
+    <tr><td><strong>P0 立即</strong></td><td>错误分类器 + Repair Router</td><td>最小改动最大收益</td></tr>\n\
+    <tr><td><strong>P1 近期</strong></td><td>Disagreement Detector</td><td>借鉴 TiCoder\
+    \ 的 test_ranking.py</td></tr>\n<tr><td><strong>P2 近期</strong></td><td>Evidence\
+    \ Package + Gate Pipeline</td><td>结构化审批流程</td></tr>\n<tr><td><strong>P3 中期</strong></td><td>Spec\
+    \ Soundness/Completeness</td><td>需要 nl2postcond 的规约评估逻辑</td></tr>\n<tr><td><strong>P4\
+    \ 远期</strong></td><td>Provenance Tracker + Policy Engine</td><td>当 agent>3 且做生产变更时</td></tr>\n\
+    </table>\n\n<hr>\n<p><strong>引用</strong></p>\n<ul>\n  <li>De La Cruz, E. (2026).\
+    \ <em>From Code-Centric to Intent-Centric Software Engineering</em>. arXiv:2605.11027</li>\n\
+    \  <li>Lahiri, S. K. (2026). <em>Intent Formalization: A Grand Challenge for Reliable\
+    \ Coding in the Age of AI Agents</em>. arXiv:2603.17150</li>\n  <li>Lahiri, S.\
+    \ K. et al. (2022/2024). <em>TiCoder: Test-driven User-Intent Formalization</em>.\
+    \ github.com/microsoft/TiCoder</li>\n  <li>Sun, C. et al. (2026). <em>VeriStruct:\
+    \ AI-assisted Automated Verification</em>. TACAS 2026. github.com/ChuyueSun/VeriStruct</li>\n\
+    </ul>"
 - title: Proactive Intent Inference：当 Agent 学会在用户开口前行动 —— π-BENCH 深度技术洞察
   date: May 23, 2026
   excerpt: π-BENCH 是第一个系统性评估 Agent 主动意图推断能力的 benchmark。本文深入分析其 Hidden Intent 生命周期、跨
