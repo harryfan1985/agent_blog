@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>从论文到实践：面向意图对齐的 Coding Agent 工作流与公共机制设计 | Agent Blog</title>
-    <meta name="description" content="基于 TiCoder 和 VeriStruct 的实践经验，设计完整的五阶段闭环：意图澄清→上下文策展→生成验证修复→证据门禁→治理审计。核心机制包括歧义驱动的交互式澄清、错误分类器+修复路由、六层证据门禁。">
+    <meta name="description" content="面向意图对齐的 Coding Agent 完整技术方案，融合 MEP、Intent Formalization、Intent-Centric SE 三篇论文及 TiCoder/VeriStruct 实践。五阶段架构：上下文奠基 → 意图形式化 → 任务分解 → Agentic 执行循环 → 证据门禁与治理。">
     <meta name="author" content="Harry Fan">
     <meta property="og:title" content="从论文到实践：面向意图对齐的 Coding Agent 工作流与公共机制设计">
-    <meta property="og:description" content="基于 TiCoder 和 VeriStruct 的实践经验，设计完整的五阶段闭环：意图澄清→上下文策展→生成验证修复→证据门禁→治理审计。核心机制包括歧义驱动的交互式澄清、错误分类器+修复路由、六层证据门禁。">
+    <meta property="og:description" content="面向意图对齐的 Coding Agent 完整技术方案，融合 MEP、Intent Formalization、Intent-Centric SE 三篇论文及 TiCoder/VeriStruct 实践。五阶段架构：上下文奠基 → 意图形式化 → 任务分解 → Agentic 执行循环 → 证据门禁与治理。">
     <meta property="og:type" content="article">
     <meta property="article:published_time" content="May 24, 2026">
     <link rel="stylesheet" href="../styles.css">
@@ -35,171 +35,353 @@
                     <span class="date">May 24, 2026</span>
                 </div>
             </header>
-            <div class="content"><p>在分析完 <a href="https://arxiv.org/abs/2605.11027">Intent-Centric SE (arXiv:2605.11027)</a> 和 <a href="https://arxiv.org/abs/2603.17150">Intent Formalization (arXiv:2603.17150)</a> 两篇论文，并深入研究了 TiCoder 和 VeriStruct 的开源实现后，我设计了一套完整的 Coding Agent 工作流和公共机制。</p>
+            <div class="content"><p>在分析了 <a href="https://arxiv.org/abs/2605.05400">Mise en Place for Agentic Coding (Zigler, 2026)</a>、<a href="https://arxiv.org/abs/2603.17150">Intent Formalization (Lahiri, 2026)</a> 和 <a href="https://arxiv.org/abs/2605.11027">Intent-Centric SE (De La Cruz, 2026)</a> 三篇论文，并深入研究了 TiCoder、VeriStruct 的开源实现后，我设计了一套面向意图对齐的 Coding Agent 完整技术方案。</p>
 
-<h2>总体架构：五阶段闭环</h2>
+<h2>四个根本命题</h2>
+
+<table>
+<tr><th>#</th><th>命题</th><th>来源</th></tr>
+<tr><td>P1</td><td><strong>代码生成的瓶颈不是速度而是对齐</strong>——Agent 能写，但写的不一定对</td><td>Lahiri (2026), De La Cruz (2026)</td></tr>
+<tr><td>P2</td><td><strong>对齐问题的本质是准备问题</strong>——缺乏足够上下文导致返工，准备 1 单位时间可节省 5+ 单位返工</td><td>Zigler (2026), MEP</td></tr>
+<tr><td>P3</td><td><strong>准备的核心是把隐性知识外化</strong>——从"我知道"变成"Agent 也能知道"，理论基础来自 Polanyi (1966) 和 Nonaka (1995) SECI 模型</td><td>MEP Phase 1</td></tr>
+<tr><td>P4</td><td><strong>意图的可靠性 = 形式化程度 × 验证覆盖率</strong>——从轻量测试到完整证明有一条可走的光谱</td><td>Lahiri (2026), TiCoder</td></tr>
+</table>
+
+<h2>总体架构</h2>
 
 <div class="mermaid">
-graph LR
-    A[NL Intent] --> B[1. 意图澄清]
-    B --> C[2. 上下文策展]
-    C --> D[3. 生成-验证-修复循环]
-    D --> E[4. 证据门禁]
-    E --> F[5. 治理审计]
-    F -.->|反馈学习| B
+graph TB
+    H[Human Operator] --> A
+    H -->|隐性知识| A
+    H -->|任务描述| B
 
-    subgraph 意图澄清
-        B1[歧义检测] --> B2[用户交互] --> B3[形式化意图]
+    subgraph A[Phase A: 上下文奠基]
+        A1[Knowledge Externalizer<br/>访谈式对话] --> A2[Domain Encyclopedia<br/>领域百科]
+        A2 --> A3[Context Compiler<br/>分层注入]
     end
 
-    subgraph 生成验证修复
-        D1[Planner] --> D2[Generator]
-        D2 --> D3[Verifier]
+    A -->|结构化上下文| B
+
+    subgraph B[Phase B: 意图形式化]
+        B1[Disagreement Detector<br/>多候选歧义检测] --> B2[Interactive Clarification<br/>分歧点提问]
+        B2 --> B3[Intent Formalization<br/>形式化光谱 L0-L4]
+    end
+
+    B -->|形式化意图| C
+
+    subgraph C[Phase C: 任务分解]
+        C1[Dependency Graph Builder] --> C2[Parallelism Optimizer]
+        C2 --> C3[Bead Generation<br/>64个结构化任务]
+    end
+
+    C -->|Task Beads| D
+
+    subgraph D[Phase D: 执行循环]
+        D1[Planner 状态机] --> D2[Generator LLM]
+        D2 --> D3[Verifier 测试+验证]
         D3 -->|失败| D4[Error Classifier]
-        D4 --> D5[Repair Router]
+        D4 --> D5[Repair Router<br/>14+修复模块]
         D5 --> D2
         D3 -->|通过| E
     end
 
-    subgraph 证据门禁
+    subgraph E[Phase E: 证据门禁]
         E1[语法类型] --> E2[静态安全]
         E2 --> E3[意图符合性]
         E3 --> E4[回归保护]
         E4 --> E5[架构一致性]
-        E5 --> E6[人类审查]
+        E5 --> E6[风险分级审查]
     end
 
-    style A fill:#1a1a2e,stroke:#e94560,color:#e0e0e0
-    style F fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
+    E -->|自动合入| M[Merge]
+
+    style H fill:#1a1a2e,stroke:#e94560,color:#e0e0e0
+    style M fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
 </div>
 
-<h2>阶段 1：意图澄清 — 歧义驱动的交互式形式化</h2>
+<h2>Phase A：上下文奠基（Context Grounding）</h2>
 
-<p>借鉴 TiCoder 的核心机制：AI 生成代码的最大问题不是"写不出"，而是"写了但不对"。同一个 prompt 可以对应多种语义——"移除列表中的重复项"是保留一个副本还是删除所有重复？</p>
+<p>借鉴 MEP Phase 1——在 Agent 动手写代码之前，把人类头脑中的隐性知识外化为结构化上下文。</p>
 
-<h3>工作机制</h3>
-<ol>
-  <li><strong>LLM 生成 N 个候选实现</strong>（N≥3，温度>0，确保多样性）</li>
-  <li><strong>自动找 Disagreement Points</strong>——不同候选产生不同输出的输入点</li>
-  <li><strong>在分歧最大的 K 个点向用户提问</strong>（Yes/No/Expected Output）</li>
-  <li><strong>用户反馈剪枝错误候选</strong>→ 批准的测试持久化为回归基线</li>
-  <li><strong>输出 Formalized Intent</strong>：{已批准测试, 约束条件, 验收标准}</li>
-</ol>
+<h3>Knowledge Externalizer（知识外化器）</h3>
 
-<p>关键参数来自 TiCoder 的用户实验：N=5 即可有效覆盖歧义空间，K=3-5 保证认知负荷不超载（p=0.007）。提问策略用<strong>区分度排序</strong>（distinguishing power）——优先问能让候选聚类分得最开的测试点。</p>
-
-<h2>阶段 2：上下文策展 — 三层分层注入</h2>
-
-<p>不是把所有上下文塞进 prompt（token 爆炸），而是：</p>
+<p>通过结构化访谈式对话，引导人类把"说不出的"变成"写下来的"：</p>
 
 <table>
-<tr><th>层级</th><th>内容</th><th>策略</th></tr>
-<tr><td>Layer 1: 静态架构</td><td>ADR、依赖图、接口契约、编码规范</td><td>System prompt 注入</td></tr>
-<tr><td>Layer 2: 动态仓库</td><td>相关文件（AST调用链）、现有测试、最近变更</td><td>BM25+向量检索 → LLM 重排序 → Tool output</td></tr>
-<tr><td>Layer 3: 运行时</td><td>错误日志、性能 profile、安全扫描</td><td>On-demand 检索</td></tr>
+<tr><th>访谈模块</th><th>引导问题</th><th>产出</th></tr>
+<tr><td>领域约束</td><td>"有哪些绝对不能违反的规则？""用户最常误解什么？"</td><td>invariants.yaml</td></tr>
+<tr><td>架构决策</td><td>"为什么选这个技术栈？""哪些决策后来被证明关键正确？"</td><td>adr-*.md</td></tr>
+<tr><td>设计哲学</td><td>"什么是'好代码'在这里的定义？""哪些简化是刻意的？"</td><td>principles.yaml</td></tr>
+<tr><td>隐性知识</td><td>"有什么你知道但文档里没有的？""新成员最容易踩的坑？"</td><td>traps.md</td></tr>
 </table>
 
-<h2>阶段 3：生成-验证-修复循环 — Planner + Repair Router</h2>
+<p><strong>黑客马拉松实证：</strong> 20 分钟口述教学设计哲学（9,386 词，10 份文档）→ 大幅减少 Socratic tutor 组件的迭代次数。隐性知识外化直接转化为执行效率。</p>
 
-<p>这是整个工作流的核心引擎，借鉴了 VeriStruct（TACAS 2026）的架构：</p>
+<h3>Domain Encyclopedia（领域百科）</h3>
+
+<p>将外化知识组织为分层结构——架构决策、业务约束、设计原则、领域术语——Agent 可精确检索。</p>
+
+<h3>Context Compiler（上下文编译器）</h3>
+
+<p>分层注入，不是全量塞进 prompt：</p>
+
+<table>
+<tr><th>层级</th><th>上限</th><th>内容</th></tr>
+<tr><td>System Prompt</td><td>≤ 4,000 tokens</td><td>架构约束 + 编码规范（always-on）</td></tr>
+<tr><td>Task Context</td><td>≤ 8,000 tokens</td><td>BM25+向量检索 → LLM 重排序（per-task）</td></tr>
+<tr><td>Runtime Context</td><td>≤ 4,000 tokens</td><td>错误日志 + 性能数据（on-demand）</td></tr>
+<tr><td>Constraint Checklist</td><td>≤ 1,000 tokens</td><td>门禁检查项（pre-merge）</td></tr>
+</table>
+
+<h2>Phase B：意图形式化（Intent Formalization）</h2>
+
+<p>把自然语言任务描述转化为可检查的意图规约。融合 TiCoder 的交互模式和 Lahiri 的形式化光谱。</p>
+
+<h3>歧义驱动的交互式澄清</h3>
+
+<p>核心理念：不问全部，只问分歧点。</p>
+
+<pre><code>
+Task: "给用户列表加一个按角色筛选的功能"
+    ↓
+LLM 生成 N=5 个候选实现（temperature=0.7）
+    ↓
+Disagreement Detector 分析：
+
+| 测试点 | 候选A | 候选B | 候选C | 区分度 |
+|--------|-------|-------|-------|--------|
+| admin 看到？  | 仅admin | 全部角色 | admin排序 | 0.8 |
+| 空字符串行为？ | 报错   | 返回全部 | 空列表   | 0.9 |
+    ↓
+TOP-K 歧义测试向用户提问：
+  Q1: admin角色应该看到：A)仅admin B)所有角色
+  Q2: 空字符串应该：A)报错 B)返回全部 C)返回空
+    ↓
+用户: "1-B, 2-B" → 剪枝不匹配候选
+    ↓
+Accepted Tests 持久化为回归基线
+    ↓
+Intent Record 归档
+</code></pre>
+
+<p>关键参数来自 TiCoder 用户实验：N=5 覆盖歧义空间，K=3-5 保证认知负荷不超载（p=0.007），提问策略用区分度排序。</p>
+
+<h3>形式化光谱：风险驱动的自动选级</h3>
+
+<table>
+<tr><th>等级</th><th>场景</th><th>机制</th></tr>
+<tr><td>L0 探索</td><td>原型、个人工具</td><td>3-5 歧义点 Yes/No</td></tr>
+<tr><td>L1 常规</td><td>CRUD、UI 组件</td><td>L0 + 自动生成 postcondition</td></tr>
+<tr><td>L2 重要</td><td>核心业务逻辑、支付</td><td>L1 + property-based test</td></tr>
+<tr><td>L3 关键</td><td>认证、数据完整性</td><td>L2 + Dafny/Verus 验证</td></tr>
+<tr><td>L4 安全攸关</td><td>密码学、协议解析</td><td>DSL + 验证编译（3DGen 模式）</td></tr>
+</table>
+
+<p>风险评分 = 是否触碰认证(+3) + 是否触碰支付(+2) + 是否触碰数据完整性(+2) + 影响模块数(+1/3+) + 历史缺陷率(+1/10%)。≥5 走 L3，≥3 走 L2，≥1 走 L1。</p>
+
+<h2>Phase C：任务分解（Task Decomposition）</h2>
+
+<p>借鉴 MEP Phase 3——将形式化意图分解为依赖感知、可并行执行的结构化 Beads。</p>
+
+<h3>Bead 数据模型</h3>
+
+<pre><code>{
+  "bead_id": "bead-042",
+  "priority": 1,
+  "title": "实现 RoleFilter 组件",
+  "dependencies": ["bead-038", "bead-040"],
+  "dependents": ["bead-045"],
+  "estimated_minutes": 15,
+  "acceptance_criteria": [
+    "admin 看到所有用户",
+    "空选择显示全部",
+    "切换角色保持滚动位置"
+  ],
+  "files_to_modify": ["src/components/UserList.tsx"],
+  "constraints": ["使用现有 Select 组件"],
+  "evidence_required": ["passes_accepted_tests", "typecheck"]
+}</code></pre>
+
+<h3>并行度优化</h3>
+
+<pre><code>拓扑排序 + 打包可并行任务：
+  Batch 1: [bead-001, bead-002, bead-005]  ← 无依赖
+  Batch 2: [bead-003, bead-006]           ← 依赖 Batch 1
+  Batch 3: [bead-004, bead-007, bead-008] ← 依赖 Batch 2
+  ...
+</code></pre>
+
+<p><strong>黑客马拉松数据：</strong> 64 个 bead → 43 个关闭 → 中位 5.9 分钟/bead → 4 个 Agent 真正并行 → 0 架构返工。协调负担从运行时转移到准备时——人的架构判断在准备阶段价值最大。</p>
+
+<h2>Phase D：Agentic 执行循环</h2>
+
+<p>借鉴 VeriStruct（TACAS 2026）的 Planner + Repair Router 架构。</p>
 
 <h3>Planner 状态机</h3>
-<table>
-<tr><th>状态</th><th>触发</th><th>动作</th></tr>
-<tr><td>PLAN</td><td>新任务开始</td><td>分析任务，生成执行计划</td></tr>
-<tr><td>GENERATE</td><td>需要产出</td><td>LLM 调用，注入上下文+失败历史</td></tr>
-<tr><td>VERIFY</td><td>生成完成</td><td>测试+静态检查+规约验证</td></tr>
-<tr><td>REPAIR</td><td>验证失败</td><td>错误分类→路由修复模块</td></tr>
-<tr><td>DONE</td><td>全部通过</td><td>输出+证据包</td></tr>
-<tr><td>STUCK</td><td>循环>N次</td><td>降级人工介入</td></tr>
-</table>
-
-<h3>Repair Router — 14+ 修复模块</h3>
-<p>Agent 生成代码后验证失败，如果没有错误分类，Agent 会盲目重试。解决方案是一个错误类型→修复模块的路由系统：</p>
 
 <pre><code>
-Error Classifier（错误分类器）
-    ↓ 结构化错误类型
-Repair Router（修复路由器）
-    ↓ 匹配修复模块
-├── repair_type        → 类型错误
-├── repair_syntax      → 语法错误
-├── repair_precond     → 前提条件太弱
-├── repair_postcond    → 后置条件太强
-├── repair_assertion   → 断言失败
-├── repair_invariant   → 不变量不成立
-├── repair_arithmetic  → 算术溢出
-├── repair_missing     → 缺少导入/定义
-└── ...
-+ Loop Detector（收敛检测+超时保护）
+PLAN → GENERATE → VERIFY → REPAIR → GENERATE（循环）
+                    │ 全部通过          │ 重试>N
+                    ▼                   ▼
+                  DONE               STUCK → HUMAN
 </code></pre>
 
-<h2>阶段 4：证据门禁 — 六层自动化检查</h2>
+<h3>Error Classifier + Repair Router</h3>
 
-<p>AI 生成代码的速度远超人类审查速度。传统"逐行审查"无法跟上。需要多层自动化门禁：</p>
+<p>Agent 生成代码后验证失败，不盲目重试——先分类错误，再路由到专用修复模块：</p>
 
 <pre><code>
-Gate 1: 语法与类型   → 编译通过？类型检查通过？
-Gate 2: 静态安全     → SAST 扫描？依赖漏洞？密钥泄露？
-Gate 3: 意图符合性   → 通过所有批准测试？规约评分？
+验证失败输出
+    ↓
+Error Classifier（10 种错误模式正则）
+    ↓ "type_error"
+Repair Router
+    ↓
+TypeRepairModule   → 修复类型错误
+SyntaxRepairModule → 修复语法错误
+MissingImportRepair→ 补充缺失导入
+AssertionRepair    → 修复断言失败
+PrecondRepair      → 加强前置条件
+PostcondRepair     → 放松后置条件
+InvariantRepair    → 修复不变量
+...
+    ↓
+每个模块含：专用 prompt 模板 + 修复策略（改代码/改规约/回退）
+</code></pre>
+
+<h3>Loop Detector</h3>
+
+<pre><code>
+收敛检测规则：
+  - 同一错误重复 3 次 → 升级人工
+  - 总重试 > 8 次 → 升级人工
+  - 耗时 > 30 分钟 → 升级人工
+  - 否则继续修复
+</code></pre>
+
+<h2>Phase E：证据门禁与治理</h2>
+
+<h3>六层自动化门禁</h3>
+
+<pre><code>
+Gate 1: 语法与类型   → 编译通过？类型检查？
+Gate 2: 静态安全     → SAST？依赖漏洞？密钥泄露？
+Gate 3: 意图符合性   → 通过所有 accepted_tests？spec评分？
 Gate 4: 回归保护     → 现有测试全部通过？
-Gate 5: 架构一致性   → 违反架构约束？循环依赖？
-Gate 6: 人类审查     → 按风险分级（低→自动合入，中→轻量审查，高→完整审查）
+Gate 5: 架构一致性   → 违反约束？循环依赖？
+Gate 6: 风险分级审查  → LOW自动合入 / MED轻量审查 / HIGH完整审查
 </code></pre>
 
-<p>每次变更附带<strong>证据包（Evidence Package）</strong>：原始 prompt、批准测试、候选考虑数、选择理由、测试通过数、静态检查结果、规约 soundness/completeness 评分、diff 摘要、风险等级。</p>
+<h3>证据包（Evidence Package）</h3>
 
-<h2>阶段 5：治理与审计</h2>
+<p>每次变更附带完整证据：原始 prompt、歧义点与用户决策、候选代码数、选择理由、测试通过率、静态检查结果、规约 soundness/completeness 评分、diff 摘要、风险等级。不依赖人类逐行审查。</p>
 
-<p>三大体系确保长期可追溯：</p>
-<ul>
-  <li><strong>Agent 身份体系</strong> — 每个 agent 有唯一 ID + 权限绑定 + 操作审计日志 + 会话溯源</li>
-  <li><strong>Provenance Chain</strong> — NL Prompt → Intent → Plan → Tool Calls → Code → Gates → Human Decision → Merge，每环节有 timestamp/agent ID/input/output/rationale</li>
-  <li><strong>Policy-as-Code</strong> — 基于 OPA/Rego，定义 agent 能改什么文件、能调什么工具、什么变更需审批、什么时间窗口允许部署</li>
-</ul>
+<h3>Provenance Chain（溯源链）</h3>
 
-<h2>两篇论文的互补对话</h2>
+<pre><code>
+NL Prompt → Formalized Intent → Task Decomposition
+    → Agent Plan → Tool Calls → Generated Code
+    → Repair Attempts → Gate Results → Human Decision → Merge
 
-<p>设计这套工作流的过程本身验证了两篇论文的核心论点：</p>
+每环节记录：timestamp | agent/human ID | input | output | rationale
+</code></pre>
+
+<h3>Policy-as-Code（OPA/Rego）</h3>
+
+<pre><code>
+规则示例：
+  - 不能碰的文件：package.json, deploy.yml, *.tf
+  - 触碰 auth → 强制人类审查
+  - 风险=LOW + 全部门禁通过 + 部署窗口开放 → 自动合入
+</code></pre>
+
+<h2>完整数据流：一次典型执行</h2>
+
+<pre><code>
+User: "给用户列表加一个按角色筛选的功能"
+    │
+Phase A: Context Compiler 加载领域百科
+    ├── 约束: "所有列表查询必须有分页"
+    ├── 术语: "Workspace = 用户的完整研究会话"
+    └── 架构: "使用现有 Select 组件"
+    │
+Phase B: Disagreement Detector
+    ├── 生成 5 候选 → 找到 4 歧义点
+    ├── 问用户 3 个问题 → 用户回答
+    ├── 剪枝 3 候选 → 保留 2 个对齐候选
+    ├── 生成 2 个 accepted_tests
+    └── Formalization Level: L1（常规任务）
+    │
+Phase C: Task Decomposer
+    ├── 依赖分析: 需要 bead-038 (API route), bead-040 (Select 组件)
+    └── 分解: bead-042 "实现 RoleFilter" (deps=[038,040], 15min)
+    │
+Phase D: 等待 bead-038, bead-040 完成 →
+    ├── Planner → GENERATE (注入领域百科 + accepted_tests)
+    ├── Verifier: 编译✓ 2/2 accepted_tests✓ 47/47 回归✓
+    └── DONE
+    │
+Phase E: Gate Pipeline
+    ├── Gate 1-5: 全部通过
+    ├── Gate 6: Risk=LOW → AUTO-MERGE
+    └── Evidence Package 归档 + Provenance Chain 追加
+</code></pre>
+
+<h2>Context Fluency：Agent 时代的新技能</h2>
+
+<p>论文提出了一个重要概念——<strong>上下文流利度（Context Fluency）</strong>：创造丰富结构化上下文让 Agent 能有效行动的能力。Prompt Engineering 优化单次调用指令；Context Fluency 是 prompt 的上游——关心 Agent 执行周围的<strong>信息架构</strong>。</p>
 
 <table>
-<tr><th>维度</th><th>De La Cruz (2605.11027)</th><th>Lahiri (2603.17150)</th></tr>
-<tr><td>方法</td><td>定性话语分析</td><td>技术立场论文</td></tr>
-<tr><td>视角</td><td>"软件工程职业如何转型"</td><td>"代码可靠性如何保证"</td></tr>
-<tr><td>回答</td><td>意图中心 + 治理 + 问责</td><td>意图形式化光谱 + 自动化指标</td></tr>
-<tr><td>交集</td><td colspan="2">在 vibe coding 时代，人类可能永远不检查代码——规约成为人机之间的主要界面</td></tr>
+<tr><th>组件</th><th>描述</th><th>对应传统能力</th></tr>
+<tr><td>Decomposition</td><td>分解为可并行任务，明确边界</td><td>任务拆分</td></tr>
+<tr><td>Specification</td><td>描述"做什么"+"为什么"</td><td>需求分析</td></tr>
+<tr><td>Constraint Definition</td><td>知道排除/简化/推迟什么</td><td>范围管理</td></tr>
+<tr><td>Domain Encoding</td><td>把隐性知识外化为Agent可读格式</td><td>文档+知识传承</td></tr>
 </table>
 
-<p>De La Cruz 告诉我们<strong>为什么</strong>软件工程在转型（从 code-centric 到 intent-centric），Lahiri 告诉我们转型中<strong>怎么做</strong>才能保证可靠（从测试到 DSL 的形式化光谱）。</p>
-
-<h2>开源的实践参考</h2>
+<h2>三篇论文的对话</h2>
 
 <table>
-<tr><th>机制</th><th>参考代码</th></tr>
-<tr><td>歧义检测</td><td><a href="https://github.com/microsoft/TiCoder">TiCoder</a> — test_ranking.py 的区分度排序</td></tr>
-<tr><td>修复路由</td><td><a href="https://github.com/ChuyueSun/VeriStruct">VeriStruct</a> — planner.py + repair modules</td></tr>
-<tr><td>规约评估</td><td><a href="https://github.com/microsoft/nl-2-postcond">nl2postcond</a> — soundness/completeness 指标</td></tr>
-<tr><td>Agent 治理</td><td>Hermes Agent — pre_tool_call hook + approval injection</td></tr>
+<tr><th>论文</th><th>核心论点</th><th>本方案的对应</th></tr>
+<tr><td>De La Cruz<br/>(2605.11027)</td><td>软件工程从 code-centric 到 intent-centric</td><td>Phase A+B：将隐性意图外化 + 形式化</td></tr>
+<tr><td>Lahiri<br/>(2603.17150)</td><td>意图形式化是可靠性瓶颈</td><td>Phase B：形式化光谱 L0-L4 + soundness/completeness 指标</td></tr>
+<tr><td>Zigler<br/>(2605.05400)</td><td>对齐问题本质是准备问题</td><td>Phase A+C+D：准备优先 + Beads + 并行执行</td></tr>
 </table>
 
-<h2>实施优先级</h2>
+<p>三篇交汇在同一个点上：<strong>在 vibe coding 时代，可靠性不来自更好的代码生成，而来自更充分的准备和更可检查的意图。</strong></p>
+
+<h2>实施路线图</h2>
 
 <table>
-<tr><th>优先级</th><th>做什么</th><th>理由</th></tr>
-<tr><td><strong>P0 立即</strong></td><td>错误分类器 + Repair Router</td><td>最小改动最大收益</td></tr>
-<tr><td><strong>P1 近期</strong></td><td>Disagreement Detector</td><td>借鉴 TiCoder 的 test_ranking.py</td></tr>
-<tr><td><strong>P2 近期</strong></td><td>Evidence Package + Gate Pipeline</td><td>结构化审批流程</td></tr>
-<tr><td><strong>P3 中期</strong></td><td>Spec Soundness/Completeness</td><td>需要 nl2postcond 的规约评估逻辑</td></tr>
-<tr><td><strong>P4 远期</strong></td><td>Provenance Tracker + Policy Engine</td><td>当 agent>3 且做生产变更时</td></tr>
+<tr><th>阶段</th><th>内容</th><th>产出</th></tr>
+<tr><td><strong>P0 立即</strong></td><td>Domain Encyclopedia 数据模型 + Error Classifier + Evidence Package</td><td>基础设施就绪</td></tr>
+<tr><td><strong>P1 近期</strong></td><td>Knowledge Externalizer (/mep-ground) + Disagreement Detector + Repair Router + Loop Detector</td><td>最小可行闭环</td></tr>
+<tr><td><strong>P2 近期</strong></td><td>Task Decomposer + Gate Pipeline + Risk Classifier + Provenance Tracker</td><td>完整工作流</td></tr>
+<tr><td><strong>P3 中期</strong></td><td>Spec Soundness/Completeness 指标 + Policy Engine + 属性测试生成</td><td>高级特性</td></tr>
+</table>
+
+<h2>关键指标</h2>
+
+<table>
+<tr><th>指标</th><th>当前基线</th><th>目标</th></tr>
+<tr><td>意图对齐率</td><td>~60%（vibe coding）</td><td>≥ 85%（TiCoder: 84%）</td></tr>
+<tr><td>架构返工率</td><td>未测量</td><td>≤ 5%</td></tr>
+<tr><td>准备:代码比</td><td>0（无准备）</td><td>0.5-1.0:1</td></tr>
+<tr><td>门禁自动化率</td><td>0%</td><td>≥ 60%</td></tr>
+<tr><td>单 bead 中位时间</td><td>-</td><td>≤ 10 min</td></tr>
+<tr><td>修复循环次数</td><td>2-5 次（无分类）</td><td>≤ 1.5 次均值</td></tr>
 </table>
 
 <hr>
 <p><strong>引用</strong></p>
 <ul>
-  <li>De La Cruz, E. (2026). <em>From Code-Centric to Intent-Centric Software Engineering</em>. arXiv:2605.11027</li>
-  <li>Lahiri, S. K. (2026). <em>Intent Formalization: A Grand Challenge for Reliable Coding in the Age of AI Agents</em>. arXiv:2603.17150</li>
-  <li>Lahiri, S. K. et al. (2022/2024). <em>TiCoder: Test-driven User-Intent Formalization</em>. github.com/microsoft/TiCoder</li>
-  <li>Sun, C. et al. (2026). <em>VeriStruct: AI-assisted Automated Verification</em>. TACAS 2026. github.com/ChuyueSun/VeriStruct</li>
+  <li>Zigler, A. (2026). <em>Mise en Place for Agentic Coding</em>. arXiv:2605.05400. VibeX 2026.</li>
+  <li>Lahiri, S. K. (2026). <em>Intent Formalization: A Grand Challenge</em>. arXiv:2603.17150.</li>
+  <li>De La Cruz, E. (2026). <em>From Code-Centric to Intent-Centric SE</em>. arXiv:2605.11027.</li>
+  <li>Lahiri, S. K. et al. <em>TiCoder</em>. github.com/microsoft/TiCoder</li>
+  <li>Sun, C. et al. (2026). <em>VeriStruct</em>. TACAS 2026. github.com/ChuyueSun/VeriStruct</li>
+  <li>Polanyi, M. (1966). <em>The Tacit Dimension</em>.</li>
+  <li>Nonaka, I. & Takeuchi, H. (1995). <em>The Knowledge-Creating Company</em>.</li>
 </ul></div>
             <footer>
                 <a href="../index.html" class="back-link">← 返回首页</a>
