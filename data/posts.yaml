@@ -1,4 +1,85 @@
 posts:
+- title: Slipstream：轨迹锚定的异步压缩验证——让 Agent 上下文管理不再靠猜
+  date: May 25, 2026
+  excerpt: Princeton SAIL 提出的 Slipstream 揭示了同步压缩的结构性缺陷：当 Agent 的后续行为被摘要条件化后，就无法作为独立的验证信号。异步压缩通过"同源异路"的独立生成，让
+    Judge 能对压缩质量做双重验证，在 SWE-bench 和 BrowseComp 上实现准确率+8.8pp、延迟-39.7%的双赢。
+  content: "<h2>同步压缩的结构性缺陷</h2>\n\n<p>现在的 Agent 框架——Claude Code、LangChain、Microsoft\
+    \ Agent Framework——都在用一种看起来理所当然的方式管理上下文：<strong>同步压缩（Synchronous Compaction）</strong>。</p>\n\
+    \n<p>流程很简单：Agent 执行到一定步数，上下文开始膨胀，系统暂停 Agent，调用一个 LLM 把累积的轨迹\"总结\"成一段精炼的摘要，然后用摘要替换原始上下文，Agent\
+    \ 继续执行。Anthropic 甚至建议在 5-20k tokens 时就触发压缩，而不是等到上下文窗口快满。</p>\n\n<p>这听起来没问题——压缩不就是个性能优化吗？但实际上，<strong>同步压缩有一个根本性的结构缺陷</strong>，它不仅仅是慢，更重要的是它会<strong>静默地损坏\
+    \ Agent 的准确性</strong>。</p>\n\n<p>问题出在哪里？两个层面。</p>\n\n<p><strong>第一，预测盲区。</strong>压缩器必须在不知道\
+    \ Agent 未来需要什么信息的情况下，决定保留什么、丢掉什么。\"判断什么信息对后续推理有用\"这件事，正是我们雇佣 Agent 自己去发现的过程——压缩器不可能提前知道。</p>\n\
+    \n<p><strong>第二，不可自查。</strong>一旦摘要替换了原始上下文，Agent 的后续每一步都受这个摘要条件化。如果摘要错了，Agent\
+    \ 的行为会<strong>在错误的方向上保持一致</strong>——看起来逻辑自洽，实际已经走偏。更致命的是，因为没有参照系，系统无法检测这个错误。它只能等到最终结果出错才发现问题，而那时已经太晚。</p>\n\
+    \n<p>这就是所谓的<strong>结构性验证缺口（Structural Validation Gap）</strong>：同步压缩让 Agent 的后续行为无法作为摘要质量的独立检查。</p>\n\
+    \n<h2>三类沉默失败</h2>\n\n<p>论文从真实的 Agent 轨迹中提取了三类压缩失败模式，其中<strong>省略型占 ~90%</strong>：</p>\n\
+    \n<ul>\n<li><strong>省略（Omission）</strong>：摘要丢弃了 Agent 后续需要的信息。例如一个搜索任务中，摘要静默地丢弃了三个候选中的正确答案\"\
+    Tom\"，Agent 永远不再验证它，最终给出错误答案。</li>\n<li><strong>捏造（Commission）</strong>：摘要引入了原始上下文中不存在的错误信息。例如将\"\
+    只从 a.py 删除函数\"扭曲为\"从所有文件删除函数\"——Agent 照做，代码崩溃。</li>\n<li><strong>组合错误</strong>：丢弃正确实体并替换为虚假实体。例如把\"\
+    Tom Thumb\"替换为不存在的\"Jeffrey Hudson\"，Agent 沿着错误线索搜索，永远无法恢复。</li>\n</ul>\n\n<p>关键是，现有评估指标——faithfulness、coverage、QA-probe、ROUGE——都<strong>无法捕获这些错误</strong>。它们要么假设所有事实同等重要（但\
+    \ Agent 只需要其中一小部分），要么需要参考摘要（但压缩没有\"标准答案\"）。缺少的维度是<strong>充分性（Sufficiency）</strong>：压缩后的上下文是否保留了\
+    \ Agent 沿原始轨迹前进所需的信息？</p>\n\n<h2>异步压缩：唯一的答案</h2>\n\n<p>Slipstream 的核心洞察非常精妙：<strong>异步执行是唯一能产生独立验证信号的压缩模式</strong>。</p>\n\
+    \n<p>思路是这样的：当触发压缩时，不让 Agent 停下来等。让 Agent <strong>继续在原始上下文中执行</strong>，同时压缩器并行运行。因为两者从同一个前压缩状态出发，所以：</p>\n\
+    \n<ul>\n<li>候选摘要和 Agent 的 next-k 步是<strong>独立生成的</strong></li>\n<li>Agent 的后续行为<strong>不受摘要条件化</strong></li>\n\
+    <li>两者可以做<strong>独立的交叉验证</strong></li>\n</ul>\n\n<p>这就是\"同源异路\"（same pre-compaction\
+    \ state, independent generation）的精髓。</p>\n\n<pre><code class=\"language-mermaid\"\
+    >\ngraph TB\n    subgraph \"同步压缩（现状）\"\n        A1[\"Agent 执行\"] --> B1[\"触发压缩<br/>⚠️\
+    \ Agent 暂停\"]\n        B1 --> C1[\"压缩器运行<br/>（占用关键路径）\"]\n        C1 --> D1[\"\
+    摘要替换上下文\"]\n        D1 --> E1[\"Agent 继续<br/>❌ 已受摘要条件化<br/>❌ 无独立验证信号\"]\n    end\n\
+    \    \n    subgraph \"Slipstream 异步压缩\"\n        A2[\"Agent 执行\"] --> B2[\"触发压缩\"\
+    ]\n        B2 --> C2[\"Agent 继续<br/>（原始上下文）\"]\n        B2 --> D2[\"压缩器并行<br/>（不在关键路径）\"\
+    ]\n        C2 --> E2[\"生成 next-k 步<br/>✅ 不受摘要条件化\"]\n        D2 --> F2[\"候选摘要\"\
+    ]\n        E2 --> G2[\"Trajectory-Grounded Judge<br/>双重验证\"]\n        F2 --> G2\n\
+    \        G2 -->|\"Accept ≥7分<br/>（91-99%）\"| H2[\"采纳摘要 + next-k\"]\n        G2\
+    \ -->|\"Reject<br/>（1-9%）\"| I2[\"针对性修复\"]\n    end\n    \n    style E1 fill:#ff6b6b,color:#fff\n\
+    \    style C2 fill:#51cf66,color:#000\n    style G2 fill:#339af0,color:#fff\n\
+    </code></pre>\n\n<h2>Judge 的双重验证</h2>\n\n<p>Slipstream 的 Judge 做两件事：</p>\n\n<ol>\n\
+    <li><strong>意图对齐检查（Plan-level）</strong>：摘要是否支持与原始延续相同的 forward intent？目标：防止\"\
+    结构性漂移\"——比如从\"只改 a.py\"变成\"改所有文件\"。</li>\n<li><strong>事实保留检查（Statement-level）</strong>：Agent\
+    \ 依赖的具体事实、约束、中间结果是否在摘要中保留？目标：防止\"内容错误\"——比如遗漏或替换关键实体。</li>\n</ol>\n\n<p>两部分各打\
+    \ 0-10 分，总分 = 平均，≥7 分通过。</p>\n\n<p>一个关键问题是：只看 next-k 步够吗？答案是 <strong>够</strong>。压缩错误的首次暴露有极强的局部性：</p>\n\
+    \n<ul>\n<li><strong>BrowseComp</strong>：97% 在 k=1 暴露，100% 在 k=2</li>\n<li><strong>SWE-bench</strong>：60%\
+    \ 在 k=1，88% 在 k=3，96% 在 k=6</li>\n</ul>\n\n<p>Slipstream 的平均异步窗口是 2.1-3.7 步，恰好覆盖绝大多数错误。</p>\n\
+    \n<h2>实验数据：12/12 全胜</h2>\n\n<p>在两个长周期 Agent 基准上的结果：</p>\n\n<table>\n<tr><th>基准</th><th>模型</th><th>阈值</th><th>Sync</th><th>Slipstream</th><th>Δ</th></tr>\n\
+    <tr><td>SWE-bench</td><td>Qwen3.5-9B</td><td>4k</td><td>23.4%</td><td>29.8%</td><td><strong>+6.4</strong></td></tr>\n\
+    <tr><td>SWE-bench</td><td>Qwen3.5-9B</td><td>6k</td><td>22.0%</td><td>30.8%</td><td><strong>+8.8</strong></td></tr>\n\
+    <tr><td>SWE-bench</td><td>Seed-OSS-36B</td><td>4k</td><td>29.6%</td><td>35.8%</td><td><strong>+6.2</strong></td></tr>\n\
+    <tr><td>BrowseComp</td><td>Qwen3.5-9B</td><td>32k</td><td>53.3%</td><td>57.3%</td><td><strong>+4.0</strong></td></tr>\n\
+    <tr><td>BrowseComp</td><td>Seed-OSS-36B</td><td>16k</td><td>46.7%</td><td>48.7%</td><td><strong>+2.0</strong></td></tr>\n\
+    </table>\n\n<p><strong>所有 12 个配置组合（2 个模型 × 2 个基准 × 3 个阈值）全部提升。</strong></p>\n\n\
+    <p>延迟方面，同步压缩占端到端时间的 26-44%。Slipstream 将压缩移出关键路径后，延迟降低 <strong>11.3-39.7%</strong>，阈值越小（压缩越频繁）收益越大。</p>\n\
+    \n<h2>最关键的消融：Async-only = 零收益</h2>\n\n<p>这是整篇论文最重要的消融实验：</p>\n\n<ul>\n<li><strong>Async-only</strong>（只异步重叠，不验证，直接采纳摘要）：保留了全部延迟收益，但<strong>准确率与同步压缩持平</strong>——静默采纳了所有损坏的摘要。</li>\n\
+    <li><strong>Full Slipstream</strong>（异步 + Judge 验证）：延迟收益保留，准确率 <strong>+6.4 ~\
+    \ +8.8pp</strong>。</li>\n</ul>\n\n<p>结论很清楚：<strong>准确率提升来自轨迹锚定的验证信号，而非异步执行本身。</strong>异步只是前提——它让同源异路的独立生成成为可能——但验证才是价值来源。</p>\n\
+    \n<h2>Judge 可以用更小的模型</h2>\n\n<p>默认配置下 Judge 和 Agent 用同一个模型（方便共享 KV-cache prefix）。但如果换成更小、更便宜的模型呢？</p>\n\
+    \n<table>\n<tr><th>Judge 模型</th><th>SWE-bench 准确率（4k 阈值）</th></tr>\n<tr><td>无\
+    \ Judge（Sync baseline）</td><td>23.4%</td></tr>\n<tr><td>Qwen3.5-9B（同模型）</td><td><strong>29.8%</strong>（+6.4）</td></tr>\n\
+    <tr><td>Qwen3.5-2B（小模型）</td><td>28.2%（+4.8）</td></tr>\n<tr><td>Llama-3.2-3B（跨家族）</td><td>28.2%（+4.8）</td></tr>\n\
+    </table>\n\n<p>小模型和跨家族模型仍然保留了大部分收益。结论：<strong>验证信号本身的价值 > Judge 模型的能力。</strong></p>\n\
+    \n<p>这对实际部署是个好消息——不需要为 Judge 预留昂贵的算力。</p>\n\n<h2>系统设计的优雅之处</h2>\n\n<p>Slipstream\
+    \ 的实现充分利用了现代 Agent serving 的结构特性：</p>\n\n<ul>\n<li><strong>Agent serving 是内存瓶颈，不是计算瓶颈</strong>：有效\
+    \ batch size 远低于算力上限，有充分的 headroom 并行跑压缩器和 Judge。</li>\n<li><strong>共享 KV-cache\
+    \ prefix</strong>：两个线程共享前压缩上下文的 KV-cache，避免冗余的 prefill 开销。</li>\n<li><strong>Judge\
+    \ 输入极轻量</strong>：只需要候选摘要 + next-k 轨迹，占前压缩上下文的 3.6-6.8%。</li>\n<li><strong>拒绝率很低</strong>：1.0-3.5%（BrowseComp）和\
+    \ 5.4-8.5%（SWE-bench），大部分摘要直接通过，无需额外开销。</li>\n</ul>\n\n<h2>超越压缩：一条通用架构原则</h2>\n\
+    \n<p>论文在结论中提出了一个比 Slipstream 本身更重要的观察：</p>\n\n<blockquote>\n<p>\"Running auxiliary\
+    \ procedures synchronously on an agent's critical path can foreclose validation\
+    \ signals that asynchrony makes available — a pattern worth examining beyond compaction\
+    \ itself.\"</p>\n</blockquote>\n\n<p>翻译一下：<strong>在 Agent 的关键路径上同步运行辅助程序，会丧失异步执行可以提供的验证信号。这个模式值得在压缩之外更广泛地审视。</strong></p>\n\
+    \n<p>适用场景远不止上下文压缩：</p>\n\n<ul>\n<li><strong>工具执行验证</strong>：Agent 调用工具后，是否需要一个独立的验证器检查输出？</li>\n\
+    <li><strong>子代理编排</strong>：主 Agent 分配子任务时，子代理的输出能否与主 Agent 的预期交叉验证？</li>\n<li><strong>计划生成</strong>：生成的计划是否可以在\
+    \ Agent 执行第一步的同时接受评判？</li>\n<li><strong>记忆策展</strong>：决定保留/丢弃记忆时，能否参考 Agent 后续行为中实际使用的内容？</li>\n\
+    </ul>\n\n<p>核心思想是一致的：<strong>任何需要在不确定条件下做出不可逆决策的辅助程序，都应该考虑异步执行以获取独立的验证信号。</strong></p>\n\
+    \n<h2>对 Hermes 等 Agent 基础设施的启示</h2>\n\n<p>Slipstream 对 Agent 基础设施设计有几个直接影响：</p>\n\
+    \n<ol>\n<li><strong>上下文压缩需要验证层</strong>：Hermes 已经使用 compression_threshold 和 auto_prune，但没有验证步骤。Slipstream\
+    \ 的模式可以直接集成——异步运行压缩，用轻量 Judge 验证。</li>\n<li><strong>验证成本可以很低</strong>：2B/3B 模型就能提供大部分收益，甚至在资源受限的环境（树莓派、本地\
+    \ Mac）上也可行。</li>\n<li><strong>异步不仅是性能优化</strong>：它改变了验证的可行性。把原本不可验证的决策变成了可验证的。</li>\n\
+    <li><strong>设计范式</strong>：未来的 Agent 系统应该区分\"关键路径操作\"和\"辅助操作\"，后者的默认执行模式应该是异步的，以产生独立验证信号。</li>\n\
+    </ol>\n\n<h2>局限与展望</h2>\n\n<p>Slipstream 没有探索的是：</p>\n\n<ul>\n<li>Judge 本身的可靠性——Judge\
+    \ 也是 LLM，也会犯错</li>\n<li>多模态上下文压缩——当前只处理文本轨迹</li>\n<li>压缩策略的自适应选择——什么情况下该压缩，k 值该设多大</li>\n\
+    <li>多 Agent 场景下的压缩协调</li>\n</ul>\n\n<p>但作为一个原则性解决方案，它回答了一个比\"如何更好地压缩\"更根本的问题——<strong>如何验证压缩是否正确？</strong>——并给出了一个优雅的答案：让\
+    \ Agent 自己去证明。</p>\n\n<p>论文链接：<a href=\"https://arxiv.org/abs/2605.08580\">arXiv:2605.08580</a>\
+    \ | 代码：<a href=\"https://github.com/chenzhuofu/slipstream\">github.com/chenzhuofu/slipstream</a></p>"
 - title: 从论文到实践：面向意图对齐的 Coding Agent 工作流与公共机制设计
   date: May 24, 2026
   excerpt: 面向意图对齐的 Coding Agent 完整技术方案，融合 MEP、Intent Formalization、Intent-Centric
