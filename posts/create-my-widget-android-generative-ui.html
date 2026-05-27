@@ -82,6 +82,35 @@ Android Home Screen     ← 最终呈现</code></pre>
   <li><strong>与 Glance 互操作</strong>：开发者用 Glance 构建的 Widget 自动获得 RemoteCompose 的能力——无需改写</li>
 </ul>
 
+<p><strong>工作链路：</strong></p>
+<pre><code>Gemini Nano 输出 Widget Spec JSON
+   {
+     "layout": "grid_2col",
+     "children": [
+       {"type": "weather_card", "metric": "wind_speed"},
+       {"type": "weather_card", "metric": "rain"}
+     ],
+     "style": "material_3_minimal"
+   }
+        ↓
+RemoteCompose 解析 JSON
+        ↓
+动态构造 Compose 渲染树 (Row → Card → Text/Icon...)
+        ↓
+Android 桌面渲染 Widget</code></pre>
+
+<p><strong>与 Jetpack Compose 的对比：</strong></p>
+
+<table>
+  <tr><th>维度</th><th>Jetpack Compose</th><th>RemoteCompose</th></tr>
+  <tr><td>布局定义时机</td><td>编译期（开发者写 Kotlin）</td><td>运行时（从 JSON 描述动态构造）</td></tr>
+  <tr><td>使用场景</td><td>开发者构建 App UI</td><td>系统/AI 生成动态 UI</td></tr>
+  <tr><td>Widget 兼容</td><td>通过 Glance 桥接</td><td>原生支持 + Glance 自动升级</td></tr>
+  <tr><td>旧版设备</td><td>最低 API 21</td><td>Android 16+ 完整能力，旧版通过 Glance 降级</td></tr>
+</table>
+
+<p><strong>本质</strong>：RemoteCompose = <strong>UI 描述语言（JSON Schema）→ 原生 Compose 渲染树的翻译层</strong>。它不需要 AI，是确定性代码。Gemini 负责产 JSON，RemoteCompose 负责把它变成像素——分工清晰。</p>
+
 <h3>2.2 Function Registry：让 Widget 接入数据</h3>
 
 <p>随 Create My Widget 一同发布的还有 <strong>Function Registry</strong>——一个系统级的函数注册机制，允许 Widget 接入动态数据源：</p>
@@ -93,6 +122,28 @@ Android Home Screen     ← 最终呈现</code></pre>
 </ul>
 
 <p>这意味着 Widget 不是静态的——它们是 <strong>live data dashboard</strong>，自动刷新、响应数据变化。</p>
+
+<p><strong>工作流程（以 "显示风速和降雨" 为例）：</strong></p>
+<pre><code>用户说: "显示风速和降雨"
+         ↓
+Gemini Nano 提取实体: wind_speed, rain
+         ↓
+Function Registry 查表:
+  "wind_speed" → WeatherAPI.getWindSpeed()
+  "rain"       → WeatherAPI.getPrecipitation()
+         ↓
+调用函数获取实时数据 → 填充到 Widget</code></pre>
+
+<p><strong>三层注册模式：</strong></p>
+<ul>
+  <li><strong>系统预注册</strong>：Gmail 未读邮件数、Calendar 今日事件、天气 API、新闻头条——Google 服务自带</li>
+  <li><strong>第三方注册</strong>：Spotify 注册 "正在播放" → 用户说 "显示我的播放列表" → Widget 含 Spotify 数据。应用只需在 Android Manifest 或 AICore API 中声明函数签名（名称 + 描述 + 返回 JSON Schema）</li>
+  <li><strong>Web 数据</strong>：用户说 "显示 BTC 实时价格" → Gemini 网搜 CoinGecko API → 注册临时函数</li>
+</ul>
+
+<p><strong>与 AICore 的边界</strong>：Function Registry 是独立的 Android Framework API，不属于 AICore。AICore 只管 Gemini Nano 推理（text → function call JSON），Function Registry 负责接收函数名 → 路由到数据提供方。两者是链式调用，不是包含关系。</p>
+
+<p><strong>对开发者的意义</strong>：Google 正在构建一个新生态入口——不再是 App Store 分发应用，而是 Function Registry 分发 <strong>能力</strong>。应用不需要开发 Widget UI（Gemini 生成），只需要提供独特数据源。谁有稀缺数据函数，谁就获得零代码的 Widget 分发渠道。</p>
 
 <h3>2.3 On-Device AI Pipeline</h3>
 
