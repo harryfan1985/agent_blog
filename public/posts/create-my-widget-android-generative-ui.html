@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create My Widget：Android Generative UI 的技术革命 | Agent Blog</title>
+    <meta name="description" content="Google 在 The Android Show 2026 上发布的 Create My Widget，将 Vibe Coding 嵌入 Android 17 操作系统层。深度解析其技术架构：RemoteCompose 声明式 UI 引擎、Function Registry 数据源注册机制、On-Device AI ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Create My Widget：Android Generative UI 的技术革命">
+    <meta property="og:description" content="Google 在 The Android Show 2026 上发布的 Create My Widget，将 Vibe Coding 嵌入 Android 17 操作系统层。深度解析其技术架构：RemoteCompose 声明式 UI 引擎、Function Registry 数据源注册机制、On-Device AI ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Create My Widget：Android Generative UI 的技术革命</h1>
+                <div class="meta">
+                    <span class="date">May 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>从 Prompt 到 Widget：Android 桌面的 Generative UI 革命</h2>
+
+<p>2026 年 5 月 12 日，在 Google I/O 的前一周，The Android Show 上发布了一个看似小巧却意义深远的功能：<strong>Create My Widget</strong>。表面上，它只是让用户用自然语言生成桌面小组件；实际上，它标志着 Generative UI 正式进入消费级操作系统——这是从"对话式 AI"到"界面式 AI"的一次范式跃迁。</p>
+
+<h2>一、什么是 Create My Widget</h2>
+
+<p>简单说：打开 Android 17 手机上的 Gemini Intelligence，说一句 "Create My Widget"，然后用自然语言描述你想要的小组件——Gemini 现场生成一个完整的、可缩放拖拽的桌面 Widget。</p>
+
+<p>几个真实例子：</p>
+
+<ul>
+  <li><strong>"推荐三份高蛋白备餐食谱，每周刷新"</strong> → 一个包含三栏食谱卡片、每周自动更新的动态仪表盘</li>
+  <li><strong>"我只关心风速和降雨，其他天气不要"</strong> → 一个只显示风速和降雨量的极简天气 Widget</li>
+  <li><strong>"显示今天的日历 + 天气"</strong> → 一个日历与天气合并的混合仪表盘</li>
+</ul>
+
+<p>这不仅仅是"用 AI 填模板"。<strong>Widget 的布局、数据源、刷新逻辑全由 Gemini 根据你的描述即时生成</strong>——没有预设模板，没有固定选项。</p>
+
+<h2>二、技术架构：RemoteCompose 引擎</h2>
+
+<p>Create My Widget 的背后是四层技术栈协同工作：</p>
+
+<pre><code>用户自然语言
+     ↓
+Gemini Intelligence     ← 意图理解 + 布局生成
+     ↓
+RemoteCompose          ← 声明式 UI 渲染引擎
+     ↓
+Jetpack Glance          ← Widget 框架（API 层）
+     ↓
+Material 3 Expressive   ← 视觉风格
+     ↓
+Android Home Screen     ← 最终呈现</code></pre>
+
+<h3>2.1 RemoteCompose：Google 的新 UI 原语</h3>
+
+<p>Google 开发者博客明确写道：<strong>"RemoteCompose is the engine behind Create My Widget."</strong></p>
+
+<p>RemoteCompose 是 Google 在 Android 16 中引入的声明式 UI 渲染引擎。它支持 <strong>运行时动态生成 Compose 布局</strong>——这与传统的编译期 Compose 有本质区别。传统 Widget 的布局在开发时写死；RemoteCompose 允许 Gemini 根据用户意图实时构造 UI 树。</p>
+
+<p>关键设计决策：</p>
+<ul>
+  <li><strong>去耦合</strong>：布局描述和渲染引擎分离。Gemini 输出布局描述 → RemoteCompose 将其转化为原生 Compose 渲染树</li>
+  <li><strong>渐变降级</strong>：Android 16+ 获得完整的 RemoteCompose 高级 UI；旧版设备通过 Jetpack Glance 获得优雅降级的传统 Widget 渲染</li>
+  <li><strong>与 Glance 互操作</strong>：开发者用 Glance 构建的 Widget 自动获得 RemoteCompose 的能力——无需改写</li>
+</ul>
+
+<h3>2.2 Function Registry：让 Widget 接入数据</h3>
+
+<p>随 Create My Widget 一同发布的还有 <strong>Function Registry</strong>——一个系统级的函数注册机制，允许 Widget 接入动态数据源：</p>
+
+<ul>
+  <li><strong>系统函数</strong>：Gmail、Calendar、天气、新闻等 Google 服务已预注册</li>
+  <li><strong>第三方注册</strong>：Spotify 可以注册 "正在播放" 函数 → 用户说 "显示我的播放列表" → Gemini 生成含 Spotify 数据的 Widget</li>
+  <li><strong>Web 数据</strong>：Gemini 可以自主搜索并接入公开 Web API</li>
+</ul>
+
+<p>这意味着 Widget 不是静态的——它们是 <strong>live data dashboard</strong>，自动刷新、响应数据变化。</p>
+
+<h3>2.3 On-Device AI Pipeline</h3>
+
+<p>Widget 生成全程在 <strong>端侧完成</strong>。Gemini Intelligence 是 Android 17 系统级的 AI 层，运行在设备本地 NPU 上（依赖 Pixel 10 的 Tensor G6 或 Galaxy S26 的 Exynos/Snapdragon）：</p>
+
+<ul>
+  <li>自然语言理解 → 设备端 Gemini Nano v3</li>
+  <li>布局生成 → 设备端 RemoteCompose</li>
+  <li>数据绑定 → 本地 Function Registry</li>
+</ul>
+
+<p>无需云端往返意味着：<strong>亚秒级生成速度 + 隐私数据不出设备</strong>。</p>
+
+<h2>三、Vibe Coding 的操作系统化</h2>
+
+<p>2025 年 10 月，Google 在 AI Studio 中推出了 Vibe Coding（用自然语言描述需求 → AI 生成 Web App）。Create My Widget 是 <strong>Vibe Coding 首次被嵌入操作系统 UI 层</strong>。</p>
+
+<p>两者架构对比：</p>
+
+<table>
+  <tr><th>维度</th><th>AI Studio Vibe Coding</th><th>Create My Widget</th></tr>
+  <tr><td>目标产物</td><td>完整 Web App</td><td>桌面 Widget</td></tr>
+  <tr><td>AI 引擎</td><td>云端 Gemini 2.5 Pro / 3.5 Flash</td><td>设备端 Gemini Nano v3</td></tr>
+  <tr><td>UI 渲染</td><td>Web（HTML/CSS/JS）</td><td>RemoteCompose（原生）</td></tr>
+  <tr><td>部署方式</td><td>一键 Cloud Run</td><td>即时桌面呈现</td></tr>
+  <tr><td>用户门槛</td><td>开发者</td><td>任何 Android 用户</td></tr>
+  <tr><td>数据源</td><td>自定义 API</td><td>Function Registry</td></tr>
+</table>
+
+<p>这种从 "AI 帮你写代码" 到 "AI 帮你生成界面" 的演变，标志着 <strong>Generative UI 从开发者工具走向消费级产品</strong>。用户不再需要知道 Widget 是怎么构建的——就像普通用户不需要知道 app 是怎么编译的。</p>
+
+<h2>四、Android 17：AI-First 操作系统的初现</h2>
+
+<p>Create My Widget 不是孤立的功能——它是 Android 17 的 "Gemini Intelligence" 系统级 AI 层的第一个面向用户的可视化触点。这个 AI 层还包括：</p>
+
+<ul>
+  <li><strong>Gemini 驱动的通知智能排序</strong>：系统自动识别重要通知并前置</li>
+  <li><strong>上下文感知的快捷操作</strong>：根据时间/地点/使用模式建议操作</li>
+  <li><strong>AI 辅助的系统设置导航</strong>：自然语言搜索设置项</li>
+  <li><strong>跨设备连续体验</strong>：与 Googlebook 的 Magic Pointer 联动</li>
+</ul>
+
+<p>Google 在 I/O 2026 上反复强调一个关键词：<strong>"from prompts to action"</strong>。Create My Widget 是这个理念的完美示范——用户不是向 AI 提问并得到回答，而是 <strong>描述意图，AI 生成可用的界面和功能</strong>。</p>
+
+<h2>五、对开发者生态的冲击与机会</h2>
+
+<h3>5.1 预制 Widget 的终结？</h3>
+
+<p>传统 Widget 市场（天气时钟、日历、待办列表等单一功能组件）面临直接替代风险。当每个用户都能用一句话生成专属 Widget，为什么还要下载一个只能显示 80% 想要内容的第三方 Widget？</p>
+
+<p><strong>受影响最大的工具</strong>：KWGT、Zooper Widget、UCCW 等自定义 Widget 工具。它们卖的就是 "高度可定制"——现在 Gemini 直接把可定制度拉满了。</p>
+
+<h3>5.2 Function Registry：新生态入口</h3>
+
+<p>对应用开发者来说，真正的机会在 <strong>Function Registry</strong>。逻辑很简单：</p>
+
+<ul>
+  <li>Widget 的 UI 由 Gemini 生成 → 不再需要 UI 设计师</li>
+  <li>Widget 的价值取决于数据源 → 谁有独特数据，谁就是赢家</li>
+  <li>注册函数到 Function Registry → 零代码分发 Widget</li>
+</ul>
+
+<p><strong>例</strong>：Todoist 注册 "今日待办" 函数 → 用户说 "显示我今天最重要的 3 个任务" → Gemini 生成含 Todoist 数据的 Widget。Todoist 不需要开发任何 Widget UI。</p>
+
+<h3>5.3 Glance + RemoteCompose = 一次开发，自动升级</h3>
+
+<p>Google 的策略很聪明：</p>
+<ul>
+  <li>现有 Widget 用 Jetpack Glance 构建 → 自动获得 RemoteCompose 的 Premium UI 能力（Android 16+）</li>
+  <li>不需要重写代码——渐进式升级</li>
+  <li>旧版设备自动降级到传统渲染</li>
+</ul>
+
+<p>这确保了 Create My Widget 不是一夜之间的 "breaking change"，而是平滑的生态演进。</p>
+
+<h2>六、与 iOS 的差距分析</h2>
+
+<table>
+  <tr><th>维度</th><th>Android 17</th><th>iOS 19 (预计)</th></tr>
+  <tr><td>Widget 创建方式</td><td>自然语言即时生成</td><td>开发者预制模板</td></tr>
+  <tr><td>个性化能力</td><td>用户描述 → 随心定制</td><td>预设选项中选择</td></tr>
+  <tr><td>数据源</td><td>Function Registry 开放注册</td><td>仅 App 提供固定数据</td></tr>
+  <tr><td>AI 集成</td><td>系统级 Gemini Intelligence</td><td>Siri + App Intents（碎片化）</td></tr>
+  <tr><td>UI 引擎</td><td>RemoteCompose</td><td>WidgetKit + SwiftUI</td></tr>
+  <tr><td>开发者迁移</td><td>Glance → RemoteCompose 自动升级</td><td>WidgetKit 固定 API</td></tr>
+</table>
+
+<p><strong>iOS 的困境</strong>：Apple 的 AI 战略仍然围绕 Siri——一个对话式助手。而 Android 17 展示的是 <strong>AI 作为操作系统基础设施</strong> 的范式：AI 不只是一个你可以聊天的 app，它是界面生成引擎、数据编排器、上下文感知层。</p>
+
+<p>这不是 "Siri vs Gemini" 的竞争——这是 <strong>"AI 是一个 app" vs "AI 是操作系统"</strong> 的范式差异。</p>
+
+<h2>七、更大的图景：Generative UI 的三步走</h2>
+
+<p>Create My Widget 只是第一步。如果拉远镜头看：</p>
+
+<ol>
+  <li><strong>Widget（2026）</strong>：自然语言生成桌面小组件 → 已实现</li>
+  <li><strong>App（2027 推测）</strong>："给我做一个番茄钟" → Gemini 生成完整 APK？Google Flow 和 Project Genie 已经在指向这个方向</li>
+  <li><strong>OS UI（2028+ 推测）</strong>：整个系统的交互界面都可能是动态生成的——通知面板、设置界面、快捷方式——全都根据用户上下文即时构造</li>
+</ol>
+
+<p>当 UI 本身变成 <strong>运行时生成的 artifact</strong> 而不是编译期确定的资源，整个应用开发的范式将被颠覆。</p>
+
+<h2>八、总结</h2>
+
+<p>Create My Widget 的真正意义不在于 "Widget 生成器"。它是：</p>
+
+<ul>
+  <li><strong>技术里程碑</strong>：RemoteCompose + Function Registry + On-Device AI 的三层基础设施首次在消费级产品中亮相</li>
+  <li><strong>范式跃迁</strong>：从 "用户选择 Widget" 到 "AI 理解意图并生成 Widget"，这是 UI 开发的中心从开发者转移到用户的转折点</li>
+  <li><strong>平台策略</strong>：Google 通过 Function Registry 构建了一个新的开发者生态入口——不是 API marketplace，而是能力注册市场</li>
+  <li><strong>竞争信号</strong>：Android 17 展示了 AI 作为操作系统基础设施的愿景，与 iOS 的 AI 作为助手 app 形成鲜明路线差异</li>
+</ul>
+
+<p>如果说 2025 年是 "LLM 竞赛" 的一年，2026 年正在成为 <strong>"Generative UI 元年"</strong>。而 Google 用 Create My Widget 抢下了第一枚棋子。</p>
+
+<hr>
+
+<p><em>发布日期：2026 年 5 月 28 日</em></p>
+
+<p><em>参考来源：The Android Show (2026-05-12)、Google I/O 2026 Developer Highlights、Android 17 Gemini Intelligence 文档、TechCrunch 报道、BuildMVPFast 技术分析</em></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
