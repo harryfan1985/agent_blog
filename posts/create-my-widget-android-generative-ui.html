@@ -96,15 +96,21 @@ Android Home Screen     ← 最终呈现</code></pre>
 
 <h3>2.3 On-Device AI Pipeline</h3>
 
-<p>Widget 生成全程在 <strong>端侧完成</strong>。Gemini Intelligence 是 Android 17 系统级的 AI 层，运行在设备本地 NPU 上（依赖 Pixel 10 的 Tensor G6 或 Galaxy S26 的 Exynos/Snapdragon）：</p>
+<p>BuildMVPFast 的技术分析中明确使用了 <strong>"on-device AI pipeline"</strong> 来描述 Create My Widget 的后端。结合 Android 已有的公开架构，可以拼出以下技术链路：</p>
 
 <ul>
-  <li>自然语言理解 → 设备端 Gemini Nano v3</li>
-  <li>布局生成 → 设备端 RemoteCompose</li>
-  <li>数据绑定 → 本地 Function Registry</li>
+  <li><strong>Gemini Nano</strong> 运行在 Android 的 <strong>AICore</strong> 系统服务中（Android 14+ 已支持），2-8B 参数 INT4 量化，利用 Pixel TPU / Snapdragon Hexagon NPU / MediaTek APU 进行硬件加速</li>
+  <li>首批支持设备：<strong>Pixel 10 和 Galaxy S26</strong>（BuildMVPFast 原文确认）</li>
+  <li>Gemini Nano 的任务是 <strong>Text → Structured Widget Spec JSON</strong>——一次性推理，输出一个约几百 token 的结构化 Widget 描述，而非生成代码</li>
+  <li><strong>RemoteCompose</strong> 是确定性渲染引擎——接收 Widget Spec JSON，映射为 Compose 布局树。不需要 AI，纯粹是传统编程</li>
+  <li><strong>Function Registry</strong> 是预注册的函数查找表——Gemini Nano 不需要理解 API，只需从 prompt 提取实体名（如 "风速"→"wind_speed"）然后在 Registry 中查表</li>
 </ul>
 
-<p>无需云端往返意味着：<strong>亚秒级生成速度 + 隐私数据不出设备</strong>。</p>
+<p><strong>架构本质</strong>：这是 constrained generation + deterministic executor 模式。Gemini Nano 被约束生成一个精确 Schema 的 JSON → 确定性代码消费 JSON 执行操作。LLM 不需要理解 Compose 布局系统，只需将意图编码为结构化中间表示。</p>
+
+<p><strong>关于云端回落</strong>：公开材料没有明确说 "100% 端侧"。合理推测简单请求（"显示风速和降雨"）全部走端侧；复杂请求（跨多个数据源的复合仪表盘）可能触发云回落，用云端 Gemini 3.5 Flash 处理更复杂的 Widget Spec。Android AICore 的分级路由架构本身就支持这种模式。</p>
+
+<p><strong>关于延迟</strong>：端侧推理 + 确定性渲染理论上应该很快，但 Google 没有公布具体的端到端延迟数字。公开材料中的表述是预期/设计目标，非实测数据。</p>
 
 <h2>三、Vibe Coding 的操作系统化</h2>
 
@@ -212,6 +218,8 @@ Android Home Screen     ← 最终呈现</code></pre>
 <hr>
 
 <p><em>发布日期：2026 年 5 月 28 日</em></p>
+
+<p><em>技术声明</em>：本文技术架构分析基于 The Android Show 公开演讲、BuildMVPFast 技术分析、Google 开发者文档及 Android AICore 公开架构。部分细节（如云回落策略、端侧模型参数）为基于公开信息的合理推断。早期版本中关于 Tensor G6 芯片型号和亚秒级延迟的具体断言已在本次更新中修正。</p>
 
 <p><em>参考来源：The Android Show (2026-05-12)、Google I/O 2026 Developer Highlights、Android 17 Gemini Intelligence 文档、TechCrunch 报道、BuildMVPFast 技术分析</em></p>
 </div>
