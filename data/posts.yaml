@@ -57,25 +57,41 @@ posts:
     \ Android 用户</td></tr>\n  <tr><td>数据源</td><td>自定义 API</td><td>Function Registry</td></tr>\n\
     </table>\n\n<p>这种从 \"AI 帮你写代码\" 到 \"AI 帮你生成界面\" 的演变，标志着 <strong>Generative UI\
     \ 从开发者工具走向消费级产品</strong>。用户不再需要知道 Widget 是怎么构建的——就像普通用户不需要知道 app 是怎么编译的。</p>\n\
-    \n<h2>四、Android 17：AI-First 操作系统的初现</h2>\n\n<p>Create My Widget 不是孤立的功能——它是 Android\
-    \ 17 的 \"Gemini Intelligence\" 系统级 AI 层的第一个面向用户的可视化触点。这个 AI 层还包括：</p>\n\n<ul>\n\
-    \  <li><strong>Gemini 驱动的通知智能排序</strong>：系统自动识别重要通知并前置</li>\n  <li><strong>上下文感知的快捷操作</strong>：根据时间/地点/使用模式建议操作</li>\n\
+    \n<h2>四、全景架构图：Google AI Studio 技术栈</h2>\n\n<p>Create My Widget 并非孤立功能——它是 Google\
+    \ I/O 2026 后整个 AI Studio + Gemini API + Android 17 三层技术栈的终端触点。下图展示了从 AI Studio\
+    \ Web 端到 Android 设备端的完整架构：</p>\n\n<img src=\"/images/create-my-widget/architecture.png\"\
+    \ alt=\"Google AI Studio Architecture 2026\" style=\"width:100%; max-width:1400px;\
+    \ border-radius:8px; border:1px solid #1e293b;\">\n\n<p><em>架构图关键层解析：</em></p>\n\
+    <ul>\n  <li><strong>AI Studio (Web)</strong>：Build Tab（prompt → app）+ App Editor\
+    \ + Canvas + Managed Agents UI。面向开发者和非开发者的 AI-first 应用工坊</li>\n  <li><strong>Gemini\
+    \ API / Model Layer</strong>：Gemini 3.5 Flash（agentic 旗舰）、2.5 Pro（AI Studio 重构基底）、3\
+    \ Pro/Deep Think/3.1 Flash-Lite + Veo 3.1/Imagen 4。通过 Interactions API 统一暴露</li>\n\
+    \  <li><strong>Agent Execution Layer</strong>：Antigravity Harness（生命周期+编排+观测）+\
+    \ 隔离 Linux Sandbox（code_execution、google_search、url_context）。Gemini 3.5 Flash\
+    \ 与 harness 协同优化</li>\n  <li><strong>Deployment & Enterprise</strong>：Cloud Run\
+    \ 一键部署、Firebase 后端、Gemini Enterprise Agent Platform（CodeMender + Content Detection\
+    \ API）</li>\n  <li><strong>Android 17 On-Device</strong>：Gemini Intelligence →\
+    \ AICore（Gemini Nano + LoRA + 安全模块）→ RemoteCompose（声明式 UI 引擎）→ Create My Widget\
+    \ + Function Registry → Android Apps（Gmail、Calendar、Recorder、Gboard 等）</li>\n\
+    </ul>\n\n<h2>五、Android 17：AI-First 操作系统的初现</h2>\n\n<p>Create My Widget 不是孤立的功能——它是\
+    \ Android 17 的 \"Gemini Intelligence\" 系统级 AI 层的第一个面向用户的可视化触点。这个 AI 层还包括：</p>\n\
+    \n<ul>\n  <li><strong>Gemini 驱动的通知智能排序</strong>：系统自动识别重要通知并前置</li>\n  <li><strong>上下文感知的快捷操作</strong>：根据时间/地点/使用模式建议操作</li>\n\
     \  <li><strong>AI 辅助的系统设置导航</strong>：自然语言搜索设置项</li>\n  <li><strong>跨设备连续体验</strong>：与\
     \ Googlebook 的 Magic Pointer 联动</li>\n</ul>\n\n<p>Google 在 I/O 2026 上反复强调一个关键词：<strong>\"\
     from prompts to action\"</strong>。Create My Widget 是这个理念的完美示范——用户不是向 AI 提问并得到回答，而是\
-    \ <strong>描述意图，AI 生成可用的界面和功能</strong>。</p>\n\n<h2>五、对开发者生态的冲击与机会</h2>\n\n<h3>5.1\
+    \ <strong>描述意图，AI 生成可用的界面和功能</strong>。</p>\n\n<h2>六、对开发者生态的冲击与机会</h2>\n\n<h3>6.1\
     \ 预制 Widget 的终结？</h3>\n\n<p>传统 Widget 市场（天气时钟、日历、待办列表等单一功能组件）面临直接替代风险。当每个用户都能用一句话生成专属\
     \ Widget，为什么还要下载一个只能显示 80% 想要内容的第三方 Widget？</p>\n\n<p><strong>受影响最大的工具</strong>：KWGT、Zooper\
-    \ Widget、UCCW 等自定义 Widget 工具。它们卖的就是 \"高度可定制\"——现在 Gemini 直接把可定制度拉满了。</p>\n\n<h3>5.2\
+    \ Widget、UCCW 等自定义 Widget 工具。它们卖的就是 \"高度可定制\"——现在 Gemini 直接把可定制度拉满了。</p>\n\n<h3>6.2\
     \ Function Registry：新生态入口</h3>\n\n<p>对应用开发者来说，真正的机会在 <strong>Function Registry</strong>。逻辑很简单：</p>\n\
     \n<ul>\n  <li>Widget 的 UI 由 Gemini 生成 → 不再需要 UI 设计师</li>\n  <li>Widget 的价值取决于数据源\
     \ → 谁有独特数据，谁就是赢家</li>\n  <li>注册函数到 Function Registry → 零代码分发 Widget</li>\n</ul>\n\
     \n<p><strong>例</strong>：Todoist 注册 \"今日待办\" 函数 → 用户说 \"显示我今天最重要的 3 个任务\" → Gemini\
-    \ 生成含 Todoist 数据的 Widget。Todoist 不需要开发任何 Widget UI。</p>\n\n<h3>5.3 Glance + RemoteCompose\
+    \ 生成含 Todoist 数据的 Widget。Todoist 不需要开发任何 Widget UI。</p>\n\n<h3>6.3 Glance + RemoteCompose\
     \ = 一次开发，自动升级</h3>\n\n<p>Google 的策略很聪明：</p>\n<ul>\n  <li>现有 Widget 用 Jetpack Glance\
     \ 构建 → 自动获得 RemoteCompose 的 Premium UI 能力（Android 16+）</li>\n  <li>不需要重写代码——渐进式升级</li>\n\
     \  <li>旧版设备自动降级到传统渲染</li>\n</ul>\n\n<p>这确保了 Create My Widget 不是一夜之间的 \"breaking\
-    \ change\"，而是平滑的生态演进。</p>\n\n<h2>六、与 iOS 的差距分析</h2>\n\n<table>\n  <tr><th>维度</th><th>Android\
+    \ change\"，而是平滑的生态演进。</p>\n\n<h2>七、与 iOS 的差距分析</h2>\n\n<table>\n  <tr><th>维度</th><th>Android\
     \ 17</th><th>iOS 19 (预计)</th></tr>\n  <tr><td>Widget 创建方式</td><td>自然语言即时生成</td><td>开发者预制模板</td></tr>\n\
     \  <tr><td>个性化能力</td><td>用户描述 → 随心定制</td><td>预设选项中选择</td></tr>\n  <tr><td>数据源</td><td>Function\
     \ Registry 开放注册</td><td>仅 App 提供固定数据</td></tr>\n  <tr><td>AI 集成</td><td>系统级 Gemini\
@@ -84,12 +100,12 @@ posts:
     \ 固定 API</td></tr>\n</table>\n\n<p><strong>iOS 的困境</strong>：Apple 的 AI 战略仍然围绕\
     \ Siri——一个对话式助手。而 Android 17 展示的是 <strong>AI 作为操作系统基础设施</strong> 的范式：AI 不只是一个你可以聊天的\
     \ app，它是界面生成引擎、数据编排器、上下文感知层。</p>\n\n<p>这不是 \"Siri vs Gemini\" 的竞争——这是 <strong>\"\
-    AI 是一个 app\" vs \"AI 是操作系统\"</strong> 的范式差异。</p>\n\n<h2>七、更大的图景：Generative UI\
+    AI 是一个 app\" vs \"AI 是操作系统\"</strong> 的范式差异。</p>\n\n<h2>八、更大的图景：Generative UI\
     \ 的三步走</h2>\n\n<p>Create My Widget 只是第一步。如果拉远镜头看：</p>\n\n<ol>\n  <li><strong>Widget（2026）</strong>：自然语言生成桌面小组件\
     \ → 已实现</li>\n  <li><strong>App（2027 推测）</strong>：\"给我做一个番茄钟\" → Gemini 生成完整 APK？Google\
     \ Flow 和 Project Genie 已经在指向这个方向</li>\n  <li><strong>OS UI（2028+ 推测）</strong>：整个系统的交互界面都可能是动态生成的——通知面板、设置界面、快捷方式——全都根据用户上下文即时构造</li>\n\
     </ol>\n\n<p>当 UI 本身变成 <strong>运行时生成的 artifact</strong> 而不是编译期确定的资源，整个应用开发的范式将被颠覆。</p>\n\
-    \n<h2>八、总结</h2>\n\n<p>Create My Widget 的真正意义不在于 \"Widget 生成器\"。它是：</p>\n\n<ul>\n\
+    \n<h2>九、总结</h2>\n\n<p>Create My Widget 的真正意义不在于 \"Widget 生成器\"。它是：</p>\n\n<ul>\n\
     \  <li><strong>技术里程碑</strong>：RemoteCompose + Function Registry + On-Device AI\
     \ 的三层基础设施首次在消费级产品中亮相</li>\n  <li><strong>范式跃迁</strong>：从 \"用户选择 Widget\" 到 \"\
     AI 理解意图并生成 Widget\"，这是 UI 开发的中心从开发者转移到用户的转折点</li>\n  <li><strong>平台策略</strong>：Google\
