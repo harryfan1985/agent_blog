@@ -141,6 +141,46 @@
 
 <hr>
 
+
+<h2>延伸阅读：核心支撑论文</h2>
+
+<p>以下论文从不同角度支撑了本文的核心论点——传统 SE 技术正在升级为 agent 的验证基础设施：</p>
+
+<h3>意图形式化与验证</h3>
+
+<ol>
+  <li><strong>Lahiri, S. K. et al. (2026).</strong> <em>Intent Formalization: A Grand Challenge for Reliable Coding in the Age of AI Agents.</em> arXiv:2603.17150. — 提出意图形式化的宏大挑战：可靠 AI 编码的路径不是更好的代码生成，而是把非正式意图翻译成可检查的形式规约。TiCoder 方法论源头。</li>
+  <li><strong>Yao, L. et al. (2026).</strong> <em>Automating Formal Verification with Agent-Guided Tree Search.</em> arXiv:2605.27485. — GPT-5.4 在 423 个 Lean 规约上达到 95.0% 验证成功率 (K=50)，证明 LLM 正接近"自动形式验证"的临界点。</li>
+  <li><strong>VeriSpecGen (2026).</strong> <em>Intent-aligned Formal Specification Synthesis via Traceable Refinement.</em> arXiv:2604.10392. — Verina SpecGen 任务上达 86.6%，通过需求级归因和局部修复生成意图对齐的形式规约。343K 训练样本使规约合成能力提升 62–106%。</li>
+  <li><strong>Verina (2025).</strong> <em>Benchmarking Verifiable Code Generation.</em> arXiv:2505.23135. — 189 个 Lean 任务，最佳模型 o3 代码正确率 72.6%，规约完备性 52.3%，但<strong>证明成功率仅 4.9%</strong>——验证的瓶颈在"生成可验证的规约"而非"生成通过的代码"。</li>
+</ol>
+
+<h3>约束执行与 Agent 治理</h3>
+
+<ol start="5">
+  <li><strong>ContextCov (2026).</strong> <em>Deriving and Enforcing Executable Constraints from Agent Instruction Files.</em> arXiv:2603.00822. — 将 AGENTS.md 等被动自然语言指令转化为主动的可执行护栏。在 723 个仓库上提取 46,000+ 条可执行检查，99.997% 语法有效性。SWE-bench Lite 上约束遵守率 88.3%（baseline 67.0%）。<strong>这就是"编译器角色升级"的工程实现。</strong></li>
+  <li><strong>Dente et al. (2026).</strong> <em>Constraint Decay: The Fragility of LLM Agents in Backend Code Generation.</em> arXiv:2605.06445. — 当后端约束（ORM、数据库、认证）层层叠加时，agent 代码生成正确率系统性衰减 ~30pp。ORM+数据库约束是最陡峭的下降段。<strong>证明了测试套件作为"约束锚点"的不可替代性。</strong></li>
+  <li><strong>Semia (2026).</strong> <em>Auditing Agent Skills via Constraint-Guided Representation Synthesis.</em> arXiv:2605.00314. — 将 agent skill（YAML 结构化声明 + 自然语言 prose 策略）提升为可静态审计的 Datalog 事实库。提出 Constraint-Guided Representation Synthesis (CGRS) 的 propose-verify-evaluate 循环。</li>
+</ol>
+
+<h3>Agent 系统作为可验证、可执行的 Harness</h3>
+
+<ol start="8">
+  <li><strong>Code as Agent Harness (2026).</strong> <em>Toward Executable, Verifiable, and Stateful Agent Systems.</em> arXiv:2605.18747. — 提出"代码即 agent harness"的宏大框架：代码提供可执行、可验证、有状态的系统边界。从 UI 模拟器到自驱动实验室，可执行反馈循环是 agent 可靠性的基础设施。</li>
+  <li><strong>BMC-Agent (2026).</strong> <em>Agentic Model Checking.</em> arXiv:2605.21434. — 将传统模型检测与 LLM agent 结合，验证 LLM 生成的内核和编译器代码（C/Rust）。组合式验证策略——每个函数隔离检查，精化自动传播到所有调用方。</li>
+  <li><strong>AutoRocq (2025).</strong> <em>Agentic Verification of Software Systems.</em> arXiv:2511.17330. — 首个 LLM agent 自动进行 Rocq (Coq) 形式验证。proof agent 与定理证明器通信获取反馈，迭代改进证明。定位为"与 AI coding agent 集成，实现 generate-and-validate 闭环"。</li>
+</ol>
+
+<h3>测试与质量保证</h3>
+
+<ol start="11">
+  <li><strong>SWE-Mutation (2026).</strong> <em>Can LLMs Generate Reliable Test Suites in Software Engineering?</em> arXiv:2605.22175. — 评估 LLM 生成的测试套件质量。关键发现：LLM 生成的测试往往"肤浅"、缺乏足够区分力。高质量测试的稀缺是阻碍 agent 能力评估扩展的核心瓶颈。</li>
+  <li><strong>Verify Before You Fix (2026).</strong> <em>Agentic Execution Grounding for Trustworthy Cross-Language Code Analysis.</em> arXiv:2604.10800. — 提出严格的不变式：<strong>没有基于执行的漏洞利用确认，不得执行任何修复动作。</strong>跨语言（Java/Python/C++）89.84–92.02% 检测准确率。展示了"执行 grounding"作为 agent 修复行为的前置条件。</li>
+</ol>
+
+<p>这 12 篇论文共同描绘了一个清晰的趋势：<strong>编译、测试、静态分析、形式验证、约束执行——这些传统 SE 技术正在从"开发者使用的工具"转变为"agent 系统的结构性组件"。</strong>它们不再是人机交互的辅助手段，而是 agent 自主运行的 verifiable ground truth 层。</p>
+
+
 <h2>技术声明</h2>
 
 <p>本文是基于以下研究的综合分析：Notre Dame & Google 的 coding agent 失配分析 (arXiv:2605.29442)、北航 VirtualME (ACM FSE 2026, arXiv:2605.29372)、清华 & Fitten Tech ProCodeBench (arXiv:2605.05700)、Karpathy 的可验证性理论、Zigler 的 MEP 方法论 (arXiv:2605.05400)、Lahiri 的意图形式化 (arXiv:2603.17150)、Dente 的约束衰减 (arXiv:2605.06445)。文中"角色升级表"和"地面与大脑"类比属于分析者的概括性框架，具体数据均可溯源至对应论文。</p>
