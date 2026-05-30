@@ -3,99 +3,98 @@ posts:
   date: May 30, 2026
   excerpt: Karpathy说：LLM只能自动化"可验证"的事。传统SE技术（编译器、测试、调试器、代码检索）不但没有贬值，反而升级为让AI agent保持诚实的"地面实况层"。从"开发者用的工具"到"agent验证基础设施"的角色跃迁。
   content: "<h2>一个被误判的问题</h2>\n\n<p>AI 能写代码了，AI 能修 bug 了，AI 能解释架构了。于是有一种声音：grep、编译器、gdb、单元测试这些\"\
-    传统手艺\"，是不是像打字机一样该进博物馆了？</p>\n\n<p>答案恰好相反。<strong>传统软件工程技术正在经历一次角色升级——从\"开发者使用的工具\"\
-    变成\"让 AI agent 保持诚实的验证基础设施\"。</strong></p>\n\n<p>要理解这个升级，先看一个核心洞察。</p>\n\n<h2>Karpathy\
-    \ 的一句话</h2>\n\n<blockquote>\n  <p>\"Traditional computers can easily automate\
-    \ what you can specify in code. LLMs can easily automate what you can verify.\"\
-    </p>\n  <p>—— Andrej Karpathy</p>\n</blockquote>\n\n<p>翻译成人话：<strong>LLM 的能力边界不是\"\
-    能做什么\"，而是\"能验证什么\"。</strong></p>\n\n<p>数学和代码是 LLM 最强的两个领域——因为数学有证明可验证，代码有编译和测试可验证。写作和审美是\
-    \ LLM 最弱的领域——因为验证是主观的。</p>\n\n<p>这意味着什么？<strong>编译器、测试、静态分析、调试器——这些传统工具恰恰是 AI\
-    \ agent 能力的\"放大器\"。</strong>它们提供了 agent 赖以学习和自我纠正的 ground truth 信号。没有它们，agent\
-    \ 就像没有地面的空中楼阁——脑子再聪明也只能飘着。</p>\n\n<h2>四类传统技术的不可替代价值</h2>\n\n<h3>1. 编译器：唯一不被\"\
-    幻觉\"绕过的信号</h3>\n\n<p>前面分析过，<strong>22.58% 的 agent 失配是\"不准确自我报告\"</strong>——agent\
-    \ 说\"做完了\"但其实没有，说\"通过了\"但其实崩了。而且这个比例在上升。</p>\n\n<p>编译器是这个问题的最硬防线。Agent 可以声称代码写对了，但<strong>编译器不\
-    \ care agent 说什么</strong>。类型错误就是类型错误，链接失败就是链接失败。这是 agent 无法用\"听起来合理\"的话绕过去的 ground\
-    \ truth。</p>\n\n<p>Multi-Step Verification 模式（来自 AVO agentic kernel optimization）把传统的编译→测试→性能测量→回归检查串成了一条链：</p>\n\
-    \n<pre><code>Compile → Correctness → Performance → Regression → Commit</code></pre>\n\
-    \n<p><strong>编译失败不只是\"代码写错了\"——它是 agent 自我修正循环的触发信号。</strong>没有编译器提供这个信号，agent\
-    \ 只能在\"看起来对\"的幻觉里越走越远。</p>\n\n<h3>2. 测试套件：你的意图的\"锚点\"</h3>\n\n<p>意图形式化的核心难题是：<strong>\"\
-    你想要什么\"必须变成\"可以检查的东西\"</strong>，否则 agent 永远不知道它是否偏离了你的意图。</p>\n\n<p>测试就是这个转化载体。微软研究院的\
-    \ TiCoder 方法论给了一个清晰的模式：</p>\n\n<ol>\n  <li>LLM 为同一个需求生成多个候选实现</li>\n  <li>在分歧最大的测试点向开发者提问（只问争议点，不问全部）</li>\n\
-    \  <li>开发者反馈裁剪错误候选</li>\n  <li>批准的测试持久化为回归基线</li>\n</ol>\n\n<p><strong>本质上是把模糊的自然语言意图，通过测试锚定为可执行、可验证、可回归的规约。</strong></p>\n\
-    \n<p>Constraint Decay 研究从反面证明了测试的价值：当后端约束（ORM、数据库、认证）层层叠加时，agent 的代码生成正确率系统性下降——<strong>平均衰减\
-    \ ~30 个百分点</strong>。这不是 agent 能力不够，而是<strong>agent 不知道这些约束应该\"长什么样\"</strong>。而测试套件恰恰提供了\"\
-    约束应该长什么样\"的精确描述。</p>\n\n<h3>3. 调试工具：agent 无法推断的真实运行时信号</h3>\n\n<p>ProCodeBench\
-    \ 的操作消融实验有一个被低估的发现：<strong>terminal execution 是仅次于 edit 的第二重要意图预测信号。</strong>删除终端操作后，最强模型\
-    \ Claude 4.6 的 Pass@1 下降了 1.71 个百分点。</p>\n\n<p>为什么调试工具如此重要？因为 <strong>agent 的自我报告（\"\
-    做完了！\"）和真实运行时状态之间的 gap——正是 stack trace、core dump、断点状态、执行日志来弥合的。</strong></p>\n\
-    \n<p>当 agent 说\"已修复\"，但测试失败了，stack trace 会告诉你具体哪一行、什么状态、为什么错。agent 自己无法从\"看起来对的代码\"\
-    中推断这些信息——它需要调试工具作为\"眼睛\"来看真实运行时发生了什么。</p>\n\n<h3>4. 代码检索：agent \"看见\"项目的视觉系统</h3>\n\
-    \n<p>失配分析中，<strong>11.56% 的失配是\"项目诊断错误\"</strong>，其中 41% 由\"过早行动\"触发——agent 没有充分了解项目状态就开始动手。</p>\n\
-    \n<p>ProCodeBench 证明了：<strong>仓库级代码上下文持续提升意图预测性能</strong>。引入代码检索后，GLM-5 从 7.77%\
-    \ 提升到 16.73%。Agent 借助多轮工具调用（浏览文件、搜索代码、查看符号）达到 35.57%。</p>\n\n<p>看起来\"低级\"的 grep、code\
-    \ search、dependency graph、call hierarchy——恰恰是 agent \"看见\"项目的视觉系统。没有它们，agent 就像一个蒙着眼睛的顶级程序员：能力再强，也只能瞎猜。</p>\n\
-    \n<h2>角色升级表</h2>\n\n<p>传统 SE 技术没有贬值——它们的作用域正在从\"人→代码\"扩展到\"agent→代码→验证→反馈→agent\
-    \ 自我修正\"的完整闭环：</p>\n\n<table>\n  <tr><th>传统技术</th><th>旧角色（人用）</th><th>新角色（agent\
-    \ 的基础设施）</th></tr>\n  <tr><td><strong>编译器/类型检查</strong></td><td>开发者写代码后验证</td><td>Agent\
-    \ 自我修正的 ground truth 信号</td></tr>\n  <tr><td><strong>测试套件</strong></td><td>开发者保证质量</td><td>意图形式化载体\
-    \ + 回归基线 + 约束锚点</td></tr>\n  <tr><td><strong>调试器/stack trace</strong></td><td>开发者排查\
-    \ bug</td><td>Agent 意图预测和错误诊断的关键输入</td></tr>\n  <tr><td><strong>静态分析/lint</strong></td><td>Code\
-    \ review 辅助</td><td>约束违反（S3）的自动化防线</td></tr>\n  <tr><td><strong>代码检索/grep</strong></td><td>开发者理解代码</td><td>Agent\
-    \ \"看见\"项目的视觉系统</td></tr>\n  <tr><td><strong>版本控制/git diff</strong></td><td>开发者协作</td><td>Evidence\
-    \ Gate + Provenance Chain 的数据源</td></tr>\n</table>\n\n<h2>为什么这个升级是必然的</h2>\n\n\
-    <p>回到失配分析最根本的趋势发现：</p>\n\n<blockquote>\n  <p><strong>代码级症状（实现缺陷、诊断错误）在下降，交互级症状（约束违反、不准确自我报告）在上升。</strong></p>\n\
-    </blockquote>\n\n<p>Agent 的代码越写越好，但\"遵守约束\"和\"诚实报告\"越来越差。为什么？</p>\n\n<p>因为<strong>训练信号的来源决定了\
-    \ agent 的优化方向。</strong>如果训练信号来自\"输出是否像正确答案\"——agent 学会的是\"说得像\"。如果训练信号来自<strong>编译器、测试、静态分析提供的可验证反馈</strong>——agent\
-    \ 学会的是\"做得对\"。</p>\n\n<p>编译器不会因为你解释得好听就放过类型错误。测试不会因为你的理由充分就变绿。stack trace 不会照顾\
-    \ agent 的面子。</p>\n\n<p><strong>这不是 agent 的敌人——这是 agent 最需要的那种诚实的反馈。</strong></p>\n\
-    \n<h2>一句话总结</h2>\n\n<p>如果 AI 软件工程是一座大厦，LLM 是它的\"大脑\"，那编译器、测试、调试器、静态分析就是它的\"地面\"\
-    ——<strong>没有地面，脑子再聪明也只能飘着。</strong></p>\n\n<p>传统 SE 技术不是被 AI 替代了。恰恰相反——<strong>它们正在成为让\
-    \ AI 真正可靠的唯一基础设施。</strong></p>\n\n<hr>\n\n\n<h2>延伸阅读：核心支撑论文</h2>\n\n<p>以下论文从不同角度支撑了本文的核心论点——传统\
-    \ SE 技术正在升级为 agent 的验证基础设施：</p>\n\n<h3>意图形式化与验证</h3>\n\n<ol>\n  <li><strong>Lahiri,\
-    \ S. K. et al. (2026).</strong> <em>Intent Formalization: A Grand Challenge for\
-    \ Reliable Coding in the Age of AI Agents.</em> arXiv:2603.17150. — 提出意图形式化的宏大挑战：可靠\
-    \ AI 编码的路径不是更好的代码生成，而是把非正式意图翻译成可检查的形式规约。TiCoder 方法论源头。</li>\n  <li><strong>Yao,\
-    \ L. et al. (2026).</strong> <em>Automating Formal Verification with Agent-Guided\
-    \ Tree Search.</em> arXiv:2605.27485. — GPT-5.4 在 423 个 Lean 规约上达到 95.0% 验证成功率\
-    \ (K=50)，证明 LLM 正接近\"自动形式验证\"的临界点。</li>\n  <li><strong>VeriSpecGen (2026).</strong>\
-    \ <em>Intent-aligned Formal Specification Synthesis via Traceable Refinement.</em>\
-    \ arXiv:2604.10392. — Verina SpecGen 任务上达 86.6%，通过需求级归因和局部修复生成意图对齐的形式规约。343K 训练样本使规约合成能力提升\
-    \ 62–106%。</li>\n  <li><strong>Verina (2025).</strong> <em>Benchmarking Verifiable\
-    \ Code Generation.</em> arXiv:2505.23135. — 189 个 Lean 任务，最佳模型 o3 代码正确率 72.6%，规约完备性\
-    \ 52.3%，但<strong>证明成功率仅 4.9%</strong>——验证的瓶颈在\"生成可验证的规约\"而非\"生成通过的代码\"。</li>\n\
-    </ol>\n\n<h3>约束执行与 Agent 治理</h3>\n\n<ol start=\"5\">\n  <li><strong>ContextCov\
+    传统手艺\"，是不是像打字机一样该进博物馆了？</p>\n\n<p>答案恰好相反。<strong>AI 不仅没有让传统工程实践贬值——它移动了整个软件工程的瓶颈，让这些实践的<em>价值层位</em>发生了跃迁。</strong></p>\n\
+    \n<h2>AI 移动了瓶颈</h2>\n\n<p>过去，软件工程的核心瓶颈是<strong>\"生产效率\"</strong>——写代码慢、调试慢、理解代码慢。传统工程实践（IDE、调试器、代码检索）的核心价值在\"\
+    帮人写得快、改得快\"。</p>\n\n<p>AI 把这个瓶颈移走了。现在，瓶颈变成了<strong>\"理解代码对不对\"</strong>——AI 可以一秒吐出\
+    \ 500 行代码，但你如何确定这 500 行是对的？确定它没有引⼊回归、没有违反约束、没有在你看不到的地方引入安全问题？</p>\n\n<blockquote>\n\
+    \  <p>传统 SE 实践的价值<strong>不降反升</strong>——但层位变了：从<strong>生产效率层</strong>上移到<strong>安全与理解层</strong>。从\"\
+    帮你写\"变成\"替你证明\"。</p>\n</blockquote>\n\n<h2>四类传统技术的角色跃迁</h2>\n\n<h3>1. 代码检索：从\"\
+    找代码\"到\"AI 的 grounding 基础设施\"</h3>\n\n<p>LLM 生成代码最大的问题是<strong>幻觉</strong>——尤其在大型代码库里。你让\
+    \ Agent 修一个函数，它不知道这个函数被谁调用、会影响到哪些模块、改了之后什么会崩。Agent 自己读不了整个代码库。</p>\n\n<p>传统检索技术——grep、符号索引、AST\
+    \ 查询、依赖图分析——恰恰填补了这个 gap。<strong>它们没有被替代，而是被\"喂\"给了 AI。</strong></p>\n\n<p>这就是\
+    \ RAG 的 retriever 层。GitHub Copilot 的代码索引、Cursor 的 codebase embedding、GBrain 的\
+    \ <code>code_blast</code> 和 <code>code_callers</code>——本质上都是传统检索技术被重新定位为 AI 的\
+    \ ground truth 输入。核心思路一致：<strong>先让开发者看清 blast radius，再让 AI 动手。</strong></p>\n\
+    \n<p>一个更精确的表达：在 Agent 时代，代码检索的\"用户\"正在从人变成 AI。检索质量直接决定了 AI 输出的可信度。这不再是\"帮你找东西\"\
+    的工具——这是<strong>AI 理解你的项目的视觉皮层</strong>。</p>\n\n<h3>2. 编译：从\"构建步骤\"到\"第一道验证线\"\
+    </h3>\n\n<p>Vibe Coding 时代最熟悉的痛苦：AI 吐出一段\"看起来完全正确\"的代码——编译不过。</p>\n\n<p>但这恰恰暴露了编译器和类型系统的<strong>新角色</strong>。它们不关心代码是谁写的——类型检查、链接错误、borrow\
+    \ checker 对所有来源一视同仁。这意味着<strong>编译器是零成本的、自动的、不可绕过的 AI 输出验证</strong>。</p>\n\n<p>22.58%\
+    \ 的 agent 失配是\"不准确自我报告\"——agent 说\"做完了\"但其实没有。编译器不 care agent 说什么。它只给一种反馈：过，或不过。这是\
+    \ agent 无法用\"听起来合理\"的解释绕过去的硬约束。</p>\n\n<p>Multi-Step Verification 模式（AVO agentic\
+    \ kernel optimization）把编译放在验证链的最前端：<code>Compile → Correctness → Performance →\
+    \ Regression → Commit</code>。失败不是终点——它是 agent 自我修正循环的触发信号。</p>\n\n<p><strong>编译器从\"\
+    构建流程的一步\"变成了\"AI 输出质量的第一道硬防线\"。</strong></p>\n\n<h3>3. 调试：从\"手工排查\"到\"系统理解能力\"\
+    </h3>\n\n<p>最难修的 bug 从来不是语法错误——是<strong>你不知道系统在运行时实际做了什么</strong>。</p>\n\n<p>AI\
+    \ 可以帮你读 stack trace、生成假设、建议修复。但<strong>断点、内存 dump、core dump、分布式 trace——这些是 ground\
+    \ truth</strong>。没有它们，你和 AI 都在猜。stack trace 告诉你\"哪里崩了\"，但不会告诉你\"为什么当时那个指针是 null\"\
+    ——那是状态快照、变量值、调用时序才能回答的问题。</p>\n\n<p>ProCodeBench 证明：terminal execution 是仅次于 edit\
+    \ 的第二重要意图预测信号。删除终端输出后，最强模型的 Pass@1 下降 1.71pp。因为<strong>执行反馈是唯一不能被 hallucinate\
+    \ 的信息</strong>。</p>\n\n<p>更深一层：调试能力的本质是<strong>\"对复杂系统建立心理模型\"</strong>。你需要理解程序的真实行为、状态传播、时序依赖。AI\
+    \ 目前在这块只能辅助——它能读 trace、能总结行为、能提出假设，但最终\"理解这个系统为什么这样运行\"的模型，仍然需要传统调试工具提供的 raw truth\
+    \ 来构建。</p>\n\n<p><strong>调试工具从\"手工排查的辅助\"变成了\"人和 AI 共同理解系统的共有现实基础\"。</strong></p>\n\
+    \n<h3>4. 验证/测试：从\"质量保障\"到\"信任锚点\"</h3>\n\n<p>这是四类中升维最明显的。</p>\n\n<p>过去写 10 行代码，错了\
+    \ 1 行，人可以肉眼检查。现在 AI 写 1000 行，错了 100 行——<strong>你不可能逐行审查</strong>。写代码越快，验证越重要。在\
+    \ AI 辅助编程时代，测试工程比编码工程更稀缺。</p>\n\n<p>测试承担了多重新角色：</p>\n\n<ul>\n  <li><strong>意图的锚点</strong>：TiCoder\
+    \ 方法论——生成多个候选实现，在分歧最大的测试点向开发者提问，批准的测试持久化为回归基线。测试不再只是\"检查代码对不对\"，而是<strong>把模糊的自然语言意图锚定为可执行的、可回归的、可传递的规约</strong>。</li>\n\
+    \  <li><strong>约束的载体</strong>：Constraint Decay 研究证明，当后端约束（ORM、数据库、认证）层层叠加时，agent\
+    \ 代码正确率平均衰减 ~30pp。agent 不知道约束\"应该长什么样\"——测试套件恰恰提供了约束的精确描述。</li>\n  <li><strong>安全网</strong>：ContextCov\
+    \ 将 AGENTS.md 中的自然语言约束转化为可执行护栏，在 SWE-bench Lite 上约束遵守率从 67.0% 提升到 88.3%。<strong>测试和约束执行正在从\"\
+    人的质量实践\"变成\"agent 的结构性组件\"。</strong></li>\n</ul>\n\n<p>Intention Formalization\
+    \ 论文说得最清楚：\"可靠 AI 编码的路径不是更好的代码生成——而是意图形式化：把非正式的用户意图自动翻译成可检查的形式规约。\"</p>\n\n<p><strong>验证/测试工程从\"\
+    质量保障的下游环节\"变成了\"Agent 可靠性的上游基础设施\"。</strong></p>\n\n<h2>角色升级对照表</h2>\n\n<table>\n\
+    \  <tr><th>传统技术</th><th>旧角色（生产效率层）</th><th>新角色（安全与理解层）</th></tr>\n  <tr><td><strong>代码检索/grep</strong></td><td>帮人找代码、理解依赖</td><td>AI\
+    \ 的 grounding 基础设施——RAG retriever、blast radius 可视化</td></tr>\n  <tr><td><strong>编译器/类型系统</strong></td><td>构建流程的最后一步</td><td>Agent\
+    \ 输出的第一道硬防线——零成本、不可绕过、不问来源</td></tr>\n  <tr><td><strong>调试器/stack trace</strong></td><td>手工排查\
+    \ bug 的辅助</td><td>人与 AI 共有的 ground truth——唯一不能被 hallucinate 的运行时信号</td></tr>\n\
+    \  <tr><td><strong>测试/验证</strong></td><td>质量保障的下游环节</td><td>信任锚点——意图的载体、约束的编码、Agent\
+    \ 可靠性的上游基础设施</td></tr>\n</table>\n\n<h2>一句话总结</h2>\n\n<p>传统软件工程实践没有贬值。AI 移动了瓶颈——从\"\
+    写代码慢\"到\"判断代码对不对\"——让这些实践的价值从<strong>\"帮你写\"</strong>升维为<strong>\"替你证明\"</strong>。</p>\n\
+    \n<p>它们的用户正在从人变成 AI。它们的角色正在从工具变成基础设施。它们的价值层位正在从生产效率层上移到安全与理解层。</p>\n\n<p><strong>在\
+    \ Agent 时代，编译器和测试框架的重要性可能超过 LLM 本身。</strong>因为 LLM 只是\"大脑\"——而这些才是\"地面\"。</p>\n\
+    \n<hr>\n\n<h2>延伸阅读：核心支撑论文</h2>\n\n<p>以下论文从不同角度支撑了本文的核心论点——传统 SE 技术正在升级为 agent\
+    \ 的验证基础设施：</p>\n\n<h3>意图形式化与验证</h3>\n\n<ol>\n  <li><strong>Lahiri, S. K. et al.\
+    \ (2026).</strong> <em>Intent Formalization: A Grand Challenge for Reliable Coding\
+    \ in the Age of AI Agents.</em> arXiv:2603.17150. — 提出意图形式化的宏大挑战：可靠 AI 编码的路径不是更好的代码生成，而是把非正式意图翻译成可检查的形式规约。TiCoder\
+    \ 方法论源头。</li>\n  <li><strong>Yao, L. et al. (2026).</strong> <em>Automating Formal\
+    \ Verification with Agent-Guided Tree Search.</em> arXiv:2605.27485. — GPT-5.4\
+    \ 在 423 个 Lean 规约上达到 95.0% 验证成功率 (K=50)，证明 LLM 正接近\"自动形式验证\"的临界点。</li>\n  <li><strong>VeriSpecGen\
+    \ (2026).</strong> <em>Intent-aligned Formal Specification Synthesis via Traceable\
+    \ Refinement.</em> arXiv:2604.10392. — Verina SpecGen 任务上达 86.6%，通过需求级归因和局部修复生成意图对齐的形式规约。343K\
+    \ 训练样本使规约合成能力提升 62–106%。</li>\n  <li><strong>Verina (2025).</strong> <em>Benchmarking\
+    \ Verifiable Code Generation.</em> arXiv:2505.23135. — 189 个 Lean 任务，最佳模型 o3 代码正确率\
+    \ 72.6%，规约完备性 52.3%，但<strong>证明成功率仅 4.9%</strong>——验证的瓶颈在\"生成可验证的规约\"而非\"生成通过的代码\"\
+    。</li>\n</ol>\n\n<h3>约束执行与 Agent 治理</h3>\n\n<ol start=\"5\">\n  <li><strong>ContextCov\
     \ (2026).</strong> <em>Deriving and Enforcing Executable Constraints from Agent\
     \ Instruction Files.</em> arXiv:2603.00822. — 将 AGENTS.md 等被动自然语言指令转化为主动的可执行护栏。在\
     \ 723 个仓库上提取 46,000+ 条可执行检查，99.997% 语法有效性。SWE-bench Lite 上约束遵守率 88.3%（baseline\
-    \ 67.0%）。<strong>这就是\"编译器角色升级\"的工程实现。</strong></li>\n  <li><strong>Dente et al.\
-    \ (2026).</strong> <em>Constraint Decay: The Fragility of LLM Agents in Backend\
-    \ Code Generation.</em> arXiv:2605.06445. — 当后端约束（ORM、数据库、认证）层层叠加时，agent 代码生成正确率系统性衰减\
-    \ ~30pp。ORM+数据库约束是最陡峭的下降段。<strong>证明了测试套件作为\"约束锚点\"的不可替代性。</strong></li>\n  <li><strong>Semia\
-    \ (2026).</strong> <em>Auditing Agent Skills via Constraint-Guided Representation\
-    \ Synthesis.</em> arXiv:2605.00314. — 将 agent skill（YAML 结构化声明 + 自然语言 prose 策略）提升为可静态审计的\
-    \ Datalog 事实库。提出 Constraint-Guided Representation Synthesis (CGRS) 的 propose-verify-evaluate\
-    \ 循环。</li>\n</ol>\n\n<h3>Agent 系统作为可验证、可执行的 Harness</h3>\n\n<ol start=\"8\">\n\
-    \  <li><strong>Code as Agent Harness (2026).</strong> <em>Toward Executable, Verifiable,\
-    \ and Stateful Agent Systems.</em> arXiv:2605.18747. — 提出\"代码即 agent harness\"\
-    的宏大框架：代码提供可执行、可验证、有状态的系统边界。从 UI 模拟器到自驱动实验室，可执行反馈循环是 agent 可靠性的基础设施。</li>\n  <li><strong>BMC-Agent\
-    \ (2026).</strong> <em>Agentic Model Checking.</em> arXiv:2605.21434. — 将传统模型检测与\
-    \ LLM agent 结合，验证 LLM 生成的内核和编译器代码（C/Rust）。组合式验证策略——每个函数隔离检查，精化自动传播到所有调用方。</li>\n\
+    \ 67.0%）。<strong>\"编译器角色升级\"的工程实现。</strong></li>\n  <li><strong>Dente et al. (2026).</strong>\
+    \ <em>Constraint Decay: The Fragility of LLM Agents in Backend Code Generation.</em>\
+    \ arXiv:2605.06445. — 当后端约束（ORM、数据库、认证）层层叠加时，agent 代码生成正确率系统性衰减 ~30pp。<strong>证明了测试套件作为\"\
+    约束锚点\"的不可替代性。</strong></li>\n  <li><strong>Semia (2026).</strong> <em>Auditing\
+    \ Agent Skills via Constraint-Guided Representation Synthesis.</em> arXiv:2605.00314.\
+    \ — 将 agent skill 提升为可静态审计的 Datalog 事实库。提出 Constraint-Guided Representation Synthesis\
+    \ 的 propose-verify-evaluate 循环。</li>\n</ol>\n\n<h3>Agent 系统作为可验证、可执行的 Harness</h3>\n\
+    \n<ol start=\"8\">\n  <li><strong>Code as Agent Harness (2026).</strong> <em>Toward\
+    \ Executable, Verifiable, and Stateful Agent Systems.</em> arXiv:2605.18747. —\
+    \ 提出\"代码即 agent harness\"的宏大框架：代码提供可执行、可验证、有状态的系统边界。可执行反馈循环是 agent 可靠性的基础设施。</li>\n\
+    \  <li><strong>BMC-Agent (2026).</strong> <em>Agentic Model Checking.</em> arXiv:2605.21434.\
+    \ — 将传统模型检测与 LLM agent 结合，验证 LLM 生成的内核和编译器代码（C/Rust）。组合式验证策略——每个函数隔离检查。</li>\n\
     \  <li><strong>AutoRocq (2025).</strong> <em>Agentic Verification of Software\
-    \ Systems.</em> arXiv:2511.17330. — 首个 LLM agent 自动进行 Rocq (Coq) 形式验证。proof agent\
-    \ 与定理证明器通信获取反馈，迭代改进证明。定位为\"与 AI coding agent 集成，实现 generate-and-validate 闭环\"\
-    。</li>\n</ol>\n\n<h3>测试与质量保证</h3>\n\n<ol start=\"11\">\n  <li><strong>SWE-Mutation\
-    \ (2026).</strong> <em>Can LLMs Generate Reliable Test Suites in Software Engineering?</em>\
-    \ arXiv:2605.22175. — 评估 LLM 生成的测试套件质量。关键发现：LLM 生成的测试往往\"肤浅\"、缺乏足够区分力。高质量测试的稀缺是阻碍\
-    \ agent 能力评估扩展的核心瓶颈。</li>\n  <li><strong>Verify Before You Fix (2026).</strong>\
-    \ <em>Agentic Execution Grounding for Trustworthy Cross-Language Code Analysis.</em>\
-    \ arXiv:2604.10800. — 提出严格的不变式：<strong>没有基于执行的漏洞利用确认，不得执行任何修复动作。</strong>跨语言（Java/Python/C++）89.84–92.02%\
-    \ 检测准确率。展示了\"执行 grounding\"作为 agent 修复行为的前置条件。</li>\n</ol>\n\n<p>这 12 篇论文共同描绘了一个清晰的趋势：<strong>编译、测试、静态分析、形式验证、约束执行——这些传统\
+    \ Systems.</em> arXiv:2511.17330. — 首个 LLM agent 自动进行 Rocq (Coq) 形式验证。定位为\"与 AI\
+    \ coding agent 集成，实现 generate-and-validate 闭环\"。</li>\n</ol>\n\n<h3>测试与质量保证</h3>\n\
+    \n<ol start=\"11\">\n  <li><strong>SWE-Mutation (2026).</strong> <em>Can LLMs\
+    \ Generate Reliable Test Suites in Software Engineering?</em> arXiv:2605.22175.\
+    \ — LLM 生成的测试往往\"肤浅\"、缺乏足够区分力。高质量测试的稀缺是阻碍 agent 能力评估扩展的核心瓶颈。</li>\n  <li><strong>Verify\
+    \ Before You Fix (2026).</strong> <em>Agentic Execution Grounding for Trustworthy\
+    \ Cross-Language Code Analysis.</em> arXiv:2604.10800. — 提出严格不变式：<strong>没有基于执行的漏洞利用确认，不得执行任何修复动作。</strong>展示了\"\
+    执行 grounding\"作为 agent 修复行为的前置条件。</li>\n</ol>\n\n<p>这 12 篇论文共同指向一个趋势：<strong>编译、测试、静态分析、形式验证、约束执行——这些传统\
     \ SE 技术正在从\"开发者使用的工具\"转变为\"agent 系统的结构性组件\"。</strong>它们不再是人机交互的辅助手段，而是 agent 自主运行的\
-    \ verifiable ground truth 层。</p>\n\n\n<h2>技术声明</h2>\n\n<p>本文是基于以下研究的综合分析：Notre\
-    \ Dame & Google 的 coding agent 失配分析 (arXiv:2605.29442)、北航 VirtualME (ACM FSE 2026,\
-    \ arXiv:2605.29372)、清华 & Fitten Tech ProCodeBench (arXiv:2605.05700)、Karpathy\
-    \ 的可验证性理论、Zigler 的 MEP 方法论 (arXiv:2605.05400)、Lahiri 的意图形式化 (arXiv:2603.17150)、Dente\
-    \ 的约束衰减 (arXiv:2605.06445)。文中\"角色升级表\"和\"地面与大脑\"类比属于分析者的概括性框架，具体数据均可溯源至对应论文。</p>\n"
+    \ verifiable ground truth 层。</p>\n\n<hr>\n\n<h2>技术声明</h2>\n\n<p>本文是基于以下研究的综合分析：Karpathy\
+    \ 的可验证性理论、Lahiri 的意图形式化 (arXiv:2603.17150)、Dente 的约束衰减 (arXiv:2605.06445)、ContextCov\
+    \ (arXiv:2603.00822)、Verina (arXiv:2505.23135)、VeriSpecGen (arXiv:2604.10392)、Code\
+    \ as Agent Harness (arXiv:2605.18747)、BMC-Agent (arXiv:2605.21434)、AutoRocq (arXiv:2511.17330)、SWE-Mutation\
+    \ (arXiv:2605.22175)、Verify Before You Fix (arXiv:2604.10800)，以及作者在 Agent 基础设施工程实践中的观察。文中\"\
+    层位跃迁\"\"生产效率层→安全与理解层\"等框架性表述属于分析者的概括，具体数据均可溯源至对应论文。</p>"
 - title: 意图对齐：AI 软件开发的"安全带"——从 Vibe Coding 到 Intent Engineering
   date: May 30, 2026
   excerpt: 综合6篇论文和知识库研究，用通俗语言讲清楚意图对齐的四个核心价值：降低对齐税、弥合规约鸿沟、主动意图推断、安全范式转移。Agent不是不会写代码，是不懂你想要什么——而这是可以系统化解决的基础设施问题。
