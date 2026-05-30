@@ -51,6 +51,22 @@
   <p>传统 SE 实践的价值<strong>不降反升</strong>——但层位变了：从<strong>生产效率层</strong>上移到<strong>安全与理解层</strong>。从"帮你写"变成"替你证明"。</p>
 </blockquote>
 
+
+<h2>Karpathy 的可验证性命题：为什么是"验证"而不是"生成"</h2>
+
+<p>2025 年 11 月，Andrej Karpathy 在他的博客中写下了 AI 软件工程领域最被低估的一句话<a href="https://karpathy.bearblog.dev/verifiability">[来源]</a>：</p>
+
+<blockquote>
+  <p>"Software 1.0 easily automates what you can <strong>specify</strong>. Software 2.0 easily automates what you can <strong>verify</strong>."</p>
+  <p>—— Andrej Karpathy, <em>Verifiability</em> (Nov 17, 2025)</p>
+</blockquote>
+
+<p>这里的 Software 1.0 指传统手写程序——你能用代码精确描述什么，计算机就自动化什么。Software 2.0 指通过梯度下降搜索到的神经网络——你能验证结果对不对，AI 就能自动化什么。</p>
+
+<p>这个命题直接解释了 LLM 能力的"锯齿状前沿"：数学和代码是 LLM 最强的两个领域——因为数学有证明可验证，代码有编译和测试可验证。写作和审美是 LLM 最弱的领域——因为"好不好"无法自动化验证。</p>
+
+<p>但更重要的推论是：<strong>编译器、测试、静态分析、调试器——这些传统工具不是被 AI 替代了，而是变成了"可验证性"的工程实现。</strong>它们就是 Karpathy 所说的"verify"那一半。没有它们，LLM 只有"generate"没有"verify"——这正是 Vibe Coding 的痛点：AI 能吐代码，但你不能确定它对不对。</p>
+
 <h2>四类传统技术的角色跃迁</h2>
 
 <h3>1. 代码检索：从"找代码"到"AI 的 grounding 基础设施"</h3>
