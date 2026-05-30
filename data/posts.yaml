@@ -2,8 +2,13 @@ posts:
 - title: 传统SE技术贬值了吗？——编译器、测试、调试器在Agent时代的角色升级
   date: May 30, 2026
   excerpt: Karpathy说：LLM只能自动化"可验证"的事。传统SE技术（编译器、测试、调试器、代码检索）不但没有贬值，反而升级为让AI agent保持诚实的"地面实况层"。从"开发者用的工具"到"agent验证基础设施"的角色跃迁。
-  content: "<h2>一个被误判的问题</h2>\n\n<p>AI 能写代码了，AI 能修 bug 了，AI 能解释架构了。于是有一种声音：grep、编译器、gdb、单元测试这些\"\
-    传统手艺\"，是不是像打字机一样该进博物馆了？</p>\n\n<p>答案恰好相反。<strong>AI 不仅没有让传统工程实践贬值——它移动了整个软件工程的瓶颈，让这些实践的<em>价值层位</em>发生了跃迁。</strong></p>\n\
+  content: "<blockquote>\n  <p>\"Software 1.0 easily automates what you can <strong>specify</strong>.\
+    \ Software 2.0 easily automates what you can <strong>verify</strong>.\"</p>\n\
+    \  <p>\"Software 1.0 轻易自动化你能<strong>精确描述</strong>的事。Software 2.0 轻易自动化你能<strong>验证结果</strong>的事。\"\
+    </p>\n  <p>—— Andrej Karpathy, <a href=\"https://karpathy.bearblog.dev/verifiability\"\
+    >Verifiability</a> (Nov 17, 2025)</p>\n</blockquote>\n\n<h2>一个被误判的问题</h2>\n\n\
+    <p>AI 能写代码了，AI 能修 bug 了，AI 能解释架构了。于是有一种声音：grep、编译器、gdb、单元测试这些\"传统手艺\"，是不是像打字机一样该进博物馆了？</p>\n\
+    \n<p>答案恰好相反。<strong>AI 不仅没有让传统工程实践贬值——它移动了整个软件工程的瓶颈，让这些实践的<em>价值层位</em>发生了跃迁。</strong></p>\n\
     \n<h2>AI 移动了瓶颈</h2>\n\n<p>过去，软件工程的核心瓶颈是<strong>\"生产效率\"</strong>——写代码慢、调试慢、理解代码慢。传统工程实践（IDE、调试器、代码检索）的核心价值在\"\
     帮人写得快、改得快\"。</p>\n\n<p>AI 把这个瓶颈移走了。现在，瓶颈变成了<strong>\"理解代码对不对\"</strong>——AI 可以一秒吐出\
     \ 500 行代码，但你如何确定这 500 行是对的？确定它没有引⼊回归、没有违反约束、没有在你看不到的地方引入安全问题？</p>\n\n<blockquote>\n\
