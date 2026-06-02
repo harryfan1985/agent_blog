@@ -1,4 +1,102 @@
 posts:
+- title: RLVR for Code Agents：当强化学习学会「自己批改作业」
+  date: June 2, 2026
+  excerpt: 深度剖析 RLVR（可验证奖励强化学习）在代码 Agent 领域的技术机制：从 GRPO 算法原理到 Agent-RLVR 的 138% 增益，从「高效采样器」争议到多轮信用分配的未解难题。
+  content: "<h2>从 RLHF 到 RLVR：一个范式转变</h2>\n\n<p>2025 年 AI 训练领域最大的叙事转折，不是新架构，不是更大的数据集，而是<strong>反馈信号的来源变了</strong>。</p>\n\
+    \n<blockquote>我们不再问人类「哪个回答更好？」（RLHF），而是让程序判断「这个回答对吗？」（RLVR）。</blockquote>\n\n\
+    <p>这个转变对代码 Agent 的影响尤其深远——因为<strong>代码是天然可验证的</strong>。单元测试通过/不通过，编译成功/失败，性能提升/下降——这些都是客观的、可程序化判定的信号。RLVR\
+    \ 将这种天然可验证性转化为系统性的训练范式。</p>\n\n<p>本文将深度剖析 RLVR 在代码 Agent 领域的技术机制、关键突破、深层争议和未解难题。</p>\n\
+    \n<p style=\"text-align:center;\">\n<img src=\"https://harryfan1985.github.io/agent_blog/images/rlvr-code-agents/architecture.png\"\
+    \n     alt=\"RLVR for Code Agents Architecture\"\n     style=\"width:100%; max-width:1100px;\
+    \ border-radius:8px; border:1px solid #1e293b;\">\n</p>\n\n<h2>RLVR 的本质</h2>\n\
+    \n<p><strong>RLVR（Reinforcement Learning with Verifiable Rewards）</strong> = 用程序化验证器（而非人类偏好模型）驱动的强化学习训练范式。</p>\n\
+    \n<p>与传统 RLHF 的核心区别：</p>\n\n<ol>\n<li><strong>RLHF</strong>：人类标注偏好 → 训练奖励模型 →\
+    \ PPO 优化策略。反馈是<i>主观排序</i>。</li>\n<li><strong>RLVR</strong>：程序验证器（单元测试、编译器、执行结果）→\
+    \ 直接计算奖励 → GRPO 优化策略。反馈是<i>客观真值</i>。</li>\n</ol>\n\n<p>代码领域的验证器极其丰富：编译检查、单元测试、集成测试、性能基准、静态分析、lint\
+    \ 规则——每一个都可以成为 RLVR 的奖励信号源。</p>\n\n<h2>GRPO：RLVR 的核心引擎</h2>\n\n<p>为什么 RLVR 不用\
+    \ PPO？PPO 需要学习一个 value function（critic）来估计状态基线。在代码 Agent 的多轮工具调用场景中，状态空间指数级爆炸，critic\
+    \ 难以收敛。</p>\n\n<p><strong>GRPO（Group Relative Policy Optimization）</strong> 的解决方案是「组内比较」：</p>\n\
+    \n<pre><code>对同一 prompt 生成 G 个回答（一组）\n计算组内归一化优势：\n  A_i = (r_i - mean(r₁…r_G))\
+    \ / std(r₁…r_G)</code></pre>\n\n<p>核心特性：</p>\n<ul>\n<li><strong>Critic-free</strong>：无需学习\
+    \ value function，内存占用大幅降低</li>\n<li><strong>相对奖励</strong>：不关心绝对分数，只关心「比组内平均好多少」——天然对不同难度做自适应归一化</li>\n\
+    <li><strong>鲁棒性</strong>：对奖励的仿射变换不敏感</li>\n</ul>\n\n<p>但 GRPO 有一个致命盲区：当一组回答<strong>全部正确</strong>或<strong>全部错误</strong>时，方差为\
+    \ 0，优势为 0，梯度消失。这在代码 Agent 训练中频繁发生——SWE 任务往往「要么全对，要么全错」。<strong>NGRPO</strong>（Negative-enhanced\
+    \ GRPO）通过引入虚拟最大奖励样本和非对称裁剪部分解决了此问题。</p>\n\n<h2>奖励设计的五级谱系</h2>\n\n<p>代码 Agent 的\
+    \ RLVR 中，奖励密度是最关键的设计选择：</p>\n\n<pre><code>稀疏 ←──────────────────────────────────────→\
+    \ 密集\n  │                                                │\n  最终测试通过    编译通过 \
+    \  中间步骤正确   每轮工具调用正确\n  (DeepSeek-R1)   (AVO)     (GiGPO)        (ReVeal)</code></pre>\n\
+    \n<h3>稀疏奖励（Outcome-only）</h3>\n<p>DeepSeek-R1 开创：仅奖励<strong>最终答案正确性</strong>。代码场景下即「整个\
+    \ patch 的测试是否通过」。优势是简单无奖励工程，劣势是在长周期任务中信号极度稀疏——Agent 做了 20 步操作，只有最后一步有信号。</p>\n\
+    \n<h3>多步验证奖励</h3>\n<p>AVO（Agentic Variation Operators）的模式：编译 → 正确性 → 性能 → 回归 →\
+    \ 提交。每步失败即终止，成功则累积奖励。问题：<strong>一旦某步失败，后续步骤的反馈永远丢失</strong>——Agent 永远不知道「如果编译通过了，性能会不会有提升」。</p>\n\
+    \n<h3>密集奖励（Dense Per-Turn）</h3>\n<p>ReVeal 对每轮工具调用都给予奖励，利用自生成测试提供即时反馈。<strong>GiGPO</strong>（NeurIPS\
+    \ 2025）更进一步：双层优势——Episode 级宏观 + 步骤级锚点分组。在这些密集奖励范式下，Agent 可以在每一轮操作中学习。</p>\n\n\
+    <h2>Agent-RLVR：从竞技编程到真实软件工程的跨越</h2>\n\n<p>Scale AI 的 <strong>Agent-RLVR</strong>（arXiv:\
+    \ 2506.11425）是代码 Agent RLVR 的里程碑工作：</p>\n\n<p style=\"text-align:center;font-size:1.2em;font-weight:bold;\"\
+    >\nQwen-2.5-72B-Instruct on SWE-bench Verified:<br>\n无 RLVR → 9.4% PASS@1<br>\n\
+    Agent-RLVR → 22.4% PASS@1（+138%）\n</p>\n\n<p>核心创新在<strong>两阶段奖励</strong>：</p>\n\
+    \n<ol>\n<li><strong>Environment Reward</strong>：Agent 尝试解决任务 → 在沙箱中执行 patch →\
+    \ 单元测试验证 → 通过=1，失败=0（传统 RLVR）</li>\n<li><strong>Guidance Reward</strong>：利用错误信息、补丁对比、成功轨迹等多种信号，<strong>主动引导</strong>\
+    \ Agent 走向正确解法。这突破了「纯 outcome reward 过于稀疏」的瓶颈</li>\n</ol>\n\n<p>训练数据为 817 个精选\
+    \ SWE 训练环境，每个包含问题陈述 + 完整执行环境 + guidance 信号。关键洞察：<strong>纯 outcome reward 在 SWE\
+    \ 任务上效果极差，必须注入 guidance——这是代码 Agent RLVR 与数学 RLVR 的本质区别</strong>。</p>\n\n<h2>RLVR\
+    \ 的「肮脏秘密」：能力 vs 采样效率之争</h2>\n\n<p>2025 年下半年，一系列研究动摇了 RLVR 的叙事基础：</p>\n\n<h3>Limit\
+    \ of RLVR（NeurIPS 2025）</h3>\n<blockquote>Base 模型的高 k 采样已经包含所有正确答案。RLVR 提升的是 pass@1，不是\
+    \ pass@k 上限。RLVR 模型本质上是「高效采样器」，而非「更聪明的模型」。</blockquote>\n\n<p>清华大学团队的系统性研究显示：在\
+    \ base 模型上通过大量采样（pass@k, k 足够大），可以找到 RLVR 训练后模型能找到的<strong>每一个</strong>正确推理路径。RLVR\
+    \ 没有扩展推理能力的边界——它只是让好的推理路径在低 k 时更可能被选中。</p>\n\n<h3>随机奖励实验（UW, 2025）</h3>\n<blockquote>对\
+    \ Qwen 2.5 Math 使用<strong>完全随机</strong>的奖励函数训练 RLVR，MATH 分数仍提升 15-20 分。</blockquote>\n\
+    \n<p>这暗示 RLVR 的增益可能部分来自 RL 训练本身的<strong>正则化效应</strong>（强制模型更聚焦、更少发散），而非验证器的质量。如果随机奖励都能带来提升，那我们在优化什么？</p>\n\
+    \n<h3>对代码 Agent 的推论</h3>\n<p>这个争议在代码领域有微妙但关键的差异：</p>\n<ul>\n<li><strong>数学推理</strong>：答案空间相对有限，通过大量采样确实可能覆盖——RLVR\
+    \ 增益可能主要是「高效采样」</li>\n<li><strong>代码工程（SWE）</strong>：patch 空间巨大（定位文件 → 理解上下文 →\
+    \ 编辑多行 → 处理依赖），单靠采样几乎不可能碰对——RLVR 的<strong>结构化探索 + guidance 信号确实扩展了有效能力边界</strong></li>\n\
+    </ul>\n\n<p>Agent-RLVR 的 9.4% → 22.4% 跳跃不太可能仅靠「高效采样」解释。</p>\n\n<h2>多轮 RL 的 Credit\
+    \ Assignment 难题</h2>\n\n<p>代码 Agent 是多轮顺序决策问题。典型 SWE 任务中，Agent 需要：理解 issue → 搜索代码库\
+    \ → 定位文件 → 编辑 → 运行测试 → 发现失败 → 修复 → 再测试。核心挑战是 <strong>credit assignment</strong>：第\
+    \ 3 轮的错误导致第 15 轮的最终失败，如何让梯度信号精确指向第 3 轮？</p>\n\n<table>\n<tr><th>方法</th><th>机制</th><th>效果</th></tr>\n\
+    <tr><td><strong>GRPO（原始）</strong></td><td>Episode 级奖励，无步骤分配</td><td>信号粗糙</td></tr>\n\
+    <tr><td><strong>GiGPO</strong></td><td>Episode 级宏观 + 步骤级锚点分组</td><td>ALFWorld\
+    \ +12%, WebShop +9%</td></tr>\n<tr><td><strong>μCODE</strong>（ICML 2025）</td><td>单步奖励\
+    \ + Best-of-N 搜索</td><td>显著超越 SOTA</td></tr>\n<tr><td><strong>ReVeal</strong></td><td>每轮自验证\
+    \ + 密集奖励</td><td>Pass@k 显著提升</td></tr>\n</table>\n\n<p>GiGPO 的锚点分组机制尤为精妙：<strong>回溯性地</strong>在不同轨迹中找到相同的环境状态（例如「都在第\
+    \ 5 步打开了同一个文件」），构建步骤级比较组——不需要预定义步骤奖励函数。这是目前多轮 Agent RL 中最优雅的 credit assignment\
+    \ 方案。</p>\n\n<h2>工业实践全景</h2>\n\n<table>\n<tr><th>组织</th><th>工作</th><th>核心贡献</th></tr>\n\
+    <tr><td>Scale AI</td><td>Agent-RLVR</td><td>817 SWE 训练环境 + guidance reward</td></tr>\n\
+    <tr><td>SWE-Gym</td><td>训练 + 验证联合</td><td>19% 绝对增益</td></tr>\n<tr><td>NVIDIA</td><td>Nemotron\
+    \ 3 Super</td><td>21 环境 × 37 数据集联合 RLVR 训练</td></tr>\n<tr><td>Fireworks</td><td>Multi-turn\
+    \ RL 最佳实践</td><td>RL ≫ SFT for multi-turn agents</td></tr>\n<tr><td>Tsinghua</td><td>SWE-Dev</td><td>训练\
+    \ + 推理双重扩展</td></tr>\n<tr><td>Nebius</td><td>搜索增强 Agent</td><td>40.6% on SWE-bench（纯开源栈）</td></tr>\n\
+    </table>\n\n<h2>五个未解决的深层问题</h2>\n\n<h3>1. 验证器即天花板</h3>\n<p>Agent 的能力上限 = 验证器能覆盖的正确性范围。SWE-bench\
+    \ Verified 到 Pro 的骤降（70%+ → 23%）暴露了验证器设计本身就是瓶颈。一个只能检查「patch 是否通过原始测试」的验证器，无法区分「巧妙绕过测试的假修复」和「真正解决问题的修复」。</p>\n\
+    \n<h3>2. Guidance 的隐式作弊风险</h3>\n<p>Agent-RLVR 的 guidance 信号如果包含「答案线索」（例如错误信息精确指出了需要修改的文件和行数），RLVR\
+    \ 学到的是利用 guidance 而非真正理解和解决问题。这类似于「考试时偷偷看到了参考答案」——分数高不等于能力强。</p>\n\n<h3>3. 同质奖励组的梯度消失</h3>\n\
+    <p>SWE 任务中频繁出现「全 0 组」（全部轨迹失败），GRPO 的梯度消失导致这些最难的问题反而<strong>完全没有学习信号</strong>。NGRPO\
+    \ 只部分解决——在极端稀疏的场景下仍会退化。</p>\n\n<h3>4. 环境工程 > 算法创新</h3>\n<p>当前瓶颈越来越从算法转向<strong>训练环境的质量和多样性</strong>。Agent-RLVR\
+    \ 投入环境构建的工程远大于算法改进。这暗示 RLVR 可能正在进入「数据瓶颈」阶段——类似预训练的 Scaling Law，RLVR 的性能上限由训练环境决定。</p>\n\
+    \n<h3>5. 验证器的验证器悖论</h3>\n<p>验证器越精确 → 奖励信号越可靠 → 训练效果越好。但验证器本身也是代码（测试用例），其质量依赖人工编写。这形成了新的依赖链：<strong>人工标注\
+    \ → 测试用例质量 → 验证器精度 → RLVR 效果</strong>。自动化测试生成（如 SAGA、TCGBench）旨在打破这个链，但目前精度仍不足。</p>\n\
+    \n<h2>与 Harness Engineering 的连接</h2>\n\n<p>回到更宏观的视角：</p>\n\n<pre><code>RLVR =\
+    \ 自动化训练信号 「这个 patch 对吗？」\nGEPA = 自动化提示优化 「怎么让 Agent 少犯这个错？」\nHarness = 约束 + 验证\
+    \ + 进化 「Agent 不能做什么」\n</code></pre>\n\n<p><strong>三者的统一是代码 Agent 完全自主进化的终极形态。</strong></p>\n\
+    \n<p>当前缺口：RLVR 优化模型权重，GEPA 优化提示文本，二者操作的是不同的参数空间。下一代框架将实现耦合——RLVR 的训练信号直接驱动 GEPA\
+    \ 的反思式进化，形成「验证 → 反思 → 改进 → 再验证」的自主闭环。这是 <a href=\"https://github.com/NousResearch/hermes-agent-self-evolution\"\
+    >Hermes Self-Evolution</a> 的五阶段路线图中隐含但尚未实现的目标。</p>\n\n<blockquote>代码 Agent 的 RLVR\
+    \ 不仅仅是训练技巧——它是 Agent 基础设施从「手工调参」到「自主进化」的转折点。谁先解决好验证器质量和信用分配这两个核心问题，谁就能率先构建真正自我改进的代码\
+    \ Agent 系统。</blockquote>\n\n<h2>参考</h2>\n\n<ul>\n<li>Agent-RLVR: Training Software\
+    \ Engineering Agents via Guidance and Environment Rewards — arXiv:2506.11425,\
+    \ Scale AI (2025)</li>\n<li>ReVeal: Self-Evolving Code Agents via Reliable Self-Verification\
+    \ — arXiv:2506.11442 (2025)</li>\n<li>Limit of RLVR — NeurIPS 2025, limit-of-rlvr.github.io</li>\n\
+    <li>GiGPO: Group-in-Group Policy Optimization for LLM Agent Training — NeurIPS\
+    \ 2025</li>\n<li>μCODE: Multi-Turn Code Generation Through Single-Step Rewards\
+    \ — ICML 2025</li>\n<li>\"Reasoning LLMs Are Just Efficient Samplers\" — Tsinghua\
+    \ University (2025)</li>\n<li>SWE-Gym: Training Software Engineering Agents and\
+    \ Verifiers — OpenReview (2025)</li>\n<li>Nemotron 3 Super: Multi-Environment\
+    \ RLVR — NVIDIA Docs (2025)</li>\n<li>DeepSeek-R1: Incentivizing Reasoning Capability\
+    \ in LLMs via Reinforcement Learning — arXiv:2501.12948</li>\n<li>Hermes Agent\
+    \ Self-Evolution — github.com/NousResearch/hermes-agent-self-evolution</li>\n\
+    </ul>\n\n<h2>技术声明</h2>\n\n<p>本文技术分析基于上述公开论文和工业报告。Agent-RLVR 和 ReVeal 的架构细节来自其\
+    \ arXiv 论文；「Limit of RLVR」的结论基于 NeurIPS 2025 接收论文的系统性实验；随机奖励实验的发现来自 UW 团队的非正式报告。GRPO\
+    \ 算法分析基于 DeepSeek-R1 技术报告及相关复现研究。关于「RLVR 增益在 SWE 场景中更多来自能力扩展而非采样效率」的判断为基于当前数据的合理推断（⚠️），有待更多对照实验验证。</p>\n"
 - title: 传统SE技术贬值了吗？——编译器、测试、调试器在Agent时代的角色升级
   date: May 30, 2026
   excerpt: Karpathy说：LLM只能自动化"可验证"的事。传统SE技术（编译器、测试、调试器、代码检索）不但没有贬值，反而升级为让AI agent保持诚实的"地面实况层"。从"开发者用的工具"到"agent验证基础设施"的角色跃迁。
