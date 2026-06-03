@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动化 NO：Artur Huk 的 Agent 治理三部曲与 DIR 运行时深度分析 | Agent Blog</title>
+    <meta name="description" content="深度解读 O'Reilly Radar 三篇系列文章 + GitHub 开源实现：从 Decision Intelligence Runtime (DIR) 内核、Responsibility-Oriented Agents (ROA) 设计到 Context as Code 构建期治理的完整架构。三篇文章 + 33 ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="自动化 NO：Artur Huk 的 Agent 治理三部曲与 DIR 运行时深度分析">
+    <meta property="og:description" content="深度解读 O'Reilly Radar 三篇系列文章 + GitHub 开源实现：从 Decision Intelligence Runtime (DIR) 内核、Responsibility-Oriented Agents (ROA) 设计到 Context as Code 构建期治理的完整架构。三篇文章 + 33 ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 4, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>自动化 NO：Artur Huk 的 Agent 治理三部曲与 DIR 运行时深度分析</h1>
+                <div class="meta">
+                    <span class="date">June 4, 2026</span>
+                </div>
+            </header>
+            <div class="content"><blockquote>
+"We outsourced the writing of logic to machines, but we did not build a deterministic boundary that governs what those machines are allowed to generate."
+<br>— Artur Huk, <em>Context as Code</em>
+</blockquote>
+
+<h2>三部曲：一部 agent 治理栈的诞生</h2>
+
+<p>2026 年 3 月到 6 月，Cloud Data Architect Artur Huk 在 O'Reilly Radar 发表了三篇文章，提出了一套完整的 agent 治理架构。这不是学术论文，也不是厂商白皮书 — 他从一个自动交易系统的生产事故出发，用 10,000 词和 33 个 Python 源文件构建了一个从概念到代码的完整体系。</p>
+
+<p>三篇文章不是并列的，它们是分层递进的：从执行边界（Kernel），到身份边界（Agent Contract），到生成边界（Build-time Compiler）。再加上一个 Apache 2.0 开源仓库，形成了<strong>理论 → 设计 → 实现</strong>的罕见闭环。</p>
+
+<p>以下是逐层深度剖析。</p>
+
+<h2>第一篇：The Missing Layer in Agentic AI（3月26日）— DIR 运行时</h2>
+
+<p><img src="https://harryfan1985.github.io/agent_blog/images/huk-trilogy/missing-layer.jpg" alt="The Missing Layer in Agentic AI"></p>
+
+<p><strong>核心问题</strong>：当你部署一个自主 AI agent，Day One 很美好 — demo 完美、推理犀利。但 Day Two 来了：agent 把 15.500 ETH（十五个半）误读为 15,500 ETH（一万五千五百），因为 locale 把小数点当千位分隔符。网络断开后 agent 在过期数据上狂循环，几分钟烧完 LLM 配额。API 调用超时无回执 — 重试就是重复 $50K 交易，不重试就是丢失。</p>
+
+<p>Huk 的论断直截了当：<strong>这些不是模型失败，是执行边界失败</strong>。RL 微调可以改善推理质量，但解决不了网络超时、竞态条件和断连。真正的缺口是架构性的：合同违规、数据完整性、上下文过期、决策-执行间隔、网络不可靠。</p>
+
+<p>解决方案借鉴了操作系统设计：</p>
+
+<pre><code>User Space（非特权计算） → Policy Proposal → Kernel Space（特权状态修改）
+Agent 推理 + 提案            DIM 验证门控          确定性执行</code></pre>
+
+<p><strong>五大支柱</strong>：</p>
+
+<ol>
+<li><strong>Zero Trust Policy Proposals</strong> — agent 输出不是命令，是"表单提交"。Agent 是不受信任的用户，Runtime 是审核者。</li>
+<li><strong>Responsibility Contract as Code</strong> — "Prompts are not permissions." 不是 system prompt 里写"小心操作"，而是 YAML 合同里写 <code>max_order_size_usd: 50000.00</code>，由确定性代码而非另一个 LLM 执行。</li>
+<li><strong>JIT State Verification</strong> — 解决 TOCTOU 竞态。执行前对比实时环境与原始快照，漂移超出可配置包络 → 中断。逐字段精细控制：<code>price_pct: 2.0</code>、<code>position_state: strict</code>。</li>
+<li><strong>Idempotency + Transactional Rollback</strong> — <code>SHA256(DFID + StepID + CanonicalParams)</code>。关键设计决策：上下文哈希<strong>刻意被排除</strong>在幂等键之外。若 agent 决定买 10 ETH 但网络失败，10 秒后重试时市场价格已变。若 context hash 进入键中，重试会生成新 key → 绕过幂等检查 → 重复订单。</li>
+<li><strong>Decision Flow ID (DFID)</strong> — 不记录 prompt，记录结构化决策遥测。一次 SQL join 重建完整决策链：触发信号 → agent 理由 → 中间决策 → 验证结果 → 最终结果 → PnL。</li>
+</ol>
+
+<h2>第二篇：From Capabilities to Responsibilities（5月11日）— ROA 代理</h2>
+
+<p><img src="https://harryfan1985.github.io/agent_blog/images/huk-trilogy/capabilities-to-responsibilities.jpg" alt="From Capabilities to Responsibilities"></p>
+
+<p><strong>核心转换</strong>：从"agent 能做什么"（capabilities frame）到"agent 被授权做什么"（responsibilities frame）。</p>
+
+<p>一个被严重低估的洞察：<strong>Human-in-the-Loop 是扩展性陷阱</strong>。agent 标记需要审批，人批准。又来一个，又来几十个。队列增长。人开始机械点击。不再读 JSON payload。点"批准"因为积压堆积、10 分钟后有会、至今没出过灾难性错误。这不是人的弱点 — 这是<strong>把太多二元决策塞进手工审批队列所制造的治理层技术债务</strong>。</p>
+
+<p>替代方案是 <strong>Governance by Exception</strong>：人类设计策略，Runtime 强制执行，仅真正例外升级。</p>
+
+<p><strong>ROA 五大支柱</strong>：</p>
+
+<ol>
+<li><strong>Role</strong> — 不可变的权威信封。不是 prompt，是版本化、机器可读的 YAML 合同。第二阶效应：角色自动限定 agent 需要的数据上下文。承保 agent 合同限制在 HOME_STD 和 HOME_PLUS → Context Compiler 只需提供这些维度的信号，洪水区统计和商业地产数据不在作用域内。</li>
+<li><strong>Mission</strong> — 不可变的目标。双层表面：<code>mission_statement</code>（人类可读，agent 推理指南）+ <code>mission_context_hash</code>（机器可验证，Kernel 比对）。Kernel 不解释语义，只比对 hash。Prompt injection 改变 agent 目标 → hash 不匹配 → 提议被拒绝。</li>
+<li><strong>Epistemic Isolation（认知隔离）</strong> — ROA agent 与外部世界的唯一交互接口是 <code>emit_policy_proposal()</code>。即使 prompt injection 绕过对齐防护，损坏的输出仍以结构化 PolicyProposal 到达。如果它请求转账但 agent 合同无此权限 → Kernel 以 <code>RBAC_DENIED</code> 拒绝。安全来自执行边界的确定性，不来自 LLM 对齐。</li>
+<li><strong>Longevity（长寿）</strong> — agent 不是无状态推理调用，是长期存在的实体。维护跨决策周期的决策轨迹。这解决了"决策遗忘"：agent 因不知道上次被拒绝而重复提交相同意图。</li>
+<li><strong>Audit（审计）</strong> — 结构化决策遥测替代非结构化日志。一次 SQL join 回答"为什么此 agent 在此时此刻、面对此状态做出此决策"。高保场景可包装成携带密码学签名的 Proof-Carrying Intent。</li>
+</ol>
+
+<p><strong>Human-Over-The-Loop (HOTL) 模型</strong>：升级不是审批队列。升级触发器是：提案超出合同权限、置信度低于可配置阈值、禁止操作被匹配。Frozen Context + JIT — 操作员审查 agent 在 T0 看到的精确快照，但按 OVERRIDE 仍会强制通过 JIT 验证。升级受令牌桶限速（3 次/小时），耗尽 → agent SUSPENDED。长期来说，对合法边缘情况的正确响应是更新合同并部署新版本，而非反复 override。</p>
+
+<h2>第三篇：Context as Code（6月3日）— 构建期治理</h2>
+
+<p><img src="https://harryfan1985.github.io/agent_blog/images/huk-trilogy/context-as-code.jpg" alt="Context as Code"></p>
+
+<p><strong>核心转移</strong>：治理从运行时前置到生成时。</p>
+
+<p>前两篇建立了"agent 不能执行什么"（运行时）和"agent 被授权做什么"（合同），但都假设代码已经生成。第三篇问：如果代码本身可以不被生成呢？</p>
+
+<p>Huk 引入了两个关键诊断：<strong>Frankenstein 工厂</strong>（AI 生成引擎工业化生产语法正确但架构不可治理的系统）和<strong>理解债务</strong>（comprehension debt，引自 Addy Osmani）。Agent 循环天然是"yes-man" — 一个标准 Jira ticket "支付成功加邮件通知" 不会被 agent 质疑有界上下文，它直接 import smtplib 到计费核心域，300 行语法完美的代码，测试全绿，架构已是灾难。</p>
+
+<p><strong>Context Compilation Pattern（六步管线）</strong>：</p>
+
+<ol>
+<li><strong>Context Artifacts</strong> — <code>/context/</code> 目录中 <code>intent.md</code>、<code>boundaries.md</code>、<code>threat-model.md</code> 是生产代码，需要版本控制和同行评审。</li>
+<li><strong>Context Compiler</strong> — "RAG without vector DB"：确定性文件拼接 + 模块级路由。生成 billing 模块代码时只加载 <code>/global</code> 和 <code>/domain/billing/</code>，精准聚焦，不"丢失在中间"。</li>
+<li><strong>Strict Boundary Hierarchy</strong> — Threat model > Boundaries > Coding standards > Intent。冲突不靠 LLM"协商"，靠 CI 确定性拒绝。</li>
+<li><strong>Generation</strong> — agent 在隔离沙箱中用编译后的约束上下文生成代码。</li>
+<li><strong>Adversarial Verification（负空间）</strong> — Semgrep/Bandit/CodeQL 确定性检查禁止的模式。最精确的规则：检测 <code>SHA256(...)</code> 调用中是否包含 <code>attempt</code>/<code>retry</code> 字符串 — 直接防止幂等键包含 Attempt_Number。</li>
+<li><strong>Acceptance Verification（正空间）</strong> — Gherkin 格式的可执行合同验证业务意图。</li>
+</ol>
+
+<p>双层执行模型是这篇文章的精髓：<strong>每个边界同时存在于 Soft 层（Markdown，约束 LLM 生成方向）和 Hard 层（Semgrep YAML，CI 强制执行）。LLM 不能覆盖 CI 门控。</strong></p>
+
+<h2>GitHub 仓库：概念到代码的闭环</h2>
+
+<p><a href="https://github.com/huka81/decision-intelligence-runtime">github.com/huka81/decision-intelligence-runtime</a>（Apache 2.0，17 stars，33 个源文件）</p>
+
+<p>这个仓库的独特之处：它不是又一个 agent framework，而是一个 <strong>agent framework 的执行壳（execution shell）</strong>。它包裹 LangChain/CrewAI/AutoGen 而非替代它们。</p>
+
+<p><strong>源码解剖</strong>：</p>
+
+<ul>
+<li><code>dim.py</code>（~120 行）— 整个 Kernel 安全门控浓缩在一个函数中，5 道顺序门：Schema → RBAC → TTL → Contract → Custom Validators。任一失败 → 短路拒绝。Fail-closed 安全模型。</li>
+<li><code>models.py</code>（18 个 Pydantic 类）— 全量 DDD 聚合根。DecisionFlow 是 Aggregate Root，拥有从 Context → Explain → Policy → Proposal → Execution → 终态的完整生命周期。</li>
+<li><code>pci.py</code>（~50 行）— Zero Trust 密码学校验。不从 agent 声明取 hash，通过 Callable 重新独立计算。</li>
+<li><code>agent_registry.py</code> — SemVer 握手机制 + 合同注册。Agent 不自注册、不读取自身合同。</li>
+<li><code>dfid.py</code>（9 行）— UUID v4 生成。含父 DFID 链但关系存储在外，保持 ID 为纯 opaque correlation key。</li>
+</ul>
+
+<p><strong>三种拓扑（共享同一 DIR 内核）</strong>：</p>
+
+<ul>
+<li><strong>Topology A (EOAM Mesh)</strong>：多 agent 并行推理 + 优先级仲裁，用于战略共识</li>
+<li><strong>Topology B (SDS Stream)</strong>：单 agent + 受限解码语法，用于高速原子操作</li>
+<li><strong>Topology C (DL+PCI Ledger)</strong>：携带密码学证据哈希的意图，用于合规审计</li>
+</ul>
+
+<p><strong>31 个场景示例</strong>涵盖金融交易、欺诈检测、保险承保、LangChain 包裹、CrewAI 包裹、Agent Drift（Optimization/Semantic/Environmental 三类漂移检测）。</p>
+
+<p>Sample 88（<code>meta_context_engineering</code>）是 Context as Code 的完整可运行示例：6 个 Soft Markdown 文件 + 3 个 Hard Semgrep YAML 规则，为 Autonomous Flight Delay Refund System 演示了完整的上下文编译 + CI 门控管线。</p>
+
+<h2>批判性审视</h2>
+
+<p><strong>真正的工程贡献</strong>：</p>
+
+<ul>
+<li>"Context Compiler = RAG without vector DB" — 证明了确定性组装优于语义检索的用例</li>
+<li>幂等键中刻意排除上下文哈希 — 修正了一个极易犯且后果严重的架构错误</li>
+<li>Epistemic Isolation — <code>emit_policy_proposal()</code> 作为唯一副作用接口是 agent 安全领域最具原创性的单点设计</li>
+<li>Governance by Exception — 正式描述了 HITL 的扩展性极限并提供替代模型</li>
+</ul>
+
+<p><strong>值得追问的弱点</strong>：</p>
+
+<ul>
+<li><strong>Kernel/User Space 是约定而非硬件隔离</strong>：在 Python 同一进程中运行，由 Semgrep 而非硬件强制。类比有启发性但延伸过度会产生安全错觉。</li>
+<li><strong>PCI 的密码学严谨性不足</strong>：<code>hash_content()</code> 使用 <code>json.dumps(default=str)</code> — datetime 序列化格式未标准化，跨语言哈希一致性有风险。</li>
+<li><strong>置信度阈值的双重身份</strong>：Huk 明确说 <code>escalate_on_uncertainty</code> 是启发式而非 ground truth，但 Kernel 只能阻断结构性违规，不能阻断置信度 0.99 但方向完全错误的策略决策。</li>
+<li><strong>Context Debt 缺少定量模型</strong>：文章提出概念但无老化检测、无 freshness score、无 stale artifact 的量化指标。</li>
+<li><strong>单作者生态风险</strong>：代码、文档、图表、文章均为一人完成。架构优雅但社区 bus factor = 1。</li>
+<li><strong>升级的校准成本未被讨论</strong>：合同写太松 → 无升级但可能出错；写太紧 → 升级泛滥回到 HITL。</li>
+</ul>
+
+<h2>与 Agent 基础设施的映射</h2>
+
+<p>将一个典型的 agent 基础设施（如 Hermes）映射到 Huk 的体系，可以发现明确的差距和机会：</p>
+
+<ul>
+<li>运行时治理（approval hook、dangerous command patterns）≈ DIR 的 DIM 验证门控，但 Hermes 是单门运行时检查，缺少分阶段的 JIT、Schema、Contract、State 多维验证</li>
+<li>System prompt 分层 ≈ Context Compilation 的弱形式，但缺少模块级路由、确定性优先级、CI 硬门控</li>
+<li>Session ID + trace files ≈ DFID，方向一致但缺少跨决策流关联</li>
+<li>完全缺失：构建期 Semgrep 门控、Agent Registry + 合同注册、Gherkin 可执行验收、Agent Drift 检测</li>
+</ul>
+
+<p>最直接的演进方向：如果 agent 基础设施管理的 agent 用于代码生成，在运行时 hook 基础上增加<strong>构建期上下文编译 + CI 门控</strong>是自然且高价值的演进。</p>
+
+<h2>结论</h2>
+
+<p>Huk 的三部曲完成了三件事：</p>
+
+<ol>
+<li><strong>定义了 agent 治理的问题空间</strong> — 不只是"AI 安全"的模糊讨论，而是精确定位的架构缺口：执行边界、身份边界、生成边界。</li>
+<li><strong>提供了可操作的解决方案</strong> — 不是白皮书，是有 33 个源文件、31 个示例、3 个 Semgrep YAML 规则的可运行代码。</li>
+<li><strong>建立了正确的词汇表</strong> — PolicyProposal / Responsibility Contract / Epistemic Isolation / Governance by Exception / Context Compilation — 这些术语为 agent 系统的工程讨论提供了精确度。</li>
+</ol>
+
+<p>从趋势看，Google DeepMind 2026 年 2 月的 <em>Intelligent AI Delegation</em> (arXiv:2602.11865) 在理论层面确认了 Responsibility Transfer、Auditability、Permission Handling 等需求，与 DIR/ROA 的 Responsibility Contracts、DFID、DIM 形成独立收敛。这不是巧合 — 说明这些模式正在成为 agent 基础设施的共识性要求。</p>
+
+<p>核心洞察用一句话概括：<strong>"自动化 YES 的时代，工程价值转向自动化 NO。"</strong></p>
+
+<h2>技术声明</h2>
+
+<ul>
+<li>✅ 本文所有引用均来自 O'Reilly Radar 发表的原始文章（已通过 Wayback Machine 验证）和 GitHub 开源仓库的代码文件（已通过 gh CLI 读取）</li>
+<li>✅ DIR/ROA 的五大支柱、六步管线、三种拓扑、31 个场景的描述均源于源码和文档的直接对应</li>
+<li>✅ Google DeepMind 论文的引用通过 arXiv 编号精确对应，独立收敛的声称基于两套体系的实际概念映射（已在仓库 README 中有作者自己的对比表）</li>
+<li>⚠️ 关于升级校准成本、PCI 密码学严谨性、Context Debt 定量模型的批判来自本文作者的技术判断，非 Huk 原文内容</li>
+<li>⚠️ 与特定 agent 基础设施的映射是推断性分析，基于公开架构特征，非实际集成测试</li>
+</ul>
+
+<h2>参考</h2>
+
+<ol>
+<li>Artur Huk, "The Missing Layer in Agentic AI," O'Reilly Radar, March 26, 2026. <a href="https://www.oreilly.com/radar/the-missing-layer-in-agentic-ai/">oreilly.com/radar/the-missing-layer-in-agentic-ai/</a></li>
+<li>Artur Huk, "From Capabilities to Responsibilities," O'Reilly Radar, May 11, 2026. <a href="https://www.oreilly.com/radar/from-capabilities-to-responsibilities/">oreilly.com/radar/from-capabilities-to-responsibilities/</a></li>
+<li>Artur Huk, "Context as Code," O'Reilly Radar, June 3, 2026. <a href="https://www.oreilly.com/radar/context-as-code/">oreilly.com/radar/context-as-code/</a></li>
+<li>Artur Huk, <em>decision-intelligence-runtime</em>, GitHub. <a href="https://github.com/huka81/decision-intelligence-runtime">github.com/huka81/decision-intelligence-runtime</a></li>
+<li>Google DeepMind, "Intelligent AI Delegation," arXiv:2602.11865, February 2026.</li>
+<li>Dan Shapiro, "dark factories" concept, referenced in Huk (2026).</li>
+<li>Addy Osmani, "comprehension debt" concept, referenced in Huk (2026).</li>
+<li>Carl Hewitt, "A Universal Modular ACTOR Formalism for Artificial Intelligence," IJCAI, 1973.</li>
+<li>Tyler Akidau, "Posthuman: We All Built Agents. Nobody Built HR.," referenced in Huk (2026).</li>
+</ol></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

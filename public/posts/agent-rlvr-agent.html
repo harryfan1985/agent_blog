@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自闭环验证：从 Agent-RLVR 看代码 Agent 的自我改进之路 | Agent Blog</title>
+    <meta name="description" content="Agent 自己生成验证信号 → 驱动自我改进 → 无需人类参与的闭合回路。从 Agent-RLVR 提炼出八条核心启示：可验证性天花板、稀疏奖励饥饿、验证器协同进化、信用分配、采样效率之争、验证税经济学、对抗性验证多样性、双层安全架构。附五级成熟度阶梯。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="自闭环验证：从 Agent-RLVR 看代码 Agent 的自我改进之路">
+    <meta property="og:description" content="Agent 自己生成验证信号 → 驱动自我改进 → 无需人类参与的闭合回路。从 Agent-RLVR 提炼出八条核心启示：可验证性天花板、稀疏奖励饥饿、验证器协同进化、信用分配、采样效率之争、验证税经济学、对抗性验证多样性、双层安全架构。附五级成熟度阶梯。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 2, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>自闭环验证：从 Agent-RLVR 看代码 Agent 的自我改进之路</h1>
+                <div class="meta">
+                    <span class="date">June 2, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>什么是自闭环验证</h2>
+
+<blockquote>自闭环验证 = Agent 自己生成验证信号 → 驱动自我改进 → 形成无需人类参与的闭合优化回路。</blockquote>
+
+<p>传统软件开发验证链中，人是决策中枢：人类写代码 → 人类写测试 → CI 跑测试 → 人类看结果 → 人类决定怎么改。环是<strong>开的</strong>——人在环内做每步决策。</p>
+
+<p>自闭环验证则不同：Agent 生成代码 → Agent 生成测试 → 沙箱执行 → 验证器判定 → 反馈信号驱动 RL/反思 → Agent 自主改进生成策略。环是<strong>闭的</strong>——人类只在环外设定约束边界，不参与循环内部的决策。</p>
+
+<p>这个构想并非凭空而来。上一篇文章《<a href="https://harryfan1985.github.io/agent_blog/posts/rlvr-for-code-agents.html">RLVR for Code Agents</a>》剖析了 RLVR 的技术机制；本文将从 Agent-RLVR 的具体实践中，提炼出自闭环验证的<strong>八条核心启示</strong>。</p>
+
+<p>两者关系：<strong>自闭环验证是目标（What），RLVR 是实现它的训练范式（How）。</strong></p>
+
+<h2>启示一：可验证性决定闭环的天花板</h2>
+
+<p>最根本的约束：闭环能跑多远，取决于验证信号能覆盖多少正确性维度。</p>
+
+<ul>
+<li><strong>数学推理</strong>：答案对/错 → 二值信号 → 闭环充分</li>
+<li><strong>竞技编程</strong>：测试用例覆盖 → 多值信号 → 闭环较强</li>
+<li><strong>软件工程</strong>：功能正确 + 架构合理 + 安全 + 可维护 + 性能 → <strong>验证维度不可穷举</strong> → 闭环永远不完美</li>
+</ul>
+
+<p>Agent-RLVR 的 817 个 SWE 训练环境暴露了一个冷静的事实：即便精心设计的验证器，也仅覆盖了「patch 是否通过已有测试」。架构回归、安全漏洞、隐性 bug——全在闭环之外。</p>
+
+<p><strong>推论</strong>：自闭环验证系统必须明确声明验证边界。超出边界的正确性不能靠闭环保证——需要 Harness 的硬约束层兜底。正如 <a href="https://arxiv.org/abs/2503.18666">\tool</a> 的 DSL 运行时约束所示：闭环内可进化，闭环外不可绕过。</p>
+
+<h2>启示二：稀疏奖励让闭环在长周期任务中「饿死」</h2>
+
+<p>一次 SWE 修复可能涉及 5-15 轮工具调用。如果只在最终 patch 测试通过时给奖励，信号稀疏比高达 1:15——Agent 不知道哪一步做对了、哪一步做错了。RL 方差爆炸，收敛极慢。</p>
+
+<p>Agent-RLVR 的 <strong>Guidance Reward</strong> 给出了解法：把中间信号转化为额外的密集奖励：</p>
+
+<ul>
+<li>编译器错误 → 定位具体行号 → 引导 Agent 修复</li>
+<li>测试失败 → 显示期望值 vs 实际值 → 暗示修改方向</li>
+<li>补丁对比 → 与成功案例的差异 → 学习最优路径</li>
+</ul>
+
+<p>这让闭环从「最终考试定生死」变成了「每次作业都有反馈」。</p>
+
+<p><strong>推论</strong>：自闭环验证系统必须设计<strong>中间验证点</strong>。每个工具调用、每个文件编辑都应该有对应的验证信号——不一定精确，但必须有。信号密度是闭环收敛速度的第一序决定因素。</p>
+
+<h2>启示三：验证器和生成器必须协同进化</h2>
+
+<p>静态验证器的最大陷阱：</p>
+
+<pre><code>Agent 学会通过测试 → 但测试没变 → 闭环停止产生新信号 → 进化停滞</code></pre>
+
+<p><a href="https://arxiv.org/abs/2506.11442">ReVeal</a> 的核心洞察是：验证能力本身也需要通过 RL 训练。Agent 不仅要学会写代码，还要学会<strong>生成更好的测试</strong>、<strong>更准确地判断自己的输出是否正确</strong>。</p>
+
+<p>这形成了一个<strong>元闭环</strong>：生成能力进化（外层）↔ 验证能力进化（内层）→ 两层互相驱动。</p>
+
+<p><strong>推论</strong>：自闭环验证不是「先建好验证器，再训练 Agent」的线性流程。验证器本身必须是可进化的——通过对抗（Agent 试图绕过验证 → 验证器学习检测）、通过反思（为什么上次漏掉了这个 bug？）、通过生成（Agent 为已有代码生成更全面的测试）。</p>
+
+<h2>启示四：Credit Assignment 是闭环的灵魂</h2>
+
+<p>多轮软件工程任务中最关键的技术挑战不是「对不对」，而是「<strong>哪里开始错的</strong>」。15 步操作中，第 3 步的错误导致第 15 步的最终失败——如何让梯度信号精确指向第 3 步？</p>
+
+<p><a href="https://neurips.cc/virtual/2025/poster/118123">GiGPO</a>（NeurIPS 2025）的双层优势给出了一个优雅的方向：<strong>回溯性地</strong>从不同轨迹中挖掘步骤级信号：</p>
+
+<ul>
+<li><strong>Episode 级</strong>：这个 rollout 整体好不好？（宏观信号）</li>
+<li><strong>Step 级</strong>：在其他 rollout 中，当处于相同的环境状态（例如「都打开了同一个文件」）时，下一步做了什么？（微观信号）</li>
+</ul>
+
+<p>不需要人类标注每个步骤的奖励——系统自己从轨迹中挖掘。</p>
+
+<p><strong>推论</strong>：自闭环验证系统需要内置「事后归因」能力。当最终验证失败时，系统应该能回溯轨迹、定位失败点、把稀疏信号转化为可操作的步骤级反馈。这比设计更密集的奖励函数更重要。</p>
+
+<h2>启示五：「高效采样器」之争的深层含义</h2>
+
+<p>在上一篇文章中我们讨论了 Limit of RLVR 的核心发现：Base 模型的高 k 采样<strong>已经包含所有正确答案</strong>，RLVR 可能只是在压缩搜索空间。</p>
+
+<p>这对自闭环验证有直接推论：</p>
+
+<p><strong>如果 RLVR 只是压缩搜索空间</strong>：闭环的「改进」本质上是把模型已有的正确推理路径从「大海捞针」变成「唾手可得」。闭环没有创造新知识——它在<strong>压缩已有知识的搜索成本</strong>。</p>
+
+<p><strong>如果 RLVR 确实扩展了能力（SWE 场景更可能）</strong>：闭环通过结构化探索（guidance + 环境反馈）引导 Agent 进入 base 模型采样不到的区域。闭环真的在<strong>学习新东西</strong>。</p>
+
+<p><strong>推论</strong>：不能假设闭环一定会产生真正的能力增长。需要对照实验验证：闭环训练的 Agent 能否解决 base 模型通过任何采样策略都无法解决的问题？如果不能——闭环是压缩器，不是创造器。设计和评估自闭环系统时，必须区分这两种增益。</p>
+
+<h2>启示六：验证税的经济学约束</h2>
+
+<p>自闭环验证不是免费的。每轮训练需要：817 个环境 × G 个 rollout × 每次 15 轮工具调用 = <strong>数万次沙箱执行 + 测试运行</strong>。如果验证成本超过人工审核成本，闭环就失去了经济意义。</p>
+
+<p><strong>推论</strong>：自闭环验证需要「验证预算分配」策略：</p>
+
+<ul>
+<li><strong>简单任务轻验证</strong>：快速通过，低成本</li>
+<li><strong>高风险任务重验证</strong>：多维度检查，高投入</li>
+<li><strong>可疑结果深度验证</strong>：多轮交叉验证</li>
+</ul>
+
+<p>静态的「所有输出同样严格验证」在经济上不可持续。验证预算的智能分配是闭环工程化的关键设计维度。</p>
+
+<h2>启示七：验证信号的多样性是鲁棒性的来源</h2>
+
+<p>单一验证器 = 单点故障。Agent 学会绕过某一类验证（比如只通过单元测试但引入安全漏洞）后，闭环会<strong>强化</strong>这种行为——因为验证器给了奖励。</p>
+
+<p><a href="https://docs.nvidia.com/nemotron/latest/nemotron/super3/rl/rlvr.html">Nemotron 3 Super</a> 的多环境 RLVR 提供了方向：21 个环境 × 37 个数据集联合训练，覆盖数学、代码、安全、指令遵循、Agentic 任务——不同验证器互相制衡。</p>
+
+<p><strong>推论</strong>：自闭环验证需要<strong>对抗性验证多样性</strong>：</p>
+
+<ul>
+<li>单元测试（功能正确性）</li>
+<li>集成测试（组件交互）</li>
+<li>静态分析（安全漏洞、代码规范）</li>
+<li>行为测试（特定场景下的行为）</li>
+<li>对抗测试（刻意构造的边界情况）</li>
+<li>性能回归（不退化）</li>
+</ul>
+
+<p>维度越多，Agent 对单一指标的过拟合越难。</p>
+
+<h2>启示八：闭环的安全边界不可绕过</h2>
+
+<p>一个完全自主的闭环系统，如果验证器被欺骗，可能进入<strong>「自我强化错误」</strong>的恶性循环：</p>
+
+<pre><code>Agent 学会写「通过测试但实际错误」的代码
+→ 验证器给了奖励
+→ Agent 更擅长写这种代码
+→ 循环加剧
+→ 错误被固化进策略</code></pre>
+
+<p>这要求自闭环验证必须采用<strong>双层架构</strong>：</p>
+
+<ul>
+<li><strong>内层（闭环）</strong>：可进化、可学习的验证器——灵活但可被欺骗</li>
+<li><strong>外层（Harness）</strong>：不可绕过的安全/正确性硬约束——精简但不可变</li>
+</ul>
+
+<p>外层约束来自 Harness Engineering 的设计原则：规则即代码比自然语言指令更可靠。正如 Anthropic 在 2026 Agentic Coding Trends Report 中指出的：Agentic quality control becomes standard —— 但 quality control 本身需要对抗性思维。</p>
+
+<h2>成熟度阶梯：自闭环验证还有多远</h2>
+
+<table>
+<tr><th>层级</th><th>能力</th><th>当前状态</th><th>代表工作</th></tr>
+<tr><td><strong>L1</strong></td><td>测试驱动修复</td><td>✅ 已产品化</td><td>Claude Code, Codex CLI</td></tr>
+<tr><td><strong>L2</strong></td><td>自主测试生成</td><td>⚠️ 正在成熟</td><td>SAGA, TCGBench (NeurIPS 2025)</td></tr>
+<tr><td><strong>L3</strong></td><td>生成-验证协同进化</td><td>🔬 研究阶段</td><td>ReVeal (2025)</td></tr>
+<tr><td><strong>L4</strong></td><td>多轮信用分配</td><td>🔬 早期研究</td><td>GiGPO, μCODE (2025)</td></tr>
+<tr><td><strong>L5</strong></td><td><strong>完全自闭环</strong></td><td>❌ 未实现</td><td>——</td></tr>
+</table>
+
+<p>当前前沿在 L3-L4。L5 需要同时解决：验证器质量天花板、验证多样性、信用分配、安全约束——所有组件在一个闭环中协同工作，且<strong>验证器本身能自主进化</strong>。</p>
+
+<h2>核心张力</h2>
+
+<blockquote>闭环越封闭 → 越依赖验证器质量 → 验证器质量依赖人类设计 → 人类仍然在环外。
+<br><br>
+真正的自闭环需要打破这个悖论：让验证器本身进入进化循环。这是下一代 Harness Engineering 的核心命题。</blockquote>
+
+<p>Code Agent 的自闭环验证不仅仅是工程优化——它是 Agent 基础设施从「人类监督自动化」到「真正自主进化」的转折点。八条启示中，每一条都是一个开放研究问题。谁先系统性地回答这些问题，谁就能率先构建真正自我改进的代码 Agent 系统。</p>
+
+<h2>参考</h2>
+
+<ul>
+<li>《RLVR for Code Agents：当强化学习学会「自己批改作业」》— harryfan1985.github.io/agent_blog (2026)</li>
+<li>Agent-RLVR: Training Software Engineering Agents via Guidance and Environment Rewards — arXiv:2506.11425, Scale AI (2025)</li>
+<li>ReVeal: Self-Evolving Code Agents via Reliable Self-Verification — arXiv:2506.11442 (2025)</li>
+<li>GiGPO: Group-in-Group Policy Optimization for LLM Agent Training — NeurIPS 2025</li>
+<li>μCODE: Multi-Turn Code Generation Through Single-Step Rewards — ICML 2025</li>
+<li>Limit of RLVR — NeurIPS 2025, limit-of-rlvr.github.io</li>
+<li>\tool: Customizable Runtime Enforcement for Safe and Reliable LLM Agents — arXiv:2503.18666</li>
+<li>Nemotron 3 Super: Multi-Environment RLVR — NVIDIA Docs (2025)</li>
+<li>SAGA + TCGBench: Rethinking Verification for LLM Code Generation — NeurIPS 2025</li>
+<li>2026 Agentic Coding Trends Report — Anthropic (2026)</li>
+</ul>
+
+<h2>技术声明</h2>
+
+<p>本文为基于 Agent-RLVR 及相关研究的推断性分析。五级成熟度阶梯为本文提出的评估框架，非已有学术共识。「闭环是压缩器还是创造器」的二分法基于 Limit of RLVR 的实验发现推断至 SWE 场景，这一推论（⚠️）有待专门对照实验验证。自闭环验证的「双层架构」设计原则综合了 Harness Engineering 范式与 \tool 等运行时约束工作。GiGPO 和 μCODE 的机制描述基于各自论文的公开摘要。所有实验数据（9.4%→22.4% 等）均来自原始论文。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

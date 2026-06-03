@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta-Harness：当约束层学会自我进化 | Agent Blog</title>
+    <meta name="description" content="Harness 不再是静态约束层。Meta-Harness、HARBOR、Datadog 三条路径正在让 Harness 通过验证反馈自我优化。从 Bayesian 超参搜索到 Agent 驱动的源码级进化，再到生产遥测闭环——Harness 正在从「基础设施」变成「可优化的 ML 对象」。附 15 篇论文 + 13 ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Meta-Harness：当约束层学会自我进化">
+    <meta property="og:description" content="Harness 不再是静态约束层。Meta-Harness、HARBOR、Datadog 三条路径正在让 Harness 通过验证反馈自我优化。从 Bayesian 超参搜索到 Agent 驱动的源码级进化，再到生产遥测闭环——Harness 正在从「基础设施」变成「可优化的 ML 对象」。附 15 篇论文 + 13 ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 2, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Meta-Harness：当约束层学会自我进化</h1>
+                <div class="meta">
+                    <span class="date">June 2, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>从静态约束到可优化对象</h2>
+
+<blockquote>以往我们说「Harness 是 Agent 的约束层」——规则不可绕过，安全不可妥协。但 2026 年最前沿的问题是：<strong>如果 Harness 本身也能通过验证反馈自我进化呢？</strong></blockquote>
+
+<p>这不是哲学思辨。三篇 2026 年 3-4 月的新论文，加上 Datadog 的生产实践，正在把 Harness 从「静态基础设施」变成「可优化的 ML 对象」。</p>
+
+<p>本文是《<a href="https://harryfan1985.github.io/agent_blog/posts/rlvr-for-code-agents.html">RLVR for Code Agents</a>》和《<a href="https://harryfan1985.github.io/agent_blog/posts/agent-rlvr-agent.html">自闭环验证</a>》的续篇——当验证闭环已经建立，下一步自然就是：<strong>让 Harness 自身进入进化循环。</strong></p>
+
+<h2>背景：Harness 里有什么可优化的？</h2>
+
+<p>先明确定义。一个 Agent Harness 包含：</p>
+
+<ul>
+<li><strong>Context Compaction</strong>：何时压缩上下文、压缩到什么程度</li>
+<li><strong>Tool Caching</strong>：哪些工具调用结果可以缓存、缓存多久</li>
+<li><strong>Semantic Memory</strong>：记忆的存储粒度、检索策略</li>
+<li><strong>Trajectory Reuse</strong>：何时复用历史轨迹</li>
+<li><strong>Speculative Execution</strong>：预测性工具调用策略</li>
+<li><strong>Safety Constraints</strong>：运行时安全规则（如 \tool 的 DSL）</li>
+<li><strong>Verification Gates</strong>：编译检查、测试执行、性能回归的触发条件</li>
+<li><strong>Fallback Chains</strong>：模型降级、重试策略、超时处理</li>
+</ul>
+
+<p>每一个维度都是一个配置空间。手动调优在超过 5-10 个开关时就会失效——这正是 ML 优化的经典适用场景。</p>
+
+<h2>三条自优化路径</h2>
+
+<table>
+<tr><th>路径</th><th>方法</th><th>优化对象</th><th>代表工作</th></tr>
+<tr><td><strong>L1: 参数搜索</strong></td><td>Bayesian Optimization</td><td>Harness 配置参数</td><td>HARBOR (JPMC)</td></tr>
+<tr><td><strong>L2: 代码进化</strong></td><td>Agent 读写 Harness 源码</td><td>Harness 源代码</td><td>Meta-Harness</td></tr>
+<tr><td><strong>L3: 生产闭环</strong></td><td>遥测数据反馈驱动</td><td>验证规则 + 安全策略</td><td>Datadog 实践</td></tr>
+</table>
+
+<p>三条路径正交且互补：L1 调参、L2 改代码、L3 从生产环境学。</p>
+
+<h2>路径一：HARBOR — 把 Harness 调优变成 ML 问题</h2>
+
+<p><strong>HARBOR: Automated Harness Optimization</strong>（arXiv: 2604.20938），JPMorgan Chase，2026 年 4 月。</p>
+
+<p>首次将 harness 设计<strong>形式化为一阶 ML 问题</strong>：</p>
+
+<pre><code>约束噪声贝叶斯优化
+  ↓
+混合变量配置空间（连续参数 + 离散开关 + 类别选项）
+  ↓  
+成本异构（不同配置的 token 消耗不同）
+  ↓
+后验概率约束安全检查（不允许违反安全边界的配置）
+  ↓
+HARBOR 求解器：Block-additive SAAS surrogate + 多保真成本感知采集 + TuRBO trust regions</code></pre>
+
+<p><strong>核心贡献</strong>：</p>
+<ul>
+<li>手工调参经过 4 轮手动迭代，效果趋于饱和</li>
+<li>HARBOR 在同样的配置空间中持续发现更优解</li>
+<li>生产环境编码 Agent 的案例研究验证</li>
+</ul>
+
+<p>HARBOR 的本质是：将 harness 配置搜索视为<strong>安全约束下的混合变量黑盒优化</strong>。这与 RLVR 共享一个哲学前提——<strong>可验证的反馈信号可以驱动系统性搜索</strong>。</p>
+
+<h2>路径二：Meta-Harness — Agent 自己写自己的 Harness</h2>
+
+<p><strong>Meta-Harness: End-to-End Optimization of Model Harnesses</strong>（arXiv: 2603.28052），2026 年 3 月。</p>
+
+<p>HARBOR 优化的是参数；Meta-Harness 优化的是<strong>源代码</strong>。</p>
+
+<pre><code>搜索循环（Meta-Harness Loop）：
+
+1. Proposer Agent（Claude Code）读取文件系统
+   → 包含所有历史候选 harness 的完整源码 + 执行轨迹 + 评估分数
+
+2. Proposer 分析失败原因
+   → 可以追溯到具体哪行 harness 代码导致了哪个失败
+   → 而非从分数猜测
+
+3. Proposer 提出新 harness 变体
+   → 直接修改源码，提交为新的候选
+
+4. 在 held-out 任务集上评估
+   → 确保泛化性
+
+5. 日志写回文件系统
+   → 下一轮循环的上下文
+</code></pre>
+
+<p><strong>为什么这比超参搜索强？</strong></p>
+
+<table>
+<tr><th>方法</th><th>输入给优化器的信息</th><th>规模上限</th></tr>
+<tr><td>传统超参搜索</td><td>压缩后的分数向量</td><td>几十个标量</td></tr>
+<tr><td>GEPA / DSPy</td><td>自然语言反思</td><td>几千 token</td></tr>
+<tr><td><strong>Meta-Harness</strong></td><td><strong>完整源码 + 执行轨迹</strong></td><td><strong>每步 10M token</strong></td></tr>
+</table>
+
+<p>当优化器能读到「第 47 行的缓存策略导致第 3 轮工具调用返回了过期结果」，它就能提出针对性的源码级修改——这比任何标量反馈都精确。</p>
+
+<p><strong>实验结果</strong>：</p>
+<ul>
+<li>文本分类：+7.7 准确率点</li>
+<li>检索增强数学推理：+4.7 平均增益</li>
+<li>Agentic coding（TerminalBench-2）：超越手工 harness</li>
+</ul>
+
+<p>将 Meta-Harness 与 GEPA 类比：</p>
+
+<blockquote>GEPA 优化提示文本 → Meta-Harness 优化 harness 源码。<br>
+两者都是反思驱动的代码/文本空间进化。<br>
+区别：GEPA 操作几十行 prompt，Meta-Harness 操作几百行 harness 基础设施代码。</blockquote>
+
+<h2>路径三：Datadog — 让生产环境成为最终的验证器</h2>
+
+<p>2026 年，Datadog 公开了其「harness-first engineering」实践（Closing the verification loop）：</p>
+
+<pre><code>Agent 生成代码 → Harness 自动验证（沙箱） → 部署 → 生产遥测
+    ↑                                                          |
+    └──────── 如果发现问题，反馈更新 harness ──────────────────┘
+</code></pre>
+
+<p><strong>与纯沙箱验证的关键区别</strong>：</p>
+<ul>
+<li>沙箱告诉你「测试通过了」</li>
+<li>生产遥测告诉你「用户没报 bug」</li>
+<li><strong>后者是比单元测试更强的地面真值信号</strong></li>
+</ul>
+
+<p>Datadog 的实践要点：</p>
+<ul>
+<li><strong>Shadow mode</strong>：新 harness 规则先以只记录不拦截的方式运行</li>
+<li><strong>渐进式部署</strong>：验证无误后再启用拦截</li>
+<li><strong>生产信号回写</strong>：异常模式自动反馈到 harness 规则库</li>
+</ul>
+
+<p>这本质上是把 RLVR 的验证器从「沙箱单元测试」升级为「生产环境遥测」——信号更真实，但也更稀疏、更嘈杂。</p>
+
+<h2>核心约束：谁验证验证器？</h2>
+
+<p>三条路径都回避不了同一个问题：</p>
+
+<blockquote>Harness 可以自优化规则 → 但谁保证优化后的规则不会比优化前更差？</blockquote>
+
+<p><strong>三方共识：harness 自优化必须有一个不可自优化的外层。</strong></p>
+
+<table>
+<tr><th>方法</th><th>不可自优化的外层</th></tr>
+<tr><td>Meta-Harness</td><td><strong>Held-out 任务集</strong>：优化在搜索集上进行，验证在 held-out 集上——标准 ML 泛化保障</td></tr>
+<tr><td>HARBOR</td><td><strong>后验概率安全约束</strong>：优化算法不允许访问违反安全边界的配置区域</td></tr>
+<tr><td>Datadog</td><td><strong>Shadow mode + 渐进部署</strong>：新规则必须经过「只观察→软拦截→硬拦截」三级验证</td></tr>
+</table>
+
+<p>这与自闭环验证的双层架构设计完全一致：</p>
+
+<pre><code>内层（闭环）：可进化、可学习的 harness 规则
+外层（硬约束）：不可绕过的安全边界、held-out 验证集、部署策略</code></pre>
+
+<p>外层约束精简但不可变，内层验证灵活但可被欺骗——两者互补。</p>
+
+<h2>与系列前文的连接</h2>
+
+<p>本系列三篇文章形成一个完整的链条：</p>
+
+<pre><code>第一篇（RLVR）:  Agent 如何学会「自己批改作业」
+    ↓ 训练信号驱动
+第二篇（自闭环验证）: Agent 如何形成无人类参与的验证闭环
+    ↓ 验证闭环成熟后
+第三篇（本文）: Harness 如何通过验证反馈自我进化
+</code></pre>
+
+<p><strong>三者统一 = 代码 Agent 完全自主进化的终极形态</strong>：</p>
+
+<ul>
+<li>RLVR 提供「做对了没」的训练信号</li>
+<li>自闭环验证提供「怎么验证」的自动化基础设施</li>
+<li>Harness 自优化提供「用什么规则约束」的持续进化机制</li>
+</ul>
+
+<p>2026 年的范式转变可以概括为一句话：</p>
+
+<blockquote>Harness 本身从「静态基础设施」变成「可优化的 ML 对象」。<br>
+Prompt Engineering → Context Engineering → Harness Engineering → <strong>Meta-Harness Engineering</strong></blockquote>
+
+<h2>成熟度阶梯</h2>
+
+<table>
+<tr><th>层级</th><th>能力</th><th>代表</th><th>状态</th></tr>
+<tr><td>L1</td><td>手工 Harness 调优</td><td>所有 Agent 产品</td><td>✅ 主流</td></tr>
+<tr><td>L2</td><td>自动化超参搜索</td><td>HARBOR (JPMC)</td><td>✅ 生产中</td></tr>
+<tr><td>L3</td><td>Agent 驱动源码级搜索</td><td>Meta-Harness</td><td>🔬 研究</td></tr>
+<tr><td>L4</td><td>生产遥测驱动闭环</td><td>Datadog</td><td>⚠️ 早期实践</td></tr>
+<tr><td>L5</td><td>完全自优化 Harness</td><td>—</td><td>❌ 未实现</td></tr>
+</table>
+
+<h2>Top 论文清单</h2>
+
+<h3>Harness 自优化（核心）</h3>
+
+<table>
+<tr><th>论文</th><th>出处</th><th>核心贡献</th></tr>
+<tr><td><strong>Meta-Harness: End-to-End Optimization of Model Harnesses</strong></td><td>arXiv: 2603.28052 (2026.03)</td><td>Agent 驱动源码级 harness 搜索。Proposer 读完整历史源码+轨迹，每步 10M token 上下文。+7.7 分类 / +4.7 推理</td></tr>
+<tr><td><strong>HARBOR: Automated Harness Optimization</strong></td><td>arXiv: 2604.20938 (2026.04), JPMC</td><td>首次形式化 harness 调优为约束噪声 BO 问题。混合变量 + 安全约束 + 多保真采集。生产编码 Agent 案例</td></tr>
+</table>
+
+<h3>Agent Harness 基础理论与综述</h3>
+
+<table>
+<tr><th>论文</th><th>出处</th><th>核心贡献</th></tr>
+<tr><td><strong>Agent Harness for Large Language Model Agents: A Survey</strong></td><td>Preprints 2026.04</td><td>首个 Agent Harness 系统性综述。任务分解、结构化记忆、技能表示、上下文检索、奖励设计全覆盖</td></tr>
+<tr><td><strong>Agent Systems with Harness Engineering</strong></td><td>RUCAIBox, 2026</td><td>将 Harness Engineering 形式化为学科。可控消融实验、六大发现、结构化自然语言控制逻辑</td></tr>
+</table>
+
+<h3>相关范式（上下游连接）</h3>
+
+<table>
+<tr><th>论文</th><th>出处</th><th>核心贡献</th></tr>
+<tr><td><strong>Agent-RLVR</strong></td><td>arXiv: 2506.11425, Scale AI</td><td>Guidance + Environment Reward。Qwen-72B SWE-bench 9.4%→22.4%</td></tr>
+<tr><td><strong>ReVeal</strong></td><td>arXiv: 2506.11442</td><td>生成-验证协同进化。多轮自验证 + 密集奖励</td></tr>
+<tr><td><strong>Tree-GRPO</strong></td><td>ICLR 2026, Alibaba</td><td>树搜索 rollout，1/4 预算超越链式 GRPO</td></tr>
+<tr><td><strong>R³L</strong></td><td>arXiv: 2601.03715</td><td>反思-重试 RL：诊断失败→从失败点重启。5-52% 相对提升</td></tr>
+<tr><td><strong>GiGPO</strong></td><td>NeurIPS 2025</td><td>双层优势：Episode 级 + 步骤级锚点分组</td></tr>
+</table>
+
+<h3>Harness 组件专项</h3>
+
+<table>
+<tr><th>论文</th><th>出处</th><th>核心贡献</th></tr>
+<tr><td><strong>\tool</strong></td><td>arXiv: 2503.18666</td><td>DSL 运行时约束。阻止 >90% 代码 Agent 不安全执行</td></tr>
+<tr><td><strong>SAGA + TCGBench</strong></td><td>NeurIPS 2025</td><td>人-LLM 协作测试生成。Verifier Accuracy +10.78%</td></tr>
+<tr><td><strong>SWE-MiniSandbox</strong></td><td>arXiv: 2602.11210</td><td>无容器 RL 训练沙箱。磁盘 5%、时间 25%</td></tr>
+</table>
+
+<h2>Top 开源项目清单</h2>
+
+<h3>Harness 优化 / 搜索框架</h3>
+
+<table>
+<tr><th>项目</th><th>链接</th><th>机构</th><th>核心能力</th></tr>
+<tr><td><strong>Meta-Harness</strong></td><td><a href="https://yoonholee.com/meta-harness">yoonholee.com/meta-harness</a></td><td>学术</td><td>Agent 驱动 harness 源码级搜索。Claude Code Proposer + 文件系统历史</td></tr>
+<tr><td><strong>HARBOR</strong></td><td>arXiv: 2604.20938</td><td>JPMC</td><td>约束噪声 BO harness 优化器。SAAS surrogate + TuRBO</td></tr>
+</table>
+
+<h3>RL 训练基础设施</h3>
+
+<table>
+<tr><th>项目</th><th>链接</th><th>Stars</th><th>核心能力</th></tr>
+<tr><td><strong>verl</strong></td><td><a href="https://github.com/verl-project/verl">verl-project/verl</a></td><td>~8k+</td><td>字节跳动：最主流 LLM RL 训练库。2026 新增多轮 Agentic RL</td></tr>
+<tr><td><strong>OpenRLHF</strong></td><td><a href="https://github.com/OpenRLHF/OpenRLHF">OpenRLHF/OpenRLHF</a></td><td>~5k+</td><td>Ray + vLLM。简洁易用。支持 GRPO/DPO/PPO</td></tr>
+<tr><td><strong>ROLL</strong></td><td><a href="https://github.com/alibaba/ROLL">alibaba/ROLL</a></td><td>~2k+</td><td>阿里：高效易用 RLVR 扩展库</td></tr>
+<tr><td><strong>Trinity-RFT</strong></td><td><a href="https://github.com/agentscope-ai/Trinity-RFT">agentscope-ai/Trinity-RFT</a></td><td>新</td><td>通用 RFT 框架。GRPO + 异步 + off-policy + 离线</td></tr>
+</table>
+
+<h3>SWE Agent 专项</h3>
+
+<table>
+<tr><th>项目</th><th>链接</th><th>Stars</th><th>核心能力</th></tr>
+<tr><td><strong>SWE-RL</strong></td><td><a href="https://github.com/facebookresearch/swe-rl">facebookresearch/swe-rl</a></td><td>~1.5k+</td><td>Meta NeurIPS'25：首个规模化 SWE RL。从软件演化数据学习</td></tr>
+<tr><td><strong>SWE-MiniSandbox</strong></td><td><a href="https://github.com/lblankl/SWE-MiniSandbox">lblankl/SWE-MiniSandbox</a></td><td>新</td><td>无容器 SWE RL 沙箱。磁盘 5%、时间 25%</td></tr>
+<tr><td><strong>Live-SWE-agent</strong></td><td><a href="https://github.com/OpenAutoCoder/live-swe-agent">OpenAutoCoder/live-swe-agent</a></td><td>新</td><td>首个运行时自进化 SWE Agent。79.2% Verified / 45.8% Pro</td></tr>
+<tr><td><strong>MARTI</strong></td><td><a href="https://github.com/TsinghuaC3I/MARTI">TsinghuaC3I/MARTI</a></td><td>503</td><td>清华：多 Agent RL。v2 树搜索 MARS²</td></tr>
+<tr><td><strong>SWE-ReX</strong></td><td><a href="https://github.com/SWE-agent/SWE-ReX">SWE-agent/SWE-ReX</a></td><td>502</td><td>大规模并行沙箱代码执行</td></tr>
+<tr><td><strong>Tree-GRPO</strong></td><td><a href="https://github.com/AMAP-ML/Tree-GRPO">AMAP-ML/Tree-GRPO</a></td><td>新</td><td>阿里 ICLR'26：树搜索替代链式 rollout</td></tr>
+</table>
+
+<h3>Harness 工程资源索引</h3>
+
+<table>
+<tr><th>项目</th><th>链接</th><th>内容</th></tr>
+<tr><td><strong>awesome-agent-harness</strong></td><td><a href="https://github.com/RUCAIBox/awesome-agent-harness">RUCAIBox/awesome-agent-harness</a></td><td>Agent Harness 论文/项目系统性索引</td></tr>
+<tr><td><strong>awesome-RLVR</strong></td><td><a href="https://github.com/opendilab/awesome-RLVR">opendilab/awesome-RLVR</a></td><td>RLVR 论文/项目/博客全索引</td></tr>
+<tr><td><strong>Awesome-LLM-RLVR</strong></td><td><a href="https://github.com/smiles724/Awesome-LLM-RLVR">smiles724/Awesome-LLM-RLVR</a></td><td>持续更新的 LLM RLVR 论文列表</td></tr>
+</table>
+
+<h2>技术声明</h2>
+
+<p>Meta-Harness 和 HARBOR 的技术细节基于其 arXiv 论文摘要及公开分析。Meta-Harness 的实验数据（+7.7 / +4.7 / 10M token 等）来自 alphaXiv 和 Hugging Face 的分析文章。HARBOR 的 JPMC 生产案例基于论文公开信息，具体实现细节未公开。Datadog 的 harness-first engineering 实践基于其 2026 年工程博客。Agent Harness Survey 的内容来自 Preprints 公开摘要。所有开源项目的 star 数为 2026 年 6 月近似值。</p>
+
+<p>「Harness 自优化的三层不可绕过外层」框架为本文提出的分析框架（⚠️），基于 Meta-Harness/HARBOR/Datadog 三方设计模式的归纳。四阶段演进（Prompt → Context → Harness → Meta-Harness）为基于 2026 年研究趋势的推断。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
