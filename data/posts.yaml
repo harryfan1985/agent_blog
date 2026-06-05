@@ -1,4 +1,100 @@
 posts:
+- title: 当 Coding AI 用得太好，IDE 被撑破了——Agent 注意力的下一个界面
+  date: June 5, 2026
+  excerpt: 100 个并行 Agent session 创造了任何聊天框（或人类）都无法承载的认知负荷。下一个界面应该是管理委托 Agent 的画布——基于
+    AHE 的 Decision Observability、RAMP 的评估思维、和 Attention Budget 的信号路由。附带一个 12-session
+    的可交互 Canvas demo。
+  content: "<p>我有一个越来越强烈的预感：下一代 Agent 的界面，不会是更好的聊天框。</p>\n\n<h2>IDE 被撑破的那一天</h2>\n\
+    \n<p>Coding AI 太好用了——好到我们让它在后台跑 100 个并行 session。一个在修 parser，一个在调 IR optimize，一个在改\
+    \ shell tool 的超时参数，还有 97 个在做它们各自的事。</p>\n\n<p>然后 IDE 撑破了。不是内存溢出——是<strong>人类的注意力溢出</strong>。100\
+    \ 个 session = 100 个 chatbox = 100 个需要你逐个检入的对话线程。你变成了瓶颈——不是你没能力审查，而是串行界面让你无法同时看见全局和局部。</p>\n\
+    \n<p>这是个信息架构问题，不是 UI 美化问题。</p>\n\n<h2>不是拍脑袋：四篇论文铺的路</h2>\n\n<p>这个问题不是凭空想出来的。过去几个月我们密集分析了四篇\
+    \ arXiv 论文，它们从不同角度指向同一个结论：<strong>Agent 系统的瓶颈正在从模型能力转移到人类的注意力管理。</strong></p>\n\
+    \n<h3>Code as Agent Harness (2605.18747)</h3>\n\n<p>39 位作者的综述论文，提出了一个核心命题：代码不是\
+    \ Agent 的输出产物，而是 Agent 推理、行动、验证的<strong>操作基底</strong>（operational substrate）。其中\
+    \ §5.2.1 明确指出，现有 benchmark 评估的不足之一是无法衡量 Harness 层面的可靠性；§5.2.5 提出了一个关键主张——\"人类反馈不应是一次性\
+    \ prompt 打断，而应是<strong>持久 Harness 状态</strong>\"。</p>\n\n<p>这句话是本文所有推演的起点。如果人的反馈要成为持久状态，那\"\
+    人什么时候应该介入\"就不能靠自觉——必须有一个系统来分配注意力。</p>\n\n<h3>Agentic Harness Engineering (2604.25850)</h3>\n\
+    \n<p>复旦大学团队提出的 AHE 框架，用三个可观测性支柱让 Harness 组件（tools/middleware/memory/system prompt）自主进化。其中最精妙的是第三根支柱——<strong>Decision\
+    \ Observability</strong>。</p>\n\n<p>每次 Harness 编辑附带一个 Change Manifest：</p>\n<pre><code>{\n\
+    \  \"id\": \"chg-3\",\n  \"failure_pattern\": \"evaluator closure not triggered\
+    \ before submit\",\n  \"predicted_fixes\": [\"T3-ir-generation\", \"T4-ir-optimize\"\
+    ],\n  \"risk_tasks\": [\"T5-asm-generate\"],\n  \"constraint_level\": \"middleware\"\
+    \n}</code></pre>\n<p>下一轮实测验证。修复预测命中则保留；无效则 git revert 文件级回滚。</p>\n\n<p>这个设计的精妙之处在于：<strong>它把每次编辑变成了可证伪的合同</strong>——不是\"\
+    我觉得这样更好\"，而是\"我预测任务 A/B 会被修复，任务 C 有风险，下一轮见分晓\"。</p>\n\n<p>但论文也暴露了一个致命盲区：修复预测精度\
+    \ 33.7%（~5x random），而<strong>回归预测精度仅 11.8%（~2x random）</strong>。Agent 能论证\"为什么这个修改应该有效\"\
+    ，但<strong>几乎无法预见哪些任务会被它意外破坏</strong>。论文将此称为 Regression Blindness——自进化循环的最大瓶颈。</p>\n\
+    \n<h3>RAMP (2605.27492)</h3>\n\n<p>中山大学团队用编译器构造的 6 阶段串行依赖链测试了 15 个顶级模型。结果令人警醒：T0（环境搭建）全满分，到\
+    \ T4（IR 优化）全线崩溃，<strong>0 个模型完成全部 6 阶段管线</strong>。推理成本跨度 2,525 倍。论文的核心论点是：benchmark\
+    \ 分数 ≠ 生产环境能力——你需要运行时评估。</p>\n\n<p>RAMP 还提供了量化思维：AEI (Agent Efficiency Index)\
+    \ 把时间、成本、token 和 reward 归一化到一个 [0,100] 的标尺上。Opus-4.7 的 MR 最高（93.39），但 AEI 仅 40.00；GPT-5.5\
+    \ 的 MR 只有 65.91，AEI 却高达 81.57——因为它用极低的资源消耗获取了可观的进展。</p>\n\n<p>这个思维移植到注意力管理上：<strong>高\
+    \ impact 但高注意力消耗的编辑未必是最优选择</strong>。</p>\n\n<h3>SkillRevise (2606.01139)</h3>\n\
+    \n<p>HKUST 团队提出的 Skill 自动修正框架，通过 Diagnosis → Principle Memory → Execution-Anchored\
+    \ Revision → Utility-Gated Selection 的闭环，在 SkillsBench 上将 GPT-5.5 从 36.05% 提升到\
+    \ 61.63%。它的 Utility-Gated Selection 机制——<code>arg max U(S,T)</code> 而非最后生成版本——为注意力分配中的优先级选择提供了方法论基础。</p>\n\
+    \n<h2>三层跃迁</h2>\n\n<p>这四篇论文串联出一个清晰的范式迁移：</p>\n\n<blockquote>\n<p><strong>Transformer\
+    \ 注意力（Token Attention）→ 上下文注意力（Context Attention）→ 人类注意力（Human Attention）</strong></p>\n\
+    </blockquote>\n\n<p>资源从 GPU flops → context window → human cognitive budget 逐层上移。每一层都比上一层更稀缺。</p>\n\
+    \n<h2>Attention Budget 的介入</h2>\n\n<p>当 100 个并行 session 每个都在产出 Change Manifest，问题就不再是\"\
+    这个编辑对不对\"——而是<strong>\"100 个编辑，人应该看哪一个\"</strong>。</p>\n\n<p>Attention Budget\
+    \ 的定义：<strong>人类在单次审查周期内可分配的最大审查容量（N decisions）</strong>。系统在此预算内按 impact/risk/novelty/confidence\
+    \ 四维评分分配优先级。</p>\n\n<p>关键设计：risk 权重 > impact 权重。因为 Regression Blindness 告诉我们——Agent\
+    \ 看不见的破坏比看得见的修复更需要人的注意力。即使 risk_tasks 只标记 1 个任务，blindness_penalty 也会把编辑推到队列顶部。</p>\n\
+    \n<p>反直觉效果：Evolve Agent 有动力做高影响编辑——微调一个修复 2 个任务的 prompt 不值得消耗 1/5 的注意力预算。</p>\n\
+    \n<h2>画布，不是聊天框</h2>\n\n<p>Chatbox 的隐含假设是人串行消费信息——逐个阅读、逐个回复、逐个推进。但人类的视觉注意力需要<strong>外周视野</strong>（peripheral\
+    \ vision）来建立全局模型。你需要同时看到全局拓扑、优先级队列、和当前决策的上下文——三种尺度同时可见。</p>\n\n<p>这就是 Agent Attention\
+    \ Canvas 的三层结构：</p>\n\n<h3>Layer 1: Topology View（拓扑视图）</h3>\n<p>12 个 Agent session\
+    \ 的依赖图。每个节点显示 session ID、task name、attention score（红/黄/绿热力图）。依赖边显示上下游关系。你不需要推理依赖——你看到一根红线从\
+    \ middleware chg-3 的节点连到所有 risk_tasks 标记的下游 session。</p>\n\n<h3>Layer 2: Attention\
+    \ Queue（注意力队列）</h3>\n<p>按 score 降序排列的 card 列表。前 5 个在 budget boundary 上方（可审查），之后的半透明\
+    \ deferred。每个 card 包含 session 身份、active edits 数量、failure pattern、评分维度。不展示对话内容——因为你还不需要看内容。你需要先决定<strong>值得看哪个</strong>。</p>\n\
+    \n<h3>Layer 3: Decision Surface（决策面）</h3>\n<p>点击任意 card → 底部展开审查面板。三栏：Edit Details（修改了什么组件/文件）、Predicted\
+    \ Impact（predicted_fixes + risk_tasks + 下游影响链）、Metrics（Tokens/Cost/AEI + [Approve]\
+    \ [Reject+Rollback] [Defer] 三个操作）。审查不丢失上下文——左侧 Topology View 和右上 Attention Queue\
+    \ 始终可见。</p>\n\n<h2>Demo：12 个 Agent Session 的注意力画布</h2>\n\n<p>我们实现了一个可交互的 HTML\
+    \ 原型，模拟 12 个 Agent session 在编译器构造管线上的并行执行（任务数据基于 AHE 的 Terminal-Bench 2 场景）：</p>\n\
+    \n<ul>\n<li><strong>S-042 (parser-ast)</strong>：score 0.92，blocked。2 个 active\
+    \ edits——chg-3 修改 middleware 的 finish-hook，predicted_fixes 包含 IR generation 和\
+    \ IR optimize，risk_tasks 标记了 asm generate。上游依赖 S-040 和 S-041，下游阻塞 S-045 和 S-047。</li>\n\
+    <li><strong>S-044 (ir-optimize)</strong>：score 0.87，running。chg-1 修改 tool_impl\
+    \ 的 shell timeout，predicted_fixes 包含 IR optimize 和 IR generation，但 risk_tasks\
+    \ 同时标记了 env-setup 和 parser——这是 Regression Blindness 的典型例子：修复超时可能意外影响环境初始化和解析逻辑。</li>\n\
+    <li><strong>S-045 (asm-generate)</strong>：score 0.82，waiting（被上游 S-042 阻塞）。chg-9\
+    \ 是一个 rollback——上一轮的 publish-state guard 在 Hard 任务上提前关闭了 loop，本轮回退。</li>\n</ul>\n\
+    \n<p>Attention Queue 里 7 个有 active edits 的 session 按 score 排序。Budget boundary\
+    \ 设在 5——第 6、7 个自动 deferred，等下一轮审查周期。</p>\n\n<p>点击 S-042 → 底部展开 Decision Surface：三栏显示\
+    \ edit diff 描述、predicted/actual 对比、AEI 指标 + 三个操作按钮。点击 [Reject+Rollback] → session\
+    \ 状态更新为 blocked，节点变红，消失在下游的依赖链中。</p>\n\n<p>Demo 已开源在项目 Wiki 中。核心代码 ~350 行 HTML/CSS/JS。</p>\n\
+    \n<h2>这个架构为什么是对的</h2>\n\n<p><strong>同时可见。</strong> Chatbox 一次只能看到一个会话。Canvas 同时显示\
+    \ 100 个 Attention Card 的拓扑分布。你在点击任何一个之前就知道哪个需要看——Router 给了 score，热力图给了颜色，依赖线给了上下文。</p>\n\
+    \n<p><strong>关系显式。</strong> session-042 写了一个 middleware 修复，session-045 的 IR generation\
+    \ 依赖 042 的输出产物（RAMP 的串行依赖），session-047 又和 042 共享同一个 tool implementation。Chatbox\
+    \ 让你看到\"042 做了 chg-3\"，但你看不到这个修改在下游的连锁反应。Canvas 的拓扑视图把这一切显式化了。</p>\n\n<p><strong>上下文不中断。</strong>\
+    \ 你在 Decision Surface 审查 diff 时，左侧的 Topology View 和右上角的 Attention Queue 仍然可见。你的心理模型没有断裂——这和\
+    \ Agent 系统的 session 上下文连续性是一脉相承的。</p>\n\n<p><strong>指挥官模式。</strong> Chatbox 是\"\
+    100 个士兵排队汇报，第 17 个说完你忘了第 3 个说了什么\"。Canvas 是\"指挥官看战术地图——扫视全局 → 发现异常聚集区 → 放大决策 →\
+    \ 回到全局\"。</p>\n\n<h2>从信号到路由</h2>\n\n<p>回顾完整链路：</p>\n\n<blockquote>\n<p>Code as\
+    \ Agent Harness §5.2.5 → 人类反馈应是持久 Harness 状态<br>\nAHE Decision Observability →\
+    \ 每次编辑是可证伪合同<br>\nAHE Regression Blindness → 回归预测几乎随机，是最大盲区<br>\nRAMP AEI → 效用不能只看\
+    \ reward，要看 cost/benefit<br>\nAttention Budget → 100 个 manifest，人只看 5 个<br>\n\
+    Agent Attention Canvas → 三层视图承载全局 × 队列 × 决策</p>\n</blockquote>\n\n<p>每一步都在解决上一层的剩余问题。</p>\n\
+    \n<h2>边界条件</h2>\n\n<ul>\n<li><strong>Canvas 不是 orchestrator。</strong> 它不调度 Agent\
+    \ 执行。它只管理人类注意力。</li>\n<li><strong>Canvas 不替代审查。</strong> 它决定\"什么时候看什么\"，不替代人的判断。</li>\n\
+    <li><strong>Canvas 离线仍有效。</strong> 所有决策记录为可审计的状态转换（AHE 的 git history + 人的 approve/reject\
+    \ 事件）。</li>\n<li><strong>私密性。</strong> Canvas 只显示 score 驱动的优先级，不暴露其他 session 的具体内容——直到人主动点开\
+    \ Decision Surface。</li>\n</ul>\n\n<h2>下一步</h2>\n\n<p>Attention Router 的评分算法——impact/risk/novelty/confidence\
+    \ 的权重分配——目前是基于推演的经验值。需要实证校准。但我们已经有 AHE 的数据（fix precision 33.7%, regression precision\
+    \ 11.8%）作为先验，RAMP 的 AEI 作为 utility 维度，SkillRevise 的 Utility-Gated Selection 作为选择策略。</p>\n\
+    \n<p>这不是\"更好的聊天界面\"的讨论。这是一个新信息架构的设计任务。</p>\n\n<p>Agent 是要被<strong>管理</strong>的，不是要被<strong>对话</strong>的。Chatbox\
+    \ 是为对话设计的。Canvas 是为管理设计的。</p>\n\n<hr>\n<h2>参考</h2>\n<ul>\n<li>Ning et al. (2026).\
+    \ <em>Code as Agent Harness</em>. arXiv:2605.18747.</li>\n<li>Lin et al. (2026).\
+    \ <em>Agentic Harness Engineering (AHE)</em>. arXiv:2604.25850.</li>\n<li>Ouyang\
+    \ et al. (2026). <em>RAMP</em>. arXiv:2605.27492.</li>\n<li>Liu et al. (2026).\
+    \ <em>SkillRevise</em>. arXiv:2606.01139.</li>\n</ul>\n\n<p style=\"margin-top:\
+    \ 40px; color: var(--text-dim); font-size: 13px;\"><strong>技术声明</strong>：本文中的\
+    \ Agent Attention Canvas 架构和 Attention Budget 概念为作者基于上述四篇论文加上工程直觉推导的原创框架。Canvas\
+    \ demo 为概念验证原型，非生产级实现。论文中的研究数据均来自 arXiv 公开预印本。所有引用均为来源确认事实。</p>"
 - title: 自动化 NO：Artur Huk 的 Agent 治理三部曲与 DIR 运行时深度分析
   date: June 4, 2026
   slug: huk-agent-governance-trilogy
