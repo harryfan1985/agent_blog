@@ -65,13 +65,15 @@ posts:
     \n<p>Attention Queue 里 7 个有 active edits 的 session 按 score 排序。Budget boundary\
     \ 设在 5——第 6、7 个自动 deferred，等下一轮审查周期。</p>\n\n<p>点击 S-042 → 底部展开 Decision Surface：三栏显示\
     \ edit diff 描述、predicted/actual 对比、AEI 指标 + 三个操作按钮。点击 [Reject+Rollback] → session\
-    \ 状态更新为 blocked，节点变红，消失在下游的依赖链中。</p>\n\n<p>Demo 已开源在项目 Wiki 中。核心代码 ~350 行 HTML/CSS/JS。</p>\n\
-    \n<h2>这个架构为什么是对的</h2>\n\n<p><strong>同时可见。</strong> Chatbox 一次只能看到一个会话。Canvas 同时显示\
-    \ 100 个 Attention Card 的拓扑分布。你在点击任何一个之前就知道哪个需要看——Router 给了 score，热力图给了颜色，依赖线给了上下文。</p>\n\
-    \n<p><strong>关系显式。</strong> session-042 写了一个 middleware 修复，session-045 的 IR generation\
-    \ 依赖 042 的输出产物（RAMP 的串行依赖），session-047 又和 042 共享同一个 tool implementation。Chatbox\
-    \ 让你看到\"042 做了 chg-3\"，但你看不到这个修改在下游的连锁反应。Canvas 的拓扑视图把这一切显式化了。</p>\n\n<p><strong>上下文不中断。</strong>\
-    \ 你在 Decision Surface 审查 diff 时，左侧的 Topology View 和右上角的 Attention Queue 仍然可见。你的心理模型没有断裂——这和\
+    \ 状态更新为 blocked，节点变红，消失在下游的依赖链中。</p>\n\n<p>Demo 以 MIT 协议开源。核心代码 ~350 行 HTML/CSS/JS。</p>\n\
+    \n<p><a href=\"/images/attention-canvas/agent-attention-canvas-demo.html\" download><strong>\U0001F4E5\
+    \ 下载 Demo（12KB HTML）</strong></a> — 在浏览器中直接打开，无需服务器。</p>\n\n<h2>这个架构为什么是对的</h2>\n\
+    \n<p><strong>同时可见。</strong> Chatbox 一次只能看到一个会话。Canvas 同时显示 100 个 Attention Card\
+    \ 的拓扑分布。你在点击任何一个之前就知道哪个需要看——Router 给了 score，热力图给了颜色，依赖线给了上下文。</p>\n\n<p><strong>关系显式。</strong>\
+    \ session-042 写了一个 middleware 修复，session-045 的 IR generation 依赖 042 的输出产物（RAMP\
+    \ 的串行依赖），session-047 又和 042 共享同一个 tool implementation。Chatbox 让你看到\"042 做了 chg-3\"\
+    ，但你看不到这个修改在下游的连锁反应。Canvas 的拓扑视图把这一切显式化了。</p>\n\n<p><strong>上下文不中断。</strong> 你在\
+    \ Decision Surface 审查 diff 时，左侧的 Topology View 和右上角的 Attention Queue 仍然可见。你的心理模型没有断裂——这和\
     \ Agent 系统的 session 上下文连续性是一脉相承的。</p>\n\n<p><strong>指挥官模式。</strong> Chatbox 是\"\
     100 个士兵排队汇报，第 17 个说完你忘了第 3 个说了什么\"。Canvas 是\"指挥官看战术地图——扫视全局 → 发现异常聚集区 → 放大决策 →\
     \ 回到全局\"。</p>\n\n<h2>从信号到路由</h2>\n\n<p>回顾完整链路：</p>\n\n<blockquote>\n<p>Code as\
