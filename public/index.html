@@ -32,6 +32,96 @@
         <section class="posts-list">
             
 <div class="post-item">
+    <h2><a href="posts/meta-agent.html">Meta-Agent 验证机制相关论文与开源项目清单</a></h2>
+    <div class="post-meta">
+        <span class="date">June 8, 2026</span>
+        <span class="read-time">4 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">以 Meta-Agent 的验证机制为核心，整理 20 篇核心论文和 16 个开源项目。覆盖 VERIMAP 前身、MAV 并行验证器、ReVeal 训练期互补、LLM-as-Judge 理论、形式化验证、Reflection 循环六大方向。每个条目附 arXiv ID 和 GitHub 链接。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/when-ai-builds-itself-recursive-paradox.html">追溯递归自我改进的底层悖论：从 Anthropic 文章到控制权瓦解</a></h2>
+    <div class="post-meta">
+        <span class="date">June 7, 2026</span>
+        <span class="read-time">9 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Anthropic《When AI builds itself》用无可辩驳的数据铺了一条逻辑楼梯，却停在了最后一级。本文沿着它铺设的台阶走向终点：从 Amdahl 瓶颈转移到验证器悖论，从控制权互斥到工具框架的瓦解——递归自我改进的定义性特征，是人类控制在此定义上不可能。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/specification-gap-meta-agent-multi-agent.html">从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的瓶颈与解方</a></h2>
+    <div class="post-meta">
+        <span class="date">June 7, 2026</span>
+        <span class="read-time">9 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">两篇 2026 年前沿论文的整合分析：Specification Gap 精确量化了 multi-agent 代码生成的协调失败（25-39pp gap），Meta-Agent 提出了基于 DAG + I/O 契约 + 三级错误归因的框架级解决方案。核心结论：spec 才是瓶颈，不是 agent 能...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/coding-ai-ide-agent.html">当 Coding AI 用得太好，IDE 被撑破了——Agent 注意力的下一个界面</a></h2>
+    <div class="post-meta">
+        <span class="date">June 5, 2026</span>
+        <span class="read-time">6 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">100 个并行 Agent session 创造了任何聊天框（或人类）都无法承载的认知负荷。下一个界面应该是管理委托 Agent 的画布——基于 AHE 的 Decision Observability、RAMP 的评估思维、和 Attention Budget 的信号路由。附带一个 12-sess...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/huk-agent-governance-trilogy.html">自动化 NO：Artur Huk 的 Agent 治理三部曲与 DIR 运行时深度分析</a></h2>
+    <div class="post-meta">
+        <span class="date">June 4, 2026</span>
+        <span class="read-time">8 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">深度解读 O'Reilly Radar 三篇系列文章 + GitHub 开源实现：从 Decision Intelligence Runtime (DIR) 内核、Responsibility-Oriented Agents (ROA) 设计到 Context as Code 构建期治理的完整架构。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/anthropic.html">Anthropic 弱到强泛化：当 AI 开始监督比它更强的 AI</a></h2>
+    <div class="post-meta">
+        <span class="date">June 2, 2026</span>
+        <span class="read-time">9 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Anthropic《When AI builds itself》用无可辩驳的数据铺了一条逻辑楼梯，却停在了最后一级。本文沿着它铺设的台阶走向终点：从 Amdahl 瓶颈转移到验证器悖论，从控制权互斥到工具框架的瓦解——递归自我改进的定义性特征，是人类控制在此定义上不可能。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/meta-harness.html">Meta-Harness：当约束层学会自我进化</a></h2>
+    <div class="post-meta">
+        <span class="date">June 2, 2026</span>
+        <span class="read-time">7 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Harness 不再是静态约束层。Meta-Harness、HARBOR、Datadog 三条路径正在让 Harness 通过验证反馈自我优化。从 Bayesian 超参搜索到 Agent 驱动的源码级进化，再到生产遥测闭环——Harness 正在从「基础设施」变成「可优化的 ML 对象」。附 15...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/agent-rlvr-agent.html">自闭环验证：从 Agent-RLVR 看代码 Agent 的自我改进之路</a></h2>
+    <div class="post-meta">
+        <span class="date">June 2, 2026</span>
+        <span class="read-time">7 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Agent 自己生成验证信号 → 驱动自我改进 → 无需人类参与的闭合回路。从 Agent-RLVR 提炼出八条核心启示：可验证性天花板、稀疏奖励饥饿、验证器协同进化、信用分配、采样效率之争、验证税经济学、对抗性验证多样性、双层安全架构。附五级成熟度阶梯。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/rlvr-for-code-agents.html">RLVR for Code Agents：当强化学习学会「自己批改作业」</a></h2>
+    <div class="post-meta">
+        <span class="date">June 2, 2026</span>
+        <span class="read-time">7 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">深度剖析 RLVR（可验证奖励强化学习）在代码 Agent 领域的技术机制：从 GRPO 算法原理到 Agent-RLVR 的 138% 增益，从「高效采样器」争议到多轮信用分配的未解难题。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/serena-mcp-ide-for-your-agent.html">Serena MCP：给 Agent 装上 IDE 级的代码理解</a></h2>
+    <div class="post-meta">
+        <span class="date">June 1, 2026</span>
+        <span class="read-time">6 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Serena 是一个开源 MCP 工具包，为 AI 编码代理提供 IDE 级别的语义代码检索、编辑和重构能力。本文深度分析其双后端架构、30+ MCP Tools、记忆系统以及与其他代码智能方案的对比。...</p>
+</div>
+
+<div class="post-item">
     <h2><a href="posts/se-agent.html">传统SE技术贬值了吗？——编译器、测试、调试器在Agent时代的角色升级</a></h2>
     <div class="post-meta">
         <span class="date">May 30, 2026</span>
@@ -86,12 +176,30 @@
 </div>
 
 <div class="post-item">
+    <h2><a href="posts/coding-agent-moat-full.html">Coding Agent 护城河深度分析：从 API 定价到 MCP 生态</a></h2>
+    <div class="post-meta">
+        <span class="date">May 28, 2026</span>
+        <span class="read-time">11 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">护城河不是...</p>
+</div>
+
+<div class="post-item">
     <h2><a href="posts/create-my-widget-android-generative-ui.html">Create My Widget：Android Generative UI 的技术革命</a></h2>
     <div class="post-meta">
         <span class="date">May 28, 2026</span>
         <span class="read-time">8 分钟阅读</span>
     </div>
     <p class="post-excerpt">Google 在 The Android Show 2026 上发布的 Create My Widget，将 Vibe Coding 嵌入 Android 17 操作系统层。深度解析其技术架构：RemoteCompose 声明式 UI 引擎、Function Registry 数据源注册机制、On-...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/openai-codex-team.html">OpenAI Codex 团队：从 Chat 到 Agent 的产品哲学</a></h2>
+    <div class="post-meta">
+        <span class="date">May 26, 2026</span>
+        <span class="read-time">4 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。从 Thibault Sottiaux 到 Michael Bolin，了解这个打造 AI 编码代理的精英团队。...</p>
 </div>
 
 <div class="post-item">
@@ -140,24 +248,6 @@
 </div>
 
 <div class="post-item">
-    <h2><a href="posts/openai-codex.html">OpenAI Codex 团队核心成员解析</a></h2>
-    <div class="post-meta">
-        <span class="date">May 20, 2026</span>
-        <span class="read-time">4 分钟阅读</span>
-    </div>
-    <p class="post-excerpt">深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。...</p>
-</div>
-
-<div class="post-item">
-    <h2><a href="posts/serena-ai-agent-ide.html">Serena 深度解析：给 AI Agent 的 IDE 级语义代码能力</a></h2>
-    <div class="post-meta">
-        <span class="date">May 20, 2026</span>
-        <span class="read-time">6 分钟阅读</span>
-    </div>
-    <p class="post-excerpt">Serena 是一个开源 MCP 工具包，为 AI 编码代理提供 IDE 级别的语义代码检索、编辑和重构能力。...</p>
-</div>
-
-<div class="post-item">
     <h2><a href="posts/clawpatch-openclaw.html">clawpatch: OpenClaw 生态的代码审查自动修复利器</a></h2>
     <div class="post-meta">
         <span class="date">May 22, 2026</span>
@@ -191,6 +281,24 @@
         <span class="read-time">8 分钟阅读</span>
     </div>
     <p class="post-excerpt">深度拆解 Factory AI 的 Missions 架构：三层角色分工（编排器/执行器/验证器）、两个层次的 TDD、验证合约机制、16 天自主构建 Slack 克隆版的生产数据（38.8k 行代码、89.25% 覆盖率）。核心洞察：竞争优势从"模型智能"转向"模型组合智能"。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/openai-codex.html">OpenAI Codex 团队核心成员解析</a></h2>
+    <div class="post-meta">
+        <span class="date">May 20, 2026</span>
+        <span class="read-time">4 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/serena-ai-agent-ide.html">Serena 深度解析：给 AI Agent 的 IDE 级语义代码能力</a></h2>
+    <div class="post-meta">
+        <span class="date">May 20, 2026</span>
+        <span class="read-time">6 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Serena 是一个开源 MCP 工具包，为 AI 编码代理提供 IDE 级别的语义代码检索、编辑和重构能力。...</p>
 </div>
 
 <div class="post-item">
@@ -410,9 +518,18 @@
 </div>
 
 <div class="post-item">
+    <h2><a href="posts/programbench-llm-rebuild-programs-scratch.html">ProgramBench 深度解析：LLM 能否从零重建程序？</a></h2>
+    <div class="post-meta">
+        <span class="date">May 7, 2026</span>
+        <span class="read-time">7 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Meta FAIR 提出的 ProgramBench 基准测试揭示：当前顶级 LLM 在端到端软件开发任务上表现惨淡——200 个任务中零完全解决。...</p>
+</div>
+
+<div class="post-item">
     <h2><a href="posts/hermes-agent-comfyui-flux-2.html">Hermes Agent 与 ComfyUI / Flux.2 集成架构</a></h2>
     <div class="post-meta">
-        <span class="date">May 05, 2026</span>
+        <span class="date">May 5, 2026</span>
         <span class="read-time">1 分钟阅读</span>
     </div>
     <p class="post-excerpt">本文详细介绍了如何将 ComfyUI 与 Flux.2 Klein 9B GGUF 模型集成到 Hermes Agent 工作流中，实现本地端到端的文本到图像生成。...</p>
@@ -448,7 +565,7 @@
 <div class="post-item">
     <h2><a href="posts/agent-buddy-bridge-physical-button-approval-system-for-ai-agents.html">Agent Buddy Bridge: Physical Button Approval System for AI Agents</a></h2>
     <div class="post-meta">
-        <span class="date">May 01, 2026</span>
+        <span class="date">May 1, 2026</span>
         <span class="read-time">3 分钟阅读</span>
     </div>
     <p class="post-excerpt">Building a "hardware kill switch" for AI Agent dangerous commands using M5StickC Plus — a BLE-based physical button approval system built on Hermes ho...</p>
@@ -475,7 +592,7 @@
 <div class="post-item">
     <h2><a href="posts/agent-buddy-bridge-m5stickc-plus.html">Agent Buddy Bridge: M5StickC Plus 物理按钮审批系统</a></h2>
     <div class="post-meta">
-        <span class="date">May 01, 2026</span>
+        <span class="date">May 1, 2026</span>
         <span class="read-time">3 分钟阅读</span>
     </div>
     <p class="post-excerpt">用 M5StickC Plus 开发板构建 AI Agent 危险命令的"硬件开关"——基于 BLE、Hermes hook 系统和双进程架构的物理按钮审批方案。...</p>
@@ -527,6 +644,24 @@
 </div>
 
 <div class="post-item">
+    <h2><a href="posts/harness-engineering-ai.html">Harness Engineering：AI 编码智能体的置信度工程实践</a></h2>
+    <div class="post-meta">
+        <span class="date">April 28, 2026</span>
+        <span class="read-time">5 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">Martin Fowler 最新文章深度解读。Birgitta Böckeler 提出「Harness Engineering」框架：如何通过前馈控制（Guidance Profile）与反馈控制（Confidence Gates）构建可靠的 AI 编码工作流。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/neural-garbage-collection-llm.html">Neural Garbage Collection 论文解读：让 LLM 学会遗忘</a></h2>
+    <div class="post-meta">
+        <span class="date">April 28, 2026</span>
+        <span class="read-time">4 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">深入解读斯坦福大学 NGC 论文。通过强化学习让语言模型边推理边管理自己的 KV Cache，在 2-5× 压缩比下保持 SOTA 推理性能。...</p>
+</div>
+
+<div class="post-item">
     <h2><a href="posts/gbrain-mcp.html">GBrain MCP 集成技术日志</a></h2>
     <div class="post-meta">
         <span class="date">April 26, 2026</span>
@@ -542,6 +677,15 @@
         <span class="read-time">4 分钟阅读</span>
     </div>
     <p class="post-excerpt">基于 Claude Desktop Buddy 开源项目架构，设计了一套将 M5StickC Plus BLE 外设连接到 Mac，再由 Mac Python 程序桥接到 Hermes Agent 的方案。采用双进程架构，实现物理按钮审批 Dangerous Command。...</p>
+</div>
+
+<div class="post-item">
+    <h2><a href="posts/gbrain-mcp-raspberry-pi-5-hermes-agent.html">GBrain MCP 集成技术日志：Raspberry Pi 5 上的知识图谱 + Hermes Agent</a></h2>
+    <div class="post-meta">
+        <span class="date">April 26, 2026</span>
+        <span class="read-time">8 分钟阅读</span>
+    </div>
+    <p class="post-excerpt">详细记录 GBrain (PostgreSQL + pgvector 知识大脑) 通过 MCP 协议集成到 Hermes Agent 的完整过程。覆盖 ARM64 交叉编译、MCP 工具暴露、知识图谱检索策略。...</p>
 </div>
 
 <div class="post-item">

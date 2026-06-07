@@ -146,11 +146,20 @@ def generate_post(post):
 
 def generate_static_files():
     output_dir = Path(__file__).parent / "public"
-    # Clean stale files from previous generation
+    # Preserve generated cover images across rebuilds
     import shutil
+    images_src = output_dir / "images"
+    images_backup = None
+    if images_src.exists():
+        import tempfile
+        images_backup = Path(tempfile.mkdtemp()) / "images"
+        shutil.copytree(images_src, images_backup)
     if output_dir.exists():
         shutil.rmtree(output_dir)
     output_dir.mkdir(exist_ok=True)
+    if images_backup and images_backup.exists():
+        shutil.copytree(images_backup, output_dir / "images")
+        shutil.rmtree(images_backup.parent)
     (output_dir / "posts").mkdir(exist_ok=True)
 
     styles_src = Path(__file__).parent / "styles.css"

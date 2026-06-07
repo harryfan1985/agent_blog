@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的瓶颈与解方 | Agent Blog</title>
+    <meta name="description" content="两篇 2026 年前沿论文的整合分析：Specification Gap 精确量化了 multi-agent 代码生成的协调失败（25-39pp gap），Meta-Agent 提出了基于 DAG + I/O 契约 + 三级错误归因的框架级解决方案。核心结论：spec 才是瓶颈，不是 agent 能力。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的瓶颈与解方">
+    <meta property="og:description" content="两篇 2026 年前沿论文的整合分析：Specification Gap 精确量化了 multi-agent 代码生成的协调失败（25-39pp gap），Meta-Agent 提出了基于 DAG + I/O 契约 + 三级错误归因的框架级解决方案。核心结论：spec 才是瓶颈，不是 agent 能力。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 7, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的瓶颈与解方</h1>
+                <div class="meta">
+                    <span class="date">June 7, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p><img src="https://harryfan1985.github.io/agent_blog/images/specification-gap-meta-agent-multi-agent/cover.png" alt="从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的" style="max-width:100%;border-radius:8px;margin:1rem 0;"></p><h2>雇了两个顶级程序员，为什么代码反而更差了？</h2>
+
+<p>想象这个场景：你接手一个新项目，决定雇两个资深工程师来加速开发。你把需求文档发给他们，然后各自分配了类的一半方法。两人分别提交代码后，你兴冲冲地合并——然后测试炸了。</p>
+
+<p>排查了一下午，你发现了什么？</p>
+<ul>
+  <li>工程师 A 用 <code>dict</code> 存 portfolio，工程师 B 却当成 <code>list</code> 来遍历</li>
+  <li>A 写的是 <code>self.items</code>，B 读取的是 <code>self._items</code></li>
+  <li>B 调用了 <code>self.validate()</code>，但 A 从未实现这个方法</li>
+</ul>
+
+<p>你困惑了：两人的代码单独看都写得很好，为什么合在一起就完全不可用？</p>
+
+<p>这不是虚构。这就是 <strong>2026 年 3 月一篇论文用 100 个实验任务、4 个 spec 级别、两种 Claude 模型和三趟独立运行精确量化出来的真实场景</strong>。两个月后，另一篇论文提出了解决方案。</p>
+
+<p>两篇论文构成了一对完美的"问题-方案"组合——本文将其整合分析。</p>
+
+<h2>第一幕：问题的精确量化</h2>
+
+<h3>论文：The Specification Gap（Camili Chacón Sartori, 2026.03）</h3>
+
+<p>实验设计简洁而有力。从 ClassEval 选取 100 个 Python 类实现任务，构建四个 spec 完整度级别：</p>
+
+<ul>
+  <li><strong>L0</strong>：完整 <code>__init__</code>（含字段类型）+ 完整方法文档</li>
+  <li><strong>L1</strong>：完整 <code>__init__</code> + 部分文档</li>
+  <li><strong>L2</strong>：仅 skeleton + 稀疏文档</li>
+  <li><strong>L3</strong>：仅 skeleton，无任何文档</li>
+</ul>
+
+<p>在每个级别，分别用单个 agent 实现完整类（baseline），和两个 agent 各实现一半方法后 naive merge（实验组）。<strong>关键操作：在 split agent 条件下，<code>__init__</code> body 被清空——两个 agent 必须各自独立决定内部数据结构。</strong>这正是 spec 不完整时真实发生的场景。</p>
+
+<p>结果令人震惊：</p>
+
+<table>
+  <tr><th>Spec 级别</th><th>Single Agent</th><th>Split (2 agents)</th><th>协调损失</th></tr>
+  <tr><td>L0（完整）</td><td>89%</td><td>58%</td><td>-31pp</td></tr>
+  <tr><td>L1</td><td>81%</td><td>46%</td><td>-35pp</td></tr>
+  <tr><td>L2</td><td>72%</td><td>38%</td><td>-34pp</td></tr>
+  <tr><td>L3（最小）</td><td>56%</td><td>25%</td><td>-31pp</td></tr>
+</table>
+
+<p>三条关键发现：</p>
+
+<ol>
+  <li><strong>即使在 L0（最完整 spec），两个 agent 合作仍比一人差 31 个百分点。</strong>协调本身有不可消除的成本。</li>
+  <li><strong>Spec 质量下降时，split agents 崩溃更快。</strong>L3 只剩 25%（单人是 56%）。</li>
+  <li><strong>这个 25-39pp 的 gap 跨模型一致。</strong>Sonnet 和 Haiku 表现一致，3 次独立运行稳定——是结构性缺陷，不是随机波动。</li>
+</ol>
+
+<p>论文进一步将 gap 分解为两个<strong>独立且近似可加</strong>的因子：</p>
+
+<ul>
+  <li><strong>协调成本（+16pp）</strong>：纯粹因为需要两人达成一致而产生的额外失败——即便看到完全相同的信息</li>
+  <li><strong>信息不对称（+11pp）</strong>：因为各自只实现部分方法，看到类的不同"侧面"</li>
+</ul>
+
+<p><strong>这意味着：即使消除信息不对称（让两人看到完全相同的内容），仍有约 16pp 的固有协调成本无法消除。</strong>这不是"沟通不够好"的问题——是架构层的根本缺陷。</p>
+
+<p>论文还开发了一套 AST 级冲突检测器，能在合并代码前静态发现 5 类隐性冲突：Type Conflict（list vs dict）、State Conflict（字段名不一致）、Return Type Conflict、Protocol Conflict（调用不存在的方法）、Missing Dependency。在 L3 spec 下，检测到的冲突数远超测试失败数——<strong>大量冲突在 merge 阶段被静默忽略，但会在运行时以难以调试的方式爆发</strong>。</p>
+
+<p>核心结论：<strong>更丰富的 specification 既是主要的协调机制，也是充分的恢复工具。</strong>不是 agent 不够聪明——是 spec 给了它们太多"发明空间"。</p>
+
+<h2>第二幕：框架级的解决方案</h2>
+
+<h3>论文：Meta-Agent（Andy Xu, Yu-Wing Tai, Dartmouth College, 2026.05）</h3>
+
+<p>如果说 Specification Gap 论文精确诊断了病因，那 Meta-Agent 就是在开药方。</p>
+
+<p>Meta-Agent 是一个<strong>两阶段框架</strong>，能自动从自然语言任务描述构建并执行可验证的 multi-agent 系统。核心范式转变：<strong>把 multi-agent 系统本身当作动态生成和验证的工件</strong>，而非固定或手工设计的架构。</p>
+
+<p><strong>Phase 1 — Construction（构造）</strong></p>
+
+<p>输入自然语言任务描述 T，输出一个完整的 agent 系统蓝图：</p>
+
+<ol>
+  <li><strong>Task Planning</strong>：Task Planner 将 T 分解为 DAG G=(V,E)，每个节点 aᵢ 是一个 agent specification，<strong>明确标注 I/O 契约</strong>（精确的输入输出类型和结构）和<strong>验证条件 Cᵢ</strong></li>
+  <li><strong>Grounding</strong>：Web Search Module 为每个 agent spec 搜索外部证据（API 文档等），在<strong>设计阶段</strong>就将知识嵌入 agent 的 system prompt</li>
+  <li><strong>Code Generation</strong>：根据 grounded spec 生成每个 agent 的 prompt 和 tool 配置</li>
+  <li><strong>Construction-Time Verification</strong>：两重检查——<strong>静态验证</strong>（代码结构是否 well-formed、接口是否完整）和 <strong>行为验证</strong>（verifier model 模拟执行，在代表性输入上检查输出是否满足 I/O 契约）。失败时返回<strong>类型化失败信号</strong>（specification mismatch / grounding failure / contract violation），精确路由到负责的上游阶段进行针对性再生。</li>
+</ol>
+
+<p><strong>Phase 2 — Execution（执行）</strong></p>
+
+<p>Coordinator 按拓扑顺序调度 agent（依赖满足即执行），In-memory Context Store 路由中间输出。每个 agent aᵢ 输出 yᵢ 后，立即通过验证门控 yᵢ ∈ Cᵢ。通过→传递给下游；失败→触发<strong>三级错误归因</strong>：</p>
+
+<table>
+  <tr><th>错误级别</th><th>定义</th><th>恢复策略</th><th>代价</th></tr>
+  <tr><td>Local Error</td><td>aᵢ 收到正确输入但输出错误</td><td>重试 aᵢ + verifier 反馈</td><td>最小</td></tr>
+  <tr><td>Upstream Error</td><td>失败源于依赖 agent 的错误输出</td><td>定位并重执行责任上游→再重试 aᵢ</td><td>中等</td></tr>
+  <tr><td>Structural Error</td><td>任务分解本身有问题</td><td>部分重执行或重新分解 DAG</td><td>最大</td></tr>
+</table>
+
+<p>这比简单的"失败就重试"精确得多——<strong>它诊断根因，执行最小代价恢复</strong>。</p>
+
+<p>实验结果（6 个 benchmark，GPT-4o-mini executor）：</p>
+
+<table>
+  <tr><th>Benchmark</th><th>Meta-Agent</th><th>AFlow</th><th>Δ</th></tr>
+  <tr><td>DROP</td><td>82.7</td><td>80.6</td><td>+2.1</td></tr>
+  <tr><td>HumanEval</td><td>96.0</td><td>94.7</td><td>+1.3</td></tr>
+  <tr><td>HotpotQA</td><td>69.5</td><td>73.5</td><td>-4.0</td></tr>
+  <tr><td>MBPP</td><td>84.6</td><td>83.4</td><td>+1.2</td></tr>
+  <tr><td>GSM8K</td><td>93.7</td><td>93.5</td><td>+0.2</td></tr>
+  <tr><td><strong>MATH</strong></td><td><strong>69.6</strong></td><td>56.2</td><td><strong>+13.4</strong></td></tr>
+  <tr><td><strong>Average</strong></td><td><strong>82.7</strong></td><td>80.3</td><td><strong>+2.4</strong></td></tr>
+</table>
+
+<p>关键发现：</p>
+
+<ul>
+  <li>平均+2.4 points over AFlow（最强的 multi-agent baseline）</li>
+  <li>推理越重的任务收益越大：MATH 数据集 <strong>+13.4 points</strong></li>
+  <li>消融实验：移除 verification gates → DROP 上 <strong>-7.1 points</strong>；移除 grounding → <strong>-5.5 points</strong></li>
+  <li>Executor 无关：GPT-4o-mini 和 Claude Sonnet 4 上均一致优于 baseline——收益来自架构设计，而非特定模型能力</li>
+</ul>
+
+<h2>X 光透视：两篇论文的互补关系</h2>
+
+<p>这两篇论文是同一个问题的不同切面：</p>
+
+<table>
+  <tr><th>维度</th><th>Specification Gap</th><th>Meta-Agent</th></tr>
+  <tr><td>方法论</td><td>实验驱动：精心设计对照实验，量化 gap</td><td>系统构建：提出框架，解决 gap</td></tr>
+  <tr><td>核心洞察</td><td>spec 不足时，agent 会各自"发明共享现实"，围绕发明协调</td><td>通过在 construction 阶段就生成 I/O 契约 + verification criteria 来<strong>预防</strong> gap</td></tr>
+  <tr><td>Gap 定位</td><td>事后诊断：gap = 协调成本 + 信息不对称</td><td>事前预防：DAG + explicit contracts + verification gates</td></tr>
+  <tr><td>关键数字</td><td>Coordination cost ~16pp, Information asymmetry ~11pp</td><td>Verification 贡献 7.1pp, Grounding 贡献 5.5pp</td></tr>
+  <tr><td>验证机制</td><td>AST 静态分析（零 LLM 成本）</td><td>Construction-time + execution-time 双重验证</td></tr>
+</table>
+
+<p><strong>Spec Gap 告诉你"为什么会失败"以及"失败有多严重"；Meta-Agent 告诉你"怎么在框架层面预防这些失败"。</strong>两者的数字甚至互相印证：Meta-Agent 消融实验中 verification 的贡献（7.1pp）和 grounding 的贡献（5.5pp），恰好覆盖了 Spec Gap 分解出的信息不对称（~11pp）的大部分——而协调成本（~16pp）则需要 Meta-Agent 的 DAG 拓扑调度 + I/O 契约来系统性地压缩。</p>
+
+<h2>对工程实践的三个结论</h2>
+
+<p><strong>1. Spec 是最高杠杆的投资。</strong>Spec Gap 论文证明，同样的 agent，从 L3 升级到 L0 spec，split-agent 的通过率从 25% 翻倍到 58%。这不是靠换模型实现的——是靠写更好的 spec。你在 spec 上花的每一分钟，都在消除后续昂贵的协调失败。</p>
+
+<p><strong>2. 验证必须是一等公民，不能是事后检查。</strong>Meta-Agent 的 -7.1pp 消融结果说明，没有 verification 的 multi-agent 系统本质上是脆弱的。验证不是"锦上添花"——它是系统可靠性的基石。</p>
+
+<p><strong>3. 在 spec 不完整时，用两个 agent 可能比用一个更差。</strong>这不是直觉。两个 agent 在 L3 下的 25% 远低于单个 agent 的 56%。在你决定"并行加速"之前，先问自己：<strong>spec 是否足够完整，让两个 agent 不需要各自"发明"共享约定？</strong></p>
+
+
+<h2>深入：Meta-Agent 的验证机制如何工作？（基于论文全文）</h2>
+
+<p>上一节提到 Meta-Agent 的 verification gates 贡献了 7.1pp，error attribution 实现了最小代价恢复。在获取论文全文（32页）后，这一节基于一手资料精确还原其验证机制——包含之前分析中需要修正的细节。</p>
+
+<h3>统一验证循环：Generate → Verify → Attribute → Refine</h3>
+
+<p>论文 Section 3.2 定义的核心公式。这不是两种独立的验证机制——<strong>是同一个闭环在构造期和执行期两个阶段被分别应用</strong>：</p>
+
+<pre><code>Generate → Verify → Attribute → Refine
+   ↑                              │
+   └──────────────────────────────┘
+</code></pre>
+
+<h3>构造期验证：两重检查 + 类型化失败路由</h3>
+
+<p>设 σᵢ 为 agent aᵢ 的 specification，âᵢ 为其生成的实现。构造期验证确保 âᵢ 满足 σᵢ，通过<strong>两重互补检查</strong>：</p>
+
+<ol>
+  <li><strong>静态验证（Static verification）</strong>：验证代码结构是否 well-formed，接口是否完整，能否无运行时错误地实例化</li>
+  <li><strong>行为验证（Behavioral verification）</strong>：verifier model <strong>模拟执行</strong> âᵢ，在代表性输入上检查输出是否满足声明的 I/O 契约和行为断言</li>
+</ol>
+
+<p><strong>关键创新——不是简单的 pass/fail</strong>：验证返回一个<strong>类型化失败信号</strong> f ∈ F，其中失败类型集合 F = {specification mismatch, grounding failure, contract violation}。每种失败类型<strong>精确路由</strong>到负责的上游阶段：</p>
+
+<table>
+  <tr><th>失败类型</th><th>路由目标</th><th>恢复动作</th></tr>
+  <tr><td>specification mismatch</td><td>Task Planner</td><td>修订 agent specification σᵢ</td></tr>
+  <tr><td>grounding failure</td><td>Web Search Module</td><td>重新执行知识检索</td></tr>
+  <tr><td>contract violation</td><td>Task Decomposition</td><td>修订任务分解/DAG 结构</td></tr>
+</table>
+
+<p>这比博客之前引述的 VERIMAP 三种验证器分类（BaseVerifier/StructuredVerifier/AgentVerifier）更精确——Meta-Agent 使用的是<strong>统一 verifier model + typed routing</strong>，而非三种独立的验证器类型。</p>
+
+<h3>执行期验证：yᵢ ∈ Cᵢ</h3>
+
+<p>每个 agent aᵢ 的输出 yᵢ 在被传递给下游之前，verifier 检查 <strong>yᵢ ∈ Cᵢ</strong>，其中 Cᵢ 编码三类约束：</p>
+
+<ul>
+  <li><strong>Schema constraints</strong>（结构约束）</li>
+  <li><strong>Behavioral assertions</strong>（行为断言）</li>
+  <li><strong>Forbidden patterns</strong>（禁止模式）</li>
+</ul>
+
+<p>失败 → 不传播到下游 → 立即触发恢复。</p>
+
+<h3>三级错误归因：论文运行示例</h3>
+
+<p>论文 Section 3.3 提供了一个 function-completion 任务的完整示例。4 个 agent 组成 DAG：Spec Analyst → Strategy Planner → Code Synthesizer → Code Verifier。每个 agent 有显式 I/O 契约（如 Synthesizer 契约要求：exact input signature + verbatim docstring + guard clause for every planned edge case）。</p>
+
+<p>三级归因的实际触发条件：</p>
+
+<table>
+  <tr><th>场景</th><th>归因</th><th>恢复</th></tr>
+  <tr><td>Synthesizer 用了 ≤ — Analyst 从未标记 strict inequality</td><td><strong>Upstream</strong></td><td>重跑 Analyst + feedback → 重试 Synthesizer</td></tr>
+  <tr><td>Analyst 标记了但 Synthesizer 忽略了</td><td><strong>Local</strong></td><td>Synthesizer 本地重试 + verifier feedback</td></tr>
+  <tr><td>Planner 选了不兼容算法（排序破坏对顺序）</td><td><strong>Structural</strong></td><td>重新调用 Planner</td></tr>
+  <tr><td>没有现有 agent 能解决问题</td><td><strong>Structural</strong></td><td>Coordinator 重新规划相关子图</td></tr>
+</table>
+
+<h3>实验结果（完整 6-benchmark 数据）</h3>
+
+<table>
+  <tr><th>Benchmark</th><th>Meta-Agent</th><th>AFlow</th><th>Δ</th></tr>
+  <tr><td>DROP</td><td>82.7</td><td>80.6</td><td>+2.1</td></tr>
+  <tr><td>HumanEval</td><td>96.0</td><td>94.7</td><td>+1.3</td></tr>
+  <tr><td>HotpotQA</td><td>69.5</td><td>73.5</td><td>-4.0</td></tr>
+  <tr><td>MBPP</td><td>84.6</td><td>83.4</td><td>+1.2</td></tr>
+  <tr><td>GSM8K</td><td>93.7</td><td>93.5</td><td>+0.2</td></tr>
+  <tr><td>MATH</td><td>69.6</td><td>56.2</td><td>+13.4</td></tr>
+  <tr><td><strong>Average</strong></td><td><strong>82.7</strong></td><td>80.3</td><td><strong>+2.4</strong></td></tr>
+</table>
+
+<p>唯一未超过 AFlow 的 benchmark 是 HotpotQA（-4.0），论文对此未专门解释。推理越重的任务收益越大（MATH +13.4），代码生成接近天花板。消融实验完整数据：移除 verification −7.1，移除 API research −5.5，移除 planning −3.5，移除 prompt analysis −2.4。</p>
+
+<h3>与其他验证工作的关系对比</h3>
+
+<table>
+  <tr><th>维度</th><th>VERIMAP</th><th>Meta-Agent（实际）</th></tr>
+  <tr><td>验证器类型</td><td>三种独立类型（Base/Structured/Agent）</td><td>统一 verifier model + typed routing</td></tr>
+  <tr><td>构造期验证</td><td>无（仅执行期）</td><td>静态 + 行为双重检查</td></tr>
+  <tr><td>失败分类</td><td>pass/fail</td><td>F = {spec mismatch, grounding failure, contract violation}</td></tr>
+  <tr><td>恢复路由</td><td>重试 agent</td><td>Typed routing → 精确定位责任阶段</td></tr>
+  <tr><td>运行示例</td><td>无</td><td>4-agent DAG 完整 trace</td></tr>
+</table>
+
+<p><strong>核心区别</strong>：VERIMAP 的验证是"分类别的"（三种验证器类型），Meta-Agent 的验证是"按失败原因路由的"（统一验证器 + typed failure signal）。后者更接近生产系统的可观测性设计——不是问"用哪种验证器"，而是问"失败的原因是什么，该找谁修复"。</p>
+
+<h3>实践启示（更新）</h3>
+
+<ol>
+  <li><strong>验证器的返回值应该包含根因信息，不只是 pass/fail</strong>：Meta-Agent 的 typed failure signal 是其最被低估的设计。你的验证器不该只说"错了"，应该说"因为规范不匹配，去找 Planner"。</li>
+  <li><strong>构造期验证 + 类型化路由 ≈ 编译器设计哲学</strong>：静态检查 + 行为模拟 + 精确错误定位 → 这正是编译器的前端设计。Meta-Agent 本质上是把 agent 系统当作一个"待编译的程序"。</li>
+  <li><strong>消融实验的 −7.1 是移除整个 verification 模块</strong>——包括构造期和执行期。这意味着 verification 的 7.1pp 贡献是两者之和，无法拆分出各自占比。</li>
+  <li><strong>6 个 benchmark 中唯一输给 AFlow 的是 HotpotQA</strong>：说明当前的任务分解策略在需要多跳信息检索的任务上仍有优化空间。</li>
+</ol>
+<h2>延伸阅读：核心支撑论文</h2>
+
+<h3>Spec-Driven 与 Multi-Agent 验证</h3>
+
+<ol>
+  <li><strong>Camili Chacón Sartori (2026).</strong> <em>The Specification Gap: Coordination Failure Under Partial Knowledge in Code Agents.</em> arXiv:2603.24284. — <strong>实验精确量化了 multi-agent 代码生成的核心瓶颈不是协调协议，而是 spec 完整性。</strong>将 gap 分解为协调成本（+16pp）和信息不对称（+11pp），两者独立且可加。代码开源：camilochs/the_specification_gap。</li>
+
+  <li><strong>Andy Xu, Yu-Wing Tai (2026).</strong> <em>Meta-Agent: From Task Descriptions to Verified Multi-Agent Systems.</em> arXiv:2605.25233. — <strong>这就是 Spec Gap 论文所呼唤的解决方案的工程实现。</strong>两阶段框架：construction phase 自动从 NL 描述构建含 I/O 契约和验证条件的 DAG agent 图，execution phase 在验证门控下调度执行，三级错误归因实现最小代价恢复。</li>
+
+  <li><strong>GitHub (2026).</strong> <em>Spec Kit Agents: Context-Grounded Agentic Workflows.</em> arXiv:2604.05278. — 在 Spec Kit 的 SDD 四阶段流水线上增加 context-grounding 层，PM+Developer 双 agent 角色。与 Meta-Agent 共享"在设计阶段就锚定上下文"的理念。</li>
+</ol>
+
+<h3>Multi-Agent 架构与验证</h3>
+
+<ol start="4">
+  <li><strong>VERIMAP (2025).</strong> <em>Verification-Aware Planning for Multi-Agent Systems.</em> EACL 2026 / arXiv:2510.17109. — Plan → Execute → Verify 循环的早期探索，Meta-Agent 吸收了其 verification gate 思想。</li>
+
+  <li><strong>Constitutional Spec-Driven Development (2026).</strong> <em>Enforcing Security by Construction in AI-Assisted Code Generation.</em> arXiv:2602.02584. — 将安全约束嵌入 spec 层，"secure by construction"而非事后检查。与 Meta-Agent 的"验证前置"哲学一致。</li>
+
+  <li><strong>The Orchestration of Multi-Agent Systems (2026).</strong> <em>Architectures, Protocols, and Enterprise Adoption.</em> arXiv:2601.13671. — 统一架构框架（planning + policy + state + quality 四层），MCP + A2A 协议的深度技术分析。</li>
+</ol>
+
+<h3>开源工具</h3>
+
+<ol start="7">
+  <li><strong>GitHub Spec Kit.</strong> github/spec-kit. MIT 许可证。Agent 无关的 SDD 工具包，Specify → Plan → Tasks → Implement 四阶段流水线。支持 12+ coding agent。</li>
+
+  <li><strong>BMAD Method.</strong> bmad-code-org/BMAD-METHOD. 最完整的开源 SDD 框架（V6），虚拟 AI 开发团队（Architect/PM/Developer/QA），scale-adaptive 智能。</li>
+</ol>
+
+<p>两篇论文共同指向同一个未来：<strong>multi-agent 系统的可靠性不在于 agent 本身有多聪明，而在于我们给它们提供了多好的"契约"——specification 作为可执行的、可验证的、活的约束，而非一次性写完后就被遗忘的文档。</strong></p>
+
+<h2>技术声明</h2>
+
+<p>本文分析基于 arXiv 摘要、Semantic Scholar API、论文开源代码仓库（github.com/camilochs/the_specification_gap）及第三方解读的综合信息。Specification Gap 论文的方法论细节来自其 GitHub 仓库的 Python 实验脚本直接阅读；Meta-Agent 论文全文因网络限制未直接获取，部分细节（如 DAG 构造算法、验证函数类型系统）来自摘要和第三方 review 的间接引用。两篇论文均为 2026 年发表（3 月和 5 月），属于当前前沿，尚未经同行评审。Meta-Agent 论文目前未被引用，实验结果的独立复现尚未公开。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
