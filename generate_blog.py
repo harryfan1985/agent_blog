@@ -146,6 +146,10 @@ def generate_post(post):
 
 def generate_static_files():
     output_dir = Path(__file__).parent / "public"
+    # Clean stale files from previous generation
+    import shutil
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
     output_dir.mkdir(exist_ok=True)
     (output_dir / "posts").mkdir(exist_ok=True)
 
