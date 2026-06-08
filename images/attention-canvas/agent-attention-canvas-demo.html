@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Attention Canvas — Demo</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --text-bright: #f0f6fc;
+    --accent: #58a6ff;
+    --red: #f85149;
+    --yellow: #d2991d;
+    --green: #3fb950;
+    --purple: #a371f7;
+    --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Fira Code', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  #sidebar {
+    width: 320px; min-width: 320px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  #sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #sidebar-header h2 { font-size: 13px; font-weight: 600; color: var(--text-bright); }
+  .budget-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    background: rgba(88,166,255,0.12); color: var(--accent);
+  }
+  #queue { flex:1; overflow-y:auto; padding: 8px; }
+  .queue-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 12px; margin-bottom: 6px; cursor: pointer; position: relative;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .queue-card:hover { border-color: var(--accent); background: rgba(88,166,255,0.04); }
+  .queue-card.active { border-color: var(--accent); background: rgba(88,166,255,0.08); }
+  .queue-card .dot {
+    position: absolute; top:10px; right:12px;
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .dot.critical { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .dot.warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .dot.ok { background: var(--green); }
+  .queue-card .agent-id { font-size: 10px; color: var(--text-dim); }
+  .queue-card .task-name { font-size: 12px; color: var(--text-bright); font-weight: 500; margin: 2px 0; }
+  .queue-card .meta { font-size: 10px; color: var(--text-dim); display:flex; gap:12px; }
+  .queue-card .score-num { font-size: 11px; color: var(--accent); font-weight: 600; }
+  #budget-line {
+    margin: 8px 8px 4px;
+    border-top: 1px dashed var(--yellow);
+    position: relative;
+  }
+  #budget-line::after {
+    content: "BUDGET BOUNDARY — 5/5 consumed";
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); padding: 0 8px;
+    font-size: 9px; color: var(--yellow); white-space: nowrap;
+  }
+  #main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  #top-bar {
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #top-bar h2 { font-size: 13px; color: var(--text-bright); }
+  #top-bar .stats { font-size: 10px; color: var(--text-dim); display:flex; gap:16px; }
+  #top-bar .stats span { color: var(--text); font-weight: 600; }
+  #canvas-area { flex:1; position:relative; overflow:hidden; }
+  #canvas-area svg { width:100%; height:100%; }
+  #decision-panel {
+    height: 0; overflow:hidden; background: var(--surface);
+    border-top: 1px solid var(--border);
+    transition: height 0.25s ease;
+  }
+  #decision-panel.open { height: 260px; }
+  #decision-inner { padding: 16px 20px; display:flex; gap: 20px; height: 100%; }
+  #decision-inner .col { flex:1; }
+  #decision-inner h3 { font-size: 11px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  #decision-inner .val { font-size: 12px; color: var(--text); margin-bottom: 6px; }
+  #decision-inner .val.risk { color: var(--red); }
+  #decision-inner .val.fix { color: var(--green); }
+  .action-btns { display:flex; gap:10px; margin-top:12px; }
+  .action-btns button {
+    padding: 6px 16px; border-radius: var(--radius); border:1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor:pointer;
+    font-family: var(--font); font-size: 11px; transition: all 0.15s;
+  }
+  .action-btns button.approve { border-color: var(--green); color: var(--green); }
+  .action-btns button.approve:hover { background: rgba(63,185,80,0.1); }
+  .action-btns button.reject { border-color: var(--red); color: var(--red); }
+  .action-btns button.reject:hover { background: rgba(248,81,73,0.1); }
+  .action-btns button.defer { border-color: var(--text-dim); color: var(--text-dim); }
+  .action-btns button.defer:hover { background: rgba(139,148,158,0.1); }
+  #tooltip {
+    position:absolute; pointer-events:none; opacity:0;
+    background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 8px 12px; font-size: 11px; max-width: 240px;
+    transition: opacity 0.1s; z-index: 10;
+  }
+  #legend {
+    position: absolute; bottom: 20px; left: 20px;
+    display: flex; gap: 16px; font-size: 10px; color: var(--text-dim);
+  }
+  #legend .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h2>ATTENTION QUEUE</h2>
+    <span class="budget-badge">budget 5/5</span>
+  </div>
+  <div id="queue"></div>
+</div>
+
+<div id="main">
+  <div id="top-bar">
+    <h2>TOPOLOGY VIEW — Agent Session Dependency Graph</h2>
+    <div class="stats">
+      12 active &nbsp;|&nbsp;
+      <span style="color:var(--red)">3</span> critical &nbsp;|&nbsp;
+      <span style="color:var(--yellow)">4</span> warning &nbsp;|&nbsp;
+      cycle <span>00:14:23</span>
+    </div>
+  </div>
+  <div id="canvas-area">
+    <svg id="graph"></svg>
+    <div id="tooltip"></div>
+    <div id="legend">
+      <span><span class="dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span> critical</span>
+      <span><span class="dot" style="background:var(--yellow)"></span> warning</span>
+      <span><span class="dot" style="background:var(--green)"></span> auto</span>
+      <span><span class="dot" style="background:var(--purple)"></span> done</span>
+      <span>— dependency</span>
+    </div>
+  </div>
+  <div id="decision-panel">
+    <div id="decision-inner"></div>
+  </div>
+</div>
+
+<script>
+const sessions = [
+  { id:"S-040", task:"env-setup",      x:80,  y:60,  score:0.45, edits:0, status:"done",    depends:[],          downstream:["S-042","S-046"], tokens:"1.2M", cost:"$0.12", aei:92 },
+  { id:"S-041", task:"lexer-tokenize", x:80,  y:180, score:0.38, edits:0, status:"done",    depends:[],          downstream:["S-042"],        tokens:"3.1M", cost:"$0.34", aei:85 },
+  { id:"S-042", task:"parser-ast",     x:280, y:120, score:0.92, edits:2, status:"running", depends:["S-040","S-041"], downstream:["S-045","S-047"], tokens:"8.4M", cost:"$1.20", aei:41,
+    editList:[
+      { id:"chg-3", type:"improvement", constraint:"middleware", files:["middleware/finish_hook.py"], failure:"evaluator closure not triggered before submit",
+        fixes:["T3-ir-generation","T4-ir-optimize"], risks:["T5-asm-generate","T6-cpu-trace"], desc:"Forces one evaluator-isomorphic closure check before agent declares completion." },
+      { id:"chg-4", type:"new", constraint:"tool_impl", files:["tools/run_shell_command.py"], failure:"timeout on long foreground installs",
+        fixes:["T1-install-deps"], risks:[], desc:"Exposes per-call timeout_ms with background-execution guidance." }
+    ]
+  },
+  { id:"S-043", task:"ir-generation",  x:280, y:280, score:0.74, edits:1, status:"running", depends:["S-046"], downstream:["S-045"], tokens:"6.2M", cost:"$0.89", aei:58,
+    editList:[
+      { id:"chg-7", type:"improvement", constraint:"prompt", files:["systemprompt.md"], failure:"agent submits on self-invented proxy checks",
+        fixes:["T3-ir-generation","T2-parser-ast"], risks:["T5-asm-generate"], desc:"Appends contract-first workflow rules: acceptance-contract extraction, evaluator mirroring." }
+    ]
+  },
+  { id:"S-044", task:"ir-optimize",    x:500, y:60,  score:0.87, edits:1, status:"running", depends:["S-045"], downstream:[], tokens:"4.8M", cost:"$0.65", aei:49,
+    editList:[
+      { id:"chg-1", type:"improvement", constraint:"tool_impl", files:["tools/shell_tools/run_shell_command.py"], failure:"shell timeout on long compile loops",
+        fixes:["T4-ir-optimize","T3-ir-generation"], risks:["T0-env-setup","T2-parser-ast"], desc:"Adds per-call timeout argument with higher ceiling and background-execution hint." }
+    ]
+  },
+  { id:"S-045", task:"asm-generate",   x:500, y:200, score:0.82, edits:1, status:"waiting", depends:["S-042","S-043"], downstream:["S-044"], tokens:"0.4M", cost:"$0.04", aei:88,
+    editList:[
+      { id:"chg-9", type:"rollback", constraint:"middleware", files:["middleware/exec_risk.py"], failure:"publish-state guard closed loop early on Hard tasks",
+        fixes:[], risks:["T4-ir-optimize"], desc:"Rolls back execution-risk interlock after inflating turn count on Hard tier." }
+    ]
+  },
+  { id:"S-046", task:"repo-setup",     x:80,  y:320, score:0.31, edits:0, status:"done",    depends:[],          downstream:["S-043"],        tokens:"0.8M", cost:"$0.09", aei:94 },
+  { id:"S-047", task:"debug-wal",      x:500, y:340, score:0.79, edits:1, status:"running", depends:["S-042"], downstream:[], tokens:"5.1M", cost:"$0.72", aei:53,
+    editList:[
+      { id:"chg-5", type:"new", constraint:"memory", files:["LongTermMEMORY.md"], failure:"SQLite WAL recovery not handled",
+        fixes:["T6-db-wal-recovery","T3-ir-generation"], risks:["T5-asm-generate"], desc:"Adds 12 boundary-case memory lessons: WAL recovery, queued-over-limit cancellation." }
+    ]
+  },
+  { id:"S-048", task:"configure-git",  x:720, y:130, score:0.68, edits:1, status:"running", depends:["S-044"], downstream:[], tokens:"3.3M", cost:"$0.41", aei:62,
+    editList:[
+      { id:"chg-11", type:"improvement", constraint:"tool_impl", files:["tools/git_tools.py"], failure:"web-root cleanup destroys deployed state",
+        fixes:["T7-configure-git-webserver"], risks:["T6-db-wal-recovery"], desc:"Hard-block guard on protected web root and ref paths." }
+    ]
+  },
+  { id:"S-049", task:"mteb-retrieve",  x:720, y:280, score:0.55, edits:0, status:"running", depends:["S-045"], downstream:[], tokens:"7.1M", cost:"$1.05", aei:45 },
+  { id:"S-050", task:"train-fasttext", x:500, y:420, score:0.22, edits:0, status:"running", depends:["S-040"], downstream:[], tokens:"2.1M", cost:"$0.28", aei:78 },
+  { id:"S-051", task:"regex-chess",    x:720, y:400, score:0.15, edits:0, status:"done",    depends:["S-048"], downstream:[], tokens:"0.9M", cost:"$0.11", aei:91 },
+];
+
+const queueEl = document.getElementById('queue');
+const graphEl = document.getElementById('graph');
+const tooltip = document.getElementById('tooltip');
+const decisionPanel = document.getElementById('decision-panel');
+const decisionInner = document.getElementById('decision-inner');
+let activeSession = null;
+
+function scoreClass(s) { return s >= 0.75 ? 'critical' : (s >= 0.50 ? 'warn' : 'ok'); }
+function scoreColor(s) { return s >= 0.75 ? 'var(--red)' : (s >= 0.50 ? 'var(--yellow)' : 'var(--green)'); }
+
+function renderQueue() {
+  const sorted = [...sessions].filter(s => s.edits > 0).sort((a,b) => b.score - a.score);
+  let html = '';
+  sorted.forEach((s,i) => {
+    const sc = scoreClass(s.score);
+    const isActive = activeSession && activeSession.id === s.id;
+    const opacity = i >= 5 ? 0.5 : 1;
+    if (i === 5) html += '<div id="budget-line"></div>';
+    html += `<div class="queue-card${isActive?' active':''}" onclick="selectSession('${s.id}')" style="opacity:${opacity}">
+      <span class="dot ${sc}" style="opacity:${opacity}"></span>
+      <div class="agent-id">${s.id}</div>
+      <div class="task-name">${s.task}</div>
+      <div class="meta">
+        <span>${i>=5?'deferred':s.status}</span>
+        <span>${s.edits} edit${s.edits>1?'s':''}</span>
+        <span class="score-num">${(s.score*100).toFixed(0)}</span>
+      </div>
+    </div>`;
+  });
+  queueEl.innerHTML = html;
+}
+
+function renderGraph() {
+  const w = graphEl.clientWidth;
+  const h = graphEl.clientHeight;
+  let html = '';
+  // Edges
+  sessions.forEach(s => {
+    s.depends.forEach(depId => {
+      const src = sessions.find(x => x.id === depId);
+      if (!src) return;
+      const isHighlighted = activeSession && (s.id === activeSession.id || depId === activeSession.id);
+      html += `<line x1="${src.x+60}" y1="${src.y+15}" x2="${s.x}" y2="${s.y+15}" 
+        stroke="${isHighlighted?'var(--accent)':'var(--border)'}" stroke-width="${isHighlighted?2:1}" opacity="${isHighlighted?1:0.5}"/>`;
+    });
+  });
+  // Nodes
+  sessions.forEach(s => {
+    const isActive = activeSession && activeSession.id === s.id;
+    const r = s.edits > 0 ? 14 : 10;
+    const nodeColor = s.status === 'done' ? 'var(--purple)' : (s.edits > 0 ? scoreColor(s.score) : 'var(--green)');
+    const glow = s.score >= 0.75 ? `filter:drop-shadow(0 0 8px ${nodeColor})` : '';
+    html += `<g style="cursor:pointer" onclick="selectSession('${s.id}')"
+      onmouseenter="showTooltip(event,'${s.id}')" onmouseleave="hideTooltip()">
+      <circle cx="${s.x+30}" cy="${s.y+15}" r="${r}" fill="${nodeColor}" opacity="${isActive?1:0.85}"
+        stroke="${isActive?'var(--accent)':'none'}" stroke-width="${isActive?2:0}" style="${glow}"/>
+      <text x="${s.x+30}" y="${s.y+36}" text-anchor="middle" fill="var(--text-dim)" font-size="9">${s.id}</text>
+      <text x="${s.x+30}" y="${s.y+48}" text-anchor="middle" fill="var(--text)" font-size="9">${s.task}</text>
+      ${s.edits > 0 ? `<text x="${s.x+30}" y="${s.y-8}" text-anchor="middle" fill="${nodeColor}" font-size="10" font-weight="600">${s.edits}</text>` : ''}
+    </g>`;
+  });
+  graphEl.innerHTML = html;
+}
+
+function showTooltip(e, id) {
+  const s = sessions.find(x => x.id === id);
+  if (!s) return;
+  tooltip.innerHTML = `<strong>${s.id}</strong> — ${s.task}<br>
+    status: ${s.status} | score: ${(s.score*100).toFixed(0)}<br>
+    edits: ${s.edits} | tokens: ${s.tokens} | cost: ${s.cost}<br>
+    AEI: ${s.aei}`;
+  tooltip.style.left = (e.clientX - 340) + 'px';
+  tooltip.style.top = (e.clientY - 20) + 'px';
+  tooltip.style.opacity = 1;
+}
+function hideTooltip() { tooltip.style.opacity = 0; }
+
+function selectSession(id) {
+  activeSession = sessions.find(x => x.id === id);
+  if (!activeSession || activeSession.edits === 0 || !activeSession.editList) {
+    decisionPanel.classList.remove('open');
+    renderGraph(); renderQueue();
+    return;
+  }
+  const e = activeSession.editList[0];
+  const downstreamList = activeSession.downstream.map(d => {
+    const ds = sessions.find(x => x.id === d);
+    return ds ? `<span title="${ds.task} (score:${(ds.score*100).toFixed(0)})">${d}</span>` : d;
+  }).join(' → ') || 'none';
+  
+  decisionInner.innerHTML = `
+    <div class="col">
+      <h3>Edit Details</h3>
+      <div class="val"><strong>${e.id}</strong> — ${e.type} — ${e.constraint}</div>
+      <div class="val">Files: ${e.files.map(f => `<code>${f}</code>`).join(', ')}</div>
+      <div class="val"><strong>Description:</strong> ${e.desc}</div>
+    </div>
+    <div class="col">
+      <h3>Predicted Impact</h3>
+      <div class="val fix">Expected fixes: ${e.fixes.join(', ') || 'none'}</div>
+      <div class="val risk">Risk tasks: ${e.risks.join(', ') || 'none'}</div>
+      <div class="val">Failure pattern: ${e.failure}</div>
+      <div class="val">Downstream impact: ${downstreamList}</div>
+    </div>
+    <div class="col">
+      <h3>Metrics</h3>
+      <div class="val">Tokens: ${activeSession.tokens}</div>
+      <div class="val">Cost: ${activeSession.cost}</div>
+      <div class="val">AEI: ${activeSession.aei}</div>
+      <div class="val">Depends on: ${activeSession.depends.join(', ') || 'none'}</div>
+      <div class="action-btns">
+        <button class="approve" onclick="decide('approve')">Approve</button>
+        <button class="reject" onclick="decide('reject')">Reject + Rollback</button>
+        <button class="defer" onclick="decide('defer')">Defer</button>
+      </div>
+    </div>
+  `;
+  decisionPanel.classList.add('open');
+  renderGraph();
+  renderQueue();
+}
+
+function decide(action) {
+  if (!activeSession) return;
+  const s = sessions.find(x => x.id === activeSession.id);
+  if (action === 'approve') { s.status = 'done'; s.edits = 0; s.score = 0.15; }
+  if (action === 'reject') { s.status = 'blocked'; s.score = 0.95; }
+  decisionPanel.classList.remove('open');
+  activeSession = null;
+  renderGraph();
+  renderQueue();
+}
+
+renderQueue();
+renderGraph();
+window.addEventListener('resize', renderGraph);
+</script>
+</body>
+</html>
