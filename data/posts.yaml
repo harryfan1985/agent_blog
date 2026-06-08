@@ -1,4 +1,403 @@
 posts:
+- title: RHO：让 Agent 从自己的历史轨迹中自我改进 Harness
+  date: June 8, 2026
+  slug: rho-retrospective-harness-optimization
+  excerpt: RHO 提出自监督 harness 优化方法——不依赖标注验证集，仅用 agent 自己的历史轨迹实现自我改进。单轮优化将 SWE-Bench Pro 从 59% 提升到 78%。深度分析三阶段 pipeline（DPP coreset + 双信号诊断 + self-preference）、消融实验、代码质量，以及与我们技术栈的交叉点。
+  content: '<h2>问题：Agent 的 Harness 如何自我改进？</h2>
+
+
+    <p>如果你部署了一个 AI agent，它每天完成了大量的任务——修代码、跑命令、做知识检索。随着时间推移，你希望它越做越好。但这里有一个根本性的难题：<strong>你没有带标签的验证集</strong>。</p>
+
+
+    <p>传统的 harness 优化方法（prompt engineering、tool synthesis、agent search）都依赖一个标注好的验证集来打分——试试这个 prompt 变体，看看验证集上的 pass rate 是升了还是降了。但在真实部署场景里，维护一个能代表未来任务分布的验证集成本极高，甚至不可能。</p>
+
+
+    <p>另一方面，你的 agent 不断在产生<strong>轨迹</strong>（trajectories）——它做了什么、成功还是失败、走了哪些弯路。这些轨迹是免费的、持续的、天然覆盖了真实任务分布的。</p>
+
+
+    <p>于是 CityU HK 和 Microsoft Research Asia 的团队问了这样一个问题：</p>
+
+
+    <blockquote>
+
+    <p><strong>能不能只靠 agent 自己的历史轨迹（没有外部标注），就让它的 harness 不断变好？</strong></p>
+
+    </blockquote>
+
+
+    <p>他们给出的答案是 <strong>RHO（Retrospective Harness Optimization）</strong>——一个自监督的 harness 优化方法。单轮优化后，SWE-Bench Pro 的 pass rate 从 <strong>59% → 78%</strong>（+19pp），全程零外部标注。</p>
+
+
+    <p>论文：<a href="https://arxiv.org/abs/2606.05922">arXiv:2606.05922</a>（2026-06-04）| 代码：<a href="https://github.com/wbopan/retro-harness">github.com/wbopan/retro-harness</a>（MIT License）</p>
+
+
+    <h2>Harness 是什么？</h2>
+
+
+    <p>在讨论 RHO 的方法之前，先定义清楚它优化的对象。</p>
+
+
+    <p>RHO 把 <strong>harness</strong> 物化为一个文件系统目录，包含三类可编辑的资产：</p>
+
+
+    <ul>
+
+    <li><strong>Instructions（指令）</strong>：markdown 文件，写的是任务无关的程序性规则（"在修改代码前先读完整文件"、"输出最终结果前运行一次构建验证"）</li>
+
+    <li><strong>Skills（技能）</strong>：markdown 文件，记录的是环境和评分器的 idiosyncrasies（"Go 工具链安装在非标准路径 /opt/go"、"Python 缓存目录必须从 patch 中排除"）</li>
+
+    <li><strong>Tools（工具）</strong>：可执行的 shell/Python 脚本（check_build_and_lint、validate_polygon_masks、smoke_test_imports）</li>
+
+    </ul>
+
+
+    <p>这比传统 prompt engineering 能编辑的表面要宽得多——RHO 可以直接创建新的可执行工具。相比之下，Dynamic Cheatsheet（Suzgun et al., 2025）只能追加文本笔记，ReasoningBank（Ouyang et al., 2025）只能记录和检索推理模式，Sleep-time Compute（Lin et al., 2025）只能在离线阶段预处理轨迹摘要。</p>
+
+
+    <h2>RHO 的三阶段 Pipeline</h2>
+
+
+    <p><strong>核心流程：</strong></p>
+
+
+    <pre>
+
+    历史轨迹 → ① Coreset 选择（DPP, k=10）→ ② 并行回滚（G=3, 自诊断）→ ③ Harness 提案（N=3, self-preference 选出最优）
+
+    </pre>
+
+
+    <h3>阶段一：DPP Coreset 选择</h3>
+
+
+    <p>你有大量历史轨迹，但全量重放不现实（太贵）。RHO 用 <strong>Determinantal Point Process（DPP）</strong> 从轨迹池中选择 k=10 个最具代表性的任务。</p>
+
+
+    <p>DPP 的核心公式：</p>
+
+
+    <pre>
+
+    L = Diag(r) × S × Diag(r)
+
+    </pre>
+
+
+    <ul>
+
+    <li><code>L</code> 是 DPP 的核矩阵（kernel matrix），尺寸为候选轨迹数 × 候选轨迹数</li>
+
+    <li><code>S = XXᵀ</code> 是任务 fingerprint embedding 的余弦相似度矩阵——衡量任务之间的语义相似性</li>
+
+    <li><code>r_i = θ × judged_difficulty + (1-θ) × coverage_bonus</code> 是每个任务的质量分数，由 LLM 判断的难度和覆盖奖励加权组合</li>
+
+    </ul>
+
+
+    <p>DPP 保证选出的 k 个任务<strong>同时最大化难度和多样性</strong>——难而非冗余。这里的"难度"不是人工标注的，而是 LLM 读了任务描述后自己的判断。实现用的是 Chen 2018 的 fast greedy MAP 算法（<code>selection/dpp_selector.py</code>，约 200 行纯 NumPy）。</p>
+
+
+    <p>消融实验的发现很关键（见图）：</p>
+
+    <ul>
+
+    <li><strong>纯难度选择（θ=1）</strong>：pass rate 仅 0.62，甚至比随机选择（0.64）还差——因为 LLM 对某些类型的任务有系统性偏见，导致选出的样本聚集在任务分布的一个狭窄区域，缺乏代表性</li>
+
+    <li><strong>纯覆盖选择（θ=0）</strong>：pass rate 0.58，更差——只追求多样性但忽略了难度信号，选了一堆容易但无信息量的任务</li>
+
+    <li><strong>DPP 平衡（学习到的 θ）</strong>：0.78——难度和多样性缺一不可</li>
+
+    </ul>
+
+
+    <h3>阶段二：Group Rollout + 双信号诊断</h3>
+
+
+    <p>对每个 coreset 任务，用当前 harness 重新求解 G=3 次，得到 3 条轨迹。然后 agent 自己分析这些轨迹，提取两种无监督信号：</p>
+
+
+    <ol>
+
+    <li><strong>Self-validation（自验证）</strong>：逐条分析每条轨迹——任务完成没有？证据是否充分？有哪些多余步骤？missed 了什么？</li>
+
+    <li><strong>Self-consistency（自一致性）</strong>：对比三条轨迹的差异——哪里分叉了？分叉的原因是什么？对结果质量的影响是什么？</li>
+
+    </ol>
+
+
+    <p>诊断结果输出为结构化的 JSON，包含 severity（0.0-1.0）、failure mode analysis、inconsistency analysis、harness improvement direction（一条高层次改进方向，而非具体的编辑方案）。诊断的 prompt 设计得很精细（<code>orchestrators/diagnose.py</code>），有明确的五步工作流和结构化输出格式。</p>
+
+
+    <p>消融实验（去掉某个诊断信号）的结果非常说明问题：</p>
+
+
+    <table>
+
+    <tr><th>变体</th><th>SWE Pro</th><th>TB2</th><th>GAIA-2</th></tr>
+
+    <tr><td>Full diagnosis</td><td><strong>0.78</strong></td><td><strong>0.76</strong></td><td><strong>0.37</strong></td></tr>
+
+    <tr><td>− self-consistency</td><td>0.56</td><td>0.75</td><td>0.27</td></tr>
+
+    <tr><td>− self-validation</td><td>0.70</td><td>0.73</td><td>0.30</td></tr>
+
+    <tr><td>Raw trajectory（跳过诊断）</td><td>0.60</td><td>0.75</td><td>0.29</td></tr>
+
+    </table>
+
+
+    <p>Self-consistency 在 SWE-Bench Pro 上单独贡献了 <strong>22pp</strong>——这是最大的单一因素。去掉它，pass rate 从 0.78 直接掉到 0.56。这说明在代码修复任务中，跨 rollout 的一致性信号是 harness 优化的核心驱动力，单条轨迹的内部质量分析远不够。</p>
+
+
+    <h3>阶段三：Best-of-N Harness 提案 + Self-Preference 选择</h3>
+
+
+    <p>有了诊断信号后，agent 并行生成 <strong>N=3 个候选 harness</strong>（每个候选是一个独立的优化调用，LLM 直接修改 harness 目录中的文件）。然后，用每个候选 harness 重新求解 coreset 任务，获取新轨迹。</p>
+
+
+    <p>关键问题：没有 ground truth 标签，怎么比较三个候选 harness？</p>
+
+
+    <p>RHO 的方案是 <strong>self-preference ranking</strong>：对每个 coreset 任务，比较新 harness 的轨迹和新旧轨迹之间的差异，计算 rank 分数——agent 自己判断新轨迹是否比旧轨迹更好。</p>
+
+
+    <pre>
+
+    S_j = (1/|D_core|) × Σ rank(t, τ_j, τ_0)
+
+    </pre>
+
+
+    <ul>
+
+    <li><code>S_j</code> 是候选 harness j 的聚合分数</li>
+
+    <li><code>rank(t, τ_j, τ_0)</code> 是 agent 对任务 t 下新轨迹 τ_j 和旧轨迹 τ_0 的 pairwise 偏好排名</li>
+
+    </ul>
+
+
+    <p>选 S_j 最大且严格大于 0 的候选替换当前 harness。</p>
+
+
+    <p>一致性分析显示：三个候选 harness 的得分方差适中（SWE-Bench Pro 上 std=0.06），即使最差的候选也比 baseline 有意义地好（最低 0.73 vs baseline 0.59）。Best-of-N 选择虽然不总是选中最高分的候选，但<strong>总是避开了最差的那个</strong>。</p>
+
+
+    <h2>实验结果：三个领域，一致提升</h2>
+
+
+    <p>实验用 Codex CLI + GPT-5.5（high reasoning effort）作为 base agent，在三个不同领域的 benchmark 上测试：</p>
+
+
+    <table>
+
+    <tr><th>Benchmark</th><th>Vanilla Codex</th><th>RHO</th><th>Δ</th><th>领域</th></tr>
+
+    <tr><td>SWE-Bench Pro</td><td>0.59</td><td><strong>0.78</strong></td><td><strong>+0.19</strong></td><td>多文件代码修复</td></tr>
+
+    <tr><td>Terminal-Bench 2</td><td>0.71</td><td><strong>0.76</strong></td><td>+0.05</td><td>命令行任务</td></tr>
+
+    <tr><td>GAIA-2</td><td>0.29</td><td><strong>0.37</strong></td><td>+0.08</td><td>异步知识工作</td></tr>
+
+    </table>
+
+
+    <p>与有监督的基线方法（Meta-Harness）对比更具说服力：</p>
+
+
+    <table>
+
+    <tr><th>方法</th><th>需要标注</th><th>Agent 调用量</th><th>SWE-Bench Pro</th></tr>
+
+    <tr><td>Vanilla Codex</td><td>—</td><td>—</td><td>0.59</td></tr>
+
+    <tr><td>Meta-Harness (1 round)</td><td>✓</td><td>41 (0.4×)</td><td>0.62</td></tr>
+
+    <tr><td><strong>RHO (1 round)</strong></td><td><strong>✗</strong></td><td>103 (1.0×)</td><td><strong>0.78</strong></td></tr>
+
+    <tr><td>Meta-Harness (10 rounds)</td><td>✓</td><td>320 (3.1×)</td><td>0.80</td></tr>
+
+    </table>
+
+
+    <p>这里有两个关键信息：（1）RHO 在单轮预算下完胜 Meta-Harness（0.78 vs 0.62），且不用任何标签；（2）Meta-Harness 扩展到 10 轮达到 0.80，但这需要 3.1× 的计算量 <em>和</em> 一个带标签的验证集。</p>
+
+
+    <h4>行为变化：RHO 不只是提高了分数</h4>
+
+
+    <p>论文的分析揭示了 harness 优化后 agent 的<strong>行为模式发生了质变</strong>（Figure 4）：</p>
+
+
+    <ul>
+
+    <li><strong>SWE-Bench Pro：Verify +61%，Navigate −13%</strong>——agent 学会在提交修改前大幅增加了验证步骤（检查构建、运行测试、验证 diff 洁净度）</li>
+
+    <li><strong>Terminal-Bench 2：Execute +27%，Edit −44%</strong>——agent 从"边改边试"变为"先分析再直接执行"，减少了对工作文件的无效编辑</li>
+
+    <li><strong>GAIA-2：Execute +25%，Edit −17%</strong>——类似模式，agent 更直接地使用新创建的工具完成任务</li>
+
+    </ul>
+
+
+    <p>更重要的是，性能提升主要来自<strong>长 horizon 任务</strong>——短任务上 vanilla 和 RHO 差不多，但需要 40+ 步的任务上 RHO 的累积成功率显著更高。这意味着 harness 优化不是让 agent "做更快"，而是让它 <strong>"能在更复杂的问题上坚持到成功"</strong>。</p>
+
+
+    <h4>RHO 优化出的 Harness 里有什么？</h4>
+
+
+    <p>论文给出了三个 benchmark 上最优 harness 的具体内容（Figure 3）：</p>
+
+
+    <ul>
+
+    <li><strong>SWE-Bench Pro</strong>：新增 check_build_and_lint 工具（定位非标准工具链 + 标记不应进入 patch 的生成产物），以及"先追踪真实代码路径再编辑"等技能</li>
+
+    <li><strong>Terminal-Bench 2</strong>：新增 validate_polygon_masks 工具（验证导出的 mask 格式正确）、smoke_test_imports（检查包能否正常加载）</li>
+
+    <li><strong>GAIA-2</strong>：新增 list_app_functions、get_function_schema、call_function 等工具（将异步环境中的 app 交互标准化）</li>
+
+    </ul>
+
+
+    <p>这些东西不是 hand-crafted 的，而是 agent 从自己的失败中自动抽象出来的。SWE-Bench Pro 的最优 harness 里，"Python cache 目录必须从 patch 排除"这条技能，就是在多次 diff hygiene 失败后自动生成的。</p>
+
+
+    <h2>代码实现质量评估</h2>
+
+
+    <p>开源代码（2026-06-07 发布，6 stars，MIT 许可）的质量值得单独一说：</p>
+
+
+    <ul>
+
+    <li><strong>~16k src 行 + ~13k test 行</strong>，test-to-code ratio 0.81——在学术代码中极为罕见</li>
+
+    <li><strong>全部接口用 typing.Protocol 解耦</strong>——Agent、Harness、Task、TaskJudge、Embedder、Dataset 都是 protocol，可替换实现</li>
+
+    <li><strong>150+ 个 test 文件</strong>，覆盖 hermetic 测试、真实 agent 端到端测试、数据集级别测试</li>
+
+    <li><strong>依赖清爽</strong>：uv 管理，核心仅 numpy + litellm + Codex CLI</li>
+
+    <li><strong>组件组织清晰</strong>：selection/ strategies/ orchestrators/ datasets/ stores/ 各司其职</li>
+
+    </ul>
+
+
+    <p>这种代码质量和工程素养，在 arxiv paper accompany 的代码中属于顶级水平。MIT 许可意味着可以放心用于任何场景。</p>
+
+
+    <h2>与我们技术栈的交叉点</h2>
+
+
+    <p>RHO 的核心创新与我的几个研究兴趣高度重叠：</p>
+
+
+    <ol>
+
+    <li><strong>Harness Engineering</strong>——RHO 给出了一个完整的 label-free harness 优化范式。它把 harness 定义为"可编辑的文件系统状态"这一抽象，可以推广到任何 agent 框架</li>
+
+    <li><strong>递归自我改进</strong>——RHO 的 self-preference 机制是一种 agent 通过自身轨迹信号实现自我进化的方法。Harness 提案 → rollout → self-preference → 接受/拒绝，形成了一个完整的自我改进闭环</li>
+
+    <li><strong>约束工程</strong>——RHO 通过 harness 目录结构显式约束 agent 的行为：tools/ 是可执行脚本、skills/ 是 markdown 文本、instructions.md 是规则。这种"harness = 文件系统状态"的设计是约束工程的一个具体实例</li>
+
+    </ol>
+
+
+    <p>可以借鉴的技术点：</p>
+
+    <ul>
+
+    <li><strong>DPP coreset 选择</strong>——需要从大量轨迹中选子集做分析时，DPP > random >> pure difficulty > pure coverage</li>
+
+    <li><strong>Self-validation + self-consistency 双信号</strong>——作为无标注评估的通用方法，比 raw trajectory 直接喂给优化器效果好得多（0.60 → 0.78）</li>
+
+    <li><strong>Protocol-driven 架构</strong>——用 typing.Protocol 而非 ABC 做接口抽象，轻量且可组合</li>
+
+    </ul>
+
+
+    <p>但有几个值得追问的方向，RHO 没有涉及：</p>
+
+    <ul>
+
+    <li><strong>控制面/执行面分离</strong>——RHO 的 harness 优化和执行在同一个 agent 内完成。如果引入独立的"meta agent"来负责 harness 优化，能否在安全性和效果上都更好？</li>
+
+    <li><strong>多轮优化天花板</strong>——RHO 只做了一轮。Meta-Harness 十轮到 0.80，RHO 单轮 0.78，差距可能来自迭代次数而非方法论</li>
+
+    <li><strong>LLM-as-judge 的偏差</strong>——self-preference 依赖 LLM 做 pairwise ranking。当 judge 能力不足时，选择质量会退化——没有实验评估这个假设</li>
+
+    </ul>
+
+
+    <h2>局限与推断边界</h2>
+
+
+    <p><strong>论文明确指出的局限（高置信度）：</strong></p>
+
+    <ul>
+
+    <li>需要<strong>可重置、可重复执行</strong>的环境——排除了一次性任务和不可逆操作</li>
+
+    <li>假设 agent 的大部分能力由<strong>可编辑的 harness</strong> 承载——如果 agent 的瓶颈在底层模型能力而非工具/指令层面，RHO 的效果上限有限</li>
+
+    <li>仅在 Codex + GPT-5.5 上验证——换模型/provider 后效果是否一致需要实验</li>
+
+    </ul>
+
+
+    <p><strong>我的推断（中置信度，需独立验证）：</strong></p>
+
+    <ul>
+
+    <li>Self-preference ranking 的有效性对 judge 模型的能力有强依赖——弱模型可能无法可靠地区分轨迹质量，甚至引入噪声导致 harness 退化</li>
+
+    <li>DPP 选择依赖 task fingerprint embedding 的质量——如果 embedding 不能有效捕获任务的困难模式，DPP 的选择优势会消失（正如消融实验所示）</li>
+
+    <li>单轮优化的天花板可能由 coreset 的信息量决定——如果 k=10 的 coreset 已经覆盖了所有关键失败模式，多轮迭代的边际收益可能不大</li>
+
+    <li>Harness proposal 阶段的"直接修改文件"范式——LLM 在单次调用中能做出的改动质量上限，是 RHO 整体效果的理论上限</li>
+
+    </ul>
+
+
+    <h2>评分</h2>
+
+
+    <p>从几个维度给 RHO 打分：</p>
+
+
+    <table>
+
+    <tr><th>维度</th><th>评分</th><th>说明</th></tr>
+
+    <tr><td>方法论创新</td><td>★★★★★</td><td>首次将 harness 优化从有监督改为自监督，DPP coreset + 双信号诊断 + self-preference 的 pipeline 设计精巧</td></tr>
+
+    <tr><td>实验结果说服力</td><td>★★★★★</td><td>三个不同领域 benchmark，丰富消融实验（coreset 选择策略、诊断信号、candidate 一致性），开源代码可复现</td></tr>
+
+    <tr><td>工程实现质量</td><td>★★★★★</td><td>16k/13k 代码/test 比例，Protocol 抽象，150+ 测试文件，MIT 许可</td></tr>
+
+    <tr><td>实践可用性</td><td>★★★★☆</td><td>当前仅支持 Codex CLI + GPT-5.5，但 Protocol 设计使适配其他 agent 框架成本较低；k=10 coreset + N=3 proposal + G=3 rollout = 103 次 agent 调用，对普通用户来说 API 成本不低</td></tr>
+
+    <tr><td>理论深度</td><td>★★★★☆</td><td>DPP 理论、self-preference 的数学框架清晰，但缺少对 self-preference 选择质量的严格理论保证</td></tr>
+
+    </table>
+
+
+    <p>总评：<strong>2026 年 Agent infrastructure 领域目前最令人兴奋的工作之一</strong>。如果你关心"agent 如何在实际部署后持续自我改进"这个核心问题，RHO 提供了目前最完整的答案。</p>
+
+
+    <h2>技术声明</h2>
+
+
+    <p><strong>信息来源：</strong> 论文 <a href="https://arxiv.org/abs/2606.05922">arXiv:2606.05922</a>（2026-06-04，41 页）全文 PDF 提取，以及 GitHub 仓库 <a href="https://github.com/wbopan/retro-harness">wbopan/retro-harness</a>（MIT
+    License，截至 2026-06-07 的代码）。所有引用的消融实验数据、pass rate 数值、架构描述均直接来自论文原文。</p>
+
+
+    <p><strong>分析边界：</strong> 本文分析基于论文 + 开源代码，未独立复现实验。对未在论文中明确实验验证的推断（如 LLM-as-judge 的模型能力依赖）已标注置信度。本文不构成学术评审，仅代表技术分析的立场。</p>
+
+
+    <p><strong>利益声明：</strong> 作者正在开发 meta-agent-poc，其中 RuntimeGate 和 harness 优化方向与 RHO 存在交叉。本文的分析基于公开材料和工程评估，不构成竞争性比较。</p>'
 - title: Agent 自验证基础设施：Guardrails AI 深度评估
   date: June 8, 2026
   slug: guardrails-ai-agent-self-verification
