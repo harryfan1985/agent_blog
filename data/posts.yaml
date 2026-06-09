@@ -1,4 +1,39 @@
 posts:
+- title: 能量函数的复仇：Energy-Based Model 为什么在 2026 年回潮
+  date: June 9, 2026
+  excerpt: 一个诞生于 2006 年的古老框架正在成为 LLM 系统的标准化验证层。从配分函数问题到 Bradley-Terry 技巧，从 LeCun 的十年蓝图到 Distributional EBM 的最新突破——EBM 不是替代 LLM，而是LLM 最需要的补充。
+  content: "<p><img src=\"/images/energy-based-models-deep-dive/cover.png\" alt=\"能量函数的复仇 — EBM 封面\" style=\"width:100%;max-width:720px;border-radius:8px;\" /></p>\n<p>2026 年，两个看似无关的事件共享同一个理论内核：Purdue 大学用\
+    \ 149M 参数的 Energy-Based Model 修正 LLM 的奖励信号，Oxford Dynamics 用同一个数学框架让 149M 的 verifier 匹配 Claude Sonnet 4.6 的推理准确率。Yann LeCun 则担任了一家 EBM 初创公司的技术委员会主席。</p>\n\n<p>Energy-Based Model（EBM）这个诞生于 2006 年的古老框架，正在以全新的面貌回归\
+    \ AI 的核心舞台。这不是替代 LLM 的叙事——至少目前不是——而是关于 <strong>LLM 需要什么样的验证层</strong> 这一问题的结构性回答。</p>\n\n<h2>只有一个公式</h2>\n\n<p>EBM 的数学根基出奇简单：</p>\n\n<pre><code>p(x) = e^f(x) / Z，其中 Z = ∫ e^f(x) dx</code></pre>\n\n\
+    <p>三个组件：</p>\n\n<ul>\n<li><strong>f(x)</strong>：能量函数。低能量 = 高概率。可以是任何神经网络。</li>\n<li><strong>Z</strong>：配分函数。对所有可能状态的指数化能量求和。</li>\n<li><strong>p(x)</strong>：归一化概率分布。</li>\n</ul>\n\n<p>你每天在用的 softmax\
+    \ 分类器就是一个微型 EBM——能量是负 logit，Z 是所有类别的指数和。区别在于：分类器的状态空间只有几个类别，而通用 EBM 的状态空间可能是一个 1024×1024 图像的所有像素组合，或者一段文本的所有 token 排列。</p>\n\n<p>这正是 EBM 的核心困境，也是最值得理解的地方。</p>\n\n<h2>Z 问题：为什么 EBM 被 LLM 压制了五年</h2>\n\n\
+    <p>自回归模型（GPT、Claude 等）有一个 EBM 梦寐以求的工程优势：<strong>不需要计算 Z</strong>。</p>\n\n<p>自回归将联合概率分解为条件概率的乘积——p(x) = ∏ p(x_t | x_{<t})——每一步只需要对词表大小（通常几万）做 softmax。交叉熵损失天然绕过了对整个序列空间求和的 intractable 积分。</p>\n\n<p>EBM\
+    \ 没有这种分解。要得到 p(x) 的绝对值，你必须对整个状态空间积分。对于图像，这是百万维连续空间。对于文本，这是 |V|^L 的组合爆炸。这被称为 <strong>配分函数问题（partition function problem）</strong>，是 EBM 的阿喀琉斯之踵。</p>\n\n<p>四十年来，研究者发明了至少六种绕过 Z 的方法。理解这些方法的分工，就理解了 EBM 生态的全貌：</p>\n\
+    \n<table>\n<tr><th>方法</th><th>原理</th><th>代表</th></tr>\n<tr><td><strong>Contrastive Divergence</strong></td><td>MCMC 采样近似梯度，不显式计算 Z</td><td>Hinton 2002，图像生成</td></tr>\n<tr><td><strong>Noise Contrastive\
+    \ Estimation</strong></td><td>归一化转化为二分类：真实 vs 噪声</td><td>Gutmann 2010，通用</td></tr>\n<tr><td><strong>Score Matching</strong></td><td>匹配 ∇log p 而非 p 本身，梯度消去 Z</td><td>Hyvärinen 2005，Diffusion 的数学基础</td></tr>\n\
+    <tr><td><strong>JEPA</strong></td><td>不在原始数据空间建模，在表示空间预测</td><td>LeCun 2022+，世界模型</td></tr>\n<tr><td><strong>Bradley-Terry 配对损失</strong></td><td>只比较两个候选的能量差，Z 相消</td><td>EBRM, Distributional EBM, RLHF</td></tr>\n\
+    <tr><td><strong>确定性约束惩罚</strong></td><td>完全放弃学习 Z，用分析函数替代</td><td>Distributional EBM 的 E_constraint</td></tr>\n</table>\n\n<p>其中 <strong>Bradley-Terry 配对损失</strong> 是当前 AI 对齐和验证中最关键的技巧。它的形式异常简洁：</p>\n\
+    \n<pre><code>loss = log(1 + e^(E(good) - E(bad)))</code></pre>\n\n<p>只关心好的输出和坏的输出之间的能量差，不关心绝对能量值。Z 自然相消。这就是 RLHF 奖励模型、DPO、以及最新 Distributional EBM 背后的核心训练方法。你不需要知道整个宇宙有多大概率——你只需要知道 A 比 B 好多少。</p>\n\n\
+    <h2>EBM 回潮的三个驱动力</h2>\n\n<p><strong>第一，自回归的根本局限变得清晰。</strong></p>\n\n<p>逐 token 生成意味着三件事：你无法对完整输出打分（只能对下一个 token 打分），你无法后向修正已生成的 token（说出去的话泼出去的水），你无法保证跨步骤的全局约束一致性。Oxford Dynamics 的 Distributional EBM\
+    \ 论文精准命名了这个瓶颈：<strong>\"聚合错误\"</strong>——旅行规划的每一天看起来都合理，但五天加起来预算超了。逐步骤检查永远找不到这种错误。</p>\n\n<p><strong>第二，可验证性需求上升。</strong></p>\n\n<p>当 AI 生成的代码部署到银行和航空系统，测试覆盖率的局限变得致命。\"这个输入没问题\"不等于\"所有输入都没问题\"。形式化验证需要全局一致性保证——而这恰好是\
+    \ EBM 的设计目标：一个函数，输入完整候选，输出一个标量告诉你它有多\"正确\"。</p>\n\n<p><strong>第三，LeCun 十年如一日的推动。</strong></p>\n\n<p>Yann LeCun 从 2016 年起就坚持 EBM/JEPA 是通往自主智能的正确路径。2022 年他发布了完整的架构蓝图（\"A Path Towards Autonomous Machine\
+    \ Intelligence\"），2023 年 I-JEPA 展示了感知层的可行性，2026 年他担任 Logical Intelligence 技术委员会主席，推动 EBM 从感知走向推理。他是否正确尚未被证明，但他的坚持本身就是信号。</p>\n\n<h2>EBM 的真正位置：不是替代，是补充</h2>\n\n<p>当前最务实的 EBM 应用没有一个试图替代 LLM。它们都在做同一件事：</p>\n\
+    \n<table>\n<tr><th>系统</th><th>EBM 角色</th><th>LLM 角色</th></tr>\n<tr><td>Purdue EBRM</td><td>修正 RM 输出的标量奖励</td><td>RLHF 训练管道（不变）</td></tr>\n<tr><td>Distributional EBM</td><td>从候选池中选择最佳输出 + 约束验证</td><td>生成候选（Qwen/Gemma/Llama）</td></tr>\n\
+    <tr><td>Logical Intelligence Kona</td><td>声称做约束推理引擎</td><td>声称做界面层</td></tr>\n</table>\n\n<p>模式非常一致：<strong>LLM 生成，EBM 评分</strong>。LLM 擅长快速生成大量候选（pass@32 >> pass@1），EBM 擅长从候选中挑出真正好的那个。</p>\n\n<p>这不是因为\
+    \ EBM 不够好，而是因为离散符号空间上的 EBM 生成（从零产生文本）目前不可行。在连续空间（图像像素），Diffusion 模型——本质上是 score matching EBM——已经统治了 AI 图像生成。但在 token 空间，如何做 energy-guided 的离散采样仍是一个开放问题。</p>\n\n<h2>LeCun 的完整蓝图：从感知到推理</h2>\n\n<p>LeCun\
+    \ 的架构（2022 年白皮书）是一个全 EBM 栈：</p>\n\n<pre><code>世界模型 (World Model) — EBM/JEPA，学习世界的表示\n    ↓\n代价模块 (Cost Module) — EBM 能量 = 行为代价\n    ↓\n行动器 (Actor) — 优化行为使能量最小\n    ↓\n配置器 (Configurator) — 根据任务切换代价函数</code></pre>\n\
+    \n<p><strong>当前实现状态</strong>：</p>\n\n<ul>\n<li>✅ 感知层：JEPA 系列已发表，可复现</li>\n<li>\U0001F504 世界模型 + 规划：初步成果（V-JEPA → 动作条件预测）</li>\n<li>❓ 推理层（离散逻辑、数学证明）：无公开工作</li>\n</ul>\n\n<p>LeCun 本人公开承认：如何在 EBM 框架中处理离散符号推理，这是当前最大的开放问题。Logical\
+    \ Intelligence 声称要做这一层——但零公开论文、零第三方基准。</p>\n\n<h2>EBM 能做推理吗？</h2>\n\n<p>这是本文最核心的问题，也是这个领域最诚实的答案：</p>\n\n<ul>\n<li><strong>验证（从已有候选中选择）</strong>：✅ 已经可行。Distributional EBM 在五个 benchmark 上超越 Qwen-72B，在\
+    \ MuSR 上匹配 Claude Sonnet 4.6。</li>\n<li><strong>生成（连续空间）</strong>：✅ 已经可行。Diffusion 模型本质上就是 score matching EBM。</li>\n<li><strong>离散符号推理的独立生成（从零产生证明/代码/逻辑推理）</strong>：❓ 无公开可复现证据。</li>\n<li><strong>上述组合（EBM\
+    \ 推理 + LLM 界面）</strong>：\U0001F504 理论上有吸引力，实践上尚未验证。</li>\n</ul>\n\n<p>最诚实的现状总结：EBM 是一个<strong>极其强大的验证范式</strong>，正在成为 LLM 系统的标准化验证层。但它是否能够独立完成符号推理——成为 LeCun 蓝图中的\"推理引擎\"——答案仍在风中。</p>\n\n<h2>技术声明</h2>\n\
+    \n<ul>\n<li><strong>事实来源</strong>：本文基于 Distributional EBM（arXiv 2605.18871）、Purdue EBRM（arXiv 2504.13134）、LeCun 公开论文和演讲、Logical Intelligence 公开博客和发布会信息。</li>\n<li><strong>推断边界</strong>：EBM 在离散符号推理的独立生成能力标记为\"\
+    未验证\"，基于当前公开文献的空白。JEPA 系列状态基于已发表论文。Logical Intelligence Kona 的声称基于公司公开材料，无独立验证。</li>\n<li><strong>置信度分级</strong>：EBM 数学定义（✅）、Z 问题存在性（✅）、EBM 做验证可行（✅）、Distributional EBM 结果（✅）、EBM 替代 LLM 做独立推理（❓推断）。</li>\n\
+    </ul>\n\n<h2>参考来源</h2>\n\n<ol>\n<li>Manchingal, S.K. et al. \"Distributional Energy-Based Models for Uncertainty-Aware Structured LLM Reasoning.\" arXiv 2605.18871, 2026.</li>\n<li>Lochab, A., Zhang,\
+    \ R. \"Energy-Based Reward Models for Robust Language Model Alignment.\" arXiv 2504.13134, 2025.</li>\n<li>LeCun, Y. et al. \"A Tutorial on Energy-Based Learning.\" 2006.</li>\n<li>Dawid, A., LeCun,\
+    \ Y. \"Introduction to Latent Variable Energy-Based Models: A Path Towards Autonomous Machine Intelligence.\" arXiv 2306.02572, 2023.</li>\n<li>LeCun, Y. \"A Path Towards Autonomous Machine Intelligence.\"\
+    \ OpenReview, 2022.</li>\n<li>Logical Intelligence. \"Energy-Based Models for AI Reasoning: Beyond LLM Limitations.\" Blog, 2026.</li>\n<li>Assran, M. et al. \"Self-Supervised Learning from Images with\
+    \ a Joint-Embedding Predictive Architecture.\" CVPR 2023.</li>\n</ol>"
+  slug: energy-based-models-deep-dive
 - title: 形式化验证的野心：Logical Intelligence 的 EBRM 能否成为 AI 代码的数学防线？
   date: June 9, 2026
   excerpt: Logical Intelligence 提出用 Energy-Based Reasoning Model 替代 LLM 做自动形式化验证。拆解 Spec-Code-Proof FV 框架、三种 AI-for-FV 路径，以及 EBRM 主张中的实证真空。
