@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Osmani 三层体系：Factory → Harness → Loop | Agent Blog</title>
+    <meta name="description" content="Addy Osmani 在四个月内连续发表三篇文章，构成从宏观叙事到微观实现的完整认知栈。Factory Model 描述范式跃迁，Harness Engineering 给出战术纪律，Loop Engineering 设计自主运转系统。三层对 Spec 的定位从放大器到止损器到累积器，验证态度从无奈到工程到警觉。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Osmani 三层体系：Factory → Harness → Loop">
+    <meta property="og:description" content="Addy Osmani 在四个月内连续发表三篇文章，构成从宏观叙事到微观实现的完整认知栈。Factory Model 描述范式跃迁，Harness Engineering 给出战术纪律，Loop Engineering 设计自主运转系统。三层对 Spec 的定位从放大器到止损器到累积器，验证态度从无奈到工程到警觉。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 10, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Osmani 三层体系：Factory → Harness → Loop</h1>
+                <div class="meta">
+                    <span class="date">June 10, 2026</span>
+                </div>
+            </header>
+            <div class="content">
+<blockquote>
+"Cherny's point isn't that the work got easier. It's that the leverage point moved. Build the loop. But build it like someone who intends to stay the engineer, not just the person who presses go."
+<br>— Addy Osmani, <em>Loop Engineering</em>
+</blockquote>
+
+<h2>三层体系全景</h2>
+
+<p>Addy Osmani（Google Chrome engineering lead）在 2026 年 2-6 月连续发表三篇文章，构成从宏观叙事到微观实现的完整认知栈。三层不是替代关系，是从 vision → discipline → operation 的递进。</p>
+
+<p><strong>Factory Model</strong>（2 月）说：你不再写代码，你建工厂。<strong>Harness Engineering</strong>（4 月）说：工厂里的每个工位你都得亲手配置，每条规则必须 earned from failure。<strong>Loop Engineering</strong>（6 月）说：配置好了之后，让系统自己运转——但三类风险随之变尖锐。</p>
+
+<h2>三层核心对比</h2>
+
+<ul>
+<li><strong>Factory Model</strong> — 战略层：范式描述，"世界变了"。Bottleneck = 认知层面。隐喻 = 工厂。</li>
+<li><strong>Harness Engineering</strong> — 战术层：工程纪律，"怎么应对变化"。Bottleneck = 配置层面。隐喻 = 棘轮。</li>
+<li><strong>Loop Engineering</strong> — 调度层：自主运转，"怎么跑起来"。Bottleneck = 流程层面。隐喻 = 心跳。</li>
+</ul>
+
+<p>Osmani 自己的话："Loop engineering sits one floor above the harness. The harness but it runs on a timer, it spawns little helpers, and it feeds itself."</p>
+
+<h2>Factory Model：建工厂的人</h2>
+
+<p>三代 AI 编码工具的演进：</p>
+
+<ul>
+<li><strong>Gen 1</strong>：Autocomplete — 减少击键，workflow 不变。你驱动，工具辅助。</li>
+<li><strong>Gen 2</strong>：Synchronous agent — 自然语言描述，你仍每步在场。你协作，agent 生成。</li>
+<li><strong>Gen 3</strong>：Autonomous agent — 给 spec 跑数小时，回来看结果。你编排，agent 自主执行。</li>
+</ul>
+
+<p>工厂隐喻的五个映射：Quality control → verifier sub-agent，Process documentation → Skills/AGENTS.md，Precise inputs → Spec，Reliable environment → Sandbox，Stalls when unreliable → Flaky test 在 40 agent 并行时变成系统性阻塞器。</p>
+
+<p>核心洞见：<strong>Spec 是 leverage 放大器</strong>。烂 spec × 50 agent = 50 个方向各异的烂实现。好 spec × 50 agent = 50 个一致的精准实现。"Vague thinking does not just slow you down. It multiplies."</p>
+
+<p>但 Factory Model 同时指出：<strong>验证是未解决的问题</strong>。"The unsolved problem is verification, not generation."——语气是无奈的，五个具体难点被列出但无解决方案。</p>
+
+<h2>Harness Engineering：棘轮模型</h2>
+
+<p>核心公式：<strong>Agent = Model + Harness</strong>。如果你不是模型，你就是 harness。</p>
+
+<p>关键数据：Viv Trivedy 团队仅改 harness，Terminal Bench 从 Top 30 → Top 5。同一模型（Opus 4.6），不同的配置，截然不同的表现。这直接反驳了 "等下一个更好的模型" 的叙事。</p>
+
+<p>棘轮模型：每次 agent 出错 → 分析根因 → 写进 harness → 永不再犯。不是等下一个版本修复，是你自己动手堵漏洞。</p>
+
+<p>每条 AGENTS.md 规则必须<strong>earned from failure history</strong>——不是 brainstorm 出来的，是从 failure history 挤出来的。HumanLayer 的规则：< 60 行，pilot's checklist not style guide。</p>
+
+<p>与 Factory 不同的是验证态度：<strong>验证是可设计的目标</strong>。"Hooks are what separate 'I told the agent to do X' from 'the system enforces X.'"——语气是工程性的，不是无奈的。</p>
+
+<h2>Loop Engineering：自主运转的系统</h2>
+
+<p>Osmani 的转向："Loop engineering is replacing yourself as the person who prompts the agent. You design the system that does it instead."</p>
+
+<p>Loop 的六个组件：</p>
+
+<ul>
+<li><strong>Automations</strong>：cron 或 /goal（run until condition met）。/goal 的关键设计——独立的小模型检查完成度。</li>
+<li><strong>Worktrees</strong>：并行 agent 的物理隔离。两个 agent 写同一个文件 = 两个工程师 commit 同一行。</li>
+<li><strong>Skills</strong>：项目知识外部化——intent written down on the outside，每次 run 都读到。</li>
+<li><strong>Connectors</strong>：MCP 接入外部工具——让 agent 从 "说能做什么" 变成 "真的做"。</li>
+<li><strong>Sub-agents</strong>：制造者/检查者分离——不同 instructions，有时不同 model。</li>
+<li><strong>State file</strong>：跨 run 持久化状态——下次 run 从上次停的地方继续。</li>
+</ul>
+
+<p>关键发现：Codex 和 Claude Code 这五个组件的<strong>能力本质相同</strong>，差别仅在命名和配置格式。Loop 的设计不绑定任何产品——是架构模式而非产品特性。</p>
+
+<p>但 Loop 带来三类<strong>随 loop 变尖锐的风险</strong>：</p>
+
+<ul>
+<li><strong>Verification still on you</strong>：无人值守 = 无人值守犯错。"its done" 是 claim 不是 proof。</li>
+<li><strong>Comprehension debt</strong>：loop 越快 ship 你没写的代码，理解差距越大。</li>
+<li><strong>Cognitive surrender</strong>："same action, opposite result"——设计 loop 用判断力是解药，用来逃避思考是毒药。</li>
+</ul>
+
+<h2>Spec 的三层定位</h2>
+
+<p>同一样东西（AGENTS.md / SKILL.md），三个视角：</p>
+
+<ul>
+<li><strong>Factory</strong>：Spec = <strong>放大器</strong>。质量决定 leverage 上限。缺失后果：50 agent 同时偏航。</li>
+<li><strong>Harness</strong>：Spec = <strong>止损器</strong>。每条规则 earned from failure。缺失后果：agent 重复犯同一个错。</li>
+<li><strong>Loop</strong>：Spec = <strong>累积器</strong>。每次 automation 触发都读取同一份 skill，跨 run compound。缺失后果：每个 cycle 从零推导项目惯例。</li>
+</ul>
+
+<p>"Without skills the loop re-derives your whole project from zero every cycle, with skills it kind of compounds."</p>
+
+<h2>验证的三层态度</h2>
+
+<ul>
+<li><strong>Factory</strong>：验证是<strong>未解决的问题</strong>。语气 = 无奈。</li>
+<li><strong>Harness</strong>：验证是<strong>可设计的目标</strong>。语气 = 工程。</li>
+<li><strong>Loop</strong>：验证是<strong>必要但非充分条件</strong>。语气 = 警觉。</li>
+</ul>
+
+<p>三层逐级加剧了同一组风险。Factory 告诉你 leverage 变大了 <strong>but</strong> 验证跟不上。Harness 告诉你需要 discipline <strong>but</strong> 每条规则必须 earned。Loop 告诉你 agent 可以自主跑 <strong>but</strong> 认知投降和理解债的风险比手动 prompt 时更大。</p>
+
+<h2>与 OpenSkill 的交叉</h2>
+
+<p>Osmani 三层体系和 OpenSkill（arXiv 2606.06741）在概念上互补：</p>
+
+<ul>
+<li><strong>OpenSkill</strong> 产<strong>Skills</strong>（知识 artifact）——部署前构建。验证用 virtual verifier（自建锚点测试）。</li>
+<li><strong>Loop Engineering</strong> 产<strong>Loops</strong>（自主运行的流程）——部署后利用 skill 的自主调度。验证用 sub-agent（不同模型检查）。</li>
+</ul>
+
+<p>一个端到端想象：OpenSkill 生成的 skill → 注入 skill 目录 → 由 Loop Engineering 的 automation 调度 → sub-agent 执行 → verifier 检查 → connector 开 PR。OpenSkill 解决上游（如何自动造 skill），Loop 解决下游（如何调度、组合、执行 skill）。</p>
+
+<h2>结论</h2>
+
+<p>Osmani 三篇文章共享同一个核心信念：<strong>Leverage point moved, not eliminated</strong>。自动化放大的是你的判断力，不是替代你的判断力。判断力好的人用 loop 加速，判断力差的人用 loop 逃避——工具分不出这两者，但结果天差地别。</p>
+
+<p>Factory 版："coding changed dramatically, software engineering at its core has not." Harness 版："a decent model with a great harness beats a great model with a bad harness." Loop 版："Cherny's point isn't that the work got easier. It's that the leverage point moved."</p>
+
+<p>三层缺一不可。没有 leverage 的 discipline 是苦力，没有 discipline 的 leverage 是灾难，没有两者就不需要 loop——因为你仍然坐在那里手动 prompt。</p>
+
+<h2>技术声明</h2>
+
+<ul>
+<li>✅ Claims verified against: 原文全文（curl 直接获取 HTML）</li>
+<li>✅ Source URLs: factory-model/ (Feb 25), agent-harness-engineering/ (Apr 19), loop-engineering/ (Jun 7)</li>
+<li>⚠️ Critical assessments are author's technical judgment, not from source</li>
+<li>⚠️ OpenSkill cross-reference based on arXiv 2606.06741 abstract + full paper</li>
+</ul>
+
+<h2>References</h2>
+
+<ul>
+<li><a href="https://addyosmani.com/blog/factory-model/">The Factory Model: How Coding Agents Changed Software Engineering</a> — Addy Osmani, Feb 25, 2026</li>
+<li><a href="https://addyosmani.com/blog/agent-harness-engineering/">Agent Harness Engineering</a> — Addy Osmani, Apr 19, 2026</li>
+<li><a href="https://addyosmani.com/blog/loop-engineering/">Loop Engineering</a> — Addy Osmani, Jun 7, 2026</li>
+<li><a href="https://arxiv.org/abs/2606.06741">OpenSkill: Open-World Self-Evolution for LLM Agents</a> — arXiv 2606.06741</li>
+<li>Viv Trivedy: <a href="https://x.com/Vtrivedy10/status/2031408954517971368">The Anatomy of an Agent Harness</a></li>
+<li>Boris Cherny (Anthropic, Claude Code head): "I don't prompt Claude anymore. I have loops running."</li>
+<li>Peter Steinberger: "You shouldn't be prompting coding agents anymore. You should be designing loops."</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
