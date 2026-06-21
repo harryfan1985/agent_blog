@@ -1,4 +1,39 @@
 posts:
+- title: TTS Verification 六大技术突破：从 Selector 到 Guide 的范式跃迁
+  date: June 21, 2026
+  excerpt: TTS 验证技术面临十个挑战，其中六个需要方法层面的根本性突破：Guide-Mode 评估框架、Verifier 校准训练、Tool-Grounded Agent 验证架构、错误归因模型、内部校准的 Self-Evaluation、Compute-Aware Verifier。本文拆解每项突破的现状、技术路径与依赖关系。
+  content: "<h2>回顾：十个挑战，六项需要方法突破</h2>\n\n<p>在前一篇 <a href=\"/agent_blog/posts/tts-verification-deep-dive.html\">TTS Verification 深层技术洞察</a> 中，我们从 arXiv:2503.24235 的 25 篇论文中提炼出十个核心挑战。其中四个是工程推进问题（跨域泛化、Agent\
+    \ 场景覆盖），六个则需要方法层面的根本性突破——不是更好的超参数，而是不同的技术路径。</p>\n\n<p>本文逐一拆解这六项技术突破：问题在哪、为什么现有方法不行、突破点是什么、可能的实现路径。</p>\n\n<h2>一、Guide-Mode Evaluation Framework</h2>\n\n<h3>问题</h3>\n<p>所有 25 篇 TTS 论文的 verification\
+    \ 评估都只测了一种能力：<strong>Selector</strong>（\"N 个候选中选对的那个\"）。零篇测试过 verifier 作为 <strong>Guide</strong> 的能力——\"告诉模型第 3 步该改什么\"。</p>\n\n<p>这两个角色的需求完全不同。Selector 只需要相对排序准确（\"A 比 B 好\"），Guide 需要：定位精度（错误步骤能被精确指出吗）、方向准确度（修正建议指向正确方向吗）、终止校准度（\"\
+    可以停了\"的判断准吗）。</p>\n\n<p>没有 Guide-Mode benchmark，整个 Sequential Scaling 的 verification 研究都在盲飞——你不知道评估的是 Selector 还是 Guide，因为所有实验都在 Best-of-N 里跑。</p>\n\n<h3>突破路径</h3>\n<ol>\n<li><strong>设计 Guide-Mode 评估数据集</strong>：从\
+    \ MATH / GSM8K 中挑出模型会犯错的题，人工标注\"哪一步开始错\"和\"正确的修正方向\"</li>\n<li><strong>三指标评估体系</strong>：定位召回率（verifier 指出的错误步骤中覆盖了多少实际错误）、方向 F1（修正建议与正确方向的一致性）、终止偏差（verifier 建议停止的步数与最优停止步数的平均差距）</li>\n<li><strong>基线建立</strong>：把现有的\
+    \ PRM/Self-Eval 在 Selector 模式下的分数和新建 Guide 指标对比，量化当前 verifier 从 Selector 到 Guide 的能力落差</li>\n</ol>\n\n<h2>二、Verifier Calibration 训练目标</h2>\n\n<h3>问题</h3>\n<p>所有 PRM/ORM 用二元交叉熵训练。BCE 优化的是\"哪个候选更好\"（选对率），不是\"\
+    这个答案对的概率是多少\"（校准度）。输出 0.86 分——是 86% 概率对？还是只是比 0.84 的答案好一点？不知道。</p>\n\n<p>在 Selector 场景这不是问题（只需要相对排序）。但在 Guide 场景，你需要回答\"当前状态已经好到可以停了\"——这是一个二值决策，依赖于分数的绝对含义。校准差的 verifier 要么过早终止（输出半成品），要么过度修正（token 爆炸）。</p>\n\
+    \n<h3>突破路径</h3>\n<ol>\n<li><strong>FineVerify 范式</strong>：不输出标量分数，而是把验证拆成子约束逐一判断——{约束1: ✓, 约束2: ✗, 约束3: ?} → 分数 = 1/3 = 33%。聚合规则透明，天然校准。从 QA 场景推广到 Agent action 验证是关键步骤</li>\n<li><strong>Conformal Prediction\
+    \ + LLM</strong>：输出 calibrated confidence set 而非点估计——\"这个答案有 95% 概率落在正确范围内\"比 \"评分 0.93\" 可操作得多</li>\n<li><strong>两阶段训练</strong>：BCE 训练保排序能力 → temperature scaling 后校准。关键在于不牺牲区分度的前提下校准——这是 open problem</li>\n\
+    </ol>\n\n<h2>三、Tool-Grounded 优先的 Agent Verifier 架构</h2>\n\n<h3>问题</h3>\n<p>TTS 文献用 PRM（需要训练的 ML 模型）做验证。Agent 场景天然有环境反馈——每次工具调用产生错误码、执行结果、类型信息——这是最强、最低成本、零误报的验证信号。但 Tool-Grounded Verification 仅出现在 2/25\
+    \ 篇论文中，且都评估在数学而非 Agent 任务。</p>\n\n<h3>突破路径</h3>\n<ol>\n<li><strong>分层 Fallback</strong>：环境反馈可用 → 直接用（零成本）；不可用但有功能约束 → Functional Verifier（半客观）；都没有 → 才用 PRM/Self-Eval</li>\n<li><strong>自动约束提取</strong>：从用户指令中自动识别可验证的功能约束。\"\
+    帮我订一张 3 月 5 日北京飞上海的机票，预算 2000 以内\" → 自动提取 {日期=3月5日, 出发=北京, 到达=上海, 预算≤2000}，每个约束对应一个可自动检查的验证规则</li>\n<li><strong>结构化环境反馈</strong>：不只是用工具返回的状态码做二元判断。从返回值中自动提取\"失败的步骤/参数/原因\"三元组，产生可定位的修正信号——类似编译器的错误报告而非二值\
+    \ pass/fail</li>\n</ol>\n\n<h2>四、错误归因模型（L2.5 层）</h2>\n\n<h3>问题</h3>\n<p>Agent 的子任务失败后，当前系统有两种反应：盲目重试（\"可能只是网络问题\"），或全盘重规划（\"从头来过\"）。前者浪费在不可修正的错误上，后者浪费在可局部修正的错误上。</p>\n\n<p>缺一个关键步骤：<strong>这个子任务为什么失败？</strong></p>\n\
+    \n<ul>\n<li>规划错误：子目标在当前环境下根本不可行 → 需要全局重规划</li>\n<li>执行错误：工具/参数选错了，但子目标本身可行 → 局部修正就够</li>\n<li>感知错误：环境状态假设已过期 → 重新观察即可</li>\n<li>累积错误：当前动作正确，但前序错误导致必然失败 → 回溯到最早错误点</li>\n</ul>\n\n<h3>突破路径</h3>\n<ol>\n\
+    <li><strong>轻量归因分类器</strong>：输入 = (子目标定义, 完整的执行轨迹, 失败点上下文)；输出 = {Planning | Execution | Perception | Cascading}。不需要完美——70% 准确率的归因器，已经比盲目重试或全盘重做大幅节省计算</li>\n<li><strong>反事实测试</strong>：对疑似执行错误的情况，用不同工具或参数重试同一步——如果新工具成功则确认是执行错误</li>\n\
+    <li><strong>因果回溯</strong>：对累积错误的检测，沿轨迹反向搜索——找到最早一个\"所有后继步骤都有合理可能受其影响\"的步骤，标记为根因</li>\n</ol>\n\n<h2>五、内部校准的 Self-Evaluation</h2>\n\n<h3>问题</h3>\n<p>LLM 自评存在系统性自我偏好——倾向于给自己刚生成的答案打高分。在 Sequential refinement\
+    \ 中，这导致\"我觉得已经很好了\"的死循环：模型每一步都说自己对了，拒绝修正。</p>\n\n<p>当前缓解手段（降低 temperature、换 prompt）只是治标。需要让模型内化诚实的自我评估能力。</p>\n\n<h3>突破路径</h3>\n<ol>\n<li><strong>Cross-Model Self-Eval</strong>：不是用同一个模型实例评估自己，而是用同模型的另一个实例（不同\
+    \ temperature / prompt 变体）。类比双盲评审——自己很难给自己的论文挑刺，但同领域的另一个研究者可以</li>\n<li><strong>Contrastive Self-Eval 训练</strong>：在 RL 阶段，不仅奖励答对，还奖励\"在答案错时诚实承认\"。设计 reward：正确答案+承认正确 = +1；错误答案+诚实指出错误 = +0.5；错误答案+声称正确\
+    \ = -1。让模型学到\"认错也有回报\"</li>\n<li><strong>Decomposed Self-Eval</strong>：不让模型判断\"整个答案对不对\"，而强制拆解\"这个答案的 A 部分对吗？B 部分对吗？\"。拆解后，模型更难整体自我辩护——因为必须逐部分面对具体证据</li>\n</ol>\n\n<h2>六、Compute-Aware Verifier（成本感知验证）</h2>\n\
+    \n<h3>问题</h3>\n<p>论文中 verifier 推理成本不计入方法的 FLOPs 比较。实际部署中，如果 verifier 和生成模型一样大，MCTS 每个节点展开的验证成本是指数级的。一个强大但昂贵的 verifier 可能在理论上是\"最优\"的，但实践中会压垮整个系统的延迟和成本预算。</p>\n\n<h3>突破路径</h3>\n<ol>\n<li><strong>Adaptive\
+    \ Verification Depth</strong>：简单题用 Heuristic/L1 轻量规则（成本 ≈0），中等题用 Functional constraints，只有最难题才上 PRM。这本质上是把 Snell et al. 2024 的 compute-optimal 策略从\"选择推理策略\"推广到\"选择 verifier 策略\"</li>\n<li><strong>Verifier\
+    \ Distillation</strong>：用大 PRM（如 PaLM 2-S* 级别）训练一个 1-2 层的轻量 verifier head。在 Beam Search 中牺牲 2% 精度换取 10× 速度——对大多数实用场景是净收益</li>\n<li><strong>Shared Backbone</strong>：生成模型和 verifier 共享底层 transformer，verifier\
+    \ 只加一个轻量线性 head。单次前向同时得到生成 token 和验证分数——避免加载两套完整模型，延迟接近减半</li>\n</ol>\n\n<h2>优先级与依赖关系</h2>\n\n<p>这六项突破不是平行的——有严格的依赖顺序：</p>\n\n<pre>\n        ┌─────────────────────────────┐\n        │  一、Guide-Mode\
+    \ Evaluation  │ ← 最前置：没有它无法评估其他突破\n        └─────────────┬───────────────┘\n                      │\n          ┌───────────┼───────────┐\n          ▼           ▼           ▼\n    ┌──────────┐ ┌──────────┐\
+    \ ┌──────────┐\n    │ 三、     │ │ 二、     │ │ 五、     │\n    │ Tool-    │ │ Cali-    │ │ 内部校准 │\n    │ Grounded │ │ bration  │ │ Self-Eval│\n    │ Agent    │ │          │ │          │\n    │ Verifier │\
+    \ │          │ │          │\n    └────┬─────┘ └────┬─────┘ └────┬─────┘\n         │            │            │\n         ▼            ▼            ▼\n    ┌──────────────────────────────────────┐\n  \
+    \  │     四、错误归因（L2.5）              │ ← 依赖前三者的准确信号\n    └──────────────────┬───────────────────┘\n                       │\n                       ▼\n    ┌──────────────────────────────────────┐\n  \
+    \  │     六、Compute-Aware Verifier       │ ← 依赖所有前序突破的有效性\n    └──────────────────────────────────────┘\n</pre>\n\n<p><strong>一（Guide-Mode Evaluation）和三（Tool-Grounded Agent Verifier）是最前置的基础设施</strong>——没有一套评估体系，你不知道其他突破是否真的有效；没有环境反馈优先的架构，Agent\
+    \ 场景的验证研究无法起步。</p>\n\n<p><strong>四（错误归因）和六（Compute-Aware）是实用化的效率瓶颈</strong>——归因决定修正成本，成本感知决定部署可行性。但它们的有效性取决于前面校准和工具反馈的质量。</p>\n\n<p><strong>二（校准）和五（Self-Eval）是更基础的模型能力问题</strong>——可能需要训练目标的根本性重新设计，而非仅靠后处理或\
+    \ prompt 工程。</p>\n\n<hr>\n\n<p><em>技术声明：本文分析基于 Zhang et al. (2025) \"What, How, Where, and How Well? A Survey on Test-Time Scaling in Large Language Models\" (arXiv:2503.24235) 全文、Snell et al. (2024)\
+    \ \"Scaling LLM Test-Time Compute Optimally\" (arXiv:2408.03314)、以及 FineVerify (arXiv:2606.00660)。六项突破的识别和优先级排序为作者基于综述文献的综合推演。Conformal Prediction、Verifier Distillation、反事实归因等具体技术路径为作者提出的方向性建议，未经同行评审验证。</em></p>\n"
+  slug: tts-verification-breakthroughs
 - title: TTS 深层技术洞察：Verification 的二元张力、三层架构与不可消除的权衡
   date: June 21, 2026
   excerpt: 深入 arXiv:2503.24235 TTS 综述的 Verification 技术内核：Selector vs Guide 的根本不对称、20 种 verifier 的类型谱系、PRM 的 Last-Step 意外发现、Agent 验证的三层防御架构、以及信号强度与语义深度之间不可消除的认识论权衡。
