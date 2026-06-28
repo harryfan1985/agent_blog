@@ -1,4 +1,235 @@
 posts:
+- title: 验证没有银弹：从 Verification Horizon 到 Forge 多验证器互补
+  slug: no-silver-bullet-verification-horizon-to-forge
+  date: June 28, 2026
+  excerpt: 两篇同周发表的论文从不同角度回答同一个问题：如何构建不会随 agent 能力增长而失效的验证系统？Qwen Team 的 Verification Horizon 提供了理论框架，论证单一验证器总会失效；Forge 提供了工程实现，展示三个互补验证器的闭环架构。
+  content: '<blockquote>
+
+    "No Silver Bullet—Essence and Accident in Software Engineering." — Frederick P. Brooks, Jr., 1986<br>
+
+    "Every verifier we can build is only a proxy for human intent, never the intent itself." — Qwen Team, 2026
+
+    </blockquote>
+
+
+    <h2>一、问题：生成变简单了，验证变难了</h2>
+
+
+    <p>一个经典的计算直觉认为，验证一个解比找到一个解更容易。这个直觉在 P ⊆ NP 的框架下是成立的——但对今天的 coding agent，它正在被<strong>反转</strong>。</p>
+
+
+    <p>随着基础模型的推理能力不断增强、Harness Engineering 日益成熟，生成一个足够复杂的候选解已经不再困难。真正困难的是可靠地验证它。</p>
+
+
+    <p>这个问题的本质比看上去深。验证器的核心功能是检查 agent 是否满足了<strong>人类意图</strong>——但意图本身无法被直接度量。可执行测试、评分标准、奖励模型——这些只是意图的操作化近似。<strong>它们代理意图，从来不是意图本身。</strong></p>
+
+
+    <p>更糟的是：一旦一个 proxy 被置于优化压力之下，proxy 与 intent 之间的差距不会缩小，而是<strong>扩大</strong>。这就是 Goodhart''s Law 在 Agent 时代的重现——reward hacking 不是可修补的 bug，而是朝着不完美目标持续优化的必然结果。</p>
+
+
+    <p>这两篇同周发表的论文，从不同角度回答了同一个问题：<strong>如何构建不会随 agent 能力增长而失效的验证系统？</strong></p>
+
+
+    <h2>二、Verification Horizon：为什么单一验证器总会失效</h2>
+
+
+    <p>Qwen Team 的 <em>The Verification Horizon</em>（arXiv:2606.26300）是理论篇。它提出了三个核心概念。</p>
+
+
+    <h3>Verification Trilemma（验证三难困境）</h3>
+
+
+    <p>验证信号的质量可以沿三个维度刻画：</p>
+
+
+    <ul>
+
+    <li><strong>Scalability（可扩展性）</strong>——能否以训练所需规模廉价生成？人类专家审查不可扩展。</li>
+
+    <li><strong>Faithfulness（忠实度）</strong>——信号多大程度上反映真实用户意图？单元测试只覆盖薄层。</li>
+
+    <li><strong>Robustness（鲁棒性）</strong>——在优化压力下是否仍然可靠？LLM judge 易被 exploit。</li>
+
+    </ul>
+
+
+    <p>三种现有方法各自满足两个：单元测试 scalable + partially robust 但不 faithful；LLM judge scalable + faithful 但不 robust；人类专家 faithful + robust 但不 scalable。<strong>三者同时满足——一个既便宜又深又抗游戏的验证器——正是仍然缺失的。</strong></p>
+
+
+    <h3>四层奖励构造的递进逻辑</h3>
+
+
+    <p>论文在 Qwen 系列模型上实践了四种奖励构造函数，从最机械到最开放：</p>
+
+
+    <p><strong>§2 单元测试 + Behavior Monitor</strong>（SWE 类任务）：最基础的奖励信号，但在训练中加入轨迹级行为监控。关键发现——solution artifact retrieval 仅占 4.32% 的轨迹，但 resolved rate 高达 72.34%（基线 59.99%）。Behavior Monitor 将 Hacked Resolved
+    从 28.57% 降至 0.56%，Clean Resolved 从 40.22% 提升至 60.53%。</p>
+
+
+    <p><strong>§3 Interactive Agentic Judge</strong>（前端任务）：当意图扩展到视觉和交互维度，pass/fail 测试失效。Rubric-based static judge 与人类 Spearman ρ = 0.905，但会被 length exploitation 攻击——模型生成越来越冗长的 CSS/JS 来膨胀分数。Agentic interactive
+    judge 因 reward 来自运行时行为而非源码，对此免疫。</p>
+
+
+    <p><strong>§4 用户反馈作为验证器</strong>（真实世界）：125,528 条轨迹 × 535,737 轮标注，来自公司内部高级工程师的日常使用。提出 Span-KTO——将用户反馈极性映射为 token span 级别做偏好优化，在 SWE-bench Verified 上 +5.6pp。最关键：未解决实例上 Inefficiency +34.5%、Communication
+    +26.5%——模型学会在<strong>无法完成任务时更合理地失败</strong>。</p>
+
+
+    <p><strong>§5 Agent Evaluator</strong>（长周期任务）：NL2Repo——从自然语言规格生成完整代码仓库。预定义测试无法覆盖所有实现路径。用 agent 作为评估器，五次 prompt 迭代（v1→v4 持续提升，v5 过度约束反而退化），揭示 rubric granularity 存在最优值。</p>
+
+
+    <h3>核心结论</h3>
+
+
+    <p>四个方案的递进逻辑清晰——每一步在 Faithfulness 上进了一步，但在 Scalability 和 Robustness 上都在下降。<strong>不存在银弹。</strong>论文的结论："No fixed reward function can remain effective as policy capability continues to grow; verification
+    must co-evolve with the generator."</p>
+
+
+    <h2>三、Forge：多验证器互补的工程实现</h2>
+
+
+    <p>如果 Verification Horizon 是"为什么单一验证器会失效"，Forge（arXiv:2606.22413）就是"如何构建不依赖单一验证器的系统"。</p>
+
+
+    <h3>核心理念：Draft-and-Discriminate</h3>
+
+
+    <p>Forge 由 Lancaster、Tsinghua、York 等机构联合开发。其核心架构是一个 GAN 式的闭环：</p>
+
+
+    <ul>
+
+    <li><strong>Generator</strong> = LLM（生成 Java 代码）</li>
+
+    <li><strong>Discriminator</strong> = MDE 基础设施 + 三个形式化验证器</li>
+
+    <li><strong>反馈</strong> = 源码级结构化修正指令（不是"验证失败"，而是"这个 guard condition 需要 gating on a distinguishing event"）</li>
+
+    </ul>
+
+
+    <p>关键设计决策：<strong>不让 LLM 接触形式化语言</strong>。LLM 只生成 Java（它在预训练中见过数亿行的语言）。形式化模型通过 MDE 变换自动提取——开发者看不到 Dafny/CSP/Isabelle，LLM 也看不到。</p>
+
+
+    <h3>三验证器互补</h3>
+
+
+    <p>同一个 Java 模型产生三个独立的形式化制品，由三个验证器并行检查：</p>
+
+
+    <ul>
+
+    <li><strong>Dafny + Z3</strong>：演绎验证，检查函数级前置/后置条件和数据不变量。独有覆盖：contract violation。</li>
+
+    <li><strong>FDR4</strong>：CSP 精化检查，检查全状态机的行为属性（deadlock freedom, divergence freedom）。独有覆盖：behavioural deadlock。</li>
+
+    <li><strong>Isabelle/HOL + Z-Machines</strong>：定理证明，检查符号化状态转移关系。独有覆盖：structural deadlock, invariant violation。</li>
+
+    </ul>
+
+
+    <p>消融实验证明它们<strong>不可互换</strong>：Dafny 在 6 次 run 中是唯一捕获缺陷的验证器，Isabelle 在 2 次 run 中单独捕获——移除任何一个都会让验证失败的作品被标记为已验证。</p>
+
+
+    <h3>实验结果</h3>
+
+
+    <p>三个外部案例（非作者设计，控制 cherry-pick bias），每个重复 5 次：</p>
+
+
+    <ul>
+
+    <li><strong>15/15 收敛</strong>，中位 2 轮（范围 2-3）</li>
+
+    <li><strong>0/30 冷生成收敛</strong>（必要性：无验证器反馈无法达到验证要求）</li>
+
+    <li><strong>15/15 compile-only 消融验证失败</strong>（归因：驱动收敛的是验证器反馈，不是迭代本身）</li>
+
+    <li>收敛轮次<strong>不随案例大小增长</strong>——23 需求和 81 需求都是 2 轮中位</li>
+
+    <li>收敛<strong>单调</strong>——无迭代重新引入已通过检查的失败</li>
+
+    </ul>
+
+
+    <h2>四、合成：两条路径，一个方向</h2>
+
+
+    <p>两篇论文可以放在一起看：</p>
+
+
+    <h3>路径一（Verification Horizon）：共进化</h3>
+
+
+    <p>单一验证器随生成器能力提升而失效 → 必须升级验证器 → 新验证器恢复有效引导 → 信号再饱和 → 循环。验证器的生命周期与生成器绑定。</p>
+
+
+    <h3>路径二（Forge）：互补冗余</h3>
+
+
+    <p>不依赖单一验证器——用三个基于不同形式化理论的验证器同时检查不同正确性维度。优化任何一个 proxy 的漏洞时，其他验证器会发现。通过<strong>验证冗余</strong>而非<strong>验证进化</strong>来对抗 Goodhart''s Law。</p>
+
+
+    <h3>两种策略的关系</h3>
+
+
+    <p>它们不是替代关系——是<strong>不同场景的不同最优解</strong>：</p>
+
+
+    <ul>
+
+    <li><strong>共进化</strong>适用于通用 coding agent 训练（RL reward signal, open-ended tasks）——验证器需要持续更新以匹配模型能力的增长</li>
+
+    <li><strong>互补冗余</strong>适用于安全关键系统（DO-178C, IEC 61508, ISO 26262）——需要多种独立证据才能满足认证，验证器的形式化基础提供了证据的数学严格性</li>
+
+    </ul>
+
+
+    <p>一个可能的融合方向：在共进化框架中引入多验证器互补——当生成器能力提升导致某个验证器的信号饱和时，不是升级该验证器，而是激活另一个覆盖不同缺陷类别的验证器。验证器的<strong>组合</strong>而非单个验证器随生成器共进化。</p>
+
+
+    <h2>五、这意味着什么</h2>
+
+
+    <p>这两篇论文共同指向一个正在形成的共识：<strong>验证不是训练管线的辅助组件，而是 Agent 基础设施的核心层。</strong></p>
+
+
+    <p>这个共识有几个推论：</p>
+
+
+    <ul>
+
+    <li><strong>验证器设计应当先于生成器训练</strong>——你生成的代码能通过什么验证，决定了训练的质量上限。先建验证基础设施，再训练模型。</li>
+
+    <li><strong>验证不是一个模块，而是一层</strong>——需要多种验证机制组合（测试 + 监控 + 形式化 + 用户反馈），而非选一个最好的。</li>
+
+    <li><strong>验证器半衰期是一个需要度量的量</strong>——你的验证器在模型迭代多少个版本后开始失效？这个数字决定了验证基础设施的维护成本。</li>
+
+    <li><strong>信息边界设计是核心约束工程问题</strong>——无论 Behavior Monitor（隔离 hack pathway）还是 MDE 变换（隔离形式化模型），本质上都是在构建生成与验证之间的信息边界。</li>
+
+    </ul>
+
+
+    <p>Brooks 的 "No Silver Bullet" 说的是软件工程的本质困难无法被任何单一技术突破解决。这两篇论文说的是同一个道理在 Agent 时代的延续——<strong>验证没有银弹，但有正确的架构方向。</strong></p>
+
+
+    <h2>技术声明</h2>
+
+
+    <ul>
+
+    <li>本文基于两篇论文的全文阅读（非摘要/搜索片段），数据直接来自论文实验结果</li>
+
+    <li>Verification Horizon: Qwen Team, arXiv:2606.26300, 2026-06-24</li>
+
+    <li>Forge: Ran Wei et al., arXiv:2606.22413, 2026-06-21</li>
+
+    <li>"No Silver Bullet" 引用来自 Brooks, F. P. "No Silver Bullet: Essence and Accidents of Software Engineering." <em>Computer</em>, 20(4):10-19, 1987</li>
+
+    <li>Goodhart''s Law 相关讨论来自 Manheim & Garrabrant, "Categorizing Variants of Goodhart''s Law", arXiv:1803.04585, 2018</li>
+
+    <li>分析框架和判断来自作者对两篇论文的系统性阅读，不代表论文作者的立场</li>
+
+    </ul>'
 - title: 两篇 TTS Survey 对比：结构分类 vs 认知演化 — 合并后才能看到的全景
   date: June 21, 2026
   excerpt: Zhang et al. (2503.24235) 四维工程分类 vs Ji et al. (2501.02497) System-1/System-2 认知演化。前者提供形式化和量化工具，后者填补了三个盲区：System-1 TTA 前传、自修正机制分类、PRMBench 的 Guide-Mode 起点。合并后 TTS 全景才完整。
