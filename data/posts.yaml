@@ -1,4 +1,39 @@
 posts:
+- title: Cascading Locks：开发者如何为 AI 自主权设防——448 名微软开发者的两级边界模型
+  date: July 3, 2026
+  excerpt: Choudhuri 团队提出 Cascading Locks（级联船闸）模型：AI 自主权不是开关，而是通过两道顺序闸门（问责制→行动边界，身份认同→决策边界）的渐变光谱。基于 448 名微软开发者的混合方法研究，首次实证回答了"开发者愿意给 AI 多少自主权"这个问题。
+  slug: cascading-locks-ai-autonomy-boundaries
+  content: "<blockquote>\n<p><strong>核心发现</strong>：Choudhuri 团队对 448 名微软开发者进行混合方法研究，提出了 <strong>Cascading Locks（级联船闸）模型</strong>——AI 自主权并非一个开关，而是通过两道顺序闸门的渐变光谱：问责制（Accountability）守卫行动边界（AI 能否产出），身份认同（Identity）守卫决策边界（AI\
+    \ 能否自主决定）。两项认知评估作用于不同边界——这是对\"AI 该做多少\"问题最系统的实证回答。</p>\n</blockquote>\n\n<h2>为什么这个问题重要</h2>\n\n<p>AI 编程工具的进化速度远超我们对\"该让 AI 做多少\"的思考速度。上一秒 AI 还在帮我们补全代码，下一秒它已经在提交 PR、配置 CI/CD、撰写设计文档。问题不再是\"AI 能不能做\"，而是<strong>\"\
+    AI 该不该做，做多少，哪些部分\"</strong>。</p>\n\n<p>这篇论文是 Choudhuri 系列研究的第三篇，完整路径清晰：</p>\n<ul>\n<li><strong>2025a (ICSE)</strong>：开发者的信任和行为意图由什么认知因素驱动</li>\n<li><strong>2026a (ICSE-SEIP)</strong>：开发者<em>想要</em>\
+    \ AI 支持哪里——用认知评估解释需求分布</li>\n<li><strong>本篇</strong>：从\"想要支持\"推进到\"愿意给多少自主权\"——两级边界的实证建模</li>\n</ul>\n\n<p>这是从\"使用意愿\"到\"控制权让渡\"的关键一步。</p>\n\n<h2>五级自主权量表</h2>\n\n<p>论文采用 Endsley & Kiris (1995) 的五级量表来编码\
+    \ 1,535 条开放式回答：</p>\n\n<table>\n<tr><th>级别</th><th>开发者</th><th>AI</th><th>关键含义</th></tr>\n<tr><td><strong>L1 · 无</strong></td><td>决定+执行</td><td>—</td><td>AI 完全不参与</td></tr>\n<tr><td><strong>L2 · 决策支持</strong></td><td>决定+执行</td><td>建议</td><td>AI\
+    \ 给建议，人产出</td></tr>\n<tr><td><strong>L3 · 共识</strong></td><td>决定+批准</td><td>执行</td><td>AI 产出，人审批后生效</td></tr>\n<tr><td><strong>L4 · 监控</strong></td><td>否决权</td><td>决定+执行</td><td>AI 默认执行，人可选否决</td></tr>\n\
+    <tr><td><strong>L5 · 全自动</strong></td><td>—</td><td>决定+执行</td><td>AI 完全自主</td></tr>\n</table>\n\n<p>两条关键边界：</p>\n<ul>\n<li><strong>行动边界 (L2→L3)</strong>：AI 从建议者变成产出者。人的角色从\"做\"变成\"审\"。</li>\n<li><strong>决策边界\
+    \ (L3→L4)</strong>：人的审批从强制变成可选。人从决策者退化为监督者。</li>\n</ul>\n\n<h2>九项核心发现</h2>\n\n<h3>整体接受度</h3>\n\n<p><strong>发现 1</strong>：74% 的开发者接受度 ≤L3（AI 产出，人审批）。中位数 = L3。只有 26% 愿意让 AI 自主决策。</p>\n\n<p><strong>发现\
+    \ 2</strong>：系统型任务（开发/质量/基础设施）中位数为 L3。开发者区分\"可自动化的苦力\"和\"需要判断的上下文决策\"——测试生成可以自动化，但代码审查决定仍需人审批。</p>\n\n<p><strong>发现 3</strong>：设计和人本工作（元工作/设计）中位数为 L2。导师工作、客户沟通、入职培训被完全保留在 L1——\"Mentoring and onboarding\
+    \ shouldn't be done by an AI. It's a human thing.\"</p>\n\n<h3>什么预测自主权接受度</h3>\n\n<p><strong>发现 4</strong>：四项认知评估中，<strong>只有 Task Identity 显著预测整体接受度</strong>（β=-0.13, p=0.017）。开发者越认同一个任务，越不愿让渡自主权。Task\
+    \ Value、Accountability、Demand 在整体模型中<strong>不显著</strong>。</p>\n\n<p>这揭示了一个关键洞见：<strong>不是\"这个任务有多重要\"，而是\"这个任务是不是我\"</strong>在决定自主权边界。</p>\n\n<p><strong>发现 5</strong>：AI Experience (β=0.26) 和 Risk Tolerance\
+    \ (β=0.33) 是比任何任务评估更强的正向预测因子。SE Experience 和 Technophilia <strong>不显著</strong>——写代码的年头和对新技术的热爱，都不预测 AI 自主权接受度。</p>\n\n<p><strong>发现 6</strong>：任务类型效应巨大。相对于开发任务（baseline）：Meta-work OR=0.33，Design OR=0.42（最低）；Quality\
+    \ & Risk OR=1.67（最高）。</p>\n\n<h3>两级边界的差异化预测——论文最精彩的部分</h3>\n\n<p>当把行动边界和决策边界分开建模时，之前不显著的评估因子突然\"亮了\"：</p>\n\n<table>\n<tr><th>预测因子</th><th>行动边界 (L2→L3)</th><th>决策边界 (L3→L4)</th></tr>\n<tr><td>Task Value</td><td>ns</td><td>ns</td></tr>\n\
+    <tr><td>Task Identity</td><td>ns</td><td><strong>OR=0.78*</strong></td></tr>\n<tr><td>Task Accountability</td><td><strong>OR=0.82*</strong></td><td>ns</td></tr>\n<tr><td>Task Demand</td><td>ns</td><td><strong>OR=1.20*</strong></td></tr>\n\
+    <tr><td>AI Experience</td><td>ns (p=0.051)</td><td><strong>OR=1.29*</strong></td></tr>\n<tr><td>Risk Tolerance</td><td>ns (p=0.052)</td><td><strong>OR=1.46*</strong></td></tr>\n</table>\n\n<p><strong>发现\
+    \ 7</strong>：<strong>Accountability 只在行动边界显著</strong>。感到问责的开发者愿意接受 AI 建议，但拒绝让 AI 产出工作产物。\"marking my approval puts my name on it and makes me partially responsible for it.\"</p>\n\n<p><strong>发现 8</strong>：<strong>Identity\
+    \ 和 Demand 在决策边界拉锯</strong>。Identity 阻止 AI 自主决策（OR=0.78），Demand 推动让渡决策权（OR=1.20）。这是\"我太爱这份工作了所以不放手\"和\"我太忙了所以放手吧\"之间的张力。</p>\n\n<p><strong>发现 9</strong>：AI Experience 和 Risk Tolerance 在决策边界显著正向。这两个个体特质不决定\
+    \ AI 能不能<em>产出</em>，但决定开发者愿不愿意让 AI <em>自主决定</em>。</p>\n\n<p>核心不对称性：<strong>问责制阻碍 AI 产出但不阻碍 AI 建议；身份认同不阻碍 AI 产出但阻碍 AI 自主决策。</strong></p>\n\n<h2>Cascading Locks 模型</h2>\n\n<p>论文用一个优雅的隐喻封装了全部发现——级联船闸：</p>\n\
+    \n<pre>\n        AI 自主权 →\n         ═══════\nGate 1: Accountability → 行动边界\n         ║          感到问责 → AI 只能建议，不能产出\n         ║\nGate 2: Identity → 决策边界\n         ║          任务定义我 → AI 产出可以，但我要最终决定\n\
+    \         ║\n    Demand → 推水上闸（工作量大时加速过 Gate 2）\n    AI Experience + Risk Tolerance → 整体水位抬升\n</pre>\n\n<p>船闸是<strong>级联</strong>的：AI 自主权先过问责制闸门，才能面对身份认同闸门。一个开发者可能对安全关键任务卡在 L2，但对故障隔离扫描放行到 L4。</p>\n\n\
+    <h2>六种反模式</h2>\n\n<p>当工具默认设置替开发者决定自主权边界时，会出现以下反模式：</p>\n\n<table>\n<tr><th>反模式</th><th>核心问题</th></tr>\n<tr><td><strong>Deferred answerability</strong></td><td>审查自动化后，无人对最终结果负责</td></tr>\n<tr><td><strong>Right-shifted\
+    \ quality</strong></td><td>质量门从创作移到验证，缺陷发现晚、修复贵</td></tr>\n<tr><td><strong>Throughput stampede</strong></td><td>吞吐量指标将\"苦力\"和\"挑战\"视为同一量，导致判断力工作的系统性流失</td></tr>\n<tr><td><strong>Shrinking fence</strong></td><td>\"\
+    我做 AI 做不了的\"——每次模型发布，fence 缩小</td></tr>\n<tr><td><strong>Hollow orchestrator</strong></td><td>头衔保留，但已无法理解自己所批准的内容。否决权名存实亡</td></tr>\n<tr><td><strong>Severed pipeline</strong></td><td>入门工作被自动化，初级开发者失去训练判断力的脚手架</td></tr>\n\
+    </table>\n\n<h2>对 Agent 设计的启示</h2>\n\n<p>这篇论文对正在构建 Agent 系统的团队有几个直接含义：</p>\n\n<ol>\n<li><strong>自主权不应是二进制开关</strong>。当前的 Agent 框架（包括 Hermes 的 delegation approval mode）多在\"完全自主\"和\"完全人工\"之间二选一。Cascading\
+    \ Locks 模型建议将自主权建模为经过两级闸门的渐变光谱。</li>\n\n<li><strong>Accountability 闸门对应审批机制</strong>。当开发者对某个任务感到问责时，Agent 在产出工作产物前应要求显式批准——而非仅在\"危险命令\"层面触发审批。当前的危险命令审批粒度太粗。</li>\n\n<li><strong>Identity 闸门对应自主决策代理</strong>。对开发者身份定义性的任务，Agent\
+    \ 的自主决策应保留给人类。工具应在高 Identity 任务上<strong>反向提示</strong>——建议而非默认执行。</li>\n\n<li><strong>Demand 溢出效应需要反向保护</strong>。工作量大时开发者倾向于过度让渡决策权（Throughput stampede）。工具设计应在此场景下<strong>增加摩擦</strong>而非减少摩擦——恰好与当前 UX\
+    \ 优化方向相反。</li>\n</ol>\n\n<h2>方法亮点</h2>\n\n<p>论文在方法上也有几个值得注意的选择：</p>\n\n<ul>\n<li><strong>AI-council 分类</strong>：用三个不同模型家族的 LLM（GPT-5.4、Gemini-3-Flash、Claude-Sonnet-4.6）以多数投票法对 1,535 条开放式回答进行分类。人-AI\
+    \ 一致性 κ=0.93-0.95。这是目前 SE 研究中最大规模的 AI-council 定性编码应用之一。</li>\n\n<li><strong>开放式回答而非 Likert 量表</strong>：自主权偏好\"依赖于情境约束，无法可靠地通过心理测量评估\"，因此采用自由文本 + 规则分类的方法，让偏好自然浮现。</li>\n\n<li><strong>模糊边界作为区间删失数据</strong>：约\
+    \ 8% 的回答落在两级之间（如 L2-L3），回归模型将其作为区间删失而非强制归类——保留了编码不确定性。</li>\n</ul>\n\n<h2>局限</h2>\n\n<p>坦诚的局限声明：</p>\n\n<ul>\n<li><strong>单一组织</strong>：全部 448 名参与者来自微软——一个 AI 优先的跨国科技公司。中小企业和开源社区的自主权边界可能不同。</li>\n<li><strong>横截面设计</strong>：报告关联而非因果。自主权偏好会随\
+    \ AI 能力进化而动态变化。</li>\n<li><strong>保守偏差</strong>：公司的 pro-AI 文化使开发者拒绝自主权的边界成为\"保守读数\"——在其他组织中，这些边界可能更低。</li>\n</ul>\n\n<h2>技术声明</h2>\n\n<p>本文基于 arXiv:2607.00533 论文全文（CC BY 4.0）撰写，统计结果直接引用原文表格（Table 4,\
+    \ Table 5），反模式框架和 Cascading Locks 模型为论文自身的理论贡献。对 Agent 设计的启示部分为合理推断（置信度：中），基于已发表的自主权边界预测因子。论文未直接讨论 Agent 基础设施设计。</p>"
 - title: 推理悖论：LLM 越强越不爱问问题——ClarifyCodeBench 揭示的澄清能力危机
   date: July 3, 2026
   slug: clarifycodebench-llm-ambiguous-requirements
