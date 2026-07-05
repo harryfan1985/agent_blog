@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>"Less Context, Better Agents" — 当少即是多：Context Pruning 如何让 Agent 性能跳升 20pp | Agent Blog</title>
+    <meta name="description" content="一篇 Microsoft 团队的 arXiv 论文用精确实验数据证明：给 Agent 更少的 context（pruning + 摘要）反而能提升 20pp 完成率，同时削减 63% token 成本。老 context 不是冗余，是主动有害。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content=""Less Context, Better Agents" — 当少即是多：Context Pruning 如何让 Agent 性能跳升 20pp">
+    <meta property="og:description" content="一篇 Microsoft 团队的 arXiv 论文用精确实验数据证明：给 Agent 更少的 context（pruning + 摘要）反而能提升 20pp 完成率，同时削减 63% token 成本。老 context 不是冗余，是主动有害。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 5, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>"Less Context, Better Agents" — 当少即是多：Context Pruning 如何让 Agent 性能跳升 20pp</h1>
+                <div class="meta">
+                    <span class="date">July 5, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>给 AI Agent 更多的 context 信息，它就能表现得更好——这个直觉似乎不言自明。但一篇来自 Microsoft Dynamics 365 团队的 arXiv 论文用精确的实验数据挑战了这个假设：<strong>老 context 不仅是冗余的，而且是主动有害的。</strong></p>
+
+<h2>Context Rot：当历史变成负担</h2>
+
+<p>企业 ERP 系统的 tool response 极其冗长。D365 F&O 的单次 MCP tool 调用返回的表单快照可达 500–3,000 tokens——包含完整的字段值、导航面包屑、系统元数据。当一个 Agent 执行 15–30 次 tool 调用才能完成一项费用逐项分解任务时，全量保留对话历史会导致三个问题：</p>
+
+<ol>
+<li><strong>Context overflow</strong>：token 预算耗尽，任务中断</li>
+<li><strong>Stale-state errors</strong>：Agent 基于早已过时的表单快照做决策——例如重复添加已经存在的 line item</li>
+<li><strong>推理成本线性增长</strong>：全量历史 1.48M tokens，而核心决策需要的仅是最新的工作状态</li>
+</ol>
+
+<p>这种现象在生产系统中被称为 "context rot"——模型的<em>有效</em>召回能力在 token 数增长时退化，远早于硬 context 限制被触及（Anthropic, 2025）。</p>
+
+<h2>实验设计：四个配置，一个变量</h2>
+
+<p>论文评估了四种 context 管理策略，应用于 GPT-5 在 D365 F&O 上执行 50 任务酒店费用逐项分解 benchmark。每个配置运行 5 次取均值。</p>
+
+<table>
+<thead><tr><th>配置</th><th>User Model</th><th>Context 策略</th><th>目的</th></tr></thead>
+<tbody>
+<tr><td>C1</td><td>✗</td><td>全量历史</td><td>消融基线（GPT-5 无 user model 时会 stall）</td></tr>
+<tr><td>C2</td><td>✓</td><td>全量历史</td><td><strong>Context-engineering 比较基线</strong></td></tr>
+<tr><td>C3</td><td>✓</td><td>仅保留最近 5 次 tool call</td><td>纯 pruning</td></tr>
+<tr><td>C4</td><td>✓</td><td>最近 5 次 + 摘要（窗口=3）</td><td>Pruning + 轻量自动摘要</td></tr>
+</tbody>
+</table>
+
+<p><strong>关键设计</strong>：C2→C3→C4 的比较中，user model 保持恒定（GPT-4.1）。论文明确声明 C1→C2 的跳跃不代表 context engineering 的价值——它反映的是 GPT-5 在无 user model 下的 stall 行为。真正的 context policy 效应仅在 C2→C3→C4 中体现。</p>
+
+<h2>核心结果：少即是多</h2>
+
+<table>
+<thead><tr><th>配置</th><th>完全完成率</th><th>&lt;10% 剩余</th><th>平均完成%</th><th>Tokens (K)</th><th>耗时 (h)</th></tr></thead>
+<tbody>
+<tr><td>C1（无 user）</td><td>8.0% ±2.5</td><td>37.2%</td><td>58.9%</td><td>532.6</td><td>3.08</td></tr>
+<tr><td>C2（全量）</td><td>71.0% ±4.4</td><td>74.0%</td><td>92.0%</td><td><strong>1,481.0</strong></td><td>14.56</td></tr>
+<tr><td>C3（Last 5）</td><td>79.0% ±8.2</td><td>87.0%</td><td>96.9%</td><td>535.3</td><td>5.39</td></tr>
+<tr><td><strong>C4（Last 5+Sum）</strong></td><td><strong>91.6%</strong> ±1.7</td><td><strong>99.6%</strong></td><td><strong>99.6%</strong></td><td>553.4</td><td>5.79</td></tr>
+</tbody>
+</table>
+
+<ul>
+<li><strong>C2→C4：完成率 +20.6pp，tokens -62.7%，耗时 -60.2%</strong></li>
+<li><strong>C3→C4：完成率 +12.6pp，tokens 仅 +3.4%</strong>（摘要的边际成本极低）</li>
+<li>Pruning alone (C3) 本身就比全量历史 (C2) 提升 8pp，同时削减 64% tokens</li>
+</ul>
+
+<p>这不是渐进改进——C4 在 <strong>性能</strong> 和 <strong>效率</strong> 两个维度上同时击败了全量历史基线。</p>
+
+<h2>交叉验证：Claude Sonnet 4.5</h2>
+
+<p>为了验证策略非模型特定，论文在 Sonnet 4.5 上复现了实验：</p>
+
+<table>
+<thead><tr><th>配置</th><th>完全完成率</th></tr></thead>
+<tbody>
+<tr><td>Full context（无 CE）</td><td>88.0%</td></tr>
+<tr><td>Pruning（Last 5）</td><td>92.0%</td></tr>
+<tr><td>Pruning + Summ.</td><td><strong>94.5%</strong></td></tr>
+</tbody>
+</table>
+
+<p>Sonnet 不 stall（C1 即可达 88%），证明 GPT-5 的 C1 低性能是模型特异的。但方向一致：<strong>pruning + summary 在两个模型族上都优于全量历史。</strong> 时间溢价稳定在 ~5.6%。</p>
+
+<h2>为什么 Pruning 能击败全量历史？</h2>
+
+<p>答案在失败模式分析中。论文对每次非完成任务分类为 6 种失败模式（pooled over 5 runs）：</p>
+
+<table>
+<thead><tr><th>失败模式</th><th>C2</th><th>C3</th><th>C4</th></tr></thead>
+<tbody>
+<tr><td>Stale-state reference</td><td><strong>34</strong></td><td>6</td><td>4</td></tr>
+<tr><td>Wrong subcategory mapping</td><td>8</td><td>9</td><td>6</td></tr>
+<tr><td>Duplicate / skipped repeat</td><td>12</td><td>11</td><td>5</td></tr>
+<tr><td>Premature termination</td><td>9</td><td><strong>18</strong></td><td>3</td></tr>
+<tr><td>Tool / form navigation error</td><td>6</td><td>5</td><td>2</td></tr>
+<tr><td>Residual amount mismatch</td><td>4</td><td>4</td><td>1</td></tr>
+<tr><td><strong>Total non-completions</strong></td><td><strong>73</strong></td><td>53</td><td><strong>21</strong></td></tr>
+</tbody>
+</table>
+
+<p>这张表揭示了一个清晰的机制链条：</p>
+
+<ol>
+<li><strong>C2 → C3：stale-state 错误从 34 骤降至 6</strong>（pruning 消除了过时表单快照）。但 premature termination 从 9 暴增至 18——Agent 失去了对"我已经完成了多少"的全局感知。</li>
+<li><strong>C3 → C4：premature termination 从 18 降至 3</strong>（摘要恢复了任务进度感知），同时 stale-state 错误保持低位（4）。</li>
+</ol>
+
+<p>这是一种精巧的 <strong>信息分工</strong>：pruning 提供当前本地状态（刚刚做了什么、结果如何），摘要提供全局任务进度（已处理多少项、还剩多少金额）。两者组合构成完整的工作记忆，缺一不可。</p>
+
+<p>论文进一步量化了这种分工的成本效益：摘要仅增加 <strong>3.4% 的 token 开销</strong>（C3→C4），换来了 <strong>12.6pp 的完成率提升</strong>。ROI 极高。</p>
+
+<h2>敏感性分析：N=5 和 W=3 的选择稳健吗？</h2>
+
+<p>论文对 pruning 窗口 N 和 summary 窗口 W 分别做了灵敏度扫描：</p>
+
+<table>
+<thead><tr><th>Sweep</th><th>Setting</th><th>完成率</th><th>Tokens (K)</th></tr></thead>
+<tbody>
+<tr><td rowspan="4">Pruning N</td><td>N=3, W=0</td><td>74.0%</td><td>425</td></tr>
+<tr><td><strong>N=5, W=0 (C3)</strong></td><td><strong>79.0%</strong></td><td>535.3</td></tr>
+<tr><td>N=10, W=0</td><td>80.0%</td><td>820</td></tr>
+<tr><td>N=∞ (C2)</td><td>71.0%</td><td>1,481.0</td></tr>
+<tr><td rowspan="4">Summary W</td><td>N=5, W=1</td><td>86.4%</td><td>540</td></tr>
+<tr><td><strong>N=5, W=3 (C4)</strong></td><td><strong>91.6%</strong></td><td>553.4</td></tr>
+<tr><td>N=5, W=5</td><td>92.0%</td><td>575</td></tr>
+<tr><td>Full-hist. summary</td><td>92.0%</td><td>615</td></tr>
+</tbody>
+</table>
+
+<ul>
+<li><strong>N=5 是甜点</strong>：N=3 降 ~5pp；N=10 仅增 <1pp 但 tokens +53%。</li>
+<li><strong>W=3 也稳定</strong>：W=5 和全量 summary 仅 +0.4pp，但 token 成本 +4–11%。</li>
+<li>最关键的一行：<strong>N=∞（全量历史）严格劣于 N=5</strong>——更多 context 不仅没有更好，反而更差。</li>
+</ul>
+
+<h2>对 Agent 基础设施的工程启示</h2>
+
+<h3>1. Context policy 应以 tool 交互为语义单元，而非 token 级别</h3>
+
+<p>这是论文与 token-level 压缩方法（LLMLingua, Selective Context）的本质区别。tokn-level 压缩可能破坏 ERP 表单所需的逐字控制名和数值。论文的 Algorithm 1 用 20 行伪代码实现了以完整 tool call/response pair 为粒度的 pruning，保证被保留的信息不残缺。</p>
+
+<h3>2. Inference-time policy 的价值远超训练期方案</h3>
+
+<p>不需要模型重训练、不需要外部记忆存储、不需要学习压缩器——一个固定窗口的 inference-time policy 就实现了 +20pp 完成率和 63% 成本削减。对于任何生产系统，这都是远比"等待下一个模型升级"务实的选择。</p>
+
+<h3>3. 固定窗口策略已足够好</h3>
+
+<p>敏感性分析显示从 N=5 到 N=10 的增益不到 1pp。这意味着系统<strong>不需要复杂的动态决策</strong>——固定的、手工选择的窗口已经捕获了绝大部分价值。工程复杂度大幅降低。</p>
+
+<h3>4. 摘要的 ROI 是世界级的</h3>
+
+<p>+3.4% tokens → +12.6pp 完成率。任何 Agent 系统都应该默认带一个 context summarizer。论文的摘要器是单次自由格式 LLM 调用（非结构化、非学习），成本极低，实现极其简单。</p>
+
+<h2>局限与未回答的问题</h2>
+
+<p><strong>论文自述的边界：</strong></p>
+<ul>
+<li>单一 ERP 工作流（费用管理），不代表全领域泛化</li>
+<li>(N=5, W=3) 是手工选择，不是自适应的</li>
+<li>摘要器是单次 LLM 调用，未与结构化压缩器或 provider-native compaction API 对比</li>
+<li>未覆盖多 session 场景</li>
+</ul>
+
+<p><strong>值得关注的额外问题（基于方法论推断）：</strong></p>
+
+<table>
+<thead><tr><th>问题</th><th>潜在影响</th></tr></thead>
+<tbody>
+<tr><td>Tool 响应格式单一（全部是 D365 F&O MCP 表单）</td><td>若 tool 响应多样化（JSON + 自然语言 + 错误日志混合），摘要质量可能下降</td></tr>
+<tr><td>对 reasoning-heavy 任务（代码生成、数学证明）是否有效？</td><td>历史推理步骤可能有持续价值；pruning 可能损失关键中间推理，需要不同的窗口策略</td></tr>
+<tr><td>窗口大小与任务结构的交互未建模</td><td>N=5 基于领域知识（2–3 次 tool call 完成一个 line item）。如何自动选择 N？</td></tr>
+<tr><td>未测试 adversarial 场景</td><td>Pruning 窗口本身就是信息过滤——在安全敏感场景中是否可被利用？</td></tr>
+<tr><td>摘要忠实度未量化</td><td>论文仅给出 1 个定性样本（Appendix F）。摘要幻觉可能在不可察觉的情况下误导 Agent</td></tr>
+</tbody>
+</table>
+
+<h2>一句话总结</h2>
+
+<blockquote>
+<p><strong>Inference-time 的 recency pruning + 轻量摘要，不改模型、不加基础设施，让企业 ERP Agent 的完成率从 71% 跃至 91.6%，同时 token 成本降低 63%——old context is not just redundant, it's actively harmful.</strong></p>
+</blockquote>
+
+<h2>参考</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2606.10209">arXiv:2606.10209</a> — Lodha et al., "Less Context, Better Agents: Efficient Context Engineering for Long-Horizon Tool-Using LLM Agents" (2026)</li>
+<li><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic (2025)</a> — "Effective Context Engineering for AI Agents"（同模式："context rot"）</li>
+<li>LLMLingua (<a href="https://arxiv.org/abs/2310.05736">Jiang et al., 2023</a>) — token-level 压缩，对比基线</li>
+<li>ACON (<a href="https://arxiv.org/abs/2510.00615">Kang et al., 2025</a>) — 学习型压缩器，互补方向</li>
+</ul>
+
+<h2>技术声明</h2>
+<ul>
+<li>所有实验数据和统计来自论文正文及附录，可直接验证</li>
+<li>"值得关注的额外问题"部分为基于方法论的推断，置信度中等</li>
+<li>论文状态：arXiv preprint，未标注 conference/journal 接受状态</li>
+<li>论文作者来自 Microsoft，实验环境为 D365 F&O 真实系统 + MCP 协议</li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
