@@ -161,6 +161,7 @@ def generate_static_files():
         shutil.copytree(images_backup, output_dir / "images")
         shutil.rmtree(images_backup.parent)
     (output_dir / "posts").mkdir(exist_ok=True)
+    (output_dir / ".nojekyll").write_text("")
 
     styles_src = Path(__file__).parent / "styles.css"
     (output_dir / "styles.css").write_text(styles_src.read_text())
