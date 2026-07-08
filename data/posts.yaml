@@ -1,4 +1,43 @@
 posts:
+- title: LLM 不是不会想，是只会想一种——TasteGap 论文揭示的科研创意的分布性鸿沟
+  date: July 8, 2026
+  slug: tastegap-llm-research-ideation-distributional-gap
+  excerpt: 耶鲁大学最新论文用 11,683 篇论文 × 9 个 LLM 家族的规模，揭示了一个反直觉发现：LLM 做科研创意的核心问题不是质量，而是种类分布的系统性窄化——47-64% 的 idea 都是"把文献串起来"，而人类只有 12%。推理增强让问题更严重。
+  content: "<h2>LLM 不是不会想，是只会想一种</h2>\n\n<p>给 LLM 提供一堆相关论文，让它想一个新研究 idea——这是 AI-scientist 系统的核心环节。直观上，强模型应该能产出\"合理\"的 idea，甚至比人类更高效。但耶鲁大学 Chen、Zhao 和 Cohan 的这篇新论文问了一个更狠的问题：<strong>LLM 想出来的 idea，在<em>种类分布</em>上和人类研究者差多远？</strong></p>\n\
+    \n<p>答案：差了不止一个数量级。</p>\n\n<h2>不是纵向比质量，是横向比分布</h2>\n\n<p>已有的 LLM ideation 评估（Si et al. 2025, Baek et al. 2025）都是在单条 idea 上打分：新颖性、可行性、偏好度。这种评估方式下，LLM 表现不差——有些甚至接近人类专家。</p>\n\n<p>但论文作者指出一个盲点：一条 idea 看起来\"\
+    合理\"，不代表一百条 idea 的<strong>种类分布</strong>合理。如果 LLM 在 10,000 个不同场景下都产出同一类 idea——\"把 A 和 B 串起来，搞个 unified framework\"——那它在统计意义上就是<strong>结构性贫乏</strong>的。</p>\n\n<p>他们把这个概念称为 <strong>research taste</strong>：不是单条\
+    \ idea 的好坏判断，而是在大量可比的文献-grounded 场景下，一个源（人或模型）持续产出的 gap 类型和贡献策略的<strong>分布特征</strong>。</p>\n\n<h2>怎么测？一万一千篇论文的分布性诊断</h2>\n\n<p>论文构建了一套大规模评估 pipeline：</p>\n\n<ol>\n  <li><strong>逆向构建文献上下文</strong>：从\
+    \ ML 顶会（ICLR/ICML/NeurIPS 2023–2026）和 Nature Communications（2023–2025）收集 11,683 篇真实论文，用 LLM 辅助提取每篇的核心 idea，然后逆向重建 4–8 篇可能启发它的 prior works（标题+摘要）</li>\n  <li><strong>LLM 从同一上下文生成 idea</strong>：给 LLM\
+    \ 同样的 prior works，让它生成新的 motivation + method</li>\n  <li><strong>双轴分类体系标注</strong>：设计了一个 7×7 的 research-taste taxonomy——Opportunity Pattern（7 种 gap 类型）× Method Paradigm（7 种贡献策略）——从 NSF/NIH/DARPA/AHRQ\
+    \ 的 proposal 撰写指南中提炼，经过 150 篇 held-out papers 迭代校准</li>\n  <li><strong>分布性比较</strong>：9 个主流 LLM 家族（Claude Sonnet 4.6, Gemini 3.1 Pro, GPT-OSS 20B/120B, GPT-5.4-mini, Qwen3 8B/32B, DeepSeek V4 Flash/Pro）在相同输入下的标签分布\
+    \ vs 人类分布</li>\n</ol>\n\n<p>标注可靠性：GPT-5.4-mini 自动标注 vs 双作者人工审计，Cohen's κ = 0.84（opportunity）、0.81（method）、0.93（diagnostics）。</p>\n\n<h2>核心发现：Bridge + Synthesis 过度集中</h2>\n\n<p>这可能是论文最扎眼的一张表：</p>\n\n\
+    <table>\n  <tr><th>标签</th><th>人类</th><th>LLM 范围</th><th>倍数</th></tr>\n  <tr><td>Bridge Opportunity（跨领域连接类 gap）</td><td><strong>12.1%</strong></td><td>47.1% – 64.2%</td><td>4–5×</td></tr>\n  <tr><td>Synthesis\
+    \ / Unification（统一/整合类方法）</td><td><strong>5.1%</strong></td><td>22.5% – 38.7%</td><td>4–7×</td></tr>\n</table>\n\n<p>即使用最好的模型（Gemini-3.1-Pro），opportunity 轴上仍有<strong>34.8% 的分布质量</strong>需要重新分配才能匹配人类（TVD\
+    \ = 0.348）。</p>\n\n<p>人类 idea 在分类体系上的 normalized entropy 高达 <strong>0.926</strong>，而 LLM 的范围是 <strong>0.550–0.758</strong>。换句话说，LLM 不是在\"多想\"一些 bridge connection，而是在<strong>系统性地回避</strong> puzzle/contradiction、explanation\
+    \ gap、scope mismatch 等其他类型的 gap。</p>\n\n<h2>最反直觉的发现：推理增强让问题更严重</h2>\n\n<p>CoT/推理模式在 QA、代码、数学上普遍有效。但在这项研究的 ideation 任务中，<strong>反向效果</strong>出现了：</p>\n\n<table>\n  <tr><th>设置</th><th>Bridge %</th><th>Synthesis\
+    \ %</th><th>Opp. Entropy</th></tr>\n  <tr><td>Qwen3-8B（无推理）</td><td>49.7</td><td>38.7</td><td>0.658</td></tr>\n  <tr><td>Qwen3-8B-Think</td><td><strong>71.1 (+21.4)</strong></td><td><strong>52.2 (+13.5)</strong></td><td><strong>0.481\
+    \ (-0.177)</strong></td></tr>\n  <tr><td>DeepSeek-V4-Flash（无推理）</td><td>52.2</td><td>22.5</td><td>0.683</td></tr>\n  <tr><td>DeepSeek-V4-Flash-Think</td><td><strong>59.1 (+6.9)</strong></td><td><strong>30.7\
+    \ (+8.2)</strong></td><td><strong>0.620 (-0.063)</strong></td></tr>\n</table>\n\n<p>推理模式<strong>没有帮助模型探索更多样的 gap 类型</strong>，反而让模型更自信地走向它已经过度依赖的 bridge+synthesis 模板。Qwen3-8B-Think 的 bridge 比例从 49.7%\
+    \ 飙升到 <strong>71.1%</strong>——几乎每 4 条 idea 中有 3 条是\"把两个东西串起来\"。</p>\n\n<p>这是对 \"thinking/reasoning 是银弹\" 叙事的一个重要反例。在某些能力维度上，推理增强会<strong>收窄</strong>而非拓宽输出空间。</p>\n\n<h2>信息量不够？不是——全文上下文也没用</h2>\n\n<p>一个自然的质疑：可能是因为\
+    \ prior works 只给了标题和摘要，信息不够。研究者在 1,000 篇子集上做了 full-paper context ablation——让模型先读全文，自己写摘要，再用自己的摘要生成 idea。</p>\n\n<p>结果：<strong>TVD 和 JSD 在两个轴上都增加了</strong>，entropy 下降。更多信息并没有帮助模型跳出 bridge+synthesis 模板。这说明\
+    \ gap 不是信息不足的问题，而是模型<strong>内在的生成先验</strong>。</p>\n\n<h2>机制分析：LLM 的 \"integrate recipe\"</h2>\n\n<p>为什么 LLM 如此痴迷于 bridge+synthesis？论文通过 archetype 聚类揭示了一个操作层面的配方：</p>\n\n<table>\n  <tr><th>操作</th><th>模型\
+    \ %</th><th>人类 %</th><th>Log-odds (M/H)</th></tr>\n  <tr><td><strong>integrate</strong>（整合）</td><td>34.2</td><td>2.35</td><td><strong>+3.07</strong></td></tr>\n  <tr><td>unify（统一）</td><td>8.2</td><td>1.9</td><td>+1.52</td></tr>\n\
+    \  <tr><td>merge（合并）</td><td>—</td><td>—</td><td>+1.37</td></tr>\n  <tr><td>adapt（适配）</td><td>—</td><td>—</td><td>+1.36</td></tr>\n  <tr><td><strong>replace</strong>（替换）</td><td>0.92</td><td><strong>9.13</strong></td><td><strong>-2.30</strong></td></tr>\n\
+    \  <tr><td><strong>decouple</strong>（解耦）</td><td>0.21</td><td><strong>2.33</strong></td><td><strong>-2.43</strong></td></tr>\n</table>\n\n<p>LLM 的核心操作是 <strong>integrate</strong>——34.2% 的模型输出使用了这个动词，而人类只有\
+    \ 2.35%。反过来，人类最常用的操作是 <strong>replace</strong>（9.13% vs 模型 0.92%）和 <strong>decouple</strong>（2.33% vs 0.21%）。</p>\n\n<p>概念层面的 enrich 分析进一步确认：模型偏好的概念是 multi-omics integration（95.0% 模型）、diffusion policy（93.1%）、multimodal\
+    \ generation（91.2%）等高频技术词汇。人类偏好的概念更\"局部\"：trajectories tracking（63.5% 人类）、ligands/molecular interactions、tokenization、equivariance、verification 等。这些是人类在具体机制上做 replace/decouple 操作的载体。</p>\n\n<p>同一个输入\
+    \ paper 下，Qwen3-8B 和 DeepSeek-V4-Flash 产出的 idea 之间的 cosine similarity 达到 <strong>0.8316</strong>，而人类-Qwen 只有 0.7242。不同模型家族在相同上下文中<strong>收敛到高度相似的生成模式</strong>——这是\"模板化\"的有力证据。</p>\n\n<h2>对 AI Agent\
+    \ 基础设施的工程启示</h2>\n\n<p>这项研究的框架对 agent 系统设计有直接工程含义：</p>\n\n<h3>1. 评估范式升级：从 point-wise 到 distribution-wise</h3>\n\n<p>如果你在构建一个自动科研 agent（AI scientist pipeline），只评估单次输出的\"质量\"是不够的。需要持续监测输出在 gap 类型和贡献策略上的<strong>分布</strong>。论文的\
+    \ 7×7 taxonomy 可以直接作为 distributional diversity checker 嵌入 pipeline。</p>\n\n<h3>2. Constraint Engineering：注入\"反模板\"约束</h3>\n\n<p>既然 LLM 默认走向 bridge+synthesis，agent 系统可以显式施加约束：要求生成的 idea 在 opportunity/method\
+    \ 轴上满足最低 entropy 阈值。如果连续多次产出 bridge 类 gap，触发重新生成或 alternative decoding 策略。</p>\n\n<h3>3. 推理 ≠ 普适优化</h3>\n\n<p>这项研究是\"reasoning 不是银弹\"的一个高质量证据。在设计 agent 的 idea generation 模块时，默认开启 reasoning 可能适得其反——它会让模型更<strong>坚定地走向模板</strong>。需要根据下游任务的分布性特征来决定是否启用推理。</p>\n\
+    \n<h3>4. 多 agent 系统的多样性考量</h3>\n\n<p>如果一个 multi-agent 系统的 spec 分解引擎反复产出 bridge+synthesis 类 sub-task 定义，那么即使每条 spec 看起来\"合理\"，整个系统的创造力是贫乏的。系统级 diversity 不能仅靠\"多 agent 讨论\"来实现——如果没有主动的约束引导，多个 agent 可能在分布上收敛到同一个窄区域。</p>\n\
+    \n<h2>局限与诚实标注</h2>\n\n<ul>\n  <li><strong>STEM 中心</strong>：数据仅覆盖 ML 和自然科学。社会科学、人文、临床研究等领域的 research taste 分布可能完全不同。论文自身明确承认这一点。</li>\n  <li><strong>静态 one-shot 设置</strong>：未测试 iterative refinement、multi-agent\
+    \ debate、human-in-the-loop 等交互式场景——这些可能缓解 gap。</li>\n  <li><strong>未回答因果问题</strong>：gap 的根因是预训练数据偏差、RLHF 奖励\"安全\"答案、还是自回归生成本质？论文提供了现象层面的机制分析，但未追溯到训练因果链。（我的推断：三种因素可能同时作用，但论文未做消融。）</li>\n</ul>\n\n<h2>一句话</h2>\n\
+    \n<blockquote>\n  <p>LLM 做科研创意的核心问题不是\"想不出好点子\"，而是\"翻来覆去只会一种点子\"——把不同文献串起来（bridge）再统一到一个框架里（synthesis），而人类研究者更多地做替换、解耦、形式化等局部干预。推理增强不仅没解决问题，反而让模型更坚定地走向这个窄化模板。</p>\n</blockquote>\n\n<h2>技术声明</h2>\n\n\
+    <ul>\n  <li><strong>来源确认</strong>：本文所有数字和结论均来自 arXiv 2607.01233 v1 全文（HTML 版本，通过 export.arxiv.org 获取）</li>\n  <li><strong>推断边界</strong>：第五节\"工程启示\"和\"根因推测\"属于我的推断，非论文实证。其余内容来自论文文本和实验数据。</li>\n  <li><strong>论文状态</strong>：arXiv\
+    \ preprint，截至 2026 年 7 月 8 日未见会议接收信息。</li>\n  <li><strong>利益声明</strong>：笔者正在构建 agent 基础设施（meta-agent-poc），本论文的诊断框架对该项目有直接参考价值。分析中的工程视角受此影响。</li>\n</ul>\n\n<h2>参考</h2>\n\n<ul>\n  <li>论文：<a href=\"https://arxiv.org/abs/2607.01233\"\
+    >Measuring the Gap Between Human and LLM Research Ideas</a> — Ziyu Chen, Yilun Zhao, Arman Cohan (Yale / UChicago), 2026</li>\n  <li>代码：<a href=\"https://github.com/ziyuuc/TasteGap\">ziyuuc/TasteGap</a>,\
+    \ <a href=\"https://github.com/IdeaLand/IdeaSeed\">IdeaLand/IdeaSeed</a></li>\n  <li>许可：CC BY 4.0</li>\n</ul>\n"
 - title: '"Less Context, Better Agents" — 当少即是多：Context Pruning 如何让 Agent 性能跳升 20pp'
   date: July 5, 2026
   slug: less-context-better-agents
