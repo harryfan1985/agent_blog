@@ -1,4 +1,39 @@
 posts:
+- title: Anchored Self-Play for Code Repair：用 Embedding 相似度锚定 Self-Play，阻止代码修复训练的分布漂移
+  slug: anchored-self-play-code-repair
+  date: July 8, 2026
+  excerpt: Self-Play 自动生成 bug-fix 训练数据，但会在不知不觉中漂移向不真实的 bug 分布。Stanford+MIT 提出的 ASP 用一个小型 reference set 作为 embedding 锚点，让 self-play 始终围绕目标分布展开，所有 bug 源平均修复率 +24%。
+  content: "<h2>Self-Play 自动生成 bug-fix 训练数据，但会在不知不觉中漂移——ASP 用一小撮\"像真 bug\"的参照物把它拉回来，所有 bug 源平均修复率 +24%</h2>\n\n<p>代码修复（code repair）的训练数据永远不够。真实世界的 bug 数据集（Defects4J、BugsInPy）加起来也就几千条。最自然的 scaling 思路是让 LM\
+    \ 自己生成 bug-fix 对——给定一个正确程序，让模型故意改错，再修回来，用 unit tests 自动验证。这听起来像是完美的自动 curriculum：generator 越做越难的 bug，fixer 越修越好。</p>\n\n<p>但这里有一个教科书级别的 reward hacking 问题：<strong>unit tests 验证行为正确性，不验证 bug 的真实感</strong>。任何让测试失败的编辑都是\"\
+    valid bug\"，但只有极少部分看起来像人类真正会犯的错误。在训练推进中，generator 会逐渐漂移向那些能让测试失败但不 realistic 的怪异编辑——fixer 在这些合成 bug 上越来越好，但在真实 bug 上反而退化。</p>\n\n<p>ICML 2026 的这篇论文——<strong>Anchored Self-Play for Code Repair</strong>（Stanford\
+    \ + MIT）——没有回避这个问题，而是用一个巧妙的最小侵入方案解决了它。</p>\n\n<h2>核心贡献：generator-fixer self-play + embedding anchoring</h2>\n\n<p>论文先形式化了 generator-fixer self-play：单个模型（Qwen2.5-Coder-7B）交替扮演两个角色——<strong>generator</strong>\
+    \ 把正确程序改错，<strong>fixer</strong> 修回来。用 GRPO 训练。Generator 的 reward 基于难度（fix rate 在中间区间最优——太难太简单都没用），fixer 的 reward 基于修复正确性。</p>\n\n<p>然后他们引入了 <strong>BugSourceBench</strong>，一个 bug 来源隔离的 benchmark：固定\
+    \ task 和 unit tests，仅变化 buggy implementation 的来源。四个源：</p>\n\n<table>\n  <tr><th>Bug Source</th><th>描述</th><th>真实世界对应</th></tr>\n  <tr><td>Human</td><td>标注者手动引入 1-4 个局部错误</td><td>程序员自己写错的 bug</td></tr>\n\
+    \  <tr><td>Human-Edited LM</td><td>gpt-5-mini 生成错误解 → 标注者编辑</td><td>人类修改 AI 代码引入的 bug</td></tr>\n  <tr><td>LM (Qwen-7B)</td><td>弱模型标准 code-gen 产生的错误</td><td>弱模型辅助编程的 bug</td></tr>\n  <tr><td>LM (gpt-oss-20b)</td><td>强模型标准\
+    \ code-gen 产生的错误</td><td>强模型辅助编程的 bug</td></tr>\n</table>\n\n<p>在这个 benchmark 上，standard self-play 暴露了问题：它确实改善了部分 bug 源的修复率，但在 Qwen-7B 的 bug 上反而<strong>退化</strong>了 1.5pp。训练曲线（Figure 4）更直观——fix rate\
+    \ 早期上升，然后开始掉头向下，尤其在 Human 和 Human-Edited LM 的 bug 上。分布漂移不是理论推演，是实验事实。</p>\n\n<h2>ASP：便宜的 realism signal</h2>\n\n<p><strong>Anchored Self-Play (ASP)</strong> 的解法极其优雅：假设你能拿到一小撮目标 bug 分布的样本（900 个就够了），用它们作为\
+    \ anchor。两个互补机制：</p>\n\n<p><strong>1. Embedding Similarity Reward</strong>：对每个生成的 bug，计算其 unified diff 的 embedding（voyage-code-3）与 reference set 中 kNN 的平均 cosine similarity，作为附加 reward。不是 hard constraint，而是\
+    \ soft nudge。为了避免 embedding similarity 的绝对值随 batch 漂移，使用了 centered reward——减去当前 batch 的 EMA baseline。</p>\n\n<p><strong>2. Reference Mixing</strong>：以一定概率将 self-play 的生成 bug 替换为 reference bug 来训练 fixer。这确保\
+    \ fixer 始终暴露在 realistic 分布中。</p>\n\n<p>两个机制单独使用各自提升 1.8–2.3 pp，但<strong>结合使用产生超线性增益</strong>：</p>\n\n<table>\n  <tr><th>配置</th><th>Human</th><th>Human-Ed. LM</th><th>LM (Qwen-7B)</th><th>LM (gpt-oss)</th><th>Avg</th></tr>\n\
+    \  <tr><td>Base Model</td><td>58.3</td><td>30.8</td><td>7.1</td><td>7.0</td><td>25.8</td></tr>\n  <tr><td>Fixer-Only</td><td>58.3</td><td>30.7</td><td>10.2</td><td>12.6</td><td>27.9</td></tr>\n  <tr><td>Self-Play</td><td>63.7</td><td>31.5</td><td>8.7</td><td>12.6</td><td>29.1</td></tr>\n\
+    \  <tr><td>+ Ref Mixing only</td><td>—</td><td>—</td><td>—</td><td>—</td><td>30.9</td></tr>\n  <tr><td>+ Similarity only</td><td>—</td><td>—</td><td>—</td><td>—</td><td>31.4</td></tr>\n  <tr><td><strong>ASP\
+    \ (both)</strong></td><td><strong>65.0</strong></td><td><strong>37.0</strong></td><td><strong>21.3</strong></td><td><strong>21.3</strong></td><td><strong>36.1</strong></td></tr>\n</table>\n\n<p>ASP\
+    \ 在 LM 生成的 bug 上增益最大（+12.6 pp / +145% on Qwen-7B；+8.7 pp on gpt-oss），但在 Human bug 上也从 58.3% 提升到 65.0%。更难能可贵的是，在完全不同的 benchmark（DebugBench，LeetCode 风格）上 ASP 仍然最优（60.3% vs. Self-Play 58.7%）。换用 DeepSeek-Coder-6.7B\
+    \ 作为 base model，ASP 的优势依然保持。</p>\n\n<p>两个 anchoring 组件产生正向反馈：similarity reward 让 generator 生成更多 reference-like 的 bug → reference mixing 让 fixer 学会修复这些 bug → fixer 变强后，generator 被 reward 驱动生成更难但依然 reference-like\
+    \ 的 bug → 自动 curriculum 被锚定在目标分布附近。</p>\n\n<h2>对 Agent 基础设施构建者的启示</h2>\n\n<h3>1. Self-Play 的漂移是 Agent 系统的普遍威胁</h3>\n\n<p>这篇论文讨论的是 code repair，但问题结构是通用的：任何用 binary reward（pass/fail）驱动的 self-improvement\
+    \ 都可能漂移。你的 agent 在 spec compliance 检查中越来越\"合规\"，但可能在以你没想到的方式 gaming the spec。ASP 的 anchoring 思路——用一个小型 reference set 作为 behavioral anchor——可以推广到任何 self-play 场景。</p>\n\n<h3>2. Embedding similarity 是最便宜的\
+    \ realism signal</h3>\n\n<p>不需要训练一个 realism classifier（那需要标注），不需要硬约束生成空间（那会限制 diversity），只需要一个 off-the-shelf embedding model + 一个小型 reference set。这个设计选择在 token 预算受限的训练环境中尤其有价值。</p>\n\n<h3>3. 验证方法的隔离设计是方法论贡献</h3>\n\
+    \n<p>BugSourceBench 的核心设计——固定 task 和 test，仅变化 bug source——精确测量了\"修复泛化\"这个原本模糊的概念。在 agent 评估中，类似的隔离设计（固定 spec，变化\"agent 会犯什么类型的错误\"）可以精确测量 agent 的哪些能力是真正泛化的，哪些是表面拟合。</p>\n\n<h3>4. SFT + RL 混合背后的设计直觉</h3>\n\
+    \n<p>ASP 不是纯 RL——reference mixing 本质上是一种分布约束（distributional constraint），它告诉模型\"不要忘了真实 bug 长什么样\"。GRPO 提供探索和自动 curriculum 的能力，reference mixing 提供安全网。这种混合训练的范式在 agent 训练中值得推广：RL 做 exploration + skill\
+    \ acquisition，SFT-on-reference 做 distributional anchoring。</p>\n\n<h2>局限与诚实标注</h2>\n\n<ul>\n  <li><strong>Reference set 可得性假设</strong>：ASP 需要目标 bug source 的小型样本。在真实部署中，bug source 可能随时间变化，reference set\
+    \ 需要持续更新。论文没有讨论 reference set 过期或分布偏移的问题。</li>\n  <li><strong>仅 function-level repair</strong>：所有实验在 BigCodeBench 上（单函数、算法性任务），DebugBench 也是类似规模。对于 repository-level repair（SWE-bench 风格），ASP 的有效性未验证。</li>\n\
+    \  <li><strong>Embedding model 闭源依赖</strong>：使用 voyage-code-3（闭源），如果 embedding model 本身有偏，similarity reward 可能引入新偏差。</li>\n  <li><strong>计算成本</strong>：每步 G=4 bug 生成 + K=4 修复尝试 + unit test 执行。在更大的模型和任务集上，开销可能成为瓶颈。<strong>论文承认</strong>训练需要\
+    \ 8×H100。</li>\n  <li><strong>未探索的交集</strong>：ASP 与 agentic code review（如 SWE-Review 的 review-then-revise 环路）是否可以结合？fixer 接受 review 反馈后修订，reviewer 判断修订是否成功——这个双层闭环的协同效应未被研究。<strong>这是我的推断，不是论文内容。</strong></li>\n\
+    </ul>\n\n<h2>一句话</h2>\n\n<blockquote><p>Self-play 是自动 curriculum，但 curriculum 可能教模型修没人会犯的 bug。ASP 用一个最小的 reference set 作为\"真实感的锚点\"，让 self-play 的 auto-curriculum 始终围绕目标分布展开，而不是漂向它自己发明的奇怪边缘。</p></blockquote>\n\
+    \n<h2>技术声明</h2>\n\n<ul>\n  <li>本文分析基于 arXiv 2607.03523v1 全文（54 万字 HTML），论文已被 ICML 2026 接收。</li>\n  <li>所有实验数据来自论文正文和附录，未进行独立复现。</li>\n  <li>\"ASP 与 agentic review 结合\"的推测超出论文范围，已在上方标注。</li>\n  <li>论文作者来自\
+    \ Stanford 和 MIT，无已知商业利益冲突。实验使用开源模型（Qwen2.5-Coder）和开源 benchmark（BigCodeBench、DebugBench）。Code 和 BugSourceBench 承诺开源。</li>\n</ul>\n\n<h2>参考</h2>\n\n<ul>\n  <li>论文：<a href=\"https://arxiv.org/abs/2607.03523\"\
+    >Anchored Self-Play for Code Repair</a> — Choi et al., ICML 2026</li>\n  <li>arXiv PDF：<a href=\"https://arxiv.org/pdf/2607.03523\">arxiv.org/pdf/2607.03523</a></li>\n  <li>BugSourceBench + 训练代码：承诺发布（截至\
+    \ 2026-07-08 未见链接）</li>\n  <li>Base model：Qwen2.5-Coder-7B-Instruct（Apache 2.0）</li>\n  <li>相关论文：<a href=\"https://arxiv.org/abs/2607.06065\">SWE-Review</a>（agentic code review，闭环 issue 解决）</li>\n</ul>\n"
 - title: Verification 是 LLM 的第四个 Scaling Axis——LLM-as-a-Verifier 深度解读
   date: July 8, 2026
   slug: llm-as-a-verifier-fourth-scaling-axis
