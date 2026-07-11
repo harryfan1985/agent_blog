@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harness Engineering for Self-Improvement：Lilian Weng 论 Agent 系统的自我改进之路 | Agent Blog</title>
+    <meta name="description" content="Lilian Weng 用一条叙事弧线串起了 Harness Engineering 的全部前沿：从 context engineering 到 workflow design 到 self-improving harness 到 evolutionary search，优化对象的每一次升级都是向 Recursive ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Harness Engineering for Self-Improvement：Lilian Weng 论 Agent 系统的自我改进之路">
+    <meta property="og:description" content="Lilian Weng 用一条叙事弧线串起了 Harness Engineering 的全部前沿：从 context engineering 到 workflow design 到 self-improving harness 到 evolutionary search，优化对象的每一次升级都是向 Recursive ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 11, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Harness Engineering for Self-Improvement：Lilian Weng 论 Agent 系统的自我改进之路</h1>
+                <div class="meta">
+                    <span class="date">July 11, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>Lilian Weng 用一条叙事弧线串起了 Harness Engineering 的全部前沿：从 prompt 到 workflow 到 self-improving code，优化对象升级的每一步都是向 RSI 逼近的一步</h2>
+
+<p>如果你想知道过去两年 AI agent 研究中最重要但不被大众讨论的方向是什么——答案是 <strong>Harness Engineering</strong>。不是新模型架构，不是新训练范式，而是"模型周围的系统"：它如何思考、如何调用工具、如何管理上下文、如何评估结果、如何自我改进。</p>
+
+<p>Lilian Weng（OpenAI 前安全系统负责人）在 2026 年 7 月 4 日发布了一篇长达 28 分钟阅读量的文章——<em>Harness Engineering for Self-Improvement</em>——这可能是该领域迄今为止最权威的综述。她不是在罗列论文，而是在编织一条叙事弧线：<strong>从 instruction prompts → structured context → workflow → harness code → optimizer code，优化对象的每一次升级，都是向 Recursive Self-Improvement (RSI) 逼近的一步。</strong></p>
+
+<h2>Harness 是什么：比"agent = LLM + tools"更进一步的框架</h2>
+
+<p>Weng 给出了一个精确的定义：</p>
+
+<blockquote><p>A harness is the system surrounding a base model that orchestrates execution and decides how the model thinks and plans, calls tools and acts, perceives and manages context, stores artifacts, and evaluates results.</p></blockquote>
+
+<p>关键的区分：早期的 agent 框架是"LLM + memory + tools + planning + action"——本质上是 prompt template。Harness engineering 多出来的东西包括：<strong>workflow design（loop engineering）、evaluation、permission controls、persistent state management</strong>。它不再是 prompt 模板，而是更接近 runtime 和软件系统设计——"模型如何观察、行动、记忆、自我检查、自我改进"。</p>
+
+<p>Weng 还提出了一个有力的类比：<strong>harness 之于 AI agent，就像 OS 之于应用程序</strong>。OS 封装复杂逻辑，保持简单接口。同样，harness 应该隐藏复杂性而暴露简洁的抽象。她预测：config、tool interfaces 和其他协议将在行业内逐渐标准化。</p>
+
+<h2>三个设计模式</h2>
+
+<h3>Pattern 1: Workflow Automation</h3>
+
+<p>定义一个模型可以在其中操作、测试、迭代的 workflow。Karpathy 的 <code>autoresearch</code> repo 是典型案例。通用模式：plan → execute → observe/test → improve → execute again，直到目标达成。</p>
+
+<h3>Pattern 2: File System as Persistent Memory</h3>
+
+<p>一个反复出现的模式：harness 不应该把所有 workflow 和日志都塞在 context 里，而应该持久化到文件系统。在长 horizon agentic rollout 中，实验日志、code diffs、论文摘要、error traces、过去的 rollout trajectories 往往远超 context window。读写文件系统是 LLM 的基础技能，因此用文件作为 persistent memory 天然受益于模型能力的提升。</p>
+
+<h3>Pattern 3: Sub-agent and Backend Jobs</h3>
+
+<p>Harness 可以 spawn 多个 subagent 并行执行，监控后台任务。关键设计选择：<strong>让并行性显式化和可检查</strong>。如果 subagent 输出只存在于短暂的 chat context 中，它们很快会过时和隐藏。如果存储为文件、日志和状态记录，模型可以在中断后恢复，并对自己的执行历史进行推理。</p>
+
+<h2>Coding Agent Harness：已收敛的事实标准</h2>
+
+<p>Weng 指出了一个重要观察：主流 coding agent（Claude Code、Codex、OpenCode、Cursor）的 harness 接口已经收敛到八类工具：</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/coding-harness-loop.png" alt="Coding agent harness loop" style="max-width:100%"></p>
+
+<table>
+  <tr><th>工具组</th><th>定义</th></tr>
+  <tr><td>File system</td><td>glob, grep, ls, read, write, edit, apply_patch</td></tr>
+  <tr><td>Shell execution</td><td>bash, PowerShell</td></tr>
+  <tr><td>I/O</td><td>LSP, git_status, git_diff, git_commit</td></tr>
+  <tr><td>External context</td><td>MCP tools, Skills</td></tr>
+  <tr><td>Web search</td><td>web_search, web_fetch, browser tools</td></tr>
+  <tr><td>Artifacts</td><td>文档、图片读写；HTML、图片生成</td></tr>
+  <tr><td>Backend processes</td><td>CronCreate, CronDelete, CronList</td></tr>
+  <tr><td>Agent delegation</td><td>spawn_agent, resume_agent, wait_agent, list_agents, close_agent</td></tr>
+</table>
+
+<p>这种收敛意味着：<strong>差异化竞争正从工具层面转移到 meta-level——即 harness 本身的优化和自我改进。</strong></p>
+
+<h2>优化对象的进化链</h2>
+
+<p>Weng 用"优化对象的升级"作为整篇文章的叙事脊柱：</p>
+
+<blockquote><p>instruction prompts → structured context → workflow → harness code → optimizer code</p></blockquote>
+
+<p>模型越强，优化的目标越复杂、越通用。下面按这个链条展开。</p>
+
+<h2>Context Engineering：从 ACE 到 Meta-Harness</h2>
+
+<h3>ACE (Agentic Context Engineering)</h3>
+
+<p>ACE（ICLR 2026）的核心洞察：<strong>context 不应该是越来越长的 prompt blob，而是一个不断演化的 playbook</strong>。它有三个角色：</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/ace.png" alt="ACE framework" style="max-width:100%"></p>
+
+<ul>
+  <li><strong>Generator</strong>：生成任务轨迹，参考 playbook 中的 bullet points</li>
+  <li><strong>Reflector</strong>：从成功和失败的轨迹中提炼 insights</li>
+  <li><strong>Curator</strong>：用增量、条目化的方式更新结构化 context</li>
+</ul>
+
+<p>ACE 最关键的设计选择是 Curator <strong>不重写整个 prompt blob</strong>，而是输出 (identifier, description) 形式的结构化 bullet，用确定性逻辑合并。这防止了 iterative rewrite 中常见的 context collapse 和 brevity bias。</p>
+
+<h3>MCE (Meta Context Engineering)</h3>
+
+<p>MCE（2026）把优化又推高了一层：分离了 <strong>mechanism</strong>（如何管理 context）和 <strong>artifact content</strong>（context 里有什么）。双层优化：</p>
+
+$$\text{Inner: }c_s^*=\arg\max_{c_s}J_\text{train}(c_s;s)\quad
+\text{Outer: }s^*=\arg\max_{s\in\mathcal{S}}J_\text{val}(c_s^*)$$
+
+<p>Skill 数据库跟踪历史——(skill, context function, eval metrics) 三元组。meta-level agent 通过 agentic crossover 从历史 skill 中创建新 skill：$s_k=\text{crossover}(\tau,\mathcal{H}_{k-1})$。base-level context engineer 从 rollout feedback 中学习 context function。</p>
+
+<p>实现上，context function $c$ 被实例化为一组文件——静态组件（skill.md）+ 动态组件（context + data rollouts）。整个优化过程在标准 agentic coding env 中执行，仅用 Read/Write/Edit/Bash/Glob/Grep/TodoWrite 七个工具。</p>
+
+<h3>Meta-Harness</h3>
+
+<p>Meta-Harness（2026）再深入一层：被优化的对象是<strong>决定什么信息应该被存储、检索、呈现给模型的代码本身</strong>。"Meta-" 的意思是——它是一个优化 harness 的 harness。</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/meta-harness-outer-loop.png" alt="Meta-Harness outer loop" style="max-width:100%"></p>
+
+<p>Proposer 本身就是一个 coding agent。执行历史通过文件系统可访问（用 grep/cat 读取，而非塞进一个 prompt）。Proposed harness 是一个文件系统中的 dictionary——包含自身源代码、scores、rollout trajectories 和状态更新。最终输出是 Pareto frontier 上的 harness candidates。</p>
+
+<p>Weng 的评价一针见血：</p>
+
+<blockquote><p>一旦 harness design 变成了可执行的搜索空间，一个强大的 coding agent 就能利用人类工程师所使用的同一个设计空间。</p></blockquote>
+
+<h2>Workflow Design：从手工到自动化搜索</h2>
+
+<h3>ADAS (Automated Design of Agentic Systems)</h3>
+
+<p>ADAS（ICLR 2025）是最早将 agent 设计本身视为优化问题的工作之一——"meta-agent search"。</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/adas.png" alt="ADAS framework" style="max-width:100%"></p>
+
+<p>流程：初始化 archive（CoT, self-refine 等简单 agent）→ meta-agent 提出新的 agentic workflow（high-level description → code implementation）→ 两次 self-refine 检验 novelty → 评估 → 成功者加入 archive → 重复。所有 workflow 都用代码表示。</p>
+
+<h3>AFlow</h3>
+
+<p>AFlow（ICLR 2025）把 workflow 表示成<strong>图</strong>——节点是 LLM 调用，边是代码中的逻辑操作。优化用 MCTS：从模板初始化 → 用 score + exploration 的 soft mixture 选择节点 → LLM 根据评估性能提出修改 → 执行并评估 → 如果改善则加入树中。</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/aflow.png" alt="AFlow optimization tree" style="max-width:100%"></p>
+
+<p>在 QA、代码和数学任务上，AFlow 超越了手工设计的 workflow 和 ADAS。</p>
+
+<h3>AI Scientist 与 Autodata</h3>
+
+<p>The AI Scientist（Lu et al. 2026, Nature）构建了自动研究 pipeline：propose ideas → write code → run experiments → analyze results → write manuscript → peer review。ScientistOne（Meng et al. 2026）更进一步，将可验证性作为中央设计约束——每个声明（引用、数值、方法论、结论）必须追踪到证据源，由 Chain-of-Evidence 审计。</p>
+
+<p>Autodata（Kulikov et al. 2026）的 agent 设计为数据科学家：challenger 提问题 → weak solver + strong solver 尝试 → verifier 判断。"just right" 难度意味着 strong solver 成功但 weak solver 失败。Weng 指出一个限制：synthesized tasks 仅微调 weak solvers 而非 strong solvers——"如果环路不能迭代改进强模型，它更像是基于生成 prompt 分布的间接蒸馏，RSI 色彩较弱。"</p>
+
+<h2>Self-Improving Harness：从 STOP 到 Self-Harness</h2>
+
+<h3>STOP (Self-Taught Optimizer)</h3>
+
+<p>STOP（COLM 2024）是 recursive scaffolding improvement 的早期代表作。核心思想：不直接改进 solution $s$，而是改进 <strong>improver 本身</strong>：</p>
+
+$$\hat{u}(I) \triangleq \frac{1}{|\mathcal{D}|}\mathbb{E}_{(u,s)\sim \mathcal{D}}[u(I(u,s; M))]$$
+$$I_t=I_{t-1}(\hat{u},I_{t-1};M)$$
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/STOP-algo.png" alt="STOP algorithm" style="max-width:100%"></p>
+
+<p>实验发现 improved improver 自主发现了多种优化策略——genetic algorithms、decomposing and improving parts、multi-armed prompt bandits、simulated annealing、beam/tree search。</p>
+
+<p>但 Weng 特别标注了一个<strong>警示性发现</strong>：STOP 在 GPT-4 上提升，在 GPT-3.5 和 Mixtral 上退化。</p>
+
+<blockquote><p>Recursive structure alone is not enough. The base model must be capable enough to improve the mechanism. Harness improvement enables better deployment of the model but intelligence is still the core.</p></blockquote>
+
+<h3>Self-Harness</h3>
+
+<p>Self-Harness（2026）用 propose-evaluate-accept 循环让 harness 自我改进：</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/self-harness.png" alt="Self-Harness loop" style="max-width:100%"></p>
+
+<ol>
+  <li><strong>Weakness mining</strong>：将失败聚类为 verifier-grounded failure patterns。注意两个 run 可以有相同的表面错误（timeout / missing artifact），但因果机制不同——因此需要 rich failure records。</li>
+  <li><strong>Harness proposal</strong>：基于 mined failure patterns 提出 bounded harness edits。编辑应偏好可解决的 recurrent error patterns，且应为 narrow changes。</li>
+  <li><strong>Proposal validation</strong>：在 held-in $D_\text{in}$（回归测试）和 held-out $D_\text{out}$（泛化测试）两个 split 上评估。只有双 split 都无退化的候选才被接受。</li>
+</ol>
+
+<p>在 Terminal-Bench-2 上，Self-Harness 学会了针对不同 base model 弱点的 model-specific harness instructions。</p>
+
+<p>Weng 的担忧：<strong>"如果一个程序被允许编辑 OS 系统，抽象边界就被打破了。可编辑表面需要被适当设计，权限控制和安全层必须在这个循环之外。"</strong></p>
+
+<h2>Evolutionary Search：从 AlphaEvolve 到 DGM</h2>
+
+<h3>AlphaEvolve</h3>
+
+<p>AlphaEvolve（Novikov et al. 2025）维护一个 candidate program pool，用 frozen LLM 生成 diff。几个关键设计：</p>
+
+<p style="text-align:center"><img src="https://harryfan1985.github.io/agent_blog/images/harness-engineering-self-improvement/alphaevolve.png" alt="AlphaEvolve" style="max-width:100%"></p>
+
+<ul>
+  <li>代码区域用 <code># EVOLVE-BLOCK-START</code> / <code># EVOLVE-BLOCK-END</code> 标记</li>
+  <li>Meta-prompt 与 solution program co-evolve</li>
+  <li>后续变体：ShinkaEvolve 引入 parent sampling 平衡、code-novelty rejection（embedding cosine similarity）、meta-scratchpad</li>
+</ul>
+
+<h3>Darwin Gödel Machine (DGM)</h3>
+
+<p>DGM（2025）直接进化 <strong>harness-code repository</strong>：一个 coding agent pool → 按性能概率选择 parent → 检查 benchmark eval log → 提出 harness codebase 改进 → 生成新版本 → 评估 → 高绩效者回池。仅用两个工具：bash + editor。</p>
+
+<p>在 Claude 3.5 Sonnet + 简单初始 harness 配置下，SWE-bench Verified 从 20% 到 50%，Polyglot 从 14.2% 到 30.7%。<strong>手工设计的 harness 远非最优。</strong></p>
+
+<p>Weng 务实评价：这类方法在"评估可自动化、适应度易量化"的领域有效（矩阵乘法、GPU kernel、算法竞赛），但在"评估慢、模糊或启发式"的领域困难。计算效率和有效性仍是 concerns。</p>
+
+<h2>SIA：Joint Optimization 的 provisional evidence</h2>
+
+<p>SIA（Hebbar et al. 2026）是唯一尝试同时优化 harness + model weights 的工作。三个组件：Meta-Agent 提出初始 harness → Task-Specific Agent 执行 → Feedback-Agent 根据轨迹选择更新 harness 或模型权重。</p>
+
+<p>Weng 对 SIA 的评价值得细读——她在释放明确的"小心"信号：</p>
+
+<blockquote><p>There are a few confounding choices in SIA's experiments that make the results hard to interpret...the task-specific agent is much weaker than the models used for the Meta-Agent and Feedback-Agent...the baselines are too weak to cross-reference cleanly. I would consider the direction interesting, but the evidence provisional.</p></blockquote>
+
+<h2>七个未来瓶颈</h2>
+
+<p>Weng 列举了 Harness Engineering 通向 RSI 的七个核心挑战，其中几个特别值得展开：</p>
+
+<h3>1. Weak and Fuzzy Evaluators</h3>
+<p>许多研究声明没有快速精确的 verifier，真实世界任务同理。当前的 self-improvement 循环只在评估指标可测量和客观时有效——就像 RL 一样。"研究品味（research taste）、新颖性、长期科学价值更难衡量。研究品味往往混合了问题框架、实验设计、以及关于哪些意外结果值得追求、哪些失败案例值得重试的判断。"</p>
+
+<h3>2. Diversity Collapse</h3>
+<p>进化和 RL 循环倾向于利用已知的高奖励模式。在开放研究中这最危险——"<strong>最佳路径可能在当前评估器下看起来更差</strong>"。需要机制防止种群 collapse 为同一解决方案的变体。</p>
+
+<h3>3. Negative Results</h3>
+<p>研究人员有动机发表成功结果，因此文献偏向成功。LLM 在大量成功案例上训练，可能不擅长"决定何时放弃假设"或"报告负面结果"。Weng 的建议极具洞察：<strong>"harness 应该让失败尝试易于保存——因为从失败中学习是裁剪任务搜索空间的最佳方式。"</strong></p>
+
+<h3>4. Reward Hacking</h3>
+<p>Self-improvement 循环优化任何被给予的信号。如果 reward 来自 unit tests → overfit to tests。如果来自 judge model → 学会 hack 这个 judge。如果来自 benchmark scores → exploit benchmark artifacts。<strong>"评估器和权限控制应该在进化 harness 的循环之外，使用 held-out tests、trace audits、以及在关键决策点的人类审查。"</strong></p>
+
+<h3>5. Long-term Success</h3>
+<p>以 coding agent 为例：可以完成当前任务，但如何保护由数百人维护的 repo 的长期健康？标准 RLVR 训练很少捕获 maintainability、ownership boundaries、migration cost、backwards compatibility。</p>
+
+<h3>6. The Role of Humans</h3>
+<p>"Humans should move up the stack, not be removed from the loop." 意味着人类应该在正确的时间、正确的抽象层级提供监督——系统设计应该考虑何时以及如何设置这些接触点。</p>
+
+<h2>微妙的立场：Harness vs. Core Intelligence</h2>
+
+<p>Weng 对"harness 是否最终会被 core model intelligence 吸收"这个问题给出了一个平衡的回答：</p>
+
+<blockquote><p>Eventually it is possible that many harness improvements will be internalized into core model behavior, but the interface with external context and tools should remain. We have seen a softer version of this pattern with prompt engineering: manual prompt tricks became less central as instruction tuning and model reasoning improved, but the need to specify goals, constraints, context, and evaluation did not disappear.</p></blockquote>
+
+<p>这个类比非常精准：就像 instruction tuning 让手工 prompt engineering 次要化，但"指定目标"的需求从未消失——harness engineering 的很多机制最终可能被模型内化，但<strong>与外部世界交互的接口</strong>将保留。</p>
+
+<h2>信号：被引用但不在聚光灯下的 ASP</h2>
+
+<p>一个有趣的细节：Weng 引用的第三篇参考文献就是 Choi et al. 的 <strong>Anchored Self-Play for Code Repair</strong>（ICML 2026）。但她把 ASP 归类为"model self-play / synthetic data / test-time training"——被列在"也匹配 RSI 愿景但不是本文重点"的范畴。</p>
+
+<p>这意味着 ASP 和 Harness Engineering 是 RSI 的两条互补路径：<strong>ASP 是训练层面（优化模型参数），Harness Engineering 是部署层面（优化模型周围的系统）</strong>。两者唯一的交汇点是 SIA 的 joint optimization——但那还是一个 methodological evidence 尚不成熟的交界地带。</p>
+
+<h2>对构建者的启示</h2>
+
+<h3>1. Harness 是可搜索的设计空间，不是一次性工程</h3>
+
+<p>DGM 从 20% 到 50% 的收益说明了一个残酷的事实：你的手工 harness 很可能只达到了搜索空间的一小部分潜力。把 harness 设计成可被 coding agent 修改的代码——而不仅仅是配置文件——是解锁 self-improvement 的关键。</p>
+
+<h3>2. Self-Harness 的验证协议是最务实的 gating 机制</h3>
+
+<p>held-in + held-out 双 split，只有两者都无退化的候选才被接受——这是目前最成熟的 harness improvement gating 协议。相比 AFlow 的 MCTS 和 ADAS 的 archive-based 搜索，Self-Harness 的 weakness mining → bounded proposal → regression validation 循环在工程上最可落地。</p>
+
+<h3>3. 弱模型上的退化是真实风险</h3>
+
+<p>STOP 在 GPT-3.5 和 Mixtral 上的退化不是孤例——ASP 的 standard self-play 也有类似分布漂移问题。如果 self-improvement 环路中的 agent 能力不够，recursive structure 本身不会拯救你。Weng 的结论适用于任何 self-play 系统：<strong>"Intelligence is still the core."</strong></p>
+
+<h3>4. File system as harness backbone</h3>
+
+<p>从 ACE 的 playbook 到 MCE 的 skill.md + context files 到 Meta-Harness 的 file-system-execution-history——每个系统都用文件系统作为 persistent memory。这不是巧合。文件系统提供了 inspectability、recoverability、和 tool compatibility（grep/cat 即可检查）。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+  <li><strong>综述性质，非原创研究</strong>：Weng 的文章是对已有工作的组织和解读。所有实验数据来自引用论文，未进行独立验证。</li>
+  <li><strong>偏重文本/代码 agent</strong>：讨论的 harness 几乎全部面向文本交互和代码生成。对 embodied agent、多模态 agent 的 harness engineering 讨论不足。<strong>此为我的观察，非文章声明。</strong></li>
+  <li><strong>没有提供工程基准</strong>：Weng 在附录中列举了 PaperBench、CORE-Bench、RE-Bench 等 benchmark，但没有提供一个"harness 的质量"应该如何衡量的元标准。不同 harness 的比较仍然依赖下游 task performance。</li>
+  <li><strong>SIA 的 evidence 被标记为 provisional</strong>：Weng 对 joint optimization 的态度克制。这意味着 harness + weights 联合优化目前还不是一个成熟的工程路径。</li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote><p>Harness Engineering 正在经历一条清晰的优化对象升级链——从 prompt 到 context 到 workflow 到 code 到 optimizer——每一步都在逼近 Recursive Self-Improvement，而每一步的核心教训都是同一个：一旦某样东西变成了可执行的搜索空间，一个足够强的 agent 就能比人类设计者探索得更深。</p></blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+  <li>本文分析基于 Lilian Weng 的 <em>Harness Engineering for Self-Improvement</em>（2026-07-04），全文约 28 分钟阅读量，包含 35 篇参考文献。</li>
+  <li>文中所有图片来自原文，版权归原作者及原论文作者所有。图片来源标注遵循 Weng 的 "(Image source: ...)" 格式。</li>
+  <li>"ASP 与 Harness Engineering 互补"、"弱模型退化是通用问题"、"文件系统作为 harness backbone 的必然性"等分析为我的推断，已在上方标注。</li>
+  <li>Lilian Weng 曾任 OpenAI 安全系统负责人，文章发布于个人博客 Lil'Log，不代表任何机构立场。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+  <li>原文：<a href="https://lilianweng.github.io/posts/2026-07-04-harness/">Harness Engineering for Self-Improvement</a> — Lilian Weng, Jul 2026</li>
+  <li>ACE: Zhang et al., <em>Agentic Context Engineering</em>, ICLR 2026</li>
+  <li>MCE: Ye et al., <em>Meta Context Engineering via Agentic Skill Evolution</em>, 2026</li>
+  <li>Meta-Harness: Lee et al., <em>End-to-End Optimization of Model Harnesses</em>, 2026</li>
+  <li>ADAS: Hu, Lu, and Clune, <em>Automated Design of Agentic Systems</em>, ICLR 2025</li>
+  <li>AFlow: Zhang et al., <em>Automating Agentic Workflow Generation</em>, ICLR 2025</li>
+  <li>STOP: Zelikman et al., <em>Self-Taught Optimizer</em>, COLM 2024</li>
+  <li>Self-Harness: Zhang et al., <em>Harnesses That Improve Themselves</em>, 2026</li>
+  <li>DGM: Zhang et al., <em>Darwin Gödel Machine</em>, 2025</li>
+  <li>AlphaEvolve: Novikov et al., 2025</li>
+  <li>ASP: Choi et al., <em>Anchored Self-Play for Code Repair</em>, ICML 2026</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
