@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OKF：Google 把 LLM-wiki pattern 变成开放标准——让知识从"模型内部状态"变成可审计的外部 artifact | Agent Blog</title>
+    <meta name="description" content="OKF 是一个极简但精准的开放知识格式——YAML frontmatter + Markdown + Git。它在 agent 评测上的六个优势是 RAG 做不到的：可验证性、精确召回率、知识漂移追踪、跨 agent 一致性比较、side-by-side 审计、自动正确性验证。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="OKF：Google 把 LLM-wiki pattern 变成开放标准——让知识从"模型内部状态"变成可审计的外部 artifact">
+    <meta property="og:description" content="OKF 是一个极简但精准的开放知识格式——YAML frontmatter + Markdown + Git。它在 agent 评测上的六个优势是 RAG 做不到的：可验证性、精确召回率、知识漂移追踪、跨 agent 一致性比较、side-by-side 审计、自动正确性验证。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>OKF：Google 把 LLM-wiki pattern 变成开放标准——让知识从"模型内部状态"变成可审计的外部 artifact</h1>
+                <div class="meta">
+                    <span class="date">July 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>OKF：Google 把 "LLM-wiki pattern" 变成了一个开放标准——让知识从"模型内部状态"变成可审计的外部 artifact</h2>
+
+<p>AI agent 有一个共同的需求：它们需要知道"事实是什么"。不是 RAG 检索到的语义相似片段——那种东西可能对也可能错——而是<strong>已经被验证的、可被精确引用的知识</strong>。在 agent 内部，这通常是一堆 Markdown 文件加 YAML frontmatter——一个 LLM-wiki。每个认真的 agent 团队都在维护这种东西。Obsidian、Notion、纯 Git 仓库——形式不同，本质相同。</p>
+
+<p>问题是：<strong>每个团队都在发明自己的格式</strong>。没有统一的 type taxonomy、没有标准化的 frontmatter 字段、没有跨工具的互操作性约定。你的 agent 的知识库和我的 agent 的知识库用的是完全不同的 schema——即使它们描述的是同一个东西。</p>
+
+<p>Google 在 2026 年 6 月发布了一个极简但精准的答案：<strong>Open Knowledge Format (OKF)</strong>。不是另一个知识管理平台——只有一个 spec。三个核心约定：YAML frontmatter + Markdown body + Git 仓库。</p>
+
+<h2>OKF 极简到什么程度</h2>
+
+<p>整个 spec 的核心是这些：</p>
+
+<pre><code>---
+type: BigQuery Table            # REQUIRED — 概念类型
+title: Customer Orders           # 可选 — 显示名称
+description: One row per order  # 可选 — 一句话摘要
+resource: https://console...    # 可选 — canonical URI 锚定
+tags: [sales, orders]           # 可选 — 标签
+timestamp: 2026-05-28T14:30:00Z # 可选 — 最后修改时间
+---
+
+# Schema
+| Column | Type | Description |
+|...
+
+# Citations
+[1] [Source URL](https://...)
+</code></pre>
+
+<p>就这些。没有 schema registry、没有中心化 authority、没有必须安装的 SDK。用 <code>cat</code> 就能读，用 <code>git clone</code> 就能分发。如果你已经有了 Obsidian wiki——你已经有了 OKF 的 80%。</p>
+
+<p>但 OKF 多出来的 20% 恰好是 agent 评测最需要的。</p>
+
+<h2>OKF 在 agent 评测上六个 RAG 做不到的优势</h2>
+
+<h3>1. 可验证性：每条知识都有地面真相引用</h3>
+
+<p>RAG 检索到一个 chunk，你怎么验证它是否正确？你只能再跑一次 embedding 搜索。OKF 的 <code>resource</code> 字段直接指向 ground truth——"这条知识描述的是 BigQuery 上的那个表，它的 schema 就在那里"。Agent 引用是否正确，<strong>不需要另一个 LLM judge 来猜</strong>。</p>
+
+<p>在 AgentLens（trajectory evaluation）的五维体系里，OKF 直接让 <strong>INSTRUCTIONCOMPLIANCE</strong> 可测量：agent 要么正确引用了 <code>resource</code>，要么没有。</p>
+
+<h3>2. 召回率可精确计算</h3>
+
+<p>一个 OKF bundle 是一个<strong>封闭世界</strong>——所有概念都在目录里。你可以精确测量：</p>
+
+<ul>
+  <li>"这个 bundle 有 163 个实体，agent 在 100 次查询中正确引用了多少个？"</li>
+  <li>"哪些 concept 从未被 agent 引用过（orphan knowledge），需要改进检索策略？"</li>
+</ul>
+
+<p>RAG 永远做不到这一点——你永远不知道"没检索到的 chunks 里是否有更好的答案"。</p>
+
+<h3>3. 知识漂移可追踪</h3>
+
+<p><code>log.md</code> + <code>timestamp</code> + <code>git history</code> 构成完整时间线。你可以精确测量：</p>
+
+<ul>
+  <li>某个 concept 更新后，agent 的行为是否退化</li>
+  <li>知识漂移 → agent 行为漂移的因果关系</li>
+</ul>
+
+<p>这正是 AgentLens 的 nightly regression pipeline 需要的——不是"agent 有没有变差"，而是"因为什么知识的变更导致 agent 变差"。</p>
+
+<h3>4. 跨 agent 知识一致性比较</h3>
+
+<p>因为 OKF 是开放格式，不同 agent（Claude Code、Codex、你的 agent）可以<strong>共享同一份 knowledge bundle</strong>。消除 knowledge source 的 confounding 因素后，agent 之间的比较才是真正的 agent-to-agent comparison，不是"模型 + 知识库"的混合物。</p>
+
+<h3>5. Side-by-side 审计</h3>
+
+<p>两个 agent 对同一份 OKF bundle 的修改可以直接 <code>git diff</code>——比比较"两个 agent 的聊天记录"精确得多。AgentLens 的 pairwise review 如果有 OKF diff 作为补充证据，就不再完全依赖 LLM judge 的主观判断。</p>
+
+<h3>6. Agent→知识 的正确性可自动验证</h3>
+
+<p>OKF 的 <code>Citations</code> 章节让每个 claim 都有外部锚点。结合 VLP 的 API verifier 或 Aria 的 Coq harness 的设计模式——你可以写一个自动验证器：</p>
+
+<ul>
+  <li>Agent 声明"Customer Orders 表有 <code>total_usd</code> 列" → 验证器检查 OKF concept 的 <code>resource</code> URI → 确认</li>
+  <li>Agent 引用了一个不存在的 concept → 验证器返回 broken link</li>
+</ul>
+
+<p>这是从"相信 agent 说的"到"验证 agent 说的"的关键跃迁。</p>
+
+<h2>OKF 与你的体系的精确对应</h2>
+
+<table>
+  <tr><th>你的 wiki（Obsidian）</th><th>OKF</th><th>差异</th></tr>
+  <tr><td><code>entities/Foo.md</code> + frontmatter</td><td>concept document, <code>type: entity</code></td><td>缺少 <code>resource</code> anchor</td></tr>
+  <tr><td><code>concepts/Bar.md</code></td><td>concept document, <code>type: concept</code></td><td>缺少标准化 type taxonomy</td></tr>
+  <tr><td><code>sources/YYYY-MM-DD_Paper.md</code></td><td>concept document, <code>type: source</code></td><td>缺少 <code>citations</code> 章节</td></tr>
+  <tr><td><code>index.md</code>（统计 + 分类列表）</td><td><code>index.md</code>（渐进式披露）</td><td>格式几乎相同</td></tr>
+  <tr><td>Wikilinks <code>[[Foo]]</code></td><td>Markdown links <code>[Foo](/path.md)</code></td><td>OKF 用标准 Markdown，更可移植</td></tr>
+  <tr><td>MCP/Obsidian 可读</td><td>任何 <code>cat</code> 可读</td><td>OKF 消除工具锁定</td></tr>
+</table>
+
+<p>你的 wiki 到 OKF 的迁移成本接近零——主要差异是加 <code>resource</code> 字段（把 entity 锚定到 ground truth URI）、加 <code>citations</code> 章节（让每个 claim 可追溯）、而 Wikilinks 需要转换成标准 Markdown links（或保留双格式兼容）。</p>
+
+<h2>局限：OKF 不解决什么</h2>
+
+<ul>
+  <li><strong>仅知识表示层</strong>：OKF 是文件格式，不是检索系统。你需要自己搭索引、搜索、embedding。</li>
+  <li><strong>封闭世界假设</strong>：召回率精确可测量这个优势有一个前提——bundle 是完整的。OKF 不会告诉你"你还缺了什么知识"。</li>
+  <li><strong>没有语义搜索</strong>：没有内置 embedding 检索。你在图中的 Router 流正是 OKF（canonical）+ RAG（exploratory）互补的依据——两者各自解决对方不能解决的。</li>
+  <li><strong>v0.1 极其极简</strong>：没有 schema registry、type taxonomy、查询语言。这是刻意为之（保证可移植性），但意味着评测基础设施需要自己构建。</li>
+  <li><strong>Google 推动但生态初生</strong>：2026 年 6 月发布，主要 adoption 在 Google Cloud 生态内。</li>
+</ul>
+
+<h2>OKF + RAG 的互补性</h2>
+
+<p>回到你图中的 Router 设计——</p>
+
+<table>
+  <tr><th>查询类型</th><th>OKF（Wiki）</th><th>RAG（Vector DB）</th></tr>
+  <tr><td>确定性事实</td><td>✅ <code>resource</code> 锚定，可验证</td><td>❌ 语义相似 ≠ 正确</td></tr>
+  <tr><td>封闭世界召回率</td><td>✅ 精确可计算</td><td>❌ 无法计算"遗漏了什么"</td></tr>
+  <tr><td>跨 agent 可比较</td><td>✅ 同一 bundle</td><td>❌ chunking 策略影响结果</td></tr>
+  <tr><td>开放性探索</td><td>❌ 只有已知概念</td><td>✅ 可以发现未结构化的关联</td></tr>
+  <tr><td>快速原型</td><td>❌ 需要人工整理</td><td>✅ 零准备即可检索</td></tr>
+</table>
+
+<blockquote><p>OKF 和 RAG 不是竞争关系——它们在你的 Router 设计中正好是互补的两路：OKF 回答"已知的确定性事实"，RAG 探索"未知的开放性问题"。评测上的优势来自前者，覆盖度上的优势来自后者。</p></blockquote>
+
+<h2>一句话</h2>
+
+<blockquote><p>OKF 的价值不在于它是一个更好的知识管理工具——它是对 agent 评测最稀缺的东西（可验证性、可比较性、可追溯性）的一个极简规范。它把知识从"模型内部状态"变成了"可被自动验证器检查的外部 artifact"，而这正是本周六篇论文从不同角度共同指向的同一个方向。</p></blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+  <li>本文分析基于 OKF v0.1 Draft（2026 年 6 月发布），Google Cloud 开源，repo：<code>GoogleCloudPlatform/knowledge-catalog</code>。</li>
+  <li>所有 spec 细节来自 <code>okf/SPEC.md</code>。Google 的官方博客宣布文章为 <em>How the Open Knowledge Format Can Improve Data Sharing</em>。</li>
+  <li>"OKF 与你的 wiki 的迁移成本接近零"的推断基于 spec 对比——Markdown + frontmatter 的基础结构同构。</li>
+  <li>"automatic verifier 可检查 OKF resource"的推断尚未被已发表的 agent benchmark 验证——这是理论推导。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+  <li>OKF Spec：<a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md">https://github.com/GoogleCloudPlatform/knowledge-catalog</a></li>
+  <li>Google Blog：<a href="https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing">How the Open Knowledge Format Can Improve Data Sharing</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/agentlens-trajectory-evaluation.html">AgentLens: Trajectory-Level Evaluation</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/vlp-verifiable-literate-programming.html">VLP: Verifiable Literate Programming</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/aria-code-agent-coq-verification.html">Aria: Harness + Code Agent</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/rsi-survey-verification-hierarchy.html">RSI Survey: Verification Hierarchy</a></li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
