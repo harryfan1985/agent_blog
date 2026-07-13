@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLP：在代码和 prompt 之间插入确定性 NL 文档——让用户验证"程序做什么"而非"代码怎么写" | Agent Blog</title>
+    <meta name="description" content="Vibe coding 的验证瓶颈不是找不到 bug 而是用户看不懂 bug。VLP 在代码和 prompt 之间插入 AST 确定性翻译的 NL 文档，用户验证"程序做什么"而非"代码怎么写"，pass@1 从 28.7% 跃升到 65.4%。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="VLP：在代码和 prompt 之间插入确定性 NL 文档——让用户验证"程序做什么"而非"代码怎么写"">
+    <meta property="og:description" content="Vibe coding 的验证瓶颈不是找不到 bug 而是用户看不懂 bug。VLP 在代码和 prompt 之间插入 AST 确定性翻译的 NL 文档，用户验证"程序做什么"而非"代码怎么写"，pass@1 从 28.7% 跃升到 65.4%。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>VLP：在代码和 prompt 之间插入确定性 NL 文档——让用户验证"程序做什么"而非"代码怎么写"</h1>
+                <div class="meta">
+                    <span class="date">July 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>Vibe coding 的验证瓶颈不是"找不到 bug"而是"用户看不懂 bug"——VLP 在代码和 prompt 之间插入一层确定性的 NL 文档，让用户验证"程序做什么"而非"代码怎么写"，pass@1 从 28.7% 跃升到 65.4%</h2>
+
+<p>63% 的 vibe coding 用户是非程序员。96% 的开发者不完全信任 AI 生成代码的功能正确性。这不是一个工程质量问题——这是一个<strong>验证界面</strong>问题。</p>
+
+<p>现有方案在两个方向上都失败了：纯自动验证（LLM 生成测试、LLM judge）受限于 prompt 的模糊性和模型自身的不可靠性；人-in-the-loop 方法（ClarifyGPT 的需求澄清、TiCoder 的测试驱动交互、PInG 的注释审查）只在部分 artifact 上让用户参与——用户看不到这些碎片背后的<strong>完整代码语义</strong>。</p>
+
+<p>HKU 的这篇 <strong>Verifiable Literate Programming (VLP)</strong>（2026 年 7 月）提出了一个简洁的解法：<strong>不要让人看代码，不要让人看 LLM 生成的注释，也不要让人看测试用例</strong>——在 prompt 和代码之间插入一层从代码<strong>确定性地翻译出来</strong>的 NL 文档。用户验证的是"程序做什么"，而非"代码怎么写"。</p>
+
+<h2>Bug Study 的发现：79% 的故障是人类可审查的</h2>
+
+<p>VLP 的第一步是一个系统的 bug 分类研究。在 BigCodeBench-Hard 上对 DeepSeek V4 Flash 和 Claude Opus 4.7 生成的代码进行分类：</p>
+
+<table>
+  <tr><th>类别</th><th>Count</th><th>能否通过 NL 文档暴露？</th></tr>
+  <tr><td>Prompt Underspecification</td><td>147</td><td>✅ 是</td></tr>
+  <tr><td>Missing Steps</td><td>32</td><td>✅ 是</td></tr>
+  <tr><td>Wrong Action/Operation</td><td>23</td><td>✅ 是</td></tr>
+  <tr><td>Wrong Execution Flow</td><td>17</td><td>✅ 是</td></tr>
+  <tr><td>Wrong Operand Value</td><td>15</td><td>✅ 是</td></tr>
+  <tr><td>Lacking Domain Knowledge</td><td>15</td><td>✅ 是</td></tr>
+  <tr><td>Redundant Steps</td><td>14</td><td>✅ 是</td></tr>
+  <tr><td><strong>Logic-Related 小计</strong></td><td><strong>~263 (79%)</strong></td><td><strong>✅ 是</strong></td></tr>
+  <tr><td>Wrong API Arg Value</td><td>23</td><td>❌ 否（需 API 知识）</td></tr>
+  <tr><td>Wrong API Call</td><td>15</td><td>❌ 否</td></tr>
+  <tr><td>Missing Exception Handling</td><td>15</td><td>❌ 否</td></tr>
+  <tr><td><strong>Python-Specific 小计</strong></td><td><strong>~21%</strong></td><td><strong>❌ 需自动验证</strong></td></tr>
+</table>
+
+<blockquote><p>将近 80% 的故障是"逻辑层面的"——缺失步骤、错误操作、执行流偏差——而不是 Python 语法或 API 参数错误。这意味着<strong>如果能让用户看到一个忠实于代码语义的 NL 描述，他们就能发现这些错误</strong>。剩下的 20% Python-specific 问题，用户的领域知识帮不上忙——应该交给自动验证工具。</p></blockquote>
+
+<h2>三层架构：文档 → 检测 → 验证</h2>
+
+<p>VLP 的三个组件分别对应三个设计目标：</p>
+
+<h3>1. Literate Language：确定性地翻译代码→文档</h3>
+
+<p>这不是让 LLM "总结代码做了什么"——那样会丢失微妙偏差。VLP 的 literate language 通过 <strong>AST 语法导向翻译</strong>从 Python 代码生成 NL 文档：</p>
+
+<ul>
+  <li>控制流（if/for/while）→ 确定性地转换为"If...then..."结构化描述</li>
+  <li>数据流（变量赋值、函数调用）→ 保留原始变量名，用 verb phrases 描述操作</li>
+  <li>断言式属性（前置/后置条件、不变量）→ 用 Hoare-logic 风格表达</li>
+  <li>API 调用 → LLM 辅助生成简洁的 verb phrase（如 <code>rename(f, dst)</code> → "rename the file f to dst"），但控制流、参数、返回值由翻译规则固定</li>
+</ul>
+
+<p>关键设计选择：API 调用的 LLM 辅助部分是唯一的非确定性环节——而且它只是把 API name 翻译成人类可读的动词短语，不改变被翻译的语义内容。其余所有翻译都是<strong>确定性的</strong>。</p>
+
+<h3>2. Fine-Grained Mismatch Detection：别让用户看全部文档</h3>
+
+<p>有了忠实的文档还不够——让用户逐行审查 500 行文档和让他们逐行审查 500 行代码一样糟糕。VLP 的解法是：</p>
+
+<ol>
+  <li><strong>建立 trace links</strong>：在 prompt 中"实现相关的句子"和文档行之间建立语义链接</li>
+  <li><strong>LLM mismatch detection</strong>：基于 bug taxonomy（7 种 mismatch 类型），对每个 linked pair + unlinked unit 检查潜在的不一致</li>
+  <li><strong>生成 validation questions</strong>：不是"这里有错吗"，而是"原意是 A 还是 B？"——格式化为具体的选择题</li>
+  <li><strong>只 highlight 可疑片段</strong>：用户只看到被标记的文档行 + 周围 context</li>
+</ol>
+
+<p>七种 mismatch 类型覆盖了 bug study 中发现的全部逻辑类故障：Missing Steps、Redundant Steps、Wrong Action/Operation、Wrong Operand/Value、Wrong Execution Flow、Prompt Underspecification、API-level Underspecification。</p>
+
+<p><strong>Ablation 证明 TLR 是最关键的组件</strong>：在 GPT-5.4 + BCB-Hard 上，移除 Implementation-Relevant Trace Link Recovery 导致 pass@1 从 91.9% 暴跌到 <strong>72.3%</strong>。移除 API Knowledge Base 降到 85.1%。</p>
+
+<h3>3. Automated Verification：用户验证意图，系统验证代码</h3>
+
+<p>用户验证了文档（= 确认了意图），但代码是否真的实现了文档描述的行为？VLP 做了两件事：</p>
+
+<ul>
+  <li><strong>API Verifier</strong>：检查代码中的 API 调用是否与文档中验证的 API 选择一致（callee、arguments、return handling）</li>
+  <li><strong>Bounded Model Checker</strong>：将文档中的断言式属性（pre/post-conditions、invariants）转换为形式化属性，用 BMC 验证代码。BMC 比单元测试更强（symbolic inputs vs concrete inputs），比完全形式化验证更轻量</li>
+</ul>
+
+<h2>结果：pass@1 翻倍</h2>
+
+<table>
+  <tr><th>设置</th><th>Baseline</th><th>VLP</th><th>提升</th></tr>
+  <tr><td>BCB-All + DeepSeek V4 Flash</td><td>28.7%</td><td><strong>65.4%</strong></td><td>+36.7pp</td></tr>
+  <tr><td>BCB-All + GPT-5.4</td><td>73.2%</td><td><strong>93.5%</strong></td><td>+20.3pp</td></tr>
+  <tr><td>BCB-Hard + GPT-5.4</td><td>—</td><td><strong>91.9%</strong></td><td>SOTA</td></tr>
+</table>
+
+<p>与三个 SOTA human-in-the-loop 方法对比（BCB-Hard, GPT-5.4）：<strong>VLP 91.9% > PInG > ClarifyGPT > TiCoder > Default Code</strong>。</p>
+
+<p>用户研究中的主观评分：VLP 在"帮助发现 bug"上得到 4.6/5，"代码理解" 4.1/5，"使用信心" 4.1/5——全部领先于对比方法。PInG（逐行注释审查）在"劳动强度低"上更好——这是可理解的，因为 PInG 只让用户确认/编辑已有注释行，而非回答 validation questions。</p>
+
+<p>在量化金融 benchmark（QuantCodeEval）上，VLP 的提升幅度较小——因为这些任务需要专业领域知识（时间窗口对齐、look-ahead bias），超出了 VLP 和 LLM 的知识范围。这是一个诚实的限制标注。</p>
+
+<h2>VLP 与 Aria 的对偶：两种"中间层验证"范式</h2>
+
+<p>本周分析的两篇论文——Aria 和 VLP——形成了一个精确的对偶：</p>
+
+<table>
+  <tr><th></th><th>Aria (Harness + Code Agent)</th><th>VLP (Verifiable Literate Programming)</th></tr>
+  <tr><td>验证对象</td><td>Coq proofs</td><td>Python code</td></tr>
+  <tr><td>验证者</td><td>Coq kernel（硬性，零假阴性）</td><td>Human + BMC（软性 + 硬性）</td></tr>
+  <tr><td>中间层</td><td>HHL harness（声明式 hooks）</td><td>Literate documentation（确定性 NL）</td></tr>
+  <tr><td>人类角色</td><td>零（fully automatic）</td><td>核心（intent oracle）</td></tr>
+  <tr><td>Ground truth oracle</td><td>存在（Coq kernel）</td><td>不存在（需要人类判断 intent）</td></tr>
+  <tr><td>成果</td><td>4,257/4,257（100%）</td><td>28.7%→65.4%（DeepSeek）</td></tr>
+</table>
+
+<blockquote><p>两者共同证明了一个深层命题：<strong>中间层的设计决定了 agent 系统的验证效率</strong>。当 oracle 存在时（Coq kernel），harness 可以做到 100% 自主。当 oracle 不存在时（用户 intent），中间层的质量决定人类能从多模糊的界面中多有效地提供反馈。</p></blockquote>
+
+<p>Aria 的 harness 不需要人类因为 Coq kernel 就是完美的 oracle。VLP 需要人类因为"用户意图"没有自动 oracle。但 VLP 的设计哲学是一样的：<strong>不要让人类直接看原始输出，在中间放一层设计良好的界面</strong>——VLP 的 literate documentation 就是 coding 场景的 HHL。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+  <li><strong>仅 Python</strong>：Literate language 的语法导向翻译是语言特定的。每增加一种语言需要重写翻译规则。<strong>论文承认。</strong></li>
+  <li><strong>领域知识 gap</strong>：在 QCE（量化金融）上提升有限——当用户自己也缺乏领域知识时，文档再好也无法帮助验证。<strong>论文承认。</strong></li>
+  <li><strong>Simulator-human gap</strong>：LLM user simulator 与真实人类在 correctness 维度上的一致性为 0.69（1 为完美一致）。simulator 倾向于提供比真实用户更完整的反馈。<strong>论文承认并提供了 consistency analysis。</strong></li>
+  <li><strong>非程序员的实际可用性未独立测试</strong>：用户研究中的参与者都是 programmers（只是 experience level 不同）。真正的 zero-code 用户能否使用这个系统，未被验证。<strong>我的推断。</strong></li>
+  <li><strong>VLP 不能修复它检测不到的问题</strong>：如 BCB-306 要求使用 <code>logging.info</code>——但 prompt 从未提及 logging。TLR 无法为"完全没有在 prompt 中出现的需求"建立 trace link。</li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote><p>Vibe coding 的验证危机不是技术问题——是界面问题。VLP 的答案是：不要让人看代码，在代码和 prompt 之间放一层人类能读懂的、忠实于语义的 NL 文档，突出几行可疑的地方让他们确认一下意思，剩下的漏洞让形式化工具去抓。结果是在非程序员占了 63% 的 vibe coding 用户群中，验证从"做不到"变成了"可以做"。</p></blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+  <li>本文分析基于 arXiv 2607.02333v1 全文（12 页 PDF），论文为 2026 年 7 月 preprint，作者来自 HKU。</li>
+  <li>所有实验数据来自论文正文。Bug taxonomy 分类标准基于论文的 Figure 2。</li>
+  <li>"VLP 的 literate documentation = coding 场景的 HHL"、"非程序员的实际可用性未独立测试"等为我的推断，已标注。</li>
+  <li>论文使用 DeepSeek V4 Flash 和 GPT-5.4 作为 code generation model，GPT-5.4 作为 mismatch detection LLM。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+  <li>论文：<a href="https://arxiv.org/abs/2607.02333">Guiding Human Validation of LLM-Generated Code via Verifiable Literate Programming</a> — Yuan, Lu, Wu, Jin, Wu, 2026</li>
+  <li>arXiv PDF：<a href="https://arxiv.org/pdf/2607.02333">arxiv.org/pdf/2607.02333</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/aria-code-agent-coq-verification.html">Aria: Harness + Code Agent for Coq</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/harness-engineering-self-improvement.html">Lilian Weng on Harness Engineering</a></li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
