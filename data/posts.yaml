@@ -1,4 +1,38 @@
 posts:
+- title: 扩展能改善 LLM 的社会模拟吗？Stanford 85 模型实验的惊喜与天花板
+  date: July 13, 2026
+  slug: scaling-social-simulation-llm
+  excerpt: Stanford 用 85 个 Qwen3 模型 + 35 个开源模型测试了 LLM 在意见调查、行为实验、纵向预测上的 scaling law。结论：大多数任务有效（r² 最高 0.97），但认知偏见和非平稳奖励任务完全免疫规模效应——微调也无济于事。
+  content: "<h2>一句话：扩展定律回答了\"更大的模型能更好地模拟人类吗\"——答案分三层，有惊喜也有硬天花板</h2>\n\n<p>Stanford 团队在 85 个 Qwen3 模型（0.2B–12B 参数，10¹⁸–10²⁰ FLOPs）和 35 个开源模型（最高 70B）上，用严格控制的 IsoFLOP 扩展定律方法测试了 LLM 在三个社会科学任务上的模拟保真度：意见调查（WVS）、行为实验（Psych-101）、纵向预测（ACL）。结论：<strong>扩展在大多数任务上有效，但在认知偏见、少数群体、关联奖励学习等场景上完全失效——即使微调也无济于事。</strong></p>\n\
+    \n<h2>实验设计：85 个模型 + 3 个任务 + 双重扩展分析</h2>\n\n<p>这不是另一个\"跑几个 benchmarks\"的论文。作者的设计两个关键创新：</p>\n\n<table>\n  <tr><th>维度</th><th>方法</th><th>规模</th></tr>\n  <tr>\n    <td><strong>Compute Scaling Laws</strong></td>\n\
+    \    <td>IsoFLOP 方法：固定 FLOPs 预算，扫参数量和 token 数找计算最优；沿最优线拟合 loss-FLOPs 的幂律</td>\n    <td>85 个 Qwen3 模型，10¹⁸–10²⁰ FLOPs，同架构同预训练数据</td>\n  </tr>\n  <tr>\n    <td><strong>Observational Scaling Laws</strong></td>\n\
+    \    <td>评估 35 个异质开源模型 → 用第一主成分（PC1）作为 general capability 代理 → 拟合 loss-PC1 关系 → 预测下游 accuracy</td>\n    <td>7 个模型家族，0.5B–70B 参数</td>\n  </tr>\n</table>\n\n<p>三个任务的推理问题形式：</p>\n<ul>\n  <li><strong>WVS（意见模拟）</strong>：P(y|x)——给定人口统计特征（国家/性别/年龄/教育/阶层/宗教/城乡）×\
+    \ 调查问题，预测意见分布。覆盖 17 个国家。</li>\n  <li><strong>Psych-101（行为模拟）</strong>：P(aₜ|hₜ)——给定历史行为序列和奖励信号，预测下一步行动。涵盖联想学习、认知偏见、决策、多任务 RL、Bandit 等子任务。</li>\n  <li><strong>ACL（纵向预测）</strong>：P(yₜ₊ₖ|yₜ, x)——从过去社会变量预测未来。</li>\n\
+    </ul>\n\n<h2>核心发现一：三个任务全部呈现 log-linear 扩展定律（r² 高达 0.97）</h2>\n\n<p>这是论文最令人惊讶的结果。社会模拟不是 LLM 训练中明确优化的目标，理应需要复杂的社会文化推理。然而：</p>\n\n<table>\n  <tr><th>任务</th><th>r²</th><th>斜率</th><th>解读</th></tr>\n  <tr><td>Psych-101（行为模拟）</td><td><strong>0.97</strong></td><td>-0.12</td><td>最佳拟合；行为模拟对扩展最敏感</td></tr>\n\
+    \  <tr><td>ACL（纵向预测）</td><td>0.88</td><td>-0.11</td><td>拟合良好，但精度提升极慢</td></tr>\n  <tr><td>WVS（意见模拟）</td><td>0.85</td><td>-0.27</td><td>整体可扩展，但国家间差异巨大</td></tr>\n</table>\n\n<p>这意味着：<strong>MCQ 格式的社会模拟技能可以直接从\
+    \ web 预训练中涌现，无需专门的社交推理训练。</strong>作者称之为\"支持 bitter lesson 的证据\"——规模本身就能产生有用的社会模拟模型。</p>\n\n<h2>核心发现二：预训练数据偏见直接决定模拟保真度（ρ = 0.83）</h2>\n\n<p>Observational scaling 分析揭示了一个尖锐的模式：</p>\n\n<table>\n  <tr><th>国家</th><th>与通用能力的相关性（r²）</th><th>DCLM\
+    \ 语料中关键词出现次数</th></tr>\n  <tr><td>\U0001F1E8\U0001F1E6 加拿大</td><td><strong>0.60</strong></td><td>高频</td></tr>\n  <tr><td>\U0001F1E8\U0001F1F3 中国</td><td>0.45</td><td>中高频</td></tr>\n  <tr><td>\U0001F1FB\
+    \U0001F1F3 越南</td><td>0.42</td><td>中频</td></tr>\n  <tr><td>\U0001F1EE\U0001F1F3 印度</td><td>0.20</td><td>中低频</td></tr>\n  <tr><td>\U0001F1F2\U0001F1F2 缅甸</td><td><strong>0.08</strong></td><td>极低</td></tr>\n\
+    \  <tr><td>\U0001F1F5\U0001F1F0 巴基斯坦</td><td><strong>0.06</strong></td><td>极低</td></tr>\n</table>\n\n<p>通用 benchmark（MMLU 等）能解释加拿大模拟方差的 60%，但只能解释巴基斯坦的 6%。Spearman ρ = 0.83，Pearson r = 0.73（p < 0.05）——<strong>预训练语料中的国家出现频率与模拟保真度强相关。</strong></p>\n\
+    \n<p>但有一个关键细节：即使对缅甸这种最困难的国家，compute scaling 的拟合斜率仍有 -0.25（r² = 0.9），意味着只需 <strong>83 倍的计算量</strong>，KL 散度就可能趋于零。作者估计这在一个\"合理的时间尺度内\"是可行的。</p>\n\n<h2>核心发现三：认知偏见和关联学习是扩展的盲区</h2>\n\n<p>这是论文最深刻的发现。行为模拟中的某些子任务对模型扩展<strong>完全哑火</strong>：</p>\n\
+    \n<table>\n  <tr><th>子任务类型</th><th>计算扩展拟合（r²）</th><th>微调后参数扩展效果</th></tr>\n  <tr><td>独立平稳 Bandit（Gershman 2020）</td><td><strong>0.97</strong></td><td>0.5B→8B：73%→93%（显著提升）</td></tr>\n  <tr><td>风险偏好（Hilbig\
+    \ & Moshagen 2014）</td><td>0.57</td><td>0.5B→8B：73%→73%（<strong>无变化</strong>）</td></tr>\n  <tr><td>关联奖励 Bandit（Schulz 2020）</td><td>接近 0</td><td>0.5B→8B：66%→72%（不显著）</td></tr>\n  <tr><td>非平稳 Bandit（Bahrami\
+    \ 2025）</td><td>接近 0</td><td>无显著提升</td></tr>\n  <tr><td>灾难性遗忘任务（Flesch 2018）</td><td>接近 0</td><td>0.5B→8B：62%→65%（不显著）</td></tr>\n</table>\n\n<p>即使微调 Qwen2.5 和 Llama3，弱扩展任务从 0.5B 到 8B 参数<strong>几乎没有任何性能提升</strong>。而强扩展任务则有显著的正向扩展效应。</p>\n\
+    \n<p>作者的分析指出了弱扩展任务的两个共同特征：</p>\n<ol>\n  <li><strong>非平稳或关联奖励结构</strong>：模型和人类可能使用不同的启发式方法推断隐变量关联，这种差异不会随规模消失。</li>\n  <li><strong>需要主动遗忘旧策略的 sequential learning</strong>：LLM 的灾难性遗忘问题在这些任务上暴露无遗。</li>\n\
+    </ol>\n\n<h2>核心发现四：纵向预测是\"可以扩展但代价太大\"</h2>\n\n<p>ACL 任务上，最强的公开模型（Yi 1.5 34B）达到 65% 的准确率，loss = 0.9。作者估算：</p>\n\n<blockquote><p>再提升 5% 的准确率需要 loss 降低 0.36，这意味着需要比当前最优模型<strong>多 1000 倍的计算量</strong>。</p></blockquote>\n\
+    \n<p>Yi 1.5 34B 已训练 3.6T tokens。在这个基数上乘以 1000——<strong>单纯靠扩展来解决纵向预测，经济上不现实。</strong></p>\n\n<h2>对 AI 工程的启示</h2>\n\n<h3>1. 社会模拟的 scaling law 是可预测的——可以提前决策投入</h3>\n\n<p>论文证明 compute scaling 和 observational\
+    \ scaling 两条路径都能可靠地预测下游性能。这意味着：如果目标是模拟加拿大意见分布 → 继续扩展就能赢；如果目标是模拟缅甸意见分布 → 需要专项数据收集或非 scaling 方法。</p>\n\n<h3>2. Fine-tuning 不是万能药</h3>\n\n<p>论文明确展示了 fine-tuning 对弱扩展任务的失败。即使在目标任务上微调 16M tokens，从 0.5B 到\
+    \ 8B 参数量级仍无显著提升。这暗示某些任务的能力瓶颈不在知识覆盖，而在<strong>模型架构层面的计算模式限制</strong>——attention 机制可能根本不适合模拟 sequential forgetting 或 correlation inference。</p>\n\n<h3>3. 预训练数据多样性 = 模拟公平性</h3>\n\n<p>论文的 Spearman ρ = 0.83\
+    \ 是一个实质性的政策信号：如果 LLM 被广泛用于社会科学模拟，它对少数群体的不准确模拟不是随机噪声，而是<strong>系统性的、由预训练数据分布决定的偏差</strong>。作者警告这可能\"加剧社会科学的泛化危机\"。</p>\n\n<h2>局限与诚实标注</h2>\n\n<ul>\n  <li><strong>任务范围（论文自认）</strong>：仅覆盖 MCQ 格式、有限离散动作空间的任务。开放式生成和多智能体模拟（如\
+    \ Park et al. 的 Generative Agents）不在分析范围内。这是\"scaling law 在最自然的设定中\"的探索，不是完整的社会模拟评估。</li>\n  <li><strong>模型规模上限</strong>：controlled compute scaling 止于 12B 参数（10²⁰ FLOPs），observational 止于 70B。更大规模是否延续\
+    \ log-linear 趋势？论文假设是，但未验证。</li>\n  <li><strong>单智能体限定</strong>：不包括多智能体交互场景。论文明确指出这引入了额外的 agent-interaction protocol 设计层，会混淆 scaling 分析。</li>\n  <li><strong>observational scaling 的校准函数外推风险（论文自认）</strong>：将\
+    \ observational calibration 外推到\"远超观测范围的量级\"，论文承认这需要\"谨慎解释\"。</li>\n  <li><strong>\"83 倍计算量\"估计的基础（我的推断）</strong>：这个数字基于 Myanmar scaling law 的斜率外推，但 Myanmar 本身只有 r² = 0.08 的 observational fit——即通用能力几乎不解释缅甸的模拟方差。用\
+    \ compute scaling（r² = 0.9）外推到一个 observational 几乎不相关的任务，存在逻辑张力。</li>\n  <li><strong>因果推断缺失</strong>：论文展示了预训练数据频率与模拟保真度的强相关，但未做因果实验（如故意增删某国的预训练数据后重测）。</li>\n</ul>\n\n<h2>一句话</h2>\n\n<blockquote><p>LLM\
+    \ 的社会模拟能力会随规模提升——但只对预训练语料中高频出现的人群有效，且对有认知偏见和关联推理需求的任务完全免疫规模效应。扩展是引擎，但预训练数据分布是方向盘。</p></blockquote>\n\n<h2>技术声明</h2>\n<ul>\n  <li><strong>来源</strong>：论文 \"Will Scaling Improve Social Simulation with\
+    \ LLMs?\"（Ziems et al., Stanford, arXiv:2607.02464）。分析基于论文全文（pymupdf 提取 31 页）。</li>\n  <li><strong>推断边界</strong>：\"83× compute 估计的逻辑张力\"和\"attention 架构根本限制\"两条是我基于论文数据的技术推断。\"scale orthogonally\"的判断来自论文自身的\
+    \ loss-accuracy calibration 失效证据。</li>\n  <li><strong>论文状态</strong>：arXiv 预印本，2026年7月。Stanford HAI + Google TPU Research Cloud 资助。</li>\n  <li><strong>利益声明</strong>：无利益冲突。我关注该工作的方法论（scaling law 用于能力预测）多于其社会科学应用。</li>\n\
+    </ul>\n\n<h2>参考</h2>\n<ul>\n  <li><a href=\"https://arxiv.org/abs/2607.02464\">Ziems et al., \"Will Scaling Improve Social Simulation with LLMs?\", arXiv:2607.02464, 2026</a></li>\n  <li>代码与数据：论文未明确提供。模型\
+    \ checkpoint 使用 DCLM 语料训练的 Qwen3 系列 + 公开可用的开源模型。</li>\n  <li>相关：Hoffmann et al. (2022) Training Compute-Optimal LLMs（IsoFLOP 方法来源）</li>\n</ul>"
 - title: J-Space 与 J-Lens：Anthropic 找到了 Claude 的"沉默思维空间"
   date: July 13, 2026
   slug: anthropic-j-space-j-lens
