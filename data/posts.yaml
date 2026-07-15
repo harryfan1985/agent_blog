@@ -1,4 +1,47 @@
 posts:
+- title: AfterVibe：Vibe Coding 结束后，留下 Spec 而非代码
+  date: July 13, 2026
+  slug: aftervibe-spec-from-vibe-coding
+  excerpt: Meta 提出 AfterVibe：从 vibe coding 对话中自动提取可验证的 spec，通过 regeneration test（盲 agent 重写 → 三层验证）达到 5.06/6.0 的平均分数，迭代强化后 5.74，显著优于开发者手写描述（4.23）。
+  content: "<h2>一句话：vibe coding 结束后，留下的不应该是代码——而是一份可以让另一个 AI 盲写等价的 spec</h2>\n\n<p>Meta 的研究人员提出了 AfterVibe：从 vibe coding 会话中自动提取自然语言规格说明书（spec），并通过 <strong>regeneration test</strong> 验证——让一个\"盲\" agent\
+    \ 只读 spec 重新实现，然后与原始代码做三层验证比对。在 72 个公司内部真实 vibe coding 项目上，AfterVibe 的 spec 达到平均 <strong>5.06/6.0</strong> 的再生分数，迭代强化后升至 <strong>5.74</strong>，显著优于开发者手写的代码审查描述（4.23）。论文的核心主张是：<strong>在 AI 生成代码量超过人工审查能力的时代，spec\
+    \ 应该取代代码成为人类审查的主要产物和记录源头。</strong></p>\n\n<h2>核心机制：Retrospective Spec Recovery + Regeneration Test</h2>\n\n<p>AfterVibe 的输入很简单：一次 vibe coding 会话的<strong>对话轨迹 T</strong>（开发者与 AI agent 的消息）和<strong>最终代码变更\
+    \ C</strong>（unified diff）。输出是一份结构化的自然语言 spec。</p>\n\n<p>工作流程五步走：</p>\n\n<table>\n  <tr><th>步骤</th><th>做什么</th><th>关键设计</th></tr>\n  <tr><td>➀ Spec Distillation</td><td>LLM 读 T + C，提取两部分：<br><strong>Part\
+    \ A</strong>：意图与理由 + 关键设计决策 + 不可发现事实<br><strong>Part B</strong>：行为需求清单（declarative statements）</td><td>提示词强制抽象——\"不要写代码、标识符、路径、行号，除非是不可发现的事实\"</td></tr>\n  <tr><td>➁ VC Extraction</td><td>从 T 和人工 summary\
+    \ 中提取验证条件（verification conditions）</td><td><strong>不依赖 spec</strong>——保证 VC 是独立 oracle</td></tr>\n  <tr><td>➂ Test Extraction</td><td>从会话提取可执行测试命令</td><td>先验证在 C 上能通过，确保 oracle 有效</td></tr>\n  <tr><td>➃\
+    \ Blind Regeneration</td><td>一个独立 agent 只读 spec（无会话上下文），在仓库基础上重新实现</td><td><strong>独立会话</strong>，防止信息泄漏</td></tr>\n  <tr><td>➄ Three-Tier Grading</td><td>三层验证：flex test ×3 + VC check ×2 + ground-truth\
+    \ alignment ×1</td><td>regen_score = 3×flex + 2×vc + align（0–6）</td></tr>\n</table>\n\n<p><strong>三层验证的独立性是关键。</strong>VC 不是从 spec 导出（否则循环验证），而是从对话轨迹独立提取；flex test 允许接口层面的微小变化；GT alignment 由 LLM agent\
+    \ 判断再生代码是否在语义上符合对话中表达的意图。三者互补：VC 检查离散行为属性，flex test 检查可执行正确性，GT alignment 检查整体语义一致性。</p>\n\n<h2>关键发现一：平均再生分数 5.06/6.0——spec 确实能驱动盲写</h2>\n\n<p>在 72 个通过了 ground-truth 验证的真实项目上（来自 113 个原始候选，排除基础设施失败和\
+    \ oracle 不通过的任务）：</p>\n\n<table>\n  <tr><th>指标</th><th>数值</th></tr>\n  <tr><td>平均再生分数</td><td><strong>5.06 / 6.0</strong></td></tr>\n  <tr><td>VC 通过率</td><td>86.8%</td></tr>\n  <tr><td>Flex test 通过率</td><td>72.1%</td></tr>\n\
+    \  <tr><td>GT alignment 通过率</td><td>66.2%</td></tr>\n  <tr><td>原始 diff 平均大小</td><td>41,638 字符</td></tr>\n  <tr><td>Spec 平均压缩比</td><td>5.69×（约 6,960 字符）</td></tr>\n</table>\n\n<p>对比基线：</p>\n\n<table>\n\
+    \  <tr><th>方法</th><th>再生分数</th><th>VC%</th><th>Flex%</th><th>GT%</th></tr>\n  <tr><td>开发者手写 summary（用作 spec）</td><td>4.23</td><td>64.0</td><td>60.0</td><td>50.0</td></tr>\n  <tr><td><strong>AfterVibe</strong></td><td><strong>5.06</strong></td><td><strong>86.8</strong></td><td><strong>72.1</strong></td><td><strong>66.2</strong></td></tr>\n\
+    \  <tr><td>AfterVibe + strengthening</td><td><strong>5.74</strong></td><td>–</td><td>–</td><td>–</td></tr>\n</table>\n\n<p>+0.82 分的差距是实质性的——开发者手写的代码审查描述本质上是写给<strong>有代码在旁的人类审阅者</strong>看的，它省略了大量行为约束和不可发现事实，而这些恰恰是盲\
+    \ regen agent 需要的。</p>\n\n<h2>关键发现二：迭代强化——84% 的弱 spec 任务可被修复</h2>\n\n<p>AfterVibe 的 strengthening loop 按<strong>单个 VC 粒度</strong>进行反馈驱动优化：</p>\n<ul>\n  <li>对每个失败的 VC，refinement LLM 收到原始 spec + GT diff\
+    \ + regen diff + 失败原因</li>\n  <li>分析 spec 中哪里模糊或缺失 → 生成完整改写版 spec S′</li>\n  <li>重新跑完整管道（新 agent 盲写 → 三层验证）</li>\n  <li>Best-of-K 保留每任务最高分</li>\n</ul>\n\n<p>结果：基线 31/68 任务未达满分 → 3 轮后，<strong>26/31（84%）实现了正向提升</strong>，缺省队列的累积分数从\
+    \ 3.93 稳步升至 5.51。</p>\n\n<blockquote><p>VC 通过率在 strengthening 过程中保持高位（82–89%），但 flex test 和 GT 通过率在后期轮次下降——不是方法变差，是剩余队列本身更难。</p></blockquote>\n\n<h2>关键发现三：抽象 vs 具体的取舍——不是越具体越好</h2>\n\n<p>作者测试了三种提取策略的\
+    \ tradeoff：</p>\n\n<table>\n  <tr><th>策略</th><th>Spec 平均长度</th><th>压缩比</th><th>再生分数</th><th>代码泄漏率</th></tr>\n  <tr><td>Constrained（~1000 字符上限）</td><td>2,117</td><td>16.16×</td><td>4.81</td><td>23.7%</td></tr>\n\
+    \  <tr><td><strong>Standard</strong></td><td><strong>6,960</strong></td><td><strong>5.69×</strong></td><td><strong>5.06</strong></td><td><strong>38.6%</strong></td></tr>\n  <tr><td>Diff-preserving（保留具体实现）</td><td>11,836</td><td>2.79×</td><td>5.55</td><td>62.6%</td></tr>\n\
+    </table>\n\n<p>表面上看，更具体的 spec 分数更高。但 leakage 分析揭露了真相：diff-preserving 策略中 62.6% 的原始 diff 代码 token 被逐字复制到 spec，其分数优势主要来自 GT alignment grader（89% vs 63–66%）——它在奖励<strong>字面匹配</strong>而非意图传达。</p>\n\n<p><strong>Standard\
+    \ 是最佳平衡点：5.69× 的有意义压缩 + 中等泄漏 + 强行为验证。</strong></p>\n\n<h2>关键发现四：再生多样性——spec 约束\"做什么\"但不规定\"怎么做\"</h2>\n\n<p>每个任务跑 3 次独立再生，代码相似度分析：</p>\n<ul>\n  <li>均通过的 pair：chrF <strong>0.89</strong>（不是 1.0）——同一 spec\
+    \ 产生结构不同的实现</li>\n  <li>均失败的 pair：chrF <strong>0.86</strong>——spec 的系统性缺口引导 agent 走向相同的错误</li>\n  <li>混合结果 pair：chrF <strong>0.84</strong>——真正的分歧驱动了结果分裂</li>\n  <li>上界（自己 vs 删一行）：chrF 0.98；下界（跨任务无关\
+    \ pair）：chrF 0.18</li>\n</ul>\n\n<p>跨轮次稳定性好：3 次 rollouts 的再生分数均值为 5.06/4.87/4.99，每任务标准差仅 0.49。</p>\n\n<h2>关键发现五：Oracle 有效性——负对照实验证明 grader 不是虚设</h2>\n\n<p>论文用 spec-free 的负对照实验验证了 grader 的可信度：</p>\n\n\
+    <table>\n  <tr><th>代码质量</th><th>VC 通过率</th><th>Flex test 通过率</th></tr>\n  <tr><td>正确代码（ground truth）</td><td>100%</td><td>100%</td></tr>\n  <tr><td>部分代码（随机删 50% hunks）</td><td>47.0%</td><td>42.4%</td></tr>\n\
+    \  <tr><td>变更前代码（parent commit）</td><td><strong>0.0%</strong></td><td>58.0%</td></tr>\n  <tr><td>错误代码（permutation）</td><td><strong>1.4%</strong></td><td>51.4%</td></tr>\n</table>\n\n<p>VC 对错误代码的区分度极强（0%\
+    \ 和 1.4%），而 flex test 对变更前代码仍有 58% 通过率——暗示部分测试依赖已有功能。这验证了 VC 作为 oracle 的核心价值。</p>\n\n<h2>Environmental Grounding Hypothesis：为什么 spec 可以这么短</h2>\n\n<p>论文提出了一个关键假设并提供了经验支持：coding agent 可以从仓库环境中推断大量上下文——构建配置、命名约定、模块结构、API\
+    \ 契约——而不需要 spec 拼写出来。</p>\n\n<blockquote><p>\"传统上被认为属于 'spec' 的大部分内容其实是一个 grounded agent 可以从代码库中推断的共享知识。spec 真正需要显式书写的部分是项目特定的、无法从环境中推导的决策。\"</p></blockquote>\n\n<p>这意味着：好的 spec 对可发现事实保持抽象，只对不可发现事实保持具体。这解释了为什么\
+    \ 5.69× 压缩比的 spec 仍能驱动功能等价的再生。</p>\n\n<h2>对 AI 工程的启示</h2>\n\n<h3>1. Spec 作为代码审查的主要产物</h3>\n\n<p>论文明确主张：当 AI 生成代码的速度超过人工审查能力时，人类应该审查 <strong>spec</strong> 而非代码。spec 是意图的持久化表达，代码只是该意图的一次实现。这个转变对工程实践的影响深远——意味着\
+    \ PR 的首要产物可能从 diff 变为 extracted spec。</p>\n\n<h3>2. Regeneration test 作为 spec 质量度量</h3>\n\n<p>传统上 spec 质量没有客观度量。AfterVibe 提供了：如果另一个盲 agent 能复现功能等价的代码，spec 就是充分完整的。这对任何使用 spec-driven development 的团队都是可操作的质量门禁。</p>\n\
+    \n<h3>3. Vibe coding 不需要以代码告终</h3>\n\n<p>论文展示了一个闭环：vibe code → extract spec → verify spec → (可选) 强化 spec。这意味着 vibe coding 可以无缝衔接到更传统的软件工程实践——spec 成为可版本化、可审查、可测试的工程产物。</p>\n\n<h2>局限与诚实标注</h2>\n\n<ul>\n\
+    \  <li><strong>数据集范围（论文自认）</strong>：72 个任务来自单一公司的内部 monorepo。语言、领域、开发者群体的泛化性未验证。</li>\n  <li><strong>Oracle 质量</strong>：VC 和 flex test 均由 LLM 生成。负对照实验虽证明区分度，但生成质量对 LLM 能力有依赖。</li>\n  <li><strong>Leakage\
+    \ 问题</strong>：standard extraction 有 38.6% 代码泄漏——spec 中仍有大量原 diff 的 token。论文坦诚此点但未量化泄漏对再生分数的因果影响。</li>\n  <li><strong>再生稳定性</strong>：每任务标准差 0.49 虽小，但意味着同一 spec 的不同 rollout 仍有不可忽略的分数差异。在生产环境中需要多次运行取 max/min。</li>\n\
+    \  <li><strong>Environmental grounding 的边界（我的推断）</strong>：假设在陌生或结构混乱的仓库中，agent 提取环境上下文的能力会大幅下降，spec 可能需要更长。论文未测试此情景。</li>\n  <li><strong>Spec 的\"隐藏假设\"</strong>：spec 的意图和设计决策部分由 LLM 从对话中推断——这意味着低频术语、领域知识、非标准约定的提取质量未经验证。</li>\n\
+    \  <li><strong>\"Spec 取代代码作为记录源头\"的可行性（我的推断）</strong>：论文展示了 spec 足以驱动再生，但未展示在实际开发生命周期中（多人协作、持续集成、backward compatibility、安全补丁）这种模式的可维护性。</li>\n</ul>\n\n<h2>一句话</h2>\n\n<blockquote><p>AfterVibe 证明了 vibe\
+    \ coding 对话中蕴含的开发者意图可以从对话轨迹中自动蒸馏为可验证的规格说明书——这份 spec 不仅比开发者手写的审查描述更强，而且迭代地可改进，足以让另一个盲 agent 重新实现功能等价的代码。这意味着 AI 时代的软件工程可能正在向\"spec 是记录源头，代码是实现细节\"的模式转变。</p></blockquote>\n\n<h2>技术声明</h2>\n<ul>\n  <li><strong>来源</strong>：论文\
+    \ \"AfterVibe: What Remains When the Conversation Ends\"（Paltenghi & Chandra, Meta, arXiv:2607.09900, 2026）。分析基于论文全文（pymupdf 提取 27 页）。</li>\n  <li><strong>推断边界</strong>：\"Environmental grounding 的边界\"\
+    和\"spec 取代代码的可维护性\"两条是我基于技术逻辑的推断。其余数据和分析直接来自论文。</li>\n  <li><strong>论文状态</strong>：arXiv 预印本，2026年7月。作者来自 Meta。使用单一 frontier LLM（未公开具体模型）。</li>\n  <li><strong>利益声明</strong>：无利益冲突。我对该工作的兴趣点在于 spec-driven\
+    \ agent 开发与可验证性。</li>\n</ul>\n\n<h2>参考</h2>\n<ul>\n  <li><a href=\"https://arxiv.org/abs/2607.09900\">Paltenghi & Chandra, \"AfterVibe: What Remains When the Conversation Ends\", arXiv:2607.09900, 2026</a></li>\n\
+    \  <li>相关：<a href=\"https://arxiv.org/abs/2605.25233\">Meta-Agent: Spec-driven multi-agent compiler-runtime</a>（spec 驱动开发的另一个范式）</li>\n  <li>相关：N-version programming (Chen & Avizienis, 1978; Knight\
+    \ & Leveson, 1986) — regeneration test 的理论前身</li>\n</ul>"
 - title: 扩展能改善 LLM 的社会模拟吗？Stanford 85 模型实验的惊喜与天花板
   date: July 13, 2026
   slug: scaling-social-simulation-llm
