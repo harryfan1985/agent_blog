@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM-as-a-Verifier：Verification 是 LLM 的第四条 Scaling Axis | Agent Blog</title>
+    <meta name="description" content="Stanford/UCB/NVIDIA 提出：不再让 LLM 输出离散分数，而是取评分 token logits 全分布期望。解锁验证的三维扩展（粒度/重复/分解），四榜 SOTA，还附赠进度追踪和 RL 稠密奖励。零训练成本。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="LLM-as-a-Verifier：Verification 是 LLM 的第四条 Scaling Axis">
+    <meta property="og:description" content="Stanford/UCB/NVIDIA 提出：不再让 LLM 输出离散分数，而是取评分 token logits 全分布期望。解锁验证的三维扩展（粒度/重复/分解），四榜 SOTA，还附赠进度追踪和 RL 稠密奖励。零训练成本。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>LLM-as-a-Verifier：Verification 是 LLM 的第四条 Scaling Axis</h1>
+                <div class="meta">
+                    <span class="date">July 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>一句话：Verification 是 LLM 的第四条扩展轴——用概率化 logit 期望替代离散打分，不需要训练就 SOTA</h2>
+
+<p>Stanford + UC Berkeley + NVIDIA 联合团队提出 LLM-as-a-Verifier：不再让 LLM 输出一个离散分数 token，而是<strong>计算评分 token logits 全分布的期望值</strong>，得到连续分数。这个看似简单的改变，解锁了验证在三个维度上的扩展——评分粒度、重复评估、标准分解——并在 Terminal-Bench V2（86.5%）、SWE-Bench Verified（78.2%）、RoboRewardBench（87.4%）、MedAgentBench（73.3%）上全面 SOTA。<strong>不需要任何训练。</strong></p>
+
+<h2>为什么离散打分不够？</h2>
+
+<p>当前的 LLM judge 模式有一个根本问题：让模型在语言空间中选择一个离散分数 token（如 "7"），实际上<strong>把完整的评分分布坍缩成了一个点</strong>。</p>
+
+<table>
+  <tr><th>问题</th><th>离散 Judge</th><th>连续 Verifier</th></tr>
+  <tr><td>信号粒度</td><td>5 或 20 个离散值</td><td><strong>连续期望值</strong>（logits 加权）</td></tr>
+  <tr><td>Tie rate（Terminal-Bench）</td><td><strong>26.7%</strong>（k=1）</td><td><strong>0.0%</strong></td></tr>
+  <tr><td>单次准确率（k=1）</td><td>71.8%</td><td><strong>74.7%</strong></td></tr>
+  <tr><td>16 次集成后准确率</td><td>77.1%</td><td><strong>77.5%</strong></td></tr>
+  <tr><td>能否表达不确定性</td><td>否——选最高概率 token</td><td><strong>是</strong>——保留全分布</td></tr>
+</table>
+
+<p>论文用一个 case study 展示了问题的本质：两个 SQL 优化轨迹，正确的那条等了 5 分钟验证 diff，错误的那条跳过验证。Gemini 2.5 Flash 的推理文字已识别出差异，但用"marginally more direct""slightly cleaner"等 hedge 语言表达。离散 1–5 打分：<strong>100 次中 88 次判为平局</strong>。同样分布取期望：正确轨迹在 <strong>69/100</strong> 次中排名更高。粒度扩展到 1–20：正确轨迹在 <strong>81/100</strong> 次中胜出。</p>
+
+<h2>核心公式：一条方程定义三个扩展维度</h2>
+
+<p>给定任务 x、标准 c、轨迹 τ，奖励估计为：</p>
+
+<blockquote><p>R(x, τ) = (1/CK) · Σ_c Σ_k Σ_g p_θ(v_g | x, c, τ) · φ(v_g)</p></blockquote>
+
+<p>三个维度各自攻击不同的误差源：</p>
+
+<table>
+  <tr><th>维度</th><th>符号</th><th>攻击的误差</th><th>效果</th></tr>
+  <tr>
+    <td><strong>评分粒度</strong></td>
+    <td>G（token 数量）</td>
+    <td>分数分辨率不足</td>
+    <td>1→20 token：准确率 73.1%→77.5%，SNR 0.775→0.799</td>
+  </tr>
+  <tr>
+    <td><strong>重复评估</strong></td>
+    <td>K（独立运行次数）</td>
+    <td>单次评估方差</td>
+    <td>1→16 次：74.7%→77.5%（方差以 O(1/K) 缩减）</td>
+  </tr>
+  <tr>
+    <td><strong>标准分解</strong></td>
+    <td>C（评估维度数）</td>
+    <td>单一维度的 prompt bias</td>
+    <td>单标准 75.2–76.4%→三标准集成 <strong>78.3%</strong></td>
+  </tr>
+</table>
+
+<p>三个标准分别为：Specification（是否符合任务要求）、Outcome（结果是否正确）、Errors（日志和工具输出是否无故障信号）。三者互补——单个标准的最高分 76.4% 被集成提升到 78.3%。</p>
+
+<h2>Probabilistic Pivot Tournament：从 O(N²) 到 O(Nk) 的排序</h2>
+
+<p>全量 round-robin 需要 N(N-1)/2 次成对验证，N=20 时是 190 次，昂贵且低效。论文的 PPT 算法分三步：</p>
+
+<ol>
+  <li><strong>Ring Pass</strong>：随机哈密顿环，每候选恰好出现两次（一次 A 位一次 B 位），消除位置偏差</li>
+  <li><strong>Pivot Selection</strong>：按 ring pass 分数排序，选 top-k 作为锚点</li>
+  <li><strong>Pivot Tournament</strong>：仅比较 pivot-vs-pivot 和 non-pivot-vs-pivot，复杂度 O(Nk)</li>
+</ol>
+
+<p>最终选择归一化 win mass 最高的候选：argmax w_i/c_i（除以比较次数消除 pivot 优势）。k 越大越准，但即使 k 小也远超随机。</p>
+
+<h2>四榜 SOTA：无需训练，即插即用</h2>
+
+<table>
+  <tr><th>Benchmark</th><th>领域</th><th>Pass@1</th><th>Oracle Pass@N</th><th>Verifier 选择后</th><th>对比</th></tr>
+  <tr><td>Terminal-Bench V2</td><td>Shell 编程</td><td>83.1%</td><td>92.1%</td><td><strong>86.5%</strong></td><td>超 GPT-5.5 (84.7%)</td></tr>
+  <tr><td>SWE-Bench Verified</td><td>软件工程</td><td>76.1%</td><td>84.4%</td><td><strong>78.2%</strong></td><td>超 Opus 4.5 (76.8%)</td></tr>
+  <tr><td>RoboRewardBench</td><td>机器人操作</td><td>–</td><td>–</td><td><strong>87.4%</strong></td><td>超 RoboReward-8B (81.4%)</td></tr>
+  <tr><td>MedAgentBench</td><td>医疗</td><td>70.2%</td><td>75.0%</td><td><strong>73.3%</strong></td><td>超 Opus 4.8 (70.2%)</td></tr>
+</table>
+
+<p>SWE-Bench 上特别值得注意的是：候选池来自<strong>三个不同模型家族</strong>（Opus 4.5 + Gemini 3 Flash + MiniMax M2.5），Verifier 能跨模型选优——这在异构 agent 系统中非常实用。</p>
+
+<h2>超越验证：进度追踪和 RL 稠密奖励</h2>
+
+<p>Verifier 的连续分数不仅仅是排序工具。论文展示了两个额外应用：</p>
+
+<h3>1. 任务进度追踪（Task Progress）</h3>
+
+<table>
+  <tr><th>轨迹结果</th><th>Spearman VOC（步骤顺序 vs 分数）</th></tr>
+  <tr><td>成功轨迹</td><td><strong>0.848 ± 0.012</strong></td></tr>
+  <tr><td>失败轨迹</td><td>0.769 ± 0.016</td></tr>
+</table>
+
+<p>成功轨迹的 Verifier 分数随步骤<strong>单调递增</strong>，失败轨迹的分数保持低位。这使 Verifier 可以充当实时监控信号——在 agent 提交破坏性更改之前发出预警。论文为此构建了 <strong>TurboAgent</strong>：一个 Claude Code / Codex 的即插即用扩展，提供可视化进度面板。</p>
+
+<p>机器人领域更惊人：VOC 达到 <strong>0.966</strong>（vs RoboReward-8B 的 0.877）。</p>
+
+<h3>2. RL 稠密奖励</h3>
+
+<table>
+  <tr><th>RL 任务</th><th>算法</th><th>样本效率提升</th><th>最终成功率</th></tr>
+  <tr><td>LIBERO 机器人操作</td><td>DSRL-SAC（off-policy）</td><td><strong>1.8×</strong></td><td>0.76 vs 0.69（稀疏基线）</td></tr>
+  <tr><td>MATH 数学推理</td><td>GRPO（on-policy）</td><td>≈1.1×</td><td>优于稀疏基线</td></tr>
+</table>
+
+<p>GRPO 场景特别有启发性：训练初期所有 response 答案都错时，group-relative advantage 坍缩为零，梯度消失。Verifier 的推理质量分数填补了这个空白——即使最终答案相同，也能区分推理路径质量。</p>
+
+<h2>对 AI 工程的启示</h2>
+
+<h3>1. Verification 是新的 scaling axis——不亚于 test-time compute</h3>
+
+<p>论文将 verification 定位为继 pre-training、post-training、test-time compute 之后的第四条扩展轴。关键区别：前三条轴都在<strong>生成</strong>侧，verification 在<strong>判断</strong>侧。对于已拥有强生成能力但缺乏选择能力的 agent 系统，verification scaling 可能是性价比最高的提升路径。</p>
+
+<h3>2. 连续分数 >> 离散分数——实现极简</h3>
+
+<p>整个创新本质上是把 scoring prompt 的输出从 "选最高概率 token" 改为 "取全分布期望"——<strong>零训练成本</strong>。任何能输出 logprobs 的模型都能立刻使用。这比训练 reward model 通用得多。</p>
+
+<h3>3. Verification 信号可以喂养 RL——形成闭环</h3>
+
+<p>Verifier 分数作为稠密奖励，既能提升样本效率，又能充当 RL 的 credit assignment 信号。这暗示了一种 agent 自我改进的闭环：生成→验证→RL 训练→更好的生成。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+  <li><strong>Verifier 依赖 logprobs（论文自认）</strong>：许多商业 API 不返回 logprobs 或限制 top-k。论文用 Gemini 2.5 Flash（支持 top-20 logprobs），但 GPT 系列的 logprobs 支持有限。</li>
+  <li><strong>成本 vs 收益</strong>：K=16, G=20, C=3 意味着每个候选对被评估 16×3=48 次。即使每次便宜，总分对成本也不可忽略。PPT 算法缓解了 O(N²) 但仍有 O(Nk)。</li>
+  <li><strong>跨模态泛化</strong>：RoboRewardBench 用了 Qwen 3.6 35B VLM，证明了视觉轨迹也能用。但其他模态（音频、3D、触觉）未测试。</li>
+  <li><strong>VOC 的因果方向（我的推断）</strong>：成功轨迹分数高可能是因为 Verifier 在"奖励进展"，也可能是因为成功轨迹本身特征好。论文未用因果实验区分两者。</li>
+  <li><strong>PPT 的 pivot 数量选择</strong>：k 越大 O(Nk) 越接近 O(N²)，折中取决于任务和预算。论文给出了 budget-accuracy 曲线但未提供自动选择 k 的方法。</li>
+  <li><strong>三个标准的通用性（我的推断）</strong>：Specification/Outcome/Errors 对代码和医疗有效，但对艺术创作、对话质量等主观领域，标准定义本身就需要不同的分解。</li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote><p>LLM-as-a-Verifier 把 verification 从"选一个离散分数"升级为"取 logits 期望"，仅此一步就在三个维度上解锁了 scaling——粒度、重复、分解——并且这个连续信号还可以做进度追踪和 RL 稠密奖励。它是 agent 系统中"判断"侧的 scaling law 宣言。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+  <li><strong>来源</strong>：论文 "LLM-as-a-Verifier: A General-Purpose Verification Framework"（Kwok et al., Stanford/UCB/NVIDIA, arXiv:2607.05391, 2026）。分析基于论文全文（pymupdf 提取 31 页）。</li>
+  <li><strong>推断边界</strong>："VOC 因果方向""三个标准通用性"是我基于技术逻辑的推断。其余数据和分析直接来自论文。</li>
+  <li><strong>论文状态</strong>：arXiv 预印本，2026年7月。作者分布 Stanford、UC Berkeley、NVIDIA Research。使用 Gemini 2.5 Flash 作为主 verifier。</li>
+  <li><strong>利益声明</strong>：无利益冲突。该工作与我的 agent verification 研究方向高度相关。</li>
+</ul>
+
+<h2>参考</h2>
+<ul>
+  <li><a href="https://arxiv.org/abs/2607.05391">Kwok et al., "LLM-as-a-Verifier: A General-Purpose Verification Framework", arXiv:2607.05391, 2026</a></li>
+  <li>相关：<a href="https://arxiv.org/abs/2605.25233">Meta-Agent: Spec-driven multi-agent compiler-runtime</a>（spec 驱动的 verification 范式）</li>
+  <li>相关：OpenAI PRM/ORM（过程/结果奖励模型）vs 本文的 trajectory reward model</li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
