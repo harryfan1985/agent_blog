@@ -1,4 +1,79 @@
 posts:
+- title: Helion Autotuning 全栈拆解：10 种搜索算法 + LFBO + LLM 混合 + AOT
+  date: July 23, 2026
+  slug: helion-autotuning-deep-dive
+  excerpt: 源码逆向分析 Helion autotuner：10 种搜索算法（LFBO/LLM/DE/Pattern/Random）、5 种缓存、3 级 effort、AOT 离线编译。LFBO = Random Forest 二分类代理 + pattern search，搜索效率 ~0.025%。full 模式默认 LLM-Seeded LFBO 两阶段混合。AOT heuristic dispatcher
+    是差异化壁垒。
+  content: "<h2>10 种搜索算法 + LFBO + LLM 混合 + AOT：Helion Autotuning 全栈拆解</h2>\n\n<p>Helion 的核心卖点不是\"15 行代码写 kernel\"——而是其 autotuner。源码显示，Helion 注册了 10 种搜索算法、5 种缓存策略、3 级 effort profile、AOT 离线编译系统和 LLM-guided\
+    \ 搜索。默认算法是 LFBO（Random Forest 代理 + Pattern Search），full 模式实际运行 LLM-Seeded LFBO 两阶段混合。本文从源码逆向分析 Helion autotuner 的完整技术栈。</p>\n\n<h2>全景：10 种搜索算法 + 5 种缓存</h2>\n\n<p><code>autotuner/__init__.py</code> 注册了完整的搜索算法和缓存策略：</p>\n\
+    \n<table>\n<thead><tr><th>算法</th><th>类名</th><th>策略</th><th>默认参数</th></tr></thead>\n<tbody>\n<tr><td><strong>LFBO Tree Search</strong></td><td><code>LFBOTreeSearch</code></td><td>RF 代理 + pattern search</td><td>pop=100,\
+    \ copies=5, gen=20</td></tr>\n<tr><td>LFBO Pattern Search</td><td><code>LFBOPatternSearch</code></td><td>LFBO + 单参数扰动</td><td>同上</td></tr>\n<tr><td><strong>LLM Guided</strong></td><td><code>LLMGuidedSearch</code></td><td>LLM\
+    \ 提议 config</td><td>15 configs/round, 4 rounds</td></tr>\n<tr><td><strong>LLM Seeded LFBO</strong></td><td><code>LLMSeededLFBOTreeSearch</code></td><td>两阶段混合</td><td>LLM 1 round → LFBO</td></tr>\n<tr><td>DE\
+    \ Surrogate Hybrid</td><td><code>DESurrogateHybrid</code></td><td>差分进化 + RF 代理</td><td>pop=40, gen=40</td></tr>\n<tr><td>Differential Evolution</td><td><code>DifferentialEvolutionSearch</code></td><td>纯差分进化</td><td>pop=40,\
+    \ gen=40</td></tr>\n<tr><td>Pattern Search</td><td><code>PatternSearch</code></td><td>单参数扰动（无代理）</td><td>pop=100, copies=5, gen=20</td></tr>\n<tr><td>Random Search</td><td><code>RandomSearch</code></td><td>纯随机</td><td>1000\
+    \ configs</td></tr>\n<tr><td>Finite Search</td><td><code>FiniteSearch</code></td><td>枚举有限空间</td><td>—</td></tr>\n<tr><td>Cached Finite</td><td><code>CachedFiniteSearch</code></td><td>从缓存枚举</td><td>—</td></tr>\n\
+    </tbody>\n</table>\n\n<p><strong>默认算法</strong>：<code>LFBOTreeSearch</code>（在 <code>settings.py</code> 的 <code>default_autotuner_fn()</code> 中硬编码）。但 <code>full</code> effort profile 同时配置了 LFBO + DE +\
+    \ LLM + Random 的全部参数——full 模式是<strong>混合搜索</strong>。</p>\n\n<table>\n<thead><tr><th>缓存策略</th><th>类名</th><th>特征</th></tr></thead>\n<tbody>\n<tr><td>Local</td><td><code>LocalAutotuneCache</code></td><td>本地\
+    \ <code>.best_config</code> 文件</td></tr>\n<tr><td>Strict Local</td><td><code>StrictLocalAutotuneCache</code></td><td>严格 key（含 shape hash）</td></tr>\n<tr><td>Remote</td><td><code>RemoteAutotuneCache</code></td><td>分布式缓存（多节点）</td></tr>\n\
+    <tr><td>Strict Remote</td><td><code>StrictRemoteAutotuneCache</code></td><td>严格分布式</td></tr>\n<tr><td><strong>AOT</strong></td><td><code>AOTAutotuneCache</code></td><td>离线编译 + heuristic dispatcher</td></tr>\n\
+    </tbody>\n</table>\n\n<h2>三级 Effort Profile</h2>\n\n<table>\n<thead><tr><th>级别</th><th>LFBO 参数</th><th>DE 参数</th><th>LLM 参数</th><th>Random</th><th>用途</th></tr></thead>\n<tbody>\n<tr><td><code>none</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>跳过\
+    \ autotune</td></tr>\n<tr><td><code>quick</code></td><td>pop=30, copies=2, gen=5</td><td>pop=20, gen=8</td><td>1 round, 15 configs</td><td>100</td><td>快速原型</td></tr>\n<tr><td><code>full</code></td><td>pop=100,\
+    \ copies=5, gen=20</td><td>pop=40, gen=40</td><td>4 rounds, 15 configs</td><td>1000</td><td>生产部署</td></tr>\n</tbody>\n</table>\n\n<p><strong>quick 模式的关键设计</strong>：<code>initial_population_strategy=\"\
+    from_best_available\"</code> + <code>rebenchmark_threshold=0.9</code>（&lt;1.0 禁用 rebenchmark）。quick 模式优先从缓存加载历史最佳 config，不做二次验证——10× 加速但牺牲精度。</p>\n\n<h2>核心算法 1：LFBO（Learned Function By Optimization）</h2>\n\
+    \n<p>LFBO 是 Helion 的默认算法，源码在 <code>surrogate_pattern_search.py</code>（40K）。核心是 Random Forest 二分类代理 + Pattern Search 局部精炼。</p>\n\n<h3>算法流程</h3>\n\n<ol>\n<li>生成初始种群（100 个 random configs）</li>\n<li>Benchmark\
+    \ 初始种群 → 获得性能数据</li>\n<li>训练 Random Forest 分类器：\n  <ul>\n  <li>特征：config 编码（block_sizes, num_warps, num_stages, indexing, ...）</li>\n  <li>标签：性能 &lt; quantile(0.15) → \"good\"(1)，否则 \"bad\"(0)</li>\n\
+    \  <li>样本权重：好 config 权重 ∝ (quantile - perf)，坏 config 权重=1</li>\n  </ul>\n</li>\n<li>对每个 generation（最多 20 代）：\n  <ul>\n  <li>从 top-5（copies=5）当前最佳 config 生成邻居</li>\n  <li>用代理模型预测邻居的 \"good\" 概率</li>\n\
+    \  <li>只 benchmark 概率最高的邻居</li>\n  <li>用新结果<strong>全量重训</strong>代理模型（非增量）</li>\n  </ul>\n</li>\n<li>返回最佳 config</li>\n</ol>\n\n<h3>关键设计决策</h3>\n\n<p><strong>1. 分类而非回归</strong>：代理模型不预测\"这个 config 跑多快\"\
+    ，而是预测\"这个 config 是否比 85% 的其他 config 快\"——二分类。原因：在搜索空间中，绝大多数 config 是差的，二分类比回归更容易区分好坏。加权分类进一步强调接近最优的 config。</p>\n\n<p><strong>2. 全量重训</strong>：每代用所有观测数据重新训练 Random Forest（<code>RandomForestClassifier(criterion=\"\
+    log_loss\", n_estimators=100, n_jobs=-1)</code>），而非增量更新。100 棵树并行训练。全量重训避免偏差累积——代价是计算开销，但 RF 训练相对于 kernel 编译是微不足道的。</p>\n\n<p><strong>3. 代理模型特征空间</strong>：<code>encode_config()</code> 将 config 展平为浮点向量。block_sizes\
+    \ 编码为 <code>[64.0, 64.0, 32.0]</code>，indexing 编码为 one-hot <code>[1, 0]</code>。<strong>当前特征空间不包含任何编译器诊断信息</strong>——没有寄存器使用量、shared memory 占用、PTX 指令数。这是最大的机会点。</p>\n\n<p><strong>4. Pattern Search 邻域</strong>：LFBO\
+    \ 的搜索不是全局的，而是从 top-5 config 出发做单参数扰动（改一个维度 ±1 step）。代理模型过滤邻居——只 benchmark 预测概率最高的。这是局部搜索 + 代理过滤的组合。</p>\n\n<h2>核心算法 2：LLM-Guided Search</h2>\n\n<p>源码在 <code>llm_search.py</code>（28K）+ <code>llm/</code>\
+    \ 子目录（prompting 15K + feedback 7K + transport 29K + workload 15K + configs 6K）。</p>\n\n<h3>算法流程</h3>\n\n<ol>\n<li><strong>Round 0</strong>：构建 prompt（kernel 源码 + tensor 形状 + GPU 硬件 + config space）→ 异步发起\
+    \ LLM 请求 → 同时 benchmark default + 10 个 random seed</li>\n<li>LLM 返回 15 个 config → benchmark 新 config</li>\n<li><strong>Round 1-N</strong>（最多 4 轮）：选 top configs → rebenchmark 稳定化 → 构建 refinement prompt\
+    \ → LLM 返回 15 个新 config → benchmark</li>\n<li><strong>Early stop</strong>：连续 2 轮无改善 → 停止</li>\n<li>返回 rebenchmarked 最佳 config</li>\n</ol>\n\n<h3>关键设计决策</h3>\n\n<p><strong>1. 异步 Round 0</strong>：LLM\
+    \ 请求与 seed benchmark 并行——不浪费时间等待 LLM 响应。Round 0 的 LLM 请求和 10 个 random config 的 benchmark 同时进行。</p>\n\n<p><strong>2. Rebenchmark 稳定化</strong>：每轮先重新 benchmark top configs，再发给 LLM。LLM 看到的是稳定数字而非一次性噪声。<code>rebenchmark_threshold=1.5</code>（full\
+    \ 模式）——只有性能差异 > 1.5× 的 config 才重新 benchmark。</p>\n\n<p><strong>3. 上下文窗口管理</strong>：<code>_MAX_CONTEXT_ROUNDS = 3</code>——只保留最近 3 轮对话历史，避免超出 LLM context limit。</p>\n\n<p><strong>4. Default LLM model:\
+    \ <code>gpt-5-2</code></strong>（<code>DEFAULT_LLM_MODEL = \"gpt-5-2\"</code>）。Transport 层（29K）支持 OpenAI Responses API、Anthropic Messages API、兼容代理——通过 HTTP 直连，无额外依赖。</p>\n\n<p><strong>5. LLM prompt 信息量</strong>（从\
+    \ <code>workload.py</code> 分析）：</p>\n\n<table>\n<thead><tr><th>信息</th><th>是否包含</th></tr></thead>\n<tbody>\n<tr><td>Kernel 源码（<code>inspect.getsource()</code>）</td><td>✅</td></tr>\n<tr><td>Input tensor\
+    \ shapes + dtypes</td><td>✅</td></tr>\n<tr><td>GPU 硬件（device name + SM 数 + total memory + max threads/SM）</td><td>✅</td></tr>\n<tr><td>Config space（所有可调参数 + 范围）</td><td>✅</td></tr>\n<tr><td>Benchmark\
+    \ 结果（top configs + 性能 + 失败数）</td><td>✅</td></tr>\n<tr><td><strong>编译器诊断</strong>（寄存器/shared memory/失败原因）</td><td>❌</td></tr>\n<tr><td><strong>Kernel 结构分析</strong>（reduction 类型、co-residency、matmul fact）</td><td>❌</td></tr>\n\
+    </tbody>\n</table>\n\n<h2>核心算法 3：LLM-Seeded LFBO（两阶段混合）</h2>\n\n<p><strong>这是 <code>full</code> effort 的实际运行路径</strong>——<code>LLMSeededLFBOTreeSearch</code>（源码 <code>llm_seeded_lfbo.py</code>）。</p>\n\
+    \n<table>\n<thead><tr><th>阶段</th><th>算法</th><th>作用</th></tr></thead>\n<tbody>\n<tr><td>Stage 1</td><td>LLMGuidedSearch (1 round)</td><td>LLM 提议 15 个 config → benchmark → 取最佳作为种子</td></tr>\n<tr><td>Stage\
+    \ 2</td><td>LFBOTreeSearch (20 gen)</td><td>从 LLM 种子 + 缓存 config 启动 → RF 代理 + pattern search 精炼</td></tr>\n</tbody>\n</table>\n\n<p><strong>设计逻辑</strong>：LLM 擅长全局探索（识别有希望的 config 族），LFBO 擅长局部精炼（微调参数）。两阶段混合利用各自优势。</p>\n\
+    \n<p><strong>关键细节</strong>：Stage 2 强制 <code>FROM_BEST_AVAILABLE</code>，注入 LLM 最佳 config——不是冷启动，而是从 LLM 种子开始局部搜索。如果 Stage 2 算法支持 best-available seeding（PatternSearch 和 DifferentialEvolutionSearch 都支持），则注入。</p>\n\
+    \n<h2>核心算法 4：DE-Surrogate Hybrid</h2>\n\n<p>差分进化 + Random Forest <strong>回归</strong>代理（源码 <code>de_surrogate_hybrid.py</code> 13K）。与 LFBO 的关键差异：</p>\n\n<table>\n<thead><tr><th>维度</th><th>LFBO</th><th>DE-Surrogate</th></tr></thead>\n\
+    <tbody>\n<tr><td>搜索策略</td><td>Pattern Search（单参数扰动）</td><td>差分进化（多参数交叉变异）</td></tr>\n<tr><td>代理模型</td><td>RandomForestClassifier（二分类）</td><td>RandomForestRegressor（回归）</td></tr>\n<tr><td>代理用途</td><td>过滤邻居（good/bad）</td><td>从\
+    \ 3× 候选中选最优</td></tr>\n<tr><td>代理激活时机</td><td>立即</td><td>100 次评估后</td></tr>\n<tr><td>Refit 频率</td><td>每代</td><td>每 5 代</td></tr>\n<tr><td>变异策略</td><td>±1 step 扰动</td><td>mutant = a + F*(b-c)</td></tr>\n\
+    </tbody>\n</table>\n\n<p>DE 变异（<code>differential_mutation</code>）：从种群随机选 3 个个体 a, b, c → <code>mutant = a + F * (b - c)</code>，crossover_rate=0.8 控制每个维度是否接受变异。生成 3× 候选，用代理模型预测性能，只 benchmark 预测最优的。</p>\n\
+    \n<h2>AOT Autotuning：离线编译 + Heuristic Dispatcher</h2>\n\n<p><strong>这是 Helion 最独特的功能</strong>——将 autotune 结果编译为独立 <code>.py</code> 文件，运行时零 Helion 依赖。</p>\n\n<h3>流程</h3>\n\n<ol>\n<li>对多个 shape 运行 full\
+    \ autotune</li>\n<li>收集 (shape, config, timing) 数据</li>\n<li>训练 heuristic 模型（决策树或最近邻）</li>\n<li>生成独立 Python 文件：\n  <ul>\n  <li>Triton kernel 代码（内联）</li>\n  <li>heuristic dispatcher（shape → config）</li>\n\
+    \  <li>零 Helion/Triton 依赖（运行时只需 torch + triton）</li>\n  </ul>\n</li>\n</ol>\n\n<h3>Heuristic Generator 关键设计</h3>\n\n<table>\n<thead><tr><th>参数</th><th>值</th><th>说明</th></tr></thead>\n<tbody>\n<tr><td><code>goal_type</code></td><td><code>max_slowdown</code></td><td>允许的最大性能损失</td></tr>\n\
+    <tr><td><code>threshold</code></td><td>1.1</td><td>10% 性能损失容忍</td></tr>\n<tr><td><code>min_configs</code></td><td>1</td><td>最少 1 个 config（全 shape 共享）</td></tr>\n<tr><td><code>max_configs</code></td><td>10</td><td>最多\
+    \ 10 个 config</td></tr>\n<tr><td><code>backend</code></td><td><code>decision_tree</code> / <code>nearest_neighbor</code></td><td>两种后端</td></tr>\n<tr><td><code>feature_selection</code></td><td>True</td><td>自动剪枝冗余\
+    \ shape 特征</td></tr>\n</tbody>\n</table>\n\n<p>输出人类可读的 Python 代码——可审查、可手动调整。其他 DSL（Triton/TileLang/CuTe）没有 AOT 系统，这是 Helion 的差异化壁垒。</p>\n\n<h2>缓存系统：Best-of-K + 跨运行复用</h2>\n\n<p><strong>LooseAutotuneCacheKey</strong>：key\
+    \ 包含 kernel name + shape hash + device info。<code>best_of_k</code> 用不同随机种子跑 K 次 autotune，取最佳。K=1 时 hash 与历史格式字节一致（向后兼容）。</p>\n\n<p><strong>FROM_BEST_AVAILABLE 策略</strong>：从缓存目录加载最多 20 个历史最佳 config，按\
+    \ shape 相似度排序，用缓存 config 作为初始种群——quick 模式的默认策略，10× 加速。</p>\n\n<h2>搜索空间规模</h2>\n\n<p>一个 3D matmul kernel 的搜索空间约为：</p>\n\n<table>\n<thead><tr><th>维度</th><th>候选数</th></tr></thead>\n<tbody>\n<tr><td>block_sizes\
+    \ (3D, each power-of-2)</td><td>5×5×5 = 125</td></tr>\n<tr><td>loop_orders (3D permutation)</td><td>6</td></tr>\n<tr><td>num_warps</td><td>5</td></tr>\n<tr><td>num_stages</td><td>5</td></tr>\n<tr><td>indexing</td><td>3</td></tr>\n\
+    <tr><td>pid_type</td><td>3</td></tr>\n<tr><td>l2_groupings</td><td>4</td></tr>\n<tr><td>其他 toggle × per-dim</td><td>~50</td></tr>\n<tr><td><strong>总组合</strong></td><td><strong>~2,000,000+</strong></td></tr>\n\
+    </tbody>\n</table>\n\n<p>LFBO 代理模型的作用就是在这个空间中用 ~500-1000 次评估找到 top 配置——搜索效率约 0.025%-0.05%。</p>\n\n<h2>七个关键洞察</h2>\n\n<h3>1. LFBO 是核心创新</h3>\n\n<p>Random Forest 二分类代理 + pattern search 局部精炼。不预测性能值，而是预测\"\
+    是否比 15% 分位数好\"——分类比回归更容易训练。全量重训避免偏差累积。搜索效率 ~0.025%。</p>\n\n<h3>2. LLM 不是噱头——是真实生产路径</h3>\n\n<p><code>full</code> effort 的默认路径是 <code>LLMSeededLFBOTreeSearch</code>（LLM 种子→LFBO 精炼）。LLM 做 global exploration（识别\
+    \ config 族），LFBO 做 local refinement（微调参数）。<code>transport.py</code> 29K 支持 OpenAI/Anthropic/代理三种 provider，默认 gpt-5-2。</p>\n\n<h3>3. AOT 是差异化壁垒</h3>\n\n<p>其他 DSL 没有 AOT 系统。Helion 的 <code>heuristic_generator.py</code>\
+    \ 训练决策树/最近邻模型，生成独立 Python 文件——运行时零依赖。这是生产部署的关键能力，也是从研究到生产的桥梁。</p>\n\n<h3>4. Best-of-K + FROM_BEST_AVAILABLE 是加速关键</h3>\n\n<p>quick 模式从缓存加载历史最佳 config 作为种子，<code>rebenchmark_threshold=0.9</code> 禁用二次验证——10×\
+    \ 加速。这不是算法创新而是工程优化，但效果显著。</p>\n\n<h3>5. 代理模型特征空间是最大机会点</h3>\n\n<p>当前 LFBO 的 <code>train_x</code> 只包含 config 编码（block_sizes, num_warps 等）。加入编译器诊断（寄存器、shared memory、PTX 指令数）可以显著提升代理模型预测精度——这是前文分析的 #19。</p>\n\
+    \n<h3>6. 搜索空间不感知硬件</h3>\n\n<p><code>ConfigSpec</code> 的候选值是预设的 power-of-2。<code>_hardware.py</code> 只有 4 个字段。SM 数、寄存器数、shared memory 大小都在 <code>_compat.py</code> 但不被 <code>ConfigSpec</code> 用于推导搜索范围——搜索空间是硬件无关的静态枚举。</p>\n\
+    \n<h3>7. 编译失败处理粗糙</h3>\n\n<p><code>PopulationMember.status</code> 只有 6 值枚举（ok/error/timeout/peer_compilation_fail/filtered/unknown）。<code>logger.py</code> 识别了 15 种具体错误（shared_memory_oom、register_pressure、tensor_numel_exceeded\
+    \ 等）但只用于日志分类。autotuner 把所有失败等同处理——<code>perf=inf</code>，代理模型把失败和慢等同。</p>\n\n<h2>局限与诚实标注</h2>\n\n<ul>\n<li><strong>性能数据来源（我的推断）</strong>：搜索效率 ~0.025% 基于搜索空间 2M+ 和评估 500-1000 次的估算，实际评估次数取决于 kernel 复杂度和\
+    \ effort 级别。</li>\n<li><strong>默认算法推断（我的推断）</strong>：代码中 <code>default_autotuner_fn()</code> 返回 <code>LFBOTreeSearch</code>，但 full profile 配置了所有算法参数。实际运行路径可能是 LLMSeededLFBOTreeSearch——取决于环境变量和 Settings\
+    \ 配置。</li>\n<li><strong>LLM transport 29K（源码特征）</strong>：支持三种 provider 但未验证实际可用性。gpt-5-2 是默认模型但可能需要用户配置 API key。</li>\n<li><strong>AOT heuristic 精度未验证（我的推断）</strong>：<code>threshold=1.1</code>（10% 性能损失）是默认值，实际精度取决于训练数据覆盖的\
+    \ shape 多样性。</li>\n<li><strong>DE-Surrogate 的 <code>surrogate_threshold=100</code>（源码特征）</strong>：前 100 次评估不用代理——对于小搜索空间可能永远不激活代理。</li>\n</ul>\n\n<h2>一句话</h2>\n\n<blockquote><p>Helion autotuner 的核心是\
+    \ LFBO（Random Forest 二分类代理 + pattern search）+ LLM 全局探索 + AOT 离线部署——10 种搜索算法 + 5 种缓存策略 + 3 级 effort 在 2M+ 搜索空间中用 ~500-1000 次评估找到 top 配置，搜索效率 ~0.025%。</p></blockquote>\n\n<h2>技术声明</h2>\n\n<ul>\n<li><strong>来源确认</strong>：本文基于\
+    \ Helion GitHub 源码逆向分析，通过 GitHub API / raw.githubusercontent.com 读取以下文件：<code>autotuner/__init__.py</code>（算法注册表）、<code>surrogate_pattern_search.py</code>（40K，LFBO）、<code>llm_search.py</code>（28K，LLM\
+    \ 搜索）、<code>llm_seeded_lfbo.py</code>（混合搜索）、<code>llm/prompting.py</code>（15K，prompt 构建）、<code>llm/feedback.py</code>（7K，结果反馈）、<code>llm/workload.py</code>（15K，kernel 分析）、<code>de_surrogate_hybrid.py</code>（13K，DE+代理）、<code>differential_evolution.py</code>（DE）、<code>pattern_search.py</code>（pattern\
+    \ search）、<code>effort_profile.py</code>（effort 级别）、<code>aot_compile.py</code>（AOT 编译）、<code>heuristic_generator.py</code>（heuristic 训练）、<code>base_search.py</code>（73K，基类）、<code>benchmark_provider.py</code>（53K，benchmark）、<code>base_cache.py</code>（缓存基类）、<code>local_cache.py</code>（本地缓存）、<code>runtime/settings.py</code>（设置）。所有函数名、参数名和默认值直接引自源码。</li>\n\
+    <li><strong>推断边界</strong>：搜索效率估算、默认运行路径推断、AOT 精度判断为基于源码分析的推断。\"最大机会点\"判断基于前文 Gap 分析的延续。七个洞察为基于源码的主观判断。</li>\n<li><strong>利益声明</strong>：无利益冲突。</li>\n</ul>\n\n<h2>参考</h2>\n\n<ul>\n<li>Helion GitHub: <a\
+    \ href=\"https://github.com/pytorch/helion\">github.com/pytorch/helion</a></li>\n<li>前文 1: <a href=\"https://harryfan1985.github.io/agent_blog/posts/helion-triton-gpu-kernel-dsl-landscape.html\">Helion\
+    \ DSL 与 Triton 架构关系及 GPU Kernel DSL 全景</a></li>\n<li>前文 2: <a href=\"https://harryfan1985.github.io/agent_blog/posts/cann-triton-ascend-architecture.html\">CANN 与 Triton 架构关系</a></li>\n<li>前文 3: <a\
+    \ href=\"https://harryfan1985.github.io/agent_blog/posts/helion-triton-interface-gaps-opportunities.html\">Helion ↔ Triton 接口处的 6 个 Gap 与 20 个机会点</a></li>\n</ul>"
 - title: Helion ↔ Triton 接口处的 6 个 Gap 与 20 个机会点（源码逆向分析）
   date: July 23, 2026
   slug: helion-triton-interface-gaps-opportunities
