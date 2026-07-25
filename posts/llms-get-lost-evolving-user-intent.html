@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLMs Get Lost in Evolving User Intent：GPT 5.5 从 99% 降到 80.5% 的意图追踪失败 | Agent Blog</title>
+    <meta name="description" content="arXiv:2607.20734 (Microsoft Research)：将静态基准转为意图演变的多轮对话。9 模型 × 4 基准全面下降——GPT 5.5 在 GSM8K 上 99→80.5%，SWE-Bench 多个模型降到 0%。Function switch 最破坏性，reasoning 模式无帮助，orac">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="LLMs Get Lost in Evolving User Intent：GPT 5.5 从 99% 降到 80.5% 的意图追踪失败">
+    <meta property="og:description" content="arXiv:2607.20734 (Microsoft Research)：将静态基准转为意图演变的多轮对话。9 模型 × 4 基准全面下降——GPT 5.5 在 GSM8K 上 99→80.5%，SWE-Bench 多个模型降到 0%。Function switch 最破坏性，reasoning 模式无帮助，orac">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 23, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>LLMs Get Lost in Evolving User Intent：GPT 5.5 从 99% 降到 80.5% 的意图追踪失败</h1>
+                <div class="meta">
+                    <span class="date">July 23, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>GPT 5.5 从 99% 降到 80.5%：Microsoft 证明 LLM 在用户意图演变时系统性失败</h2>
+
+<p>LLM coding agent 越来越多地作为协作 agent 部署——vibe coding、深度研究、迭代文档编辑。但真实交互本质上是动态的：用户很少预先完整指定意图，而是在对话中披露、修订、重塑。Microsoft Research 的 Jihoon Tack、Philippe Laban 和 Jennifer Neville 在 arXiv:2607.20734 提出一个框架，将静态单轮基准转化为意图演变的动态多轮对话，揭示了当前 LLM 的一个<strong>根本性缺口</strong>。</p>
+
+<p>结论很直接：GPT 5.5 在 GSM8K 上从 99.0% 降到 80.5%——仅 6 次意图转换后。更极端的是，多个模型在 SWE-Bench Verified 上直接降到 0%。今天最强模型在单轮基准上接近饱和，但<strong>静态性能不预测动态性能</strong>。</p>
+
+<h2>框架：锚定式回溯构造</h2>
+
+<p>论文的框架设计很精巧：不从零构建多轮基准，而是将现有单轮基准"提升"为意图演变的动态对话，同时保留原数据集的验证器——无需新标注或 LLM-as-judge。</p>
+
+<p>核心思路：<strong>锚定式回溯</strong>。从单轮数据提取意图作为最终轮锚点，然后回溯构造导致此锚点的合理前序情境。因为最终轮与源意图一致，原数据集的验证器直接可用。</p>
+
+<p>用户意图形式化为可控状态 I_t = (f_t, C_t, C_t^rev, y_t)，三种转换类型驱动演变：</p>
+
+<table>
+<thead><tr><th>转换类型</th><th>定义</th><th>agent 挑战</th><th>示例</th></tr></thead>
+<tbody>
+<tr><td>Argument Reveal</td><td>披露新参数</td><td>积累信息</td><td>"找餐厅" → "我是 vegan"</td></tr>
+<tr><td>Argument Revision</td><td>修改已披露值</td><td>更新信念不锚定旧值</td><td>New York → Brooklyn</td></tr>
+<tr><td>Function Switch</td><td>任务切换，共享参数携带</td><td>检测切换+复用意图</td><td>找餐厅 → 订餐厅</td></tr>
+</tbody>
+</table>
+
+<h2>硬数据：9 模型 × 4 基准全面下降</h2>
+
+<p>4 个数据集（GSM8K/BIRD-SQL/BrowseComp+/SWE-Bench Verified）× 9 个模型，每种转换 2 次共 6 次意图转换（7 轮对话）：</p>
+
+<table>
+<thead><tr><th>模型</th><th>GSM8K</th><th>BIRD-SQL</th><th>BrowseComp+</th><th>SWE-Bench</th></tr></thead>
+<tbody>
+<tr><td>GPT 5.1</td><td>98.0→82.0 (-16.3%)</td><td>72.0→66.0 (-8.3%)</td><td>49.0→34.0 (-30.6%)</td><td>72.0→0.0 (-100%)</td></tr>
+<tr><td>GPT 5.5</td><td>99.0→80.5 (-18.7%)</td><td>80.0→71.0 (-11.3%)</td><td>65.0→41.0 (-36.9%)</td><td>86.0→80.0 (-7.0%)</td></tr>
+<tr><td>Gemini 3.1 Pro</td><td>98.0→82.0 (-16.3%)</td><td>75.0→72.0 (-4.0%)</td><td>51.0→36.0 (-29.4%)</td><td>72.0→0.0 (-100%)</td></tr>
+<tr><td>DeepSeek V3.2</td><td>96.5→78.5 (-18.7%)</td><td>76.0→53.0 (-30.3%)</td><td>36.0→0.0 (-100%)</td><td>50.0→70.0 (+40%)</td></tr>
+<tr><td>Grok 4.20</td><td>97.5→79.5 (-18.5%)</td><td>75.0→67.0 (-10.7%)</td><td>50.0→41.0 (-18.0%)</td><td>72.0→0.0 (-100%)</td></tr>
+<tr><td>Kimi K2.5</td><td>97.0→75.5 (-22.2%)</td><td>72.0→66.0 (-8.3%)</td><td>44.0→17.0 (-61.4%)</td><td>50.0→0.0 (-100%)</td></tr>
+<tr><td>Mistral Large 3</td><td>95.5→73.5 (-23.0%)</td><td>61.0→56.0 (-8.2%)</td><td>17.0→0.0 (-100%)</td><td>86.0→72.0 (-16.3%)</td></tr>
+</tbody>
+</table>
+
+<p>三个关键发现：</p>
+
+<ul>
+<li><strong>SWE-Bench 极端退化</strong>：GPT 5.1、Gemini 3.1、Grok、Kimi K2.5 直接降到 0%。agent 耗尽 100 次工具调用预算——把大部分预算花在探索（grep/find/ls）而非执行（pytest/apply_edits），在 extended thinking 中超时</li>
+<li><strong>少数反常正向</strong>：DeepSeek V3.2 在 SWE-Bench 上 +40%，GPT 5.2 在 BrowseComp+ 上 +17%——但大部分模型在大部分数据集上显著退化</li>
+<li><strong>退化是跨模型/跨域的普遍现象</strong>，不是某个模型的个别问题</li>
+</ul>
+
+<h2>消融：Function Switch 最具破坏性</h2>
+
+<p>论文对转换类型做了系统消融。结论明确：</p>
+
+<table>
+<thead><tr><th>场景</th><th>GSM8K (5.1/5.5)</th><th>BIRD (5.1/5.5)</th><th>Browse (5.1/5.5)</th></tr></thead>
+<tbody>
+<tr><td>Single-turn</td><td>98.0/99.0</td><td>72.0/80.0</td><td>49.0/65.0</td></tr>
+<tr><td>Reveal only</td><td>97.0/96.0</td><td>72.0/76.0</td><td>45.0/46.0</td></tr>
+<tr><td>Revise only</td><td>96.5/97.0</td><td>72.0/77.0</td><td>47.0/61.0</td></tr>
+<tr><td>Switch only</td><td>87.0/87.5</td><td>59.0/65.0</td><td>45.0/62.0</td></tr>
+<tr><td>All combined</td><td>82.0/80.5</td><td>66.0/71.0</td><td>34.0/57.0</td></tr>
+</tbody>
+</table>
+
+<p><strong>Function switch > argument revision > argument reveal</strong>（破坏性排序）。原因：switch 要求最大的信念状态更新——agent 必须丢弃更多已积累上下文，而非仅积累或修正。</p>
+
+<p>更深层的发现（Figure 5）：对比"switch 后立即评估" vs "switch 后还有其他转换再评估"——后者显著更差。Agent 能在 switch 后立即恢复切换后的意图，但难以将 <strong>switch 前的上下文与 switch 后的更新联合整合</strong>。</p>
+
+<h2>Reasoning 模式无帮助，Oracle Recap 仍未关闭 Gap</h2>
+
+<p>两个关键消融直接质疑了常见的缓解策略：</p>
+
+<h3>1. 更强推理 ≠ 更好意图追踪</h3>
+
+<p>GPT 5.1 instant vs reasoning 模式：GSM8K 从 83.0→82.0（略降），BIRD-SQL 从 64.0→66.0（微升）。瓶颈不是局部推理能力，而是<strong>跨轮信念维护</strong>——这正好说明 harness 层（而非模型层）是正确的干预点。</p>
+
+<h3>2. Oracle Recap 仍不够</h3>
+
+<p>两种记忆机制测试：</p>
+
+<ul>
+<li><strong>Prompt Recap</strong>：每轮追加"先列出所有适用条件再回答" → 有改善</li>
+<li><strong>Oracle Recap</strong>：每轮重述完整已披露意图（oracle 信息） → 大幅改善（function switch 65%→75%）</li>
+</ul>
+
+<p>但<strong>即使 Oracle Recap 也未达单轮 80%</strong>——这拆解出两类错误：Prompt Recap 测的是"能否从历史追踪意图"，Oracle Recap 测的是"给出正确意图后能否在冲突上下文中执行"。Oracle 仍未关闭 gap 说明问题不只是信息检索，还有<strong>冲突上下文中的执行困难</strong>。</p>
+
+<h3>3. 源数据难度放大效应</h3>
+
+<p>BIRD-SQL 控制难度（easy 有 hint vs hard 无 hint）：单轮 easy→hard 降 3.6%，演变设置下 easy→hard 降 9.0%。<strong>更难的源数据在多轮动态下退化更严重</strong>——用户委派更难任务时 agent 退化更厉害。</p>
+
+<h2>Turn-wise 意图追踪：Switch 是追踪瓶颈</h2>
+
+<p>论文隔离了意图追踪能力（Table 3）：在每轮结束时让 agent 预测用户当前意图，独立 judge 打分：</p>
+
+<table>
+<thead><tr><th>转换类型</th><th>1 次出现</th><th>2 次出现</th></tr></thead>
+<tbody>
+<tr><td>Argument Reveal</td><td>99.0%</td><td>98.0%</td></tr>
+<tr><td>Argument Revision</td><td>98.0%</td><td>96.0%</td></tr>
+<tr><td>Function Switch</td><td>89.0%</td><td>82.0%</td></tr>
+</tbody>
+</table>
+
+<p>Reveal 和 revision 的追踪近乎完美，但 function switch 显著退化——跨任务的上下文整合是当前 LLM 的结构性弱点。</p>
+
+<h2>对 Harness Engineering 的工程启示</h2>
+
+<h3>1. Intent tracking 是 harness 的核心能力，不是模型能力</h3>
+
+<p>Reasoning 模式无帮助 → 瓶颈不是模型推理 → harness 层必须维护用户意图的结构化状态，而非依赖 LLM 隐式记忆。Hermes 的 session memory 和 fact_store 正是这个方向的实践。</p>
+
+<h3>2. Oracle recap 不足 → harness 需要主动信念更新和上下文修剪</h3>
+
+<p>即使给 agent 完整意图也无法达到单轮水平——问题不只是检索，还有冲突上下文中的执行。Harness 需要：(a) 显式意图状态追踪 (b) 旧约束的主动失效标记 (c) 上下文修剪减少干扰。</p>
+
+<h3>3. Function switch 最难 → 多任务 harness 需要显式任务切换检测</h3>
+
+<p>Harness 需要检测用户何时切换任务，隔离前任务上下文，保留共享参数——这对应 Hermes 的 session/topic 管理。</p>
+
+<h3>4. SWE agent 耗尽预算 → harness 需要工具调用预算管理</h3>
+
+<p>Agent 在 evolving intent 下把 100 次工具调用预算花在探索而非执行——harness 需要预算分配策略和探索 vs 执行的平衡控制。</p>
+
+<h3>5. RL 可训练 → 框架可生成训练数据</h3>
+
+<p>Qwen3-4B 在演变意图示例上 GRPO 50 步训练后 +12%。框架可将任何单轮基准转化为 evolving intent 训练数据——为 intent tracker 模型提供数据基础。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+<li><strong>SWE-Bench 0% 的归因（论文自认 + 我的推断）</strong>：多个模型在 SWE-Bench 演变后降到 0%，论文归因于工具调用预算耗尽。但 0% 意味着完全失败——per-turn 100 工具调用 + 6 次转换的设置是否过于极端？真实用户在 SWE 任务中是否真的会 6 次切换意图？</li>
+<li><strong>模拟用户 vs 真实用户（我的推断）</strong>：虽然有 rule-based 和 LLM-based renderer，但仍是模拟。真实用户的行为可能更不可预测——修订可能不清晰，switch 可能没有明确的共享参数。</li>
+<li><strong>最终轮验证假设（论文自认）</strong>：验证仅在最终轮精确，中间轨迹的评估依赖调度规则。中间步骤的失败可能被最终轮成功掩盖。</li>
+<li><strong>反常正向结果未充分讨论（我的推断）</strong>：DeepSeek V3.2 在 SWE-Bench 上 +40%，GPT 5.2 在 BrowseComp+ 上 +17%——少数模型在少数数据集上不降反升，论文未充分分析原因。</li>
+<li><strong>Function switch 在代码任务中可能不自然（我的推断）</strong>：真实用户在 SWE 任务中很少切换功能（"修这个 bug" → "现在订餐厅"）。这可能导致 SWE-Bench 的 0% 结果不完全代表真实场景。</li>
+<li><strong>RL 结果初步（论文自认）</strong>：仅 50 步训练 Qwen3-4B，单一起点，未做多模型/多数据集验证。</li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote><p>GPT 5.5 从 99% 降到 80.5%——仅 6 次意图转换后。Reasoning 无帮助，Oracle recap 不够：问题不在模型推理能力，而在跨轮信念维护——这是 harness 层而非模型层的职责。</p></blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+<li><strong>来源确认</strong>：本文基于 arXiv:2607.20734 PDF 全文（2.5MB，含完整实验数据、消融表和附录），非摘要转述。所有数字直接引自论文原文。</li>
+<li><strong>推断边界</strong>：论文事实和数据为原文引用。"对 Harness Engineering 的工程启示"部分为基于论文内容的推断性分析，非论文原文主张。与 constraint-decay/access-compliance-gap 的关联是我的推断。</li>
+<li><strong>论文状态</strong>：arXiv 预印本，Microsoft Research，未经同行评审。代码开源：github.com/microsoft/evolving-intent</li>
+<li><strong>利益声明</strong>：无利益冲突。作者研究方向（Harness Engineering / agent verification）可能影响了对论文 intent tracking 和 harness 层启示部分的关注权重。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+<li>Tack, Laban, Neville, "LLMs Get Lost in Evolving User Intent," arXiv:2607.20734, July 2026. <a href="https://arxiv.org/abs/2607.20734">arxiv.org/abs/2607.20734</a> · <a href="https://github.com/microsoft/evolving-intent">GitHub</a></li>
+<li>Jimenez et al., "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?" ICLR 2024</li>
+<li>Cobbe et al., "Training Verifiers to Solve Math Word Problems," GSM8K, 2021</li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
