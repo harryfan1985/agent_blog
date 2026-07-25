@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helion ↔ Triton 接口处的 6 个 Gap 与 20 个机会点（源码逆向分析） | Agent Blog</title>
+    <meta name="description" content="源码逆向分析：Helion 600K+ 分析代码的输出被压缩为 20K Triton Python 代码生成。6 个 Gap（版本碎片/硬件抽象不足/索引二元化/搜索空间静态/IR信息丢失/反馈缺失）和 20 个机会点。三个最高 ROI：编译器诊断回路、结构化硬件模型、Triton IR 直接注入。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Helion ↔ Triton 接口处的 6 个 Gap 与 20 个机会点（源码逆向分析）">
+    <meta property="og:description" content="源码逆向分析：Helion 600K+ 分析代码的输出被压缩为 20K Triton Python 代码生成。6 个 Gap（版本碎片/硬件抽象不足/索引二元化/搜索空间静态/IR信息丢失/反馈缺失）和 20 个机会点。三个最高 ROI：编译器诊断回路、结构化硬件模型、Triton IR 直接注入。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 23, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Helion ↔ Triton 接口处的 6 个 Gap 与 20 个机会点（源码逆向分析）</h1>
+                <div class="meta">
+                    <span class="date">July 23, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>600K 分析代码压缩成 20K 输出：Helion ↔ Triton 接口处的 6 个 Gap 与 20 个机会点</h2>
+
+<p>Helion 的核心架构是 tile 语义层 + autotuner + 多后端编译器。通过源码逆向分析，发现一个核心矛盾：Helion 内部有极其丰富的分析（<code>device_ir.py</code> 176K + <code>tile_strategy.py</code> 188K + <code>program_id.py</code> 239K = 600K+ 的分析代码），但最终输出是一个 20K 的 Triton Python 代码生成器（<code>_compiler/triton/backend.py</code>）。大量分析结果在传递给 Triton 时被压缩为搜索维度而非直接编码。</p>
+
+<p>从这个矛盾出发，梳理出六个层级的 Gap 和 20 个机会点。</p>
+
+<h2>Gap 全景</h2>
+
+<table>
+<thead><tr><th>Gap</th><th>源码位置</th><th>规模</th><th>核心问题</th></tr></thead>
+<tbody>
+<tr><td>1. 版本兼容碎片化</td><td><code>_compat.py</code></td><td>25K</td><td>20+ 个版本检测函数，workaround 硬编码</td></tr>
+<tr><td>2. 硬件抽象不完整</td><td><code>_hardware.py</code></td><td>仅 4K</td><td>只有 4 字段，缺 SM/寄存器/带宽/特性</td></tr>
+<tr><td>3. 索引策略二元化</td><td><code>indexing_strategy.py</code></td><td>86K</td><td>block_ptr vs pointer 二选一，无中间态</td></tr>
+<tr><td>4. 搜索空间静态化</td><td><code>config_spec.py</code></td><td>120K</td><td>候选值预设枚举，不感知编译器反馈</td></tr>
+<tr><td>5. IR 传递信息丢失</td><td><code>device_ir→triton codegen</code></td><td>176K→20K</td><td>20+ 种分析 fact 被压缩为 Python 代码字符串</td></tr>
+<tr><td>6. 反馈回路缺失</td><td><code>benchmark_provider.py</code></td><td>53K</td><td>autotuner 只得性能数字，无编译器诊断</td></tr>
+</tbody>
+</table>
+
+<h2>Gap 1：版本兼容碎片化</h2>
+
+<p><code>_compat.py</code> 有 25K 代码处理 Triton/PyTorch 版本差异，包含 20+ 个 <code>@functools.cache</code> 的兼容性检测函数：</p>
+
+<table>
+<thead><tr><th>函数</th><th>检测什么</th><th>Gap</th></tr></thead>
+<tbody>
+<tr><td><code>fp8_block_ptr_padding_broken()</code></td><td>Triton 3.8 FP8 block_ptr padding 回归</td><td>特定版本 bug 需 workaround，搜索空间被缩窄</td></tr>
+<tr><td><code>supports_tensor_descriptor()</code></td><td>Triton 是否支持 TMA tensor descriptor</td><td>新旧 Triton 能力不同</td></tr>
+<tr><td><code>supports_maxnreg()</code></td><td>仅 NVIDIA CUDA，排除 HIP/XPU</td><td>硬件特定能力检测分散</td></tr>
+<tr><td><code>supports_amd_cdna_tunables()</code></td><td>AMD CDNA 架构（gfx908+）</td><td>AMD 特有 tunable</td></tr>
+<tr><td><code>supports_tf32_precision_on_amd()</code></td><td>仅 gfx942（MI300）支持 TF32</td><td>极细粒度架构 gating</td></tr>
+<tr><td><code>get_num_xcd()</code></td><td>AMD XCD 数推导</td><td>MI300/MI350 不同 XCD 数</td></tr>
+<tr><td><code>supports_mtia_tunables()</code></td><td>Meta MTIA（闭源 fb 模块）</td><td>开源版完全不可用</td></tr>
+<tr><td><code>shape_env_size_hint()</code></td><td>PyTorch nightly vs stable API</td><td>框架版本碎片</td></tr>
+<tr><td><code>supports_torch_compile_fusion()</code></td><td>PyTorch 2.11+ fusion 入口</td><td>版本 gating</td></tr>
+</tbody>
+</table>
+
+<p>具体案例：<code>fp8_block_ptr_padding_broken()</code> 检测 Triton 3.8 系列中 FP8 + block_ptr + <code>padding_option='zero'</code> 编译失败（triton-lang/triton#10751）。Helion 被迫生成 workaround 代码，导致 <strong>FP8 kernel 的 autotune 搜索空间在 3.8 上被人为缩窄</strong>——不是性能驱动，而是 bug 驱动的搜索空间限制。</p>
+
+<h2>Gap 2：硬件抽象不完整</h2>
+
+<p><code>_hardware.py</code> 只有 4K——<code>HardwareInfo</code> dataclass 只有 4 个字段：<code>device_kind</code>、<code>hardware_name</code>、<code>runtime_version</code>、<code>compute_capability</code>。</p>
+
+<p>缺失的关键信息：</p>
+
+<ul>
+<li>没有 SM 数、寄存器数、L2 cache 大小、HBM 带宽、shared memory 大小——autotune 空间设计的关键参数</li>
+<li><code>num_compute_units()</code> 和 <code>_regs_per_block()</code> 在 <code>_compat.py</code> 而非 <code>_hardware.py</code>，且 fallback 硬编码 128</li>
+<li>没有 NVLink 带宽、TMA 支持等通信/数据搬运能力检测</li>
+<li><code>get_compatible_compute_ids()</code> 做架构回退（sm100→sm90→...），但不携带各架构差异信息（如 Hopper 有 TMA、Blackwell 有 Thread Block Cluster）</li>
+</ul>
+
+<p><code>compute_capability</code> 字符串（如 "sm90"）不携带能力信息。autotuner 无法从 "sm90" 推断 "这个硬件支持 TMA"——需要另外调用 <code>supports_tensor_descriptor()</code>。</p>
+
+<h2>Gap 3：索引策略二元化</h2>
+
+<p><code>indexing_strategy.py</code> 86K 的核心是两种索引方式的二选一：</p>
+
+<table>
+<thead><tr><th>索引方式</th><th>生成代码</th><th>优势</th><th>限制</th></tr></thead>
+<tbody>
+<tr><td><code>block_ptr</code></td><td><code>tl.make_block_ptr(...)</code> + <code>tl.advance(...)</code></td><td>Triton 自动处理边界 mask</td><td>FP8 padding 在 3.8 有 bug；某些场景性能差</td></tr>
+<tr><td><code>pointer</code></td><td>手动偏移 + <code>tl.load(ptr+offset, mask=...)</code></td><td>灵活，可做非连续访问</td><td>需手动 mask，代码复杂</td></tr>
+</tbody>
+</table>
+
+<p>autotuner 在 <code>indexing</code> 维度搜索 <code>['block_ptr', 'pointer']</code>，但这是<strong>二元选择</strong>。而 Triton 内部对 block_ptr 的 lowering 有多种路径（Python-only vs MLIR），Helion 不感知。FP8 kernel 因 bug 被迫走 pointer 路径——搜索空间被 bug 缩窄而非性能驱动。</p>
+
+<h2>Gap 4：搜索空间静态化</h2>
+
+<p><code>config_spec.py</code> 120K 定义了 autotune 搜索空间，但空间是<strong>编译时静态枚举</strong>的：</p>
+
+<ul>
+<li><code>TRITON_MAX_TENSOR_NUMEL = 1048576</code>（2^20）——Triton 硬限制。用于过滤搜索空间，但不<strong>在搜索过程中动态调整</strong>。config 编译失败时 autotuner 只能跳过而非调整</li>
+<li><code>block_sizes</code> 候选值是预设的 power-of-2。但 Hopper/Blackwell 上非 power-of-2 tile 有时更优（如 96 for TMA）——Triton 支持但 Helion 搜索空间不包含</li>
+<li><code>loop_orders</code> 是排列枚举——5+ 维 kernel 排列数爆炸（5!=120），当前靠手动限制候选列表</li>
+<li><code>num_warps</code> 和 <code>num_stages</code> 的搜索范围没有基于硬件模型推导——<code>_regs_per_block()</code> 和 <code>num_compute_units()</code> 存在但未被 <code>config_spec.py</code> 用于推导范围</li>
+<li><strong>搜索空间不感知 Triton 编译器的反馈</strong>——Triton 可能报 "register spill too high" 或 "shared memory overflow"，但 Helion 只拿到编译成功/失败，不拿到原因</li>
+</ul>
+
+<h2>Gap 5：IR 传递信息丢失</h2>
+
+<p>这是核心矛盾。Helion 内部有丰富的分析 IR：</p>
+
+<table>
+<thead><tr><th>分析组件</th><th>规模</th><th>包含什么</th></tr></thead>
+<tbody>
+<tr><td><code>device_ir.py</code></td><td>176K</td><td>ReductionDescriptor、CoResidencyGroup、live_tiles</td></tr>
+<tr><td><code>tile_strategy.py</code></td><td>188K</td><td>tile 调度、epilogue subtiling</td></tr>
+<tr><td><code>program_id.py</code></td><td>239K</td><td>grid 映射、pid 类型推导</td></tr>
+<tr><td><code>type_info.py</code></td><td>64K</td><td>dtype 传播、类型推导</td></tr>
+</tbody>
+</table>
+
+<p>但这些分析结果最终被压缩为 Triton Python 代码字符串：</p>
+
+<table>
+<thead><tr><th>Helion 分析 Fact</th><th>传递给 Triton 的方式</th><th>信息丢失</th></tr></thead>
+<tbody>
+<tr><td><code>ReductionDescriptor.carried_2d_count</code></td><td>编码为搜索维度</td><td>Triton 的 <code>tl.reduce</code> 不感知 co-residency</td></tr>
+<tr><td><code>CoResidencyGroup.live_tiles</code></td><td>不传递</td><td>Triton 不做 co-residency 分析</td></tr>
+<tr><td><code>MemoryOpFact.eviction_policy</code></td><td>编码为 autotune 选项</td><td>Helion 知道哪个 load 需要什么 policy，但编码为搜索而非直接传递</td></tr>
+<tr><td><code>MatmulFact</code></td><td>不传递</td><td>Triton 的 <code>tl.dot</code> 不感知 matmul 形状事实</td></tr>
+<tr><td><code>ReductionKernelFact</code></td><td>不传递</td><td>整个 Stage-1→Stage-2 分析结果被丢弃</td></tr>
+</tbody>
+</table>
+
+<h2>Gap 6：反馈回路缺失</h2>
+
+<p>Helion autotuner 的反馈是<strong>纯性能测量</strong>——每个 config 编译 + 运行 + 计时，取最快的。Triton 编译器的诊断信息对 Helion 不可见：</p>
+
+<ul>
+<li>编译失败时只得到 exception——不知道是 "shared memory overflow" 还是 "too many registers" 还是 "unsupported op"。autotuner 无法基于失败原因调整搜索</li>
+<li>编译成功时也不反馈产物质量——PTX 指令数、寄存器使用量、shared memory 占用——这些可以指导搜索方向</li>
+<li><code>surrogate_pattern_search.py</code>（40K）用代理模型预测性能——但代理模型没有编译器诊断特征</li>
+<li><code>llm_search.py</code>（28K）已有 LLM-guided 搜索——但 LLM 只看到性能数字和失败标记，看不到编译器诊断</li>
+</ul>
+
+<h2>20 个机会点</h2>
+
+<h3>Gap 1 对应</h3>
+
+<p><strong>#1 统一能力检测层</strong>：将 20+ 个分散的 <code>@cache</code> 函数整合为 <code>CapabilityMatrix</code> 对象，autotuner 一次性查询所有能力。低难度低影响。</p>
+
+<p><strong>#2 版本回归自动报告</strong>：<code>fp8_block_ptr_padding_broken</code> 这类 workaround 是硬编码版本范围。可以做 Triton CI 结果订阅——上游修复后自动移除 workaround。低难度低影响。</p>
+
+<p><strong>#3 MTIA tunable 开源化</strong>：Meta MTIA 的 tunable fragment 是闭源的。开源后扩大硬件覆盖。外部依赖。</p>
+
+<h3>Gap 2 对应</h3>
+
+<p><strong>#4 结构化硬件模型</strong>：扩展 <code>HardwareInfo</code> 为包含 SM 数、寄存器数、shared memory、HBM 带宽、L2 大小的完整模型。autotuner 的 heuristic 可以基于这些参数自动推导 block_size 范围。低难度高影响。</p>
+
+<p><strong>#5 架构特性矩阵</strong>：添加 <code>features</code> dict（<code>tma: bool</code>、<code>warp_specialization: bool</code>、<code>thread_block_cluster: bool</code>、<code>fp8: bool</code>、<code>fp4: bool</code>），让 autotuner 根据特性而非版本号做决策。低难度高影响。</p>
+
+<p><strong>#6 多 GPU 拓扑</strong>：扩展为多设备模型，包含 NVLink 拓扑。为多 GPU kernel（ParallelKittens 场景）铺路。高难度低影响。</p>
+
+<h3>Gap 3 对应</h3>
+
+<p><strong>#7 索引策略连续化</strong>：引入 "hybrid indexing"（block_ptr 主体 + pointer 边界处理），让 autotuner 搜索更细粒度的索引策略。高难度中等影响。</p>
+
+<p><strong>#8 后端感知索引</strong>：当 Triton-Ascend 后端可用时，索引策略应感知 NPU 的 NZ 布局需求。当前 Helion 不感知 Ascend。高难度中等影响。</p>
+
+<p><strong>#9 Triton IR 级别索引反馈</strong>：如果 Helion 能接收 Triton IR 级别的反馈（如 "这个 block_ptr 被展开为 X 条 load 指令"），autotuner 可以更精准地选择索引方式。高难度中等影响。</p>
+
+<h3>Gap 4 对应</h3>
+
+<p><strong>#10 动态搜索空间</strong>：根据编译失败原因动态调整搜索空间。Triton 报 shared memory overflow → autotuner 自动降低 <code>num_stages</code> 上限或缩小 block_size。中等难度高影响。</p>
+
+<p><strong>#11 硬件感知搜索范围推导</strong>：基于 <code>HardwareInfo</code> 自动推导 <code>block_size/num_warps/num_stages</code> 合理范围，而非硬编码预设值。中等难度高影响。</p>
+
+<p><strong>#12 非 power-of-2 tile 支持</strong>：Hopper TMA 支持 non-power-of-2 tile。扩展搜索空间可能带来性能提升。低难度中等影响。</p>
+
+<p><strong>#13 搜索空间降维</strong>：使用 <code>ReductionKernelFact</code> 的 co-residency group 信息做依赖性分析——某些维度组合可安全剪枝。高难度中等影响。</p>
+
+<h3>Gap 5 对应</h3>
+
+<p><strong>#14 Triton IR 直接注入</strong>：绕过 Triton Python 代码生成，直接生成 TTIR（Triton MLIR dialect）。Helion 的 DeviceIR 分析结果直接编码为 TTIR metadata。极高难度极高影响。</p>
+
+<p><strong>#15 Triton metadata 扩展</strong>：如果不能直接生成 TTIR，扩展 <code>@triton.jit</code> 接受 metadata 参数——如 <code>reduction_info=...</code>、<code>coresidency_groups=...</code>。高难度中等影响。</p>
+
+<p><strong>#16 后端选择驱动</strong>：<code>MatmulFact</code>、<code>ReductionKernelFact</code> 等信息驱动后端选择——matmul + reduction epilogue 在 Blackwell 上自动选 CuTe 后端。中等难度高影响。</p>
+
+<h3>Gap 6 对应</h3>
+
+<p><strong>#17 编译器诊断提取</strong>：从 Triton 编译日志/PTX 中提取寄存器使用量、shared memory 占用、指令数等特征，作为 autotuner 搜索的指导信号。中等难度高影响。</p>
+
+<p><strong>#18 编译失败分类器</strong>：将编译失败按原因分类（shared memory / register / unsupported op / timeout），让 autotuner 做条件性剪枝而非随机跳过。低难度中等影响。</p>
+
+<p><strong>#19 成本模型增强</strong>：<code>surrogate_pattern_search.py</code> 的代理模型加入编译器诊断特征（寄存器、shared memory、指令数）作为辅助特征。中等难度中等影响。</p>
+
+<p><strong>#20 LLM 搜索的编译器反馈</strong>：<code>llm_search.py</code> 的 LLM 能看到编译器诊断（"这个 config 因 shared memory overflow 失败"），更精准地建议下一个 config。低难度高影响。</p>
+
+<h2>优先级矩阵</h2>
+
+<table>
+<thead><tr><th>#</th><th>机会点</th><th>影响</th><th>难度</th><th>Gap</th></tr></thead>
+<tbody>
+<tr><td>10</td><td>动态搜索空间</td><td>高</td><td>中</td><td>4</td></tr>
+<tr><td>17</td><td>编译器诊断提取</td><td>高</td><td>中</td><td>6</td></tr>
+<tr><td>5</td><td>架构特性矩阵</td><td>高</td><td>低</td><td>2</td></tr>
+<tr><td>14</td><td>Triton IR 直接注入</td><td>极高</td><td>极高</td><td>5</td></tr>
+<tr><td>4</td><td>结构化硬件模型</td><td>高</td><td>低</td><td>2</td></tr>
+<tr><td>11</td><td>硬件感知搜索范围</td><td>高</td><td>中</td><td>4</td></tr>
+<tr><td>16</td><td>后端选择驱动</td><td>高</td><td>中</td><td>5</td></tr>
+<tr><td>20</td><td>LLM 搜索编译器反馈</td><td>高</td><td>低</td><td>6</td></tr>
+<tr><td>7</td><td>索引策略连续化</td><td>中</td><td>高</td><td>3</td></tr>
+<tr><td>8</td><td>后端感知索引（Ascend）</td><td>中</td><td>高</td><td>3</td></tr>
+<tr><td>12</td><td>非 power-of-2 tile</td><td>中</td><td>低</td><td>4</td></tr>
+<tr><td>15</td><td>Triton metadata 扩展</td><td>中</td><td>高</td><td>5</td></tr>
+<tr><td>18</td><td>编译失败分类器</td><td>中</td><td>低</td><td>6</td></tr>
+<tr><td>19</td><td>成本模型增强</td><td>中</td><td>中</td><td>6</td></tr>
+<tr><td>13</td><td>搜索空间降维</td><td>中</td><td>高</td><td>4</td></tr>
+</tbody>
+</table>
+
+<h2>三个最高 ROI 方向</h2>
+
+<h3>1. 编译器诊断回路（#17 + #10 + #20）</h3>
+
+<p>从 Triton 提取寄存器/shared memory/失败原因 → autotuner 动态调整搜索空间 → LLM 搜索获得更丰富反馈。三个改进形成闭环，每个单独做都有价值，组合后效果倍增。当前 <code>llm_search.py</code> 已有 LLM-guided 搜索基础设施，只需丰富输入特征。</p>
+
+<h3>2. 结构化硬件模型（#4 + #5）</h3>
+
+<p><code>_hardware.py</code> 从 4K 扩展为包含 SM/寄存器/带宽/特性矩阵的完整模型 → 搜索范围自动推导。低难度高影响——改动量小但影响每个 autotune 决策。</p>
+
+<h3>3. IR 传递路径（#14）</h3>
+
+<p>长期来看，绕过 Triton Python 代码生成直接注入 TTIR 是信息保全的最大杠杆。Helion 的 600K+ 分析代码产出的 fact 可以直接编码为 TTIR metadata，Triton 编译器可以利用这些信息做更优的 lowering。但难度极高——需要深度理解 Triton 的 MLIR dialect 和编译流水线。</p>
+
+<h2>一句话</h2>
+
+<blockquote><p>Helion 内部 600K+ 分析代码产出的丰富 fact（reduction 分类、co-residency、live tile set、memory op facts）在传递给 Triton 时被压缩为搜索维度或直接丢弃——编译器诊断回路和 IR 直接注入是关闭这个信息泄漏的两个最高杠杆点。</p></blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+<li><strong>来源确认</strong>：本文基于 Helion GitHub 源码逆向分析（<code>_compat.py</code> 25K、<code>_hardware.py</code> 4K、<code>indexing_strategy.py</code> 86K、<code>config_spec.py</code> 120K、<code>_compiler/triton/backend.py</code> 20K、<code>autotuner/llm_search.py</code> 28K、<code>autotuner/surrogate_pattern_search.py</code> 40K、<code>_compiler/device_ir.py</code> 176K 等），通过 GitHub API 读取原始源码。所有文件规模和函数名直接引自源码。</li>
+<li><strong>推断边界</strong>：Gap 分类和机会点为基于源码分析的推断性研究，非 PyTorch 官方立场。"信息丢失"的判断基于源码结构分析——实际运行时可能有未在源码中体现的传递路径。机会点的难度/影响评估为主观判断。</li>
+<li><strong>利益声明</strong>：无利益冲突。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+<li>Helion GitHub: <a href="https://github.com/pytorch/helion">github.com/pytorch/helion</a></li>
+<li>Helion 源码文件（GitHub API 读取）：<code>_compat.py</code>、<code>_hardware.py</code>、<code>_compiler/triton/backend.py</code>、<code>autotuner/config_spec.py</code>、<code>autotuner/config_generation.py</code>、<code>autotuner/llm_search.py</code>、<code>_compiler/indexing_strategy.py</code>、<code>_compiler/device_ir.py</code>、<code>AGENTS.md</code></li>
+<li>前文: <a href="https://harryfan1985.github.io/agent_blog/posts/helion-triton-gpu-kernel-dsl-landscape.html">Helion DSL 与 Triton 架构关系及 GPU Kernel DSL 全景</a></li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
