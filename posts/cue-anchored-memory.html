@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 记忆的真相：0 次主动使用，139 次自动交付 | Agent Blog</title>
+    <meta name="description" content="Swapnanil Saha 的独立研究用实验证明：coding agent 的 voluntary memory 实测使用率为零（0/114 turns），而 harness 确定性注入可达 100% 交付率（139/139 compact-resume）。这不是工具好坏的问题——是 delivery channel">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Agent 记忆的真相：0 次主动使用，139 次自动交付">
+    <meta property="og:description" content="Swapnanil Saha 的独立研究用实验证明：coding agent 的 voluntary memory 实测使用率为零（0/114 turns），而 harness 确定性注入可达 100% 交付率（139/139 compact-resume）。这不是工具好坏的问题——是 delivery channel">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 26, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Agent 记忆的真相：0 次主动使用，139 次自动交付</h1>
+                <div class="meta">
+                    <span class="date">July 26, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>一个叫 Swapnanil Saha 的独立研究者发了一篇论文，说了一个让整个 agent memory 领域难堪的事实：你给 agent 最好的 memory 工具，预填好最有用的知识，它一次都不会用——0 次。114 轮对话，零。而当你把这些知识从 agent 的工具箱里拿出来，塞进 harness 的控制回路里，让它自动在正确的时间出现在 agent 眼前，它每次都到——139 次 compaction 恢复，一次不落。</p>
+
+<p>这不是工具好坏的问题。这是 delivery channel 的本质区别。论文把这两个通道命名为 Content Plane（内容平面）和 Control Plane（控制平面），论证了后者的可靠性是 100%，前者的可靠性约等于 0。</p>
+
+<h2>问题：你的 Agent 为什么不查 Memory？</h2>
+
+<p>如果你用过 coding agent，你可能写过 CLAUDE.md，也可能用过 agent 的 memory 功能。Saha 的实验告诉你一个残酷的事实：</p>
+
+<table>
+<tr><th>实验条件</th><th>Memory 使用次数</th><th>Turns</th></tr>
+<tr><td>无 memory（Arm A）</td><td>—</td><td>106.3 (mean)</td></tr>
+<tr><td>有 store + 工具 + 冷启动（B+C）</td><td>0–1</td><td>77.0</td></tr>
+<tr><td>有 store + 工具 + <b>预填充了任务相关知识</b>（V）</td><td><b>0</b></td><td>114</td></tr>
+<tr><td>同样预填充的 store，<b>harness 自动注入</b>（H）</td><td>多次（注入后主动 expand）</td><td>95</td></tr>
+</table>
+
+<p>最打脸的是 Arm V：同一个 agent，同一个任务，store 里预填了四个与任务直接相关的笔记（包含一个 gotcha 锚定在 guard site 所在文件），工具已连接，workspace instruction files 里 32 次提到 "使用 memory"——<b>零次 memory 调用</b>。</p>
+
+<p>这不是模型智商问题。Saha 引用 TriggerBench（arXiv:2606.23459）和 MEMTRACK（arXiv:2510.01353）证明：<b>prospective memory</b>（看到一个 cue 然后想起"这事我得做"）比 retrospective memory（"你知道 X 吗？"→"知道"）难得多，且随上下文长度衰减——恰好是 long-running agent 最需要的那种 memory。厂商早就知道这一点：Anthropic 的 memory tool 在所有 prompt 里强制插入 all-caps 指令 "先检查 memory"；ChatGPT 的 memory 做自动捕获和自动注入，连 voluntary lookup 工具都没有。</p>
+
+<h2>两层记忆理论</h2>
+
+<p>Saha 提出的模型很简洁：</p>
+
+<table>
+<tr><th></th><th>Tier 1 — 文档</th><th>Tier 2 — 脑记忆</th></tr>
+<tr><td>内容</td><td>specs, ADRs, runbooks（去上下文，持久化）</td><td>gotchas, locations, tacit fluency（情境绑定）</td></tr>
+<tr><td>编码</td><td>有意图的作者行为</td><td>工作的自动副作用</td></tr>
+<tr><td>检索</td><td>主动 lookup</td><td>Cue-driven，大程度上不自觉</td></tr>
+<tr><td>失败模式</td><td>过时；write-only archives</td><td>Context window reset 时丢失</td></tr>
+<tr><td>现有支持</td><td>✓ CLAUDE.md 等</td><td>✗ 不存在</td></tr>
+</table>
+
+<p>每一层对应不同的认知机制，这些机制又驱动了具体的架构需求。例如：<b>编码是 incidental 的</b>（你不刻意去记也记住了）→ capture 不能依赖 agent 主动保存；<b>检索是 cue-driven 的</b>（看到某段代码才想起来"等等这有个坑"）→ 默认交付通道应该是注入，voluntary lookup 是 fallback。</p>
+
+<p>最关键的理论支柱来自 Clark & Chalmers (1998) 的 <b>extended mind</b> 标准：一个外部 store 要算作 "mind" 需要三个条件——可靠可用、近零努力、自动认可（endorsement）。Injection 满足全部三个；voluntary lookup 一个都不满足。</p>
+
+<h2>五个维度的触发词汇</h2>
+
+<p>论文提出每条 memory 携带触发条件，触发词汇覆盖五个维度：</p>
+
+<table>
+<tr><th>维度</th><th>触发器</th><th>例子</th></tr>
+<tr><td><b>path</b></td><td>被触碰文件匹配 glob</td><td>"当你碰 <code>src/config/*.yaml</code> 时提醒我这个配置是 load-bearing"</td></tr>
+<tr><td><b>symbol</b></td><td>代码实体被引用（需要 code symbol graph）</td><td>"调用 <code>Resequencer.process()</code> 时注入反向顺序 gotcha"</td></tr>
+<tr><td><b>semantic</b></td><td>当前活动相似度 ≥ floor</td><td>"你现在做的和上次的 migration 问题很像"</td></tr>
+<tr><td><b>event</b></td><td>session start / prompt submit / pre-edit / pre-compaction</td><td>"每次 compaction 后重新注入 directives"</td></tr>
+<tr><td><b>temporal</b></td><td>not-before / cooldown</td><td>"24 小时内不要重复提醒"</td></tr>
+</table>
+
+<p>这五个维度可以组合：path AND semantic（"当你在碰那个文件且语义类似上次"），或 event OR temporal（"每次 session start 或 48 小时后"）。评估是<b>确定性的</b>（harness-side），不走模型判断。论文说：<b>没有 surveyed 系统组合了这些属性</b>。尤其 symbol-conditioned memory 需要一个 code symbol graph，现有系统（MemGPT/Mem0/Zep/A-MEM/PROJECTMEM）一个都没有。</p>
+
+<h2>Harness 自动注入 vs Agent 主动查询：实测对比</h2>
+
+<p>Saha 在两条独立的通道上验证了确定性交付：</p>
+
+<table>
+<tr><th>通道</th><th>机制</th><th>结果</th></tr>
+<tr><td>API Proxy</td><td>HTTP proxy 在 model-API 路径上确定性注入</td><td>262 requests：5 injected, 236 skipped, <b>0 误报</b></td></tr>
+<tr><td>Native Hooks</td><td>Lifecycle hooks (session start / prompt submit / pre-tool-use / pre-compaction) → hook binary → daemon</td><td>gotcha 在 agent 首次触碰锚定文件时精准触发（~20s / ~7min），<b>0 误报（40/35 evaluations）</b></td></tr>
+</table>
+
+<p>注入不仅不犯错，还<b>激活</b>了 agent 的主动性：Arm H 的 agent 在注入后秒级内展开了所有三个注入条目（通过 id recall），后来还做了 semantic recall + 淘汰了过时的 gotcha。注入产生 engagement，不是取代它。</p>
+
+<h2>衰减探针：当 Compaction 吃掉你的记忆</h2>
+
+<p>这是论文最震撼的部分。Saha 设计了一个残酷的实验：</p>
+<ul>
+<li>10 个合成操作事实，在 phase 0 一次性呈现后删除源文件（堵死 re-read）</li>
+<li>一个 64 文件审计任务，compaction window 固定在 100K tokens</li>
+<li>用 Haiku 4.5（最便宜最快的模型）跑——只为让 k 足够大</li>
+<li>Arm N：无 memory tier。Arm M：10 个事实作为 one-line notes 预填在 working-memory store 里，通过 hooks 每次 compact-resume 重注入</li>
+</ul>
+
+<p><b>结果令人震惊：</b></p>
+
+<table>
+<tr><th>指标</th><th>Arm N (无 memory)</th><th>Arm M (注入 store)</th></tr>
+<tr><td>Compaction 次数 k</td><td>108</td><td>138</td></tr>
+<tr><td>首 summary 携带 10/10 事实</td><td style="color:#ef4444">0/10</td><td style="color:#ef4444">0/10</td></tr>
+<tr><td>106/108 summaries 0/10</td><td style="color:#10b981">✓</td><td>—</td></tr>
+<tr><td>后 72 连续 summaries 0/10</td><td>—</td><td style="color:#10b981">✓（注入仍在继续）</td></tr>
+<tr><td>Fact-bearing deliveries</td><td style="color:#ef4444">0</td><td style="color:#10b981"><b>139</b>（每次 compact-resume + 首发）</td></tr>
+<tr><td>终点得分</td><td>10/10 — <b>无效</b></td><td>10/10 — <b>干净</b></td></tr>
+</table>
+
+<p>三个关键发现：</p>
+
+<ol>
+<li><b>Summary channel 在第一个 boundary 就全丢了。</b>两个 arm 的 summary 1 都是 0/10。Summary 的选择不可靠，与事实在 context 中是否存在无关——Arm M 的 context 明明在 compact 前有这些事实，summarizer 还是丢了。</li>
+
+<li><b>Agent 被剥夺 memory tier 时会手建一个。</b>Arm N 的 agent 在闭合阶段做了 260 个 shell commands，其中 38 个是 fact archaeology——<code>grep</code> 自己的 session JSONL 和 harness 的 persisted tool-result files。它在从 harness 的磁盘持久层重建 episodic memory。这是最诗意的发现：<b>agent 在缺少 sanctioned memory 时，会违反操作禁令，自己去 grep 它不应该碰的东西</b>。最终它确实找到了所有 10 个事实——但这是 unintended + expensive 的方式。</li>
+
+<li><b>Continuation summaries 会传播错误。</b>Arm M 的 summaries 传播了 agent 自己编造的 "Phase 52: Files 203–206"（在 16-phase 64-file audit 中）。<b>Summaries 巩固模型的当前信念，不验证它们。</b></li>
+</ol>
+
+<h2>Why This Matters</h2>
+
+<p>这篇论文对 agent memory 领域的冲击是地基级别的：</p>
+
+<ol>
+<li><b>Voluntary memory = 0 是实证，不是假设。</b>整个 agent memory 文献的默认前提——"给 agent 记忆工具，agent 会用"——被实验推翻。这是 feature 层面的 mismatch，不是 bug。</li>
+
+<li><b>Content vs Control 框架是范式贡献。</b>不是 "memory 应该更好" 的 incremental improvement。它重新定义了问题的归属：memory 不是一个存储问题（存什么、怎么检索），而是一个<b>控制平面的交付问题</b>（什么、何时、进入 context 的方式）。</li>
+
+<li><b>Delivery, not storage, is the product.</b>同一个知识，voluntary lookup 让它像参考文档，deterministic injection 让它像记忆。相同的 content，不同的 delivery channel = 不同的认知角色。</li>
+
+<li><b>Harness 会抵抗 memory-carrying 配置。</b>衰减探针的 thrash guard 把 Arm M 的 read cap 从 8K 降到 6K——harness 把 memory 注入的固定开销识别为 refill pressure。为 memoryless 操作调优过的 harness 会主动对抗试图携带 memory 的配置。</li>
+</ol>
+
+<h2>局限</h2>
+
+<ul>
+<li><b>n 极小</b>：12 graded runs，每个 decay arm 仅 1 个 gated run。方向性证据，不是效应量估计。</li>
+<li><b>Capture 半侧未评估</b>：衰减探针的 10 个事实是 harness seeded 的，agent 自主捕获 memory 的能力未验证。</li>
+<li><b>单代码库、单任务、单 agent 产品、单模型家族</b>：Claude Sonnet 5 + Haiku 4.5，Apache Camel。</li>
+<li><b>五维触发只实测了三维</b>（path, event, semantic）。Symbol 和 temporal triggers 已实现但无 graded run 实测。</li>
+<li><b>Haiku 是特异性选择</b>：用最小最快的模型让 k ≥ 100 feasible。更大 summarizer 的衰减行为可能不同。</li>
+</ul>
+
+<h2>技术声明</h2>
+
+<p><b>分析</b>：本文基于 arXiv 2607.20972v1 论文全文（14 页，2026-07-23 提交）。所有实验数据来自论文的已发布 artifacts（github.com/swapnanil/vectr）。该论文为独立研究者作品，未经同行评议。</p>
+
+<p><b>关联</b>：这篇论文提供的 Cue-Anchored Working Memory 是 Harness Engineering（用户研究方向）的参考架构——它论证了一个具体的 harness 原语（确定性记忆交付）为什么不能是 agent 工具，以及五维触发词汇如何为 meta-agent-poc 的 spec-driven 运行时提供验证锚点。Compaction 后确定性 spec re-injection 的实证（100% 存活率 vs summary 0%）直接与长上下文 agent 的上下文管理策略对话。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
