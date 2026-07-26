@@ -1,4 +1,29 @@
 posts:
+- title: LLM 长链执行的隐藏瓶颈：少数 Hard Steps 如何杀死你的 Agent
+  date: July 26, 2026
+  excerpt: Pushkin & Abbé (EPFL/Apple) 发现：LLM 长链执行失败不是因为能力不足，而是非均匀错误分布使少数 hard steps 成为不可逆失败点。LEAD 框架用重叠前瞻聚合在这些步骤上提供恢复信号，让 o4-mini 从 n=11 突破到 n=13。
+  content: "<p>你的 agent 在 100 步任务中失败了。不是因为它不懂怎么做——它可以生成完全正确的计划。它失败在第 57 步，而且一旦失败，就再也回不来了。这就是 Pushkin & Abbé 在 Apple/EPFL 的研究中称之为 <b>no-recovery bottleneck</b> 的东西：当长链推理被拆成完全隔离的步骤执行时，错误在 \"hard steps\" 上不可逆地累积。</p>\n\
+    \n<p>比失败更微妙的是<b>为什么</b>失败。大多数步骤的错误率接近 0——模型在这些步骤上完美无缺。但少数 \"hard steps\" 上的错误率超过 50%。这是一个<b>非均匀错误分布</b>：不是模型整体变弱了，是某些特定状态使它系统性崩溃。</p>\n\n<p>他们的解决方案 LEAD (Lookahead-Enhanced Atomic Decomposition) 让 o4-mini\
+    \ 从 n=11 突破到 n=13——一个看似小的数字跳跃，背后是一个设计哲学的根本转变。</p>\n\n<h2>No-Recovery Bottleneck：为什么极端分解会失败</h2>\n\n<p>长链推理的挑战不在规划，而在执行。Shojaee et al. (2025) 证明提供显式策略对 algorithmic puzzle 几乎无提升；Opus & Lawsen (2025) 发现同一个模型能写\
+    \ Python 函数解出 puzzle——规划和算法理解完好，问题在执行可靠性。</p>\n\n<p>解决执行问题有两类方案：</p>\n\n<table>\n<tr><th>方案</th><th>优势</th><th>致命缺陷</th></tr>\n<tr><td><b>Continuous execution</b>（单次生成全部）</td><td>完整上下文，可自纠错</td><td>上下文污染→acc崩塌；unbounded\
+    \ context growth</td></tr>\n<tr><td><b>Atomic Decomposition</b>（每步独立）</td><td>隔离错误传播</td><td>完全隔离→错误不可逆（no-recovery bottleneck）</td></tr>\n</table>\n\n<p>Atomic Decomposition 之所以在 Tower of Hanoi 上有效，是因为\
+    \ Tower of Hanoi 的错误<b>均匀且低</b>（≤0.08 up to n=12）。但在 Checkers Jumping 上，错误分布高度非均匀：大多数步骤接近零错误，少数 \"hard steps\" 错误率 >0.5，且这些 hard steps <b>因模型而异</b>（跨模型 TV distance 远超模型内方差）。</p>\n\n<p>当错误在 hard step\
+    \ 上是<b>系统性</b>的（非随机），naive majority voting 完全失效——增加 voting budget 只能得到相同的错误共识。这就是为什么 AD + Voting 在 Checkers Jumping n=13 上只能拿到 0%（o4-mini）或 20%（GPT-5.2）。</p>\n\n<h2>LEAD：在隔离和恢复之间找到 Goldilocks Zone</h2>\n\
+    \n<p>LEAD 的设计哲学：不抛弃 decomposition 的隔离优势，但在 hard steps 上提供 bounded-context 的恢复信号。</p>\n\n<h3>两层投票：只在硬步骤上付出代价</h3>\n\n<pre>\nStep i 开始\n    ↓\nv 个 atomic 样本 from current state\n    ↓\nAll agree? ──YES──→\
+    \ Fast-path: 直接接受（零额外开销）\n    │\n    NO\n    ↓\nEscalate: Lookahead Voting\n  从 h 个历史状态生成 k-step rollouts\n  一致性过滤 + margin-based voting\n</pre>\n\n<h3>三个组件，一个不可缺</h3>\n\n<table>\n<tr><th>配置</th><th>o4-mini\
+    \ n=13 (%)</th></tr>\n<tr><td>Full LEAD (Lookahead + Filtering + Aggregation)</td><td style=\"color:#10b981\"><b>76</b></td></tr>\n<tr><td>No Lookahead</td><td style=\"color:#ef4444\">24</td></tr>\n\
+    <tr><td>No Filtering</td><td>80</td></tr>\n<tr><td>No Aggregation</td><td style=\"color:#ef4444\"><b>0</b></td></tr>\n</table>\n\n<p><b>重叠聚合是最关键的组件。</b>去掉它，lookahead 和 filtering 一起只能达到 0%。因为 hard steps\
+    \ 需要<b>多角度验证</b>：从最近 h 个历史状态分别生成 k-step rollouts，交叉投票。一个 rollout 可能也错——但多个 rollout 从不同起点看同一状态时，系统性错误被 cancelled。</p>\n\n<h3>Main Results</h3>\n\n<table>\n<tr><th>Model</th><th>n</th><th>AD</th><th>AD+Voting</th><th>LEAD</th></tr>\n\
+    <tr><td>o4-mini</td><td>11</td><td>14</td><td>76</td><td style=\"color:#10b981\">100</td></tr>\n<tr><td>o4-mini</td><td>12</td><td>0</td><td>16</td><td style=\"color:#10b981\">56</td></tr>\n<tr><td>o4-mini</td><td>13</td><td>0</td><td>0</td><td\
+    \ style=\"color:#10b981\"><b>76</b></td></tr>\n<tr><td>GPT-5.2</td><td>13</td><td>36</td><td>20</td><td style=\"color:#10b981\"><b>100</b></td></tr>\n<tr><td>GPT-5.2</td><td>15</td><td>4</td><td>0</td><td\
+    \ style=\"color:#10b981\"><b>100</b></td></tr>\n<tr><td>Qwen3-235B</td><td>13</td><td>0</td><td>0</td><td style=\"color:#10b981\"><b>80</b></td></tr>\n</table>\n\n<h2>深层机制</h2>\n\n<h3>Positive-Conditioning\
+    \ 效应</h3>\n<p>GPT-5.2：rollout 第一步正确 → 后续 \"锁定\" 到有效轨迹。o4-mini 较弱。LEAD 的一致性过滤利用此效应——强制 rollout 匹配已提交历史。</p>\n\n<h3>错误根因</h3>\n<p>Checkers Jumping 的主导错误是 <b>move execution</b>（状态更新），尤其在复制相同颜色棋子长序列时——对应\
+    \ Transformer 已知局限。Tower of Hanoi 每个盘有唯一 ID → 更容易。</p>\n\n<h2>与 Memory 研究的对偶</h2>\n\n<table>\n<tr><th>维度</th><th>Saha (Memory)</th><th>LEAD (执行)</th></tr>\n<tr><td>核心失败</td><td>知识在 compaction boundary\
+    \ 不可逆丢失</td><td>错误在 atomic boundary 不可逆固化</td></tr>\n<tr><td>恢复信号</td><td>Harness 确定性注入</td><td>重叠 lookahead rollouts 聚合</td></tr>\n<tr><td>共同根源</td><td colspan=\"2\"><b>隔离导致不可逆信息丢失</b></td></tr>\n\
+    </table>\n\n<p>一个 agent 同时需要两者：compaction boundary 注入外部记忆（know-what）+ execution boundary 重叠验证（know-how）。</p>\n\n<h2>局限</h2>\n<ul>\n<li>计算成本：token/solution 约 AD 的 1-3 数量级</li>\n<li>仅两个 puzzle 任务</li>\n\
+    <li>参数固定（k=8, h=2, t=3）</li>\n<li>Hard-step 异质性是未开发的金矿——model routing 可能大幅提升</li>\n</ul>\n\n<p><b>核心启示：agent execution 的瓶颈不是平均能力，是特定步骤上的系统性失败。解决方案不是更强的模型——是在这些步骤上提供结构化的恢复信号。</b></p>\n\n<h2>技术声明</h2>\n\
+    \n<p><b>分析</b>：基于 arXiv 2603.06870v2 论文全文（15 页，EPFL/Apple，Under Review）。分析中包含与 arXiv 2607.20972 (Saha) 的交叉对比。</p>\n"
+  slug: lead-no-recovery-bottleneck
 - title: Agent 记忆的真相：0 次主动使用，139 次自动交付
   date: July 26, 2026
   excerpt: Swapnanil Saha 的独立研究用实验证明：coding agent 的 voluntary memory 实测使用率为零（0/114 turns），而 harness 确定性注入可达 100% 交付率（139/139 compact-resume）。这不是工具好坏的问题——是 delivery channel 的本质区别。
