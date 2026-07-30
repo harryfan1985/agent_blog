@@ -82,6 +82,10 @@
 └─────────────────────────────────────────────┘
 </pre>
 
+<p><img src="https://harryfan1985.github.io/agent_blog/images/fluxeda-architecture/figure1-comparison.png" alt="Figure 1: Traditional EDA workflows vs FluxEDA unified framework" style="max-width:100%"></p>
+<p style="text-align:center;color:#888;font-size:0.9em"><em>Figure 1: 传统 EDA 工作流 vs FluxEDA 统一框架。左：fragmented scripting 和 tool-specific orchestration。右：cohesive standardized framework。</em></p>
+
+
 <p>关键的不是"五层"这个数字，而是<strong>每一层解决了什么具体问题</strong>：</p>
 
 <table>
@@ -93,8 +97,14 @@
 <tr><td>Runtime Mgmt</td><td>Tool session 怎么持久化？</td><td>每次调用 = 新的 shell = 状态全丢</td></tr>
 </table>
 
+
+<p><img src="https://harryfan1985.github.io/agent_blog/images/fluxeda-architecture/figure2-architecture.png" alt="Figure 2: FluxEDA overall software architecture - five-layer stack" style="max-width:100%"></p>
+<p style="text-align:center;color:#888;font-size:0.9em"><em>Figure 2: FluxEDA 整体软件架构。五层栈：Access → Communication → Gateway → EDA Tool Adaptation → Runtime Management。</em></p>
 <p>Gateway 层是灵魂。它做的事简单但关键：每个 EDA 能力必须先注册为 api_* 方法，agent 只能调用注册过的。未注册的命令——不管你 Tcl 语法多正确——gateway 拒绝。这就是为什么在 RTL-to-GDS benchmark 中 FluxEDA 的 Tcl 兼容性错误是 <strong>0.0%</strong>：不是 agent 不犯错，是犯错的路径被架构消除了。</p>
 
+
+<p><img src="https://harryfan1985.github.io/agent_blog/images/fluxeda-architecture/figure3-signal-flow.png" alt="Figure 3: Execution signal flow in FluxEDA" style="max-width:100%"></p>
+<p style="text-align:center;color:#888;font-size:0.9em"><em>Figure 3: FluxEDA 执行信号流。6 步请求路径：RPC 消息 → Gateway 控制校验（协议验证、api_* 查找、参数检查、授权）→ 能力发现 → 分发到 api_* → 后端执行 → 结构化响应返回。</em></p>
 <h2>三、核心机制一：instance_id 和 request_id 分离</h2>
 
 <p>这是 FluxEDA 最精妙的设计决策，值得单独拿出来讲。</p>
@@ -166,6 +176,9 @@ Iter 3 → 在 state₁ 基础上做 hold repair → ✅ 消除全部 hold viola
 
 <p>在首篇 case study（时序 ECO）中，Iter 2 被拒绝后如果不支持 rollback，agent 需要重新 load design、重新跑 baseline analysis、重新做 setup sizing——额外消耗大量 wall time 和 license。Rollback 把这个成本降为零。</p>
 
+
+<p><img src="https://harryfan1985.github.io/agent_blog/images/fluxeda-architecture/figure4-lifecycle.png" alt="Figure 4: Lifecycle of a managed backend instance" style="max-width:100%"></p>
+<p style="text-align:center;color:#888;font-size:0.9em"><em>Figure 4: Managed backend instance 生命周期。Tool 进程创建 → instance_id 绑定 → 多请求路由到同一实例 → 心跳监控 → 清理（显式释放/超时/失败）。</em></p>
 <h2>七、两个 Case Study 中的架构体现</h2>
 
 <p>两个 case study 不是随意选的——它们各自验证架构的不同能力：</p>
