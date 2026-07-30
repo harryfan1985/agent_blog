@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluxEDA 架构详解：五层栈、白名单网关、渐进式能力暴露 | Agent Blog</title>
+    <meta name="description" content="深入 FluxEDA 的五层架构设计：Gateway 白名单消除 31.7% 的 Tcl 错误，instance_id/request_id 分离实现持久会话，Progressive Capability Exposure 节省 context budget，MCP+Skills 分层解释领域知识为何对某些模型有害。姊">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="FluxEDA 架构详解：五层栈、白名单网关、渐进式能力暴露">
+    <meta property="og:description" content="深入 FluxEDA 的五层架构设计：Gateway 白名单消除 31.7% 的 Tcl 错误，instance_id/request_id 分离实现持久会话，Progressive Capability Exposure 节省 context budget，MCP+Skills 分层解释领域知识为何对某些模型有害。姊">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 29, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>FluxEDA 架构详解：五层栈、白名单网关、渐进式能力暴露</h1>
+                <div class="meta">
+                    <span class="date">July 29, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>FluxEDA 架构详解：五层栈、白名单网关、渐进式能力暴露——让 Agent 在 EDA 工具上有状态地工作</h2>
+
+<p><strong>这是 <a href="https://harryfan1985.github.io/agent_blog/agent_blog/posts/agentic-eda-rtl-to-gds.html">上一篇 RTL-to-GDS 分析</a> 的姊妹篇。</strong>上一篇揭示了"没有 infrastructure 会怎样"（Tcl 错误 31.7%、ECO 完成率 3/8、Token ROI 差 141 倍），这篇深入 infrastructure 本身的设计——FluxEDA 是怎么做到的。</p>
+
+<p>FluxEDA 论文（arXiv:2603.25243）是一篇纯系统设计 paper，7 页，没有花哨的 benchmark table，只有两件事：一个五层架构设计和两个深度 case study。它解决的问题一句话：<strong>当前 AI agent 操作 EDA 工具的方式是 stateless shell invocation——每次调用从零开始，没有状态保持，没有合法性校验。FluxEDA 把它升级为 managed runtime。</strong></p>
+
+<h2>一、问题本质：不是 Agent 不够聪明，是操作模型错了</h2>
+
+<p>今天一个典型 AI agent 跑 EDA 工具长这样：</p>
+
+<ol>
+<li>Agent 生成一段 Tcl 脚本</li>
+<li>扔进 EDA shell 执行</li>
+<li>解析 stdout/stderr 的 log</li>
+<li>根据 log 决定下一步</li>
+<li>下一步……重新生成 Tcl 脚本，重新初始化 shell，重新 load design</li>
+</ol>
+
+<p>每一步都是<strong>孤立调用</strong>。Agent "记住"了上个步骤的逻辑，但<strong>EDA 工具本身不记得</strong>。这产生三个致命后果：</p>
+
+<ul>
+<li><strong>设计状态丢失</strong>：上一步 load 的 netlist、设置的 corner、跑的 analysis——全丢。下一步必须重来。</li>
+<li><strong>无效命令炸流程</strong>：Agent 生成了一条对当前 tool version/execution mode 合法的 Tcl 命令？它不知道。语法正确但操作无效——工具崩溃、session 中断、license 白烧。</li>
+<li><strong>N×M 适配地狱</strong>：综合用 Tcl，布局用 Python，布线用 Bash wrapper——agent 必须为每个工具写不同的 adapter。</li>
+</ul>
+
+<p>FluxEDA 的答案是：<strong>不要在 agent 和 EDA 工具之间塞更多 prompt engineering。在它们之间加一层 managed runtime。</strong></p>
+
+<h2>二、五层架构：从 Access 到 Runtime Management</h2>
+
+<pre>
+┌─────────────────────────────────────────────┐
+│ Access 层      │ MCP Server · Python SDK · C++ SDK │
+├─────────────────────────────────────────────┤
+│ Communication  │ Socket-RPC (统一通信契约)        │
+├─────────────────────────────────────────────┤
+│ Gateway 层     │ api_* 注册 · 参数校验 · 能力发现  │
+│                │ 授权 · 执行边界控制              │
+├─────────────────────────────────────────────┤
+│ EDA Tool       │ Tool Adapters (封装 Tcl/Python/ │
+│ Adaptation     │ Bash 差异,统一为 api_* interface) │
+├─────────────────────────────────────────────┤
+│ Runtime        │ instance 创建/绑定/路由/心跳/超时 │
+│ Management     │ long-task 异步 · rollback · 清理  │
+└─────────────────────────────────────────────┘
+</pre>
+
+<p>关键的不是"五层"这个数字，而是<strong>每一层解决了什么具体问题</strong>：</p>
+
+<table>
+<tr><th>层</th><th>解决的问题</th><th>如果没有这层会怎样</th></tr>
+<tr><td>Access</td><td>Agent 怎么接入？</td><td>每个 agent 框架需要自己写 adapter</td></tr>
+<tr><td>Communication</td><td>跨语言/跨进程怎么通信？</td><td>Tcl/Python/Bash 各自为政，agent 无法统一调用</td></tr>
+<tr><td><strong>Gateway</strong></td><td><strong>哪些操作是合法的？</strong></td><td><strong>Agent 可以调用任何命令——包括会炸掉工具的命令</strong></td></tr>
+<tr><td>Tool Adaptation</td><td>不同工具的不同 shell 怎么统一？</td><td>N×M 适配地狱</td></tr>
+<tr><td>Runtime Mgmt</td><td>Tool session 怎么持久化？</td><td>每次调用 = 新的 shell = 状态全丢</td></tr>
+</table>
+
+<p>Gateway 层是灵魂。它做的事简单但关键：每个 EDA 能力必须先注册为 api_* 方法，agent 只能调用注册过的。未注册的命令——不管你 Tcl 语法多正确——gateway 拒绝。这就是为什么在 RTL-to-GDS benchmark 中 FluxEDA 的 Tcl 兼容性错误是 <strong>0.0%</strong>：不是 agent 不犯错，是犯错的路径被架构消除了。</p>
+
+<h2>三、核心机制一：instance_id 和 request_id 分离</h2>
+
+<p>这是 FluxEDA 最精妙的设计决策，值得单独拿出来讲。</p>
+
+<table>
+<tr><th></th><th>instance_id</th><th>request_id</th></tr>
+<tr><td>绑定对象</td><td>一个 EDA 工具进程</td><td>一次 RPC 调用</td></tr>
+<tr><td>生命周期</td><td>从创建到释放，跨多次请求</td><td>单次请求-响应</td></tr>
+<tr><td>作用</td><td>保持 loaded design、runtime state、tool context</td><td>独立追踪、响应匹配、错误报告</td></tr>
+</table>
+
+<p>这个分离让 FluxEDA 同时做到两件事：</p>
+
+<ol>
+<li><strong>持久会话</strong>（instance_id）：Tool 进程一旦创建，load design、set corner、run analysis——所有这些状态在多次 agent 请求之间保持。Agent 下一次调用不需要重新初始化。</li>
+<li><strong>细粒度追踪</strong>（request_id）：但每一次单独的操作仍然可追踪、可匹配响应、可独立报错。不会因为共享 session 而丢失操作级的可见性。</li>
+</ol>
+
+<p>类比：instance_id 是"你登录的 SSH session"，request_id 是"session 里的每条命令的 exit code"。如果只有 request_id 没有 instance_id，每条命令都是新开一个 SSH 连接——cd 到某个目录？下一条命令不记得了。</p>
+
+<h2>四、核心机制二：Progressive Capability Exposure</h2>
+
+<p>一个容易被忽略但至关重要的问题：<strong>当后端 EDA 工具有 100+ 个 callable methods 时，一次性把所有 method schema dump 给 LLM agent 会撑爆 context window。</strong></p>
+
+<p>FluxEDA 的解法：</p>
+
+<pre>
+阶段 1: Discovery (紧凑)
+  agent → api_ping()           # "你在吗？"
+  agent → api_list_method()    # "你能做什么？" → 返回方法名列表
+
+阶段 2: 按需加载
+  agent → api_get_method_detail("method_name")  # "这个具体怎么用？"
+  → 返回完整参数 schema、类型、返回值格式
+</pre>
+
+<p>初始终端只消耗 O(1) 的 context budget——两个 discovery call。Agent 看到方法名后，自行选择需要深入了解的工具，按需拉取 schema。这对于任何管理大量 tool 的 agent infrastructure 都是通用模式——不管是 EDA 工具还是 code agent 的 50+ tool。</p>
+
+<h2>五、核心机制三：MCP 管"怎么调"，Skills 管"做什么"</h2>
+
+<p>FluxEDA 把 agent 与工具的交互拆成两层：</p>
+
+<table>
+<tr><th>层级</th><th>职责</th><th>谁负责</th><th>变更频率</th></tr>
+<tr><td>MCP Server</td><td>标准化暴露工具接口、参数校验、通信协议</td><td>Infrastructure</td><td>低频（工具版本升级）</td></tr>
+<tr><td>Skills</td><td>工作流知识：任务分解、输入校验、执行顺序、session 上下文保持</td><td>Domain expert</td><td>中频（工作流优化）</td></tr>
+</table>
+
+<p>这个分离解释了为什么 RTL-to-GDS benchmark 中 EDA Skills 的效果强烈依赖模型：</p>
+
+<ul>
+<li>如果模型自身的 workflow reasoning 很好（如 Claude Sonnet 5 裸跑 87 分），强行注入 procedural Skills 可能污染推理路径 → 从 87 分跌到 12 分</li>
+<li>如果模型不熟悉 EDA 流程（如 GLM-5.2 裸跑 13 分），Skills 提供了必要的脚手架 → 从 13 分涨到 96 分</li>
+</ul>
+
+<p>FluxEDA 的设计允许<strong>选择性启用/禁用 Skills</strong>——这是一个重要的自由度。不是所有 agent 都需要 Skills，不是所有 Skills 都对 agent 有益。</p>
+
+<h2>六、Rollback：从失败中优雅恢复</h2>
+
+<p>FluxEDA 的 Runtime Management 层保留了每次迭代的中间 state。这让 agent 可以：</p>
+
+<pre>
+Iter 1 → setup sizing → WNS/TNS 改善 → ✅ 保存 state₁
+Iter 2 → 更激进 sizing → TNS 反而恶化 → ❌ 拒绝
+         → 不从头开始
+         → rollback 到 state₁ (preserved)
+Iter 3 → 在 state₁ 基础上做 hold repair → ✅ 消除全部 hold violations
+</pre>
+
+<p>在首篇 case study（时序 ECO）中，Iter 2 被拒绝后如果不支持 rollback，agent 需要重新 load design、重新跑 baseline analysis、重新做 setup sizing——额外消耗大量 wall time 和 license。Rollback 把这个成本降为零。</p>
+
+<h2>七、两个 Case Study 中的架构体现</h2>
+
+<p>两个 case study 不是随意选的——它们各自验证架构的不同能力：</p>
+
+<h3>Case 1: Post-Route Timing ECO — 验证 stateful iteration + rollback</h3>
+
+<p>从 baseline WNS=-0.81ns / hold=-0.39ns → 3 次迭代（含 1 次回滚）→ setup 改善到 -0.76ns + hold 全部清零。核心体现：<strong>Gateway 的 api_* 调用 + Runtime 的 state 保存/恢复。</strong></p>
+
+<h3>Case 2: Sub-Library Optimization — 验证 multi-step reasoning + tool context continuity</h3>
+
+<p>26 次迭代（13 area-driven + 13 timing-driven），最终 cell references -75.8%，families -54.9%。关键转折点：agent 在 T-Run04 处发现局部 probing 不再有效 → <strong>通过持续与 STA 工具交互（FluxEDA 保持 tool session）做 critical-path 对比分析</strong> → 诊断出瓶颈是"上游共享驱动不足"而非"缺某个 cell" → 转向结构引导恢复 → T-Run10→11 突破。</p>
+
+<p>这个转折无法在 stateless shell 模式下发生——因为 agent 需要反复查询同一 loaded design 的 timing report，比较不同 iteration 的 critical path，而这种"跨多次调用的 tool context continuity"正是 managed instance 的价值。</p>
+
+<h2>八、与上一篇的交叉总结</h2>
+
+<p>两篇论文构成了一个完整的 evidence chain：</p>
+
+<table>
+<tr><th></th><th>RTL-to-GDS (2607.17528)</th><th>FluxEDA (2603.25243)</th></tr>
+<tr><td>问题</td><td>Agent 能不能跑通 RTL-to-GDS？</td><td>怎样才能让 Agent 跑通？</td></tr>
+<tr><td>方法</td><td>3 架构 × 4 模型对照实验</td><td>五层架构设计</td></tr>
+<tr><td>核心证据</td><td>FluxEDA 8/8 全通；裸 Claude Code 3/8</td><td>Gateway + managed instance 的设计原理</td></tr>
+<tr><td>关键数字</td><td>141× Token ROI 差异, Tcl error 0%</td><td>26-step Pareto 搜索, rollback 恢复</td></tr>
+<tr><td>结论</td><td>Execution harness 是第一要素</td><td>Execution harness 应该这样设计</td></tr>
+</table>
+
+<p>如果你在做任何涉及"agent + 专业工具链"的系统，FluxEDA 的五层栈是一个可以直接参考的 blueprint。</p>
+
+<h2>局限</h2>
+<ul>
+<li><strong>无多模型验证（论文未做）</strong>：整个论文只用 GPT-5.4 + Codex。不清楚 managed infrastructure 对不同模型能力的改善是否一致。</li>
+<li><strong>无 ablation study（我的观察）</strong>：没有拆开 Gateway 的 api_* 注册机制 vs persistent session 的独立效果——无法归因哪个设计贡献最大。</li>
+<li><strong>未量化成本效率（我的观察）</strong>：没有像 RTL-to-GDS 论文那样做 Token ROI 分析。</li>
+<li><strong>Skills 分离是设计选择，未经验证（我的观察）</strong>：论文说 MCP 管"怎么调"、Skills 管"做什么"——但这个分离的实际效果（是否确实减少了 agent context 消耗？是否确实提升了成功率？）没有定量验证。</li>
+<li><strong>代码未公开</strong>：复现性受限。但架构描述足够详细，核心概念可迁移。</li>
+</ul>
+
+<h2>一句话</h2>
+<blockquote><p>FluxEDA 做了一件简单但高明的事：在 AI agent 和 EDA 工具之间插入一个 managed runtime——不是让 agent 更聪明，而是让 agent 不可能犯某些错误。白名单网关消除无效命令，持久 instance 保持设计状态，rollback 让失败成本归零。这套架构对任何做 agent + 专业工具链的人都是直接可参考的 blueprint。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+<li><strong>来源确认</strong>：所有数字和架构细节来自 arXiv:2603.25243 v1 全文，通过 PyMuPDF 提取阅读。</li>
+<li><strong>推断边界</strong>：无 ablation study 的评价、Skills 分离未经定量验证的判断、以及"可推广到任意工具链"的断言为我的推断。</li>
+<li><strong>论文状态</strong>：Preprint (2026-03-26)，未标注会议/期刊接收状态。</li>
+<li><strong>姊妹篇</strong>：本文与 <a href="https://harryfan1985.github.io/agent_blog/agent_blog/posts/agentic-eda-rtl-to-gds.html">Agent 能力的真相</a> 构成完整分析链。</li>
+</ul>
+
+<h2>参考</h2>
+<ul>
+<li>FluxEDA 论文：<a href="https://arxiv.org/abs/2603.25243">arXiv:2603.25243</a></li>
+<li>RTL-to-GDS benchmark：<a href="https://arxiv.org/abs/2607.17528">arXiv:2607.17528</a></li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
