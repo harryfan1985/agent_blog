@@ -1,4 +1,238 @@
 posts:
+- title: Coding Agent 找文件这件事有多难？——Agent Retrieval Bench 的 4 个发现
+  date: July 31, 2026
+  excerpt: 427 样本 × 25 仓库的专项 benchmark 揭示：27-35% 的 agent 交互从未触及正确文件。Embedding/lexical/RepoMap 互补但无单一王者，RRF 融合提升 18% MRR。选择性拒绝检索几乎完全失败。
+  content: '<h2>27-35% 的 agent 交互过程从未触及正确文件——coding agent 找文件这件事，远没有被解决</h2>
+
+
+    <p>当我们说一个 coding agent "能力强"或"能力弱"时，我们几乎总在说它最终产的 patch 是否通过了测试。但 patch 生成的前提是上下文获取：agent 必须先找到仓库里哪些文件与当前任务相关。这个上游阶段的失败，被端到端的 pass/fail 指标掩盖了。</p>
+
+
+    <p>NUS 和 Peking University 的研究者提出了 <strong>Agent Retrieval Bench (ARB)</strong>——一个专门测量 coding agent 上下文获取能力的 benchmark。427 个样本、25 个仓库、39.2 万个文件、790 万个 chunk。核心问题不是 "能不能生成正确 patch"，而是 "能不能找到该读的文件"——甚至
+    "能不能判断仓库里根本不存在需要的文件"。</p>
+
+
+    <p>结果令人警醒：即使是最先进的交互式 agent（OpenAI GPT-5.4-mini、Codex CLI GPT-5.4/5.5），在 27-35% 的样本上<strong>从未触及任何一个 gold file</strong>。不是找到了但没修好——是根本就没找到。</p>
+
+
+    <h2>核心发现一：没有一种 retrieval 方法统治所有工作流</h2>
+
+
+    <p>ARB 设计了四种正样本检索任务，模拟四种真实编码工作流信号：</p>
+
+
+    <table>
+
+    <tr><th>任务</th><th>输入信号</th><th>目标</th><th>样本数</th></tr>
+
+    <tr><td>code2test</td><td>PR 描述 + 实现变更</td><td>相关测试文件</td><td>106</td></tr>
+
+    <tr><td>comment2context</td><td>Review comment + 被审文件</td><td>额外上下文文件</td><td>80</td></tr>
+
+    <tr><td>trace2code</td><td>复现失败命令 + 错误输出</td><td>根因源文件</td><td>101</td></tr>
+
+    <tr><td>edit2ripple</td><td>锚点 diff + 变更意图</td><td>受影响的额外文件</td><td>58</td></tr>
+
+    </table>
+
+
+    <p>在不同的任务和指标下，赢家完全不同：</p>
+
+
+    <table>
+
+    <tr><th>指标</th><th>最佳模型</th><th>值</th></tr>
+
+    <tr><td>Overall MRR</td><td>Qwen3-Embedding-4B</td><td>0.2379</td></tr>
+
+    <tr><td>Overall Recall@20</td><td>Qwen3-Embedding-8B</td><td>0.7029</td></tr>
+
+    <tr><td>Overall BCY@8k</td><td>RepoMap</td><td>0.3788</td></tr>
+
+    <tr><td>trace2code MRR</td><td>RepoMap</td><td>0.2742</td></tr>
+
+    <tr><td>comment2context MRR</td><td>Jina-0.5B</td><td>0.3043</td></tr>
+
+    <tr><td>edit2ripple MRR</td><td>pplx-embed-v1-4b</td><td>0.2877</td></tr>
+
+    </table>
+
+
+    <p>尤其惊人的是 <strong>trace2code 的全局反转</strong>：Qwen3-4B 是全局 MRR 冠军（0.2379），但在 trace2code 上它的 MRR 仅有 0.0827，排名倒数第二。RepoMap——一个不用任何向量的纯结构化方法——在 trace2code 上 R@20 达到 0.8366，碾压所有 embedding 模型。</p>
+
+
+    <p>原因很简单：失败追踪输出里往往只有测试文件和局部符号名，根因实现文件在语义上跟错误信息完全不相似。只有利用仓库结构（测试→源码的路径映射、符号图）才能从可见信号跳转到真正的根因。</p>
+
+
+    <h2>核心发现二：RRF 融合让所有单模型相形见绌</h2>
+
+
+    <p>既然语义 embedding 和结构化 retrieval 互补，一个自然的想法是把它们融合。研究者用最简单的 Reciprocal Rank Fusion (RRF) 把 Qwen3-8B 和 RepoMap 的 top-20 排名融合：</p>
+
+
+    <table>
+
+    <tr><th>指标</th><th>最佳单模型</th><th>RRF 融合</th><th>提升</th></tr>
+
+    <tr><td>Overall MRR</td><td>0.2296 (Qwen3-8B)</td><td><strong>0.2713</strong></td><td>+18%</td></tr>
+
+    <tr><td>Overall R@20</td><td>0.7070 (Qwen3-8B)</td><td><strong>0.7331</strong></td><td>+3.7%</td></tr>
+
+    <tr><td>trace2code R@20</td><td>0.8366 (RepoMap)</td><td><strong>0.8795</strong></td><td>+5.1%</td></tr>
+
+    <tr><td>BCY@8k</td><td>0.3828 (RepoMap)</td><td><strong>0.4884</strong></td><td>+27.6%</td></tr>
+
+    </table>
+
+
+    <p>不需要训练新模型，不需要复杂的 late-interaction 或 ColBERT。两个现有方法的 rank fusion 就显著超越了所有单模型。这验证了论文的核心主张：<strong>agentic retrieval 的不同 query 类型需要不同的归纳偏置</strong>。</p>
+
+
+    <h2>核心发现三：选择性拒绝检索几乎完全失败</h2>
+
+
+    <p>正样本检索只回答了一半问题。一个生产环境的 context engine 还必须能判断：这个 issue 的解决方案<strong>不在本地仓库里</strong>。ARB 包含两类 no-gold 样本：32 个故意配错的 counterfactual（用 pytest 的 issue 去查 Gin 的仓库），和 50 个自然的 external-resolution 案例（pytest
+    报了 CPython 的 bug）。</p>
+
+
+    <p>在混合了 counterfactual 的测试中，lexical 方法看起来还不错：selective success@20 从 0.461 提升到了 0.496。但一旦去掉容易检测的错误仓库对照，只用自然案例——<strong>所有三个 ranker 的 selective success 都崩塌了</strong>：</p>
+
+
+    <table>
+
+    <tr><th>Ranker</th><th>不拒绝 (baseline)</th><th>混合协议</th><th>纯自然协议</th></tr>
+
+    <tr><td>Lexical</td><td>0.499</td><td>0.496</td><td><strong>0.294</strong></td></tr>
+
+    <tr><td>Jina-0.5B</td><td>0.489</td><td>0.389</td><td><strong>0.334</strong></td></tr>
+
+    <tr><td>BM25</td><td>0.463</td><td>0.377</td><td><strong>0.220</strong></td></tr>
+
+    </table>
+
+
+    <p>阈值校准的缺陷是双向的：Jina 在自然协议中正确拒绝了 94% 的 no-gold 案例，但同时也拒绝了 62.3% 的正样本。简单地把 top retrieval score 跟一个阈值比——这招对自然 no-gold 案例根本不 work。</p>
+
+
+    <p>这是一个重要的<strong>负面结果</strong>：判断"仓库内没有答案"需要的不是 retrieval confidence，而是一个独立的 reasoner。</p>
+
+
+    <h2>核心发现四：检索派生的初始上下文 = 更少的探索、更高的 F1</h2>
+
+
+    <p>论文做了一项控制实验（seed intervention pilot）：固定 Codex GPT-5.5 的封闭工具策略，只改变 agent 启动时的初始上下文。比较无 seed、随机非 gold seed、lexical seed、Qwen3-8B seed、RRF hybrid seed、和 oracle gold seed：</p>
+
+
+    <table>
+
+    <tr><th>Seed 类型</th><th>最终 File F1</th><th>ΔF1</th><th>Seeded 后的 token 消耗</th><th>工具调用数</th></tr>
+
+    <tr><td>无 seed</td><td>0.3222</td><td>—</td><td>2137</td><td>3.71</td></tr>
+
+    <tr><td>随机非 gold</td><td>0.3437</td><td>+0.0215</td><td>3682</td><td>8.49</td></tr>
+
+    <tr><td>Lexical seed</td><td><strong>0.3981</strong></td><td>+0.0759</td><td>2244</td><td>6.24</td></tr>
+
+    <tr><td>RRF hybrid seed</td><td><strong>0.3967</strong></td><td>+0.0744</td><td><strong>1857</strong></td><td><strong>5.42</strong></td></tr>
+
+    <tr><td>Oracle gold seed</td><td><strong>0.6337</strong></td><td>+0.3115</td><td>1736</td><td>4.18</td></tr>
+
+    </table>
+
+
+    <p>三个关键洞察：</p>
+
+
+    <p><strong>1. 光是给 agent 更多 context 就能提升一点</strong>——随机非 gold seed 提升了 0.0215 F1。这说明 seed 实验中存在 prompt perturbation 的正效应。</p>
+
+
+    <p><strong>2. 检索质量显著影响效率</strong>——RRF hybrid seed 在实现 +0.0744 ΔF1 的同时，只消耗了 1857 个 post-seed token 和 5.42 次工具调用，远少于随机 seed 的 3682 token / 8.49 调用。好的初始上下文让 agent 更快找到目标。</p>
+
+
+    <p><strong>3. 天花板还很远</strong>——Oracle seed 的 0.6337 F1 说明即使完美定位了文件，agent 在文件内的信息提取和文件选择决策上仍有巨大提升空间。51.8% 的 gold 文件超过 500 行，而标注的有用区域平均只占文件的 4.7%。</p>
+
+
+    <h2>对 Agent 基础设施的工程启示</h2>
+
+
+    <h3>1. Context acquisition 是独立的可测量组件</h3>
+
+
+    <p>不要把 retrieval 塞进 agent 的"工具调用"黑盒里，然后只看端到端 pass rate。ARB 提供了一个标准化的评估 harness：给定工作流信号和冻结的仓库快照，独立测量 context 获取质量。这应该成为 coding agent 基础设施中 context-acquisition layer 的常规 CI 检查。</p>
+
+
+    <h3>2. 混合 retrieval 是工程上的 no-brainer</h3>
+
+
+    <p>RRF 融合（embedding + 结构化）在所有指标上超越单模型——不需要额外训练，零推理开销（只是 rank fusion）。对于 coding agent，默认应该同时运行 semantic embedding 和 repo map，然后用 RRF 融合两者的 top-20 结果。</p>
+
+
+    <h3>3. trace2code 场景必须用结构化 retrieval</h3>
+
+
+    <p>失败追踪→根因定位这个场景是 embedding 的阿克琉斯之踵。如果你的 agent 做的是 debug/修复类任务，纯 semantic search 会让 agent 在测试文件和日志输出上浪费时间。RepoMap 的路径/符号图是必需的。</p>
+
+
+    <h3>4. 选择性拒绝需要专用组件</h3>
+
+
+    <p>不要指望 retrieval confidence threshold 能判断"仓库里没有答案"。论文的负面结果说明这需要一个独立的 reasoner——可能是 LLM 做 issue 分析，或者是多信号（commit history、error pattern、dependency graph）的集成判断。</p>
+
+
+    <h2>局限与诚实标注</h2>
+
+
+    <ul>
+
+    <li><strong>样本规模有限（论文自认）</strong>：345 个正样本、25 个仓库——不是 web-scale benchmark。Gin 占 25.5%，前 4 大仓库占 58.8%。</li>
+
+    <li><strong>文件级而非行级（论文自认）</strong>：75.7% 的 gold span 只占文件 ≤10%。BCY 给全文件打分，但 agent 在实际使用中还需要文件内定位。</li>
+
+    <li><strong>固定 base-commit 快照（论文自认）</strong>：不评估动态检索和迭代探索——这些是交互式 agent 的实际行为。</li>
+
+    <li><strong>Seed pilot 单轨迹（论文自认）</strong>：每个 sample-arm pair 仅 1 次 trajectory，无法做统计推断或置信区间。</li>
+
+    <li><strong>无端到端 patch 验证（论文自认 + 设计选择）</strong>：ARB 明确不声称 retrieval 质量能预测 repair 成功。这是组件级 benchmark，不是 end-to-end 评估。</li>
+
+    <li><strong>Gold 标签可能不完整（论文自认）</strong>：有些任务可能有额外的有用文件未被标注。benchmark 的 gold 是充分条件，不是必要条件。</li>
+
+    <li><strong>与 SWE-bench 实例无双射映射（我的推断）</strong>：ARB 样本是按工作流证据构建的，不能直接映射到 SWE-bench 实例做 patch-level 相关性分析。</li>
+
+    </ul>
+
+
+    <h2>一句话</h2>
+
+    <blockquote><p>Agent Retrieval Bench 把 coding agent "找文件"这一步从端到端评估中拆了出来——结论是 retrieval 层离"好用"还有距离，三种方法互补但没有一种能解决所有场景，而"判断仓库里没有答案"这件事目前完全无解。</p></blockquote>
+
+
+    <h2>技术声明</h2>
+
+    <ul>
+
+    <li><strong>来源确认</strong>：所有数字和结论直接来自论文 Agent Retrieval Bench (arXiv:2607.24882)，通过 PyMuPDF 从 PDF 全文提取（29 页/99K 字符）。</li>
+
+    <li><strong>推断边界</strong>：标注 "论文自认"的局限均来自论文 Limitation 节。标注 "我的推断" 的条目基于论文方法论分析但不直接出现在论文中。</li>
+
+    <li><strong>论文状态</strong>：2026 年 7 月 27 日 arXiv preprint，作者 Bowen Qin (NUS) 和 Yi Xie (Peking University)。未经同行评议。</li>
+
+    <li><strong>利益声明</strong>：作者与本文分析者无任何利益关联。benchmark 代码以开源许可发布在 GitHub。</li>
+
+    </ul>
+
+
+    <h2>参考</h2>
+
+    <ul>
+
+    <li>论文: <a href="https://arxiv.org/abs/2607.24882">Agent Retrieval Bench: Evaluating Repository Context Retrieval for Coding Agents</a> (arXiv:2607.24882)</li>
+
+    <li>代码: <a href="https://github.com/eyuansu62/agent-retrieval-bench">github.com/eyuansu62/agent-retrieval-bench</a></li>
+
+    <li>项目网站: <a href="https://agent-retrieval-bench.github.io">agent-retrieval-bench.github.io</a></li>
+
+    </ul>'
+  slug: agent-retrieval-bench-context-acquisition
 - title: Sutton 的逆潮流赌注：Alberta Plan——12步从不停止学习的 AI 路线图
   date: July 30, 2026
   excerpt: 强化学习之父 Sutton 提出 Alberta Plan——12步永不停止学习的 AI 路线图。时间均匀性、STOMP→Oak 架构、Intelligence Amplification。一份与 LLM 范式完全正交的 AI 研究宣言。
