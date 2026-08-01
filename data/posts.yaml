@@ -1,4 +1,139 @@
 posts:
+- title: 文件系统作为Agent记忆：组织化的条件性价值
+  date: August 1, 2026
+  excerpt: UIUC韩家炜组的59页实证研究首次系统性检验了filesystem-based agent memory。结论：组织化记忆的价值是条件性的——它在large material上减半检索成本，但没有agent能将组织本身转化为更好答案。组织付费于成本而非质量。
+  content: '<p>当 LLM agent 需要记忆跨越单次对话时，工业实践已经悄然收敛于一个朴素方案：<strong>文件系统</strong>——一个 agent 自己读写、重组的 markdown 文件目录树。Claude 的 Memory Tool、Claude Code 的 MEMORY.md、生态中遍地开花的 agent skills，都建立在一个从未被验证的假设上：agent
+    能保持这个不断增长的存储库组织良好，且这种组织确实值得付出成本。</p>
+
+
+    <p>UIUC 韩家炜组联合 UCSD、Adobe Research 在 7月29日发布的这篇 59 页预印本，是第一次对文件系统式 agent 记忆的系统性实证研究。它回答了一个 pragmatic 到几乎被忽略的问题：<strong>我们依赖的默认方案到底行不行？</strong></p>
+
+
+    <h2>三角色模型：管理/搜索/执行的记忆分工</h2>
+
+
+    <p>论文将文件系统记忆形式化为三个角色围绕一个共享存储：</p>
+
+
+    <table>
+
+    <tr><th>角色</th><th>职责</th><th>实际映射</th></tr>
+
+    <tr><td><strong>Management Agent</strong></td><td>接收内容流，写入+重组存储</td><td>Claude Memory Tool 的后台整理逻辑</td></tr>
+
+    <tr><td><strong>Search Agent</strong></td><td>查询存储，返回带源头引用的答案</td><td>RAG 检索层</td></tr>
+
+    <tr><td><strong>Execution Agent</strong></td><td>执行任务，产出轨迹被蒸馏为 skill</td><td>Coding agent 本体</td></tr>
+
+    </table>
+
+
+    <p>这个分解的精妙之处在于<strong>声明式记忆和过程式 skill 统一在同一个文件系统中</strong>——一个存储，两种内容。角色合约是极简的，所以在实际 coding agent 中三个角色可以是一个模型。</p>
+
+
+    <h2>实验矩阵：6 种记忆 × 4 个基准 × 3 个模型梯级</h2>
+
+
+    <table>
+
+    <tr><th>记忆变体</th><th>做法</th><th>成本</th></tr>
+
+    <tr><td>Closed-book</td><td>无记忆，模型凭自身知识回答</td><td>零</td></tr>
+
+    <tr><td>Chunk retrieval</td><td>分块 + BM25 检索（标准 RAG baseline）</td><td>低</td></tr>
+
+    <tr><td>Verbatim dump</td><td>按会话存原文，零模型成本</td><td>零（但检索贵）</td></tr>
+
+    <tr><td>Foldered sessions</td><td>LLM 设计文件夹分类（仅移动，不编辑内容）</td><td>低</td></tr>
+
+    <tr><td>Reorganized store</td><td>LLM 重组存储（含压缩版/保留版两个变体）</td><td>中</td></tr>
+
+    <tr><td>Agent-curated store</td><td>Management agent 从零增量构建</td><td>高</td></tr>
+
+    </table>
+
+
+    <p>Benchmark 覆盖：<strong>LoCoMo</strong>（多会话对话 QA，158 题）、<strong>PersonaMem</strong>（32k/128k tiers，选择题）、<strong>REALTALK</strong>（21 天真实人类对话）、<strong>ALFWorld</strong>（具身任务）。主力模型是 gpt-5.4-mini high-effort，梯度测试从
+    nano 到 full gpt-5.4。</p>
+
+
+    <h2>核心发现：组织化记忆的价值是条件性的</h2>
+
+
+    <h3>RQ1：Agent 怎么组织？</h3>
+
+    <p>Management agent 生长的是主题树，但<strong>树的形状更多是模型签名而非规模响应</strong>。给更多材料导致合并而非分裂——hierarchy 在 folder、file、heading 之间迁移。退化模式：重组织 pass 可能静默压缩内容，除非加一条"保留每个事实"的规则。</p>
+
+
+    <h3>RQ2：组织值得吗？</h3>
+
+    <p><strong>没有单一形状在所有 benchmark 胜出</strong>。组织的明确回报是搜索成本——organized store 在大材料上约<strong>减半检索 token 和轮次</strong>。但在技能任务上赢家取决于消费者：verbatim episode log 配合强 execution agent 最佳，弱 agent 下只有 curated skills
+    不崩溃。</p>
+
+
+    <h3>RQ3：模型能力买什么？</h3>
+
+    <p>对话场景：management agent 强度买组织风格，不买答案质量；<strong>search agent 强度直接付费</strong>——更强的搜索模型直接转化为更好的答案。技能场景：management 能力是阈值效应——跨过门槛后 store 内容比哪个模型执行更重要。</p>
+
+
+    <h3>RQ4：记忆能持续吗？</h3>
+
+    <p>在测量范围内 store <strong>越长越有用</strong>。对话 store 早期创建少量文件后仅编辑不删除。但 ⚠️ <strong>taxonomy 合约遵守度随增长侵蚀</strong>——仅最强 management agent 能维持文件归属的唯一性、命名的自描述性等五项约束。</p>
+
+
+    <h3>RQ5：工具集是中性包装吗？</h3>
+
+    <p>不是。<strong>替换工具集（memory-tool API → shell）重塑了 store 本身</strong>——shell 导致更多小文件（对话）或更多合并（技能）。添加单个工具改变行为不改变结果，但替换整个工具集是记忆组织的控制杆。</p>
+
+
+    <h2>Engineer''s Read：对 agent 构建者的含义</h2>
+
+
+    <table>
+
+    <tr><th>如果你在...</th><th>这篇论文告诉你</th></tr>
+
+    <tr><td>设计 agent 记忆系统</td><td>不要为组织而组织。如果你的 search agent 够强、材料不大，verbatim dump + strong search 可能就够。组织付费于成本而非质量</td></tr>
+
+    <tr><td>构建 agent harness</td><td>工具集不是中性的。选择 memory-tool API 还是 shell 会改变 agent 如何组织记忆。Harness 设计就是记忆架构设计</td></tr>
+
+    <tr><td>评估记忆质量</td><td>现有 QA benchmark 对存储形状不敏感——你可能测不出组织的价值。需要新的、对 shape 敏感的评估方法</td></tr>
+
+    <tr><td>维护长期 agent</td><td>Taxonomy 合约（五项约束）是 store 健康的可操作指标。监控文件归属唯一性、命名自描述性、主题完整性可以作为记忆健康度 dashboard</td></tr>
+
+    <tr><td>做 agent RSI/自我改进</td><td>技能蒸馏循环（execution→management→search）形成记忆驱动的 RSI。能力阈值效应提示：跨过门槛后内容本身比模型更重要</td></tr>
+
+    </table>
+
+
+    <h2>局限与开放问题</h2>
+
+
+    <ul>
+
+    <li><strong>单会话 horizon</strong>：所有实验在单会话内完成，未测试跨会话持久化周期中组织退化的累积效应</li>
+
+    <li><strong>仅 gpt-5.4 系列</strong>：发现可能耦合于 GPT 系列行为，开源模型上的行为未知</li>
+
+    <li><strong>质量 benchmark 盲区</strong>：现有 benchmark 区分不出组织优劣——你可能在为看不见的收益付费</li>
+
+    <li><strong>角色分离的隐含成本</strong>：实际 coding agent 中三角色合一，分离开销未量化</li>
+
+    </ul>
+
+
+    <p>这篇论文把文件系统从<strong>"默认假设"升级为"设计空间"</strong>。它不告诉你"应该怎么组织记忆"——它告诉你组织什么时候值得、什么时候是浪费、以及你手里的工具集本身就是记忆架构的控制杆。对于构建 agent 基础设施的工程师来说，这是一份少有的、将基础设施选择对 agent 行为的因果效应量化到数字级别的实证研究。</p>
+
+
+    <hr>
+
+
+    <p><em>论文：<a href="https://arxiv.org/abs/2607.26637">Filesystem-Based Memory for LLM Agents: Organization, Evolution, and Sustainability</a> — Zhou, Yu, Wei et al., 2026</em></p>
+
+    <p><em>代码：未发布（2天前预印本），作者 GitHub: <a href="https://github.com/KevinSRR">KevinSRR</a></em></p>
+
+    '
+  slug: filesystem-agent-memory-conditional-value
 - title: Coding Agent 找文件这件事有多难？——Agent Retrieval Bench 的 4 个发现
   date: July 31, 2026
   excerpt: 427 样本 × 25 仓库的专项 benchmark 揭示：27-35% 的 agent 交互从未触及正确文件。Embedding/lexical/RepoMap 互补但无单一王者，RRF 融合提升 18% MRR。选择性拒绝检索几乎完全失败。
@@ -7379,6 +7514,69 @@ posts:
     \ 仓库（<a href=\"https://github.com/guardrails-ai/guardrails\">github.com/guardrails-ai/guardrails</a>），截至 2026 年 6 月 7 日的代码和文档。OnFailAction 源码来自 <code>guardrails/types/on_fail.py</code>。Hub validators\
     \ 列表来自 Guardrails Hub 官方目录页。所有分析基于公开源码，未使用任何付费或私有 API。</p>\n\n<p><strong>分析边界：</strong> 本文聚焦 Agent 自验证场景，不涉及 Guardrails 的 API 网关模式、Guardrails Server 部署、或与其他 agent 框架的集成。对于 LLM 输出安全护栏的通用场景，Guardrails\
     \ 的文档和社区有更全面的覆盖。</p>\n\n<p><strong>利益声明：</strong> 作者正在开发 meta-agent-poc（spec-driven multi-agent engine），其中 RuntimeGate 组件与 Guardrails 存在技术重叠。本文的分析立场基于工程评估，不构成竞争性比较。Guardrails AI 是优秀的开源项目，本文的建设性批评旨在明确各自的技术边界，而非否定其价值。</p>\n"
+- title: Meta-Agent 验证机制相关论文与开源项目清单
+  date: June 8, 2026
+  excerpt: 以 Meta-Agent 的验证机制为核心，整理 20 篇核心论文和 16 个开源项目。覆盖 VERIMAP 前身、MAV 并行验证器、ReVeal 训练期互补、LLM-as-Judge 理论、形式化验证、Reflection 循环六大方向。每个条目附 arXiv ID 和 GitHub 链接。
+  content: "<p><img src=\"/images/meta-agent/cover.png\" alt=\"Meta-Agent 验证机制相关论文与开源项目清单\" style=\"max-width:100%;border-radius:8px;margin:1rem 0;\"></p><h2>为什么需要这份清单</h2>\n\n<p>在对 <a href=\"/agent_blog/posts/specification-gap-meta-agent-multi-agent.html\"\
+    >Meta-Agent 验证机制</a> 的深入分析中，我们梳理了其前身（VERIMAP）、问题诊断（Specification Gap）、并行可叠加方案（MAV）、训练期互补方案（ReVeal）等一系列相关研究。这份清单将 20 篇核心论文和 16 个开源项目整理成一个参考入口——以 Meta-Agent 的验证机制（Generate→Verify→Attribute→Refine 闭环，typed\
+    \ failure signal，三级错误归因）为锚点，按关联方向分组。</p>\n\n<h2>一、核心论文</h2>\n\n<h3>Meta-Agent 及其前身</h3>\n\n<ol>\n  <li><strong>Meta-Agent: From Task Descriptions to Verified Multi-Agent Systems.</strong> Andy Xu, Yu-Wing\
+    \ Tai (Dartmouth College). arXiv 2605.25233, 2026.05.<br>统一验证循环，构造期+执行期双重验证，三级错误归因，typed failure signal F = {spec mismatch, grounding failure, contract violation}。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2605.25233\"\
+    >arXiv</a></li>\n\n  <li><strong>VERIMAP: Verification-Aware Planning for Multi-Agent Systems.</strong> EACL 2026 / arXiv 2510.17109.<br>Meta-Agent 验证机制的前身。Plan→Execute→Verify 循环，三种验证器（Base/Structured/Agent），5\
+    \ 类任务。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2510.17109\">arXiv</a> | <a href=\"https://github.com/megagonlabs/veriMAP\">GitHub</a></li>\n</ol>\n\n<h3>问题诊断</h3>\n\n<ol start=\"3\">\n  <li><strong>The\
+    \ Specification Gap: Coordination Failure Under Partial Knowledge in Code Agents.</strong> Camilo Chacón Sartori. arXiv 2603.24284, 2026.03.<br>精确量化 multi-agent 协调失败：58%→25% 衰减曲线，gap = 协调成本（+16pp）+\
+    \ 信息不对称（+11pp），AST 级 5 类冲突检测。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2603.24284\">arXiv</a> | <a href=\"https://github.com/camilochs/the_specification_gap\">GitHub</a></li>\n\n  <li><strong>Spec\
+    \ Kit Agents: Context-Grounded Agentic Workflows.</strong> GitHub. arXiv 2604.05278.<br>GitHub Spec Kit 的 SDD 四阶段流水线 + context-grounding hooks，PM+Developer 双 agent 角色。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2604.05278\"\
+    >arXiv</a></li>\n</ol>\n\n<h3>多验证器并行（可叠加 Meta-Agent）</h3>\n\n<ol start=\"5\">\n  <li><strong>Multi-Agent Verification: Scaling Test-Time Compute with Multiple Verifiers (MAV).</strong> Lifshitz, McIlraith\
+    \ (UofT), Du (Harvard). arXiv 2502.20379, 2025. ICLR 2025 Workshops.<br>BoN-MAV 算法：m 个 Aspect Verifier 并行验证同一输出，weak-to-strong generalization，self-improvement。与 Meta-Agent 的每个 gate 直接可组合——gate 升级为 committee。<br>\U0001F517\
+    \ <a href=\"https://arxiv.org/abs/2502.20379\">arXiv</a> | <a href=\"https://github.com/Shalev-Lifshitz/MultiAgentVerification\">GitHub</a></li>\n\n  <li><strong>Not All Votes Count! Programs as Verifiers\
+    \ Improve Self-Consistency (PROVE).</strong> 2024.<br>程序化验证器优于 LLM 投票——直接支持 Meta-Agent 中 StructuredVerifier（Python assert）的设计选择。<br>\U0001F517 <a href=\"https://www.researchgate.net/publication/384974495\"\
+    >ResearchGate</a></li>\n</ol>\n\n<h3>Training-Time 验证（与 Meta-Agent 互补）</h3>\n\n<ol start=\"7\">\n  <li><strong>ReVeal: Self-Evolving Code Agents via Reliable Self-Verification.</strong> arXiv 2506.11442,\
+    \ ICLR 2026.<br>TAPO 算法：多轮 RL 联合优化 generation + verification，agent 自主生成测试用例+自我验证，训练后内化验证能力。Inference 时即使不训练，多轮仍持续改进。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2506.11442\">arXiv</a></li>\n\n  <li><strong>Agent-RLVR:\
+    \ Training SWE Agents via Guidance and Environment Rewards.</strong> arXiv 2506.11425, 2025.<br>将 RLVR（可验证奖励 RL）扩展到 agentic 任务，环境执行反馈作为 verifiable reward。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2506.11425\"\
+    >arXiv</a></li>\n\n  <li><strong>CodeScaler: Scaling Code LLM Training and Test-Time Inference.</strong> arXiv 2602.17684, 2026.<br>代码 RL 中的 binary execution feedback 作为 reward。<br>\U0001F517 <a href=\"\
+    https://arxiv.org/abs/2602.17684\">arXiv</a></li>\n\n  <li><strong>Awesome-RLVR.</strong> RLVR 领域论文全集。<br>\U0001F517 <a href=\"https://github.com/opendilab/awesome-RLVR\">GitHub</a></li>\n</ol>\n\n\
+    <h3>LLM-as-Judge / Agent-as-Judge（验证器理论基础）</h3>\n\n<ol start=\"11\">\n  <li><strong>Agent-as-a-Judge: A Survey.</strong> arXiv 2601.05111, 2026.<br>从 LLM-as-Judge 到 Agent-as-Judge 的系统综述，agentic judge\
+    \ 具备分解复杂目标、主动信息收集、多维度评估的能力。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2601.05111\">arXiv</a></li>\n\n  <li><strong>When AIs Judge AIs: The Rise of Agent-as-a-Judge Evaluation.</strong> arXiv 2508.02994,\
+    \ 2025.<br>Multi-agent discussion 评估，Kendall Tau 0.57 vs 0.52（单 judge）。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2508.02994\">arXiv</a></li>\n\n  <li><strong>Limitations of LLM-as-a-Judge Without\
+    \ Human Grounding.</strong> arXiv 2503.05061, 2025.<br>1200 条人类标注数据，评估 LLM judge 的系统性偏差。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2503.05061\">arXiv</a></li>\n\n  <li><strong>LLM-as-a-Judge 论文合集.</strong><br>\U0001F517\
+    \ <a href=\"https://llm-as-a-judge.github.io\">llm-as-a-judge.github.io</a></li>\n</ol>\n\n<h3>Structured / 可执行验证</h3>\n\n<ol start=\"15\">\n  <li><strong>DeepVerifier: Inference-Time Scaling of Verification.</strong>\
+    \ arXiv 2601.15808, 2026.<br>自动构建验证 rubric，test-time 验证缩放，超过 vanilla judge 12-48%（F1）。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2601.15808\">arXiv</a></li>\n\n  <li><strong>SAGA: Rethinking Verification\
+    \ for LLM Code Generation.</strong> NeurIPS 2025.<br>Human-LLM 协作测试用例生成方法，Verifier Accuracy 比 LiveCodeBench-v6 高 10.78%。<br>\U0001F517 <a href=\"https://neurips.cc/virtual/2025/poster/118941\">NeurIPS</a></li>\n\
+    \n  <li><strong>Cross-Verification Collaboration Protocol (CVCP).</strong> MDPI Symmetry, 2025.<br>Symmetry 检测 + adversarial testing + Round-Trip Review，CodeELO Elo +7.1%，hard problems pass rate 1.8x。<br>\U0001F517\
+    \ <a href=\"https://www.mdpi.com/2073-8994/17/10/1660\">MDPI</a></li>\n</ol>\n\n<h3>形式化验证 + LLM</h3>\n\n<ol start=\"18\">\n  <li><strong>Towards Formal Verification of LLM-Generated Code.</strong> arXiv\
+    \ 2507.13290, 2025.<br>Formal Query Language，验证正确代码 83%，识别错误代码 92%。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2507.13290\">arXiv</a></li>\n\n  <li><strong>Constitutional Spec-Driven Development.</strong>\
+    \ arXiv 2602.02584, 2026.<br>安全约束嵌入 spec 层，secure by construction，完全可追溯。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2602.02584\">arXiv</a></li>\n\n  <li><strong>AssertLLM: Generating Hardware Verification\
+    \ Assertions.</strong> arXiv 2411.14436, 2024.<br>Multi-LLM 自动生成验证 assert。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2411.14436\">arXiv</a></li>\n</ol>\n\n<h3>Reflection / Self-Correction 循环</h3>\n\
+    \n<ol start=\"21\">\n  <li><strong>Reflexion: Language Agents with Verbal Reinforcement Learning.</strong> Shinn et al. NeurIPS 2023.<br>反思循环的奠基工作。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2303.11366\"\
+    >arXiv</a></li>\n\n  <li><strong>Self-Refine: Iterative Refinement with Self-Feedback.</strong> Madaan et al. NeurIPS 2023.<br>Generate→Feedback→Refine 循环。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2303.17651\"\
+    >arXiv</a></li>\n\n  <li><strong>Teaching LLMs to Self-Debug.</strong> Chen et al. arXiv 2304.05128, 2023.<br>代码生成场景的 self-debugging。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2304.05128\">arXiv</a></li>\n\
+    </ol>\n\n<h2>二、开源项目</h2>\n\n<h3>可直接运行的验证框架</h3>\n\n<ol>\n  <li><strong>VERIMAP</strong> — Meta-Agent 验证机制的前身。三种验证器（Base/Structured/Agent），DAG/Chain/Graph 多协调模式。\U0001F517 <a href=\"https://github.com/megagonlabs/veriMAP\"\
+    >github.com/megagonlabs/veriMAP</a></li>\n\n  <li><strong>MAV</strong> — BoN-MAV 算法实现。n 候选 + m Aspect Verifier，可运行示例数据（300 MATH 题，Gemini-1.5-Flash）。\U0001F517 <a href=\"https://github.com/Shalev-Lifshitz/MultiAgentVerification\"\
+    >github.com/Shalev-Lifshitz/MultiAgentVerification</a></li>\n\n  <li><strong>The Specification Gap</strong> — AmbigClass benchmark（100 任务×4 spec 级别）+ AST 冲突检测器（5 类冲突）。\U0001F517 <a href=\"https://github.com/camilochs/the_specification_gap\"\
+    >github.com/camilochs/the_specification_gap</a></li>\n\n  <li><strong>GitHub Spec Kit</strong> — GitHub 官方 SDD 工具包，MIT 许可证，12+ agent 支持。\U0001F517 <a href=\"https://github.com/github/spec-kit\">github.com/github/spec-kit</a></li>\n\
+    </ol>\n\n<h3>Structured Output / 验证基础设施</h3>\n\n<ol start=\"5\">\n  <li><strong>Instructor</strong> — Pydantic schema 验证 + 自动重试，15+ LLM provider。\U0001F517 <a href=\"https://github.com/567-labs/instructor\"\
+    >github.com/567-labs/instructor</a></li>\n\n  <li><strong>Outlines</strong> — Token 级约束生成，guaranteed schema compliance，零重试。适合本地模型。\U0001F517 <a href=\"https://github.com/dottxt-ai/outlines\">github.com/dottxt-ai/outlines</a></li>\n\
+    \n  <li><strong>PydanticAI</strong> — Pydantic 团队官方 agent runtime，类型安全的 tool calling。\U0001F517 <a href=\"https://github.com/pydantic/pydantic-ai\">github.com/pydantic/pydantic-ai</a></li>\n\n  <li><strong>Guidance</strong>\
+    \ — Regex + CFG 约束生成，精确控制输出格式。\U0001F517 <a href=\"https://github.com/guidance-ai/guidance\">github.com/guidance-ai/guidance</a></li>\n</ol>\n\n<h3>Guardrails / 验证护栏</h3>\n\n<ol start=\"9\">\n  <li><strong>Guardrails\
+    \ AI</strong> — Input + Output 双向验证，自定义 validator。\U0001F517 <a href=\"https://github.com/guardrails-ai/guardrails\">github.com/guardrails-ai/guardrails</a></li>\n\n  <li><strong>NVIDIA NeMo Guardrails</strong>\
+    \ — 企业级对话安全护栏。\U0001F517 <a href=\"https://github.com/NVIDIA/NeMo-Guardrails\">github.com/NVIDIA/NeMo-Guardrails</a></li>\n\n  <li><strong>Promptfoo</strong> — LLM 输出评估 + 红队测试。\U0001F517 <a href=\"\
+    https://github.com/promptfoo/promptfoo\">github.com/promptfoo/promptfoo</a></li>\n</ol>\n\n<h3>Agent 原生验证</h3>\n\n<ol start=\"12\">\n  <li><strong>Claude Code Hooks</strong> — Pre/post-tool-call hook，无需框架改动即可在现有\
+    \ agent 上叠加验证逻辑。\U0001F517 <a href=\"https://docs.anthropic.com/en/docs/claude-code/hooks\">docs.anthropic.com</a></li>\n\n  <li><strong>OpenAI Agents SDK Guardrails</strong> — Input/output guardrails\
+    \ API，与 Meta-Agent gate 同构。\U0001F517 <a href=\"https://github.com/openai/openai-agents-python\">github.com/openai/openai-agents-python</a></li>\n\n  <li><strong>Agent Self-Review Loop</strong> — 设计模式：agent\
+    \ 自审查 → 安全扫描 → 依赖检查 → 才提 PR。\U0001F517 <a href=\"https://agentpatterns.ai/agent-design/agent-self-review-loop\">agentpatterns.ai</a></li>\n\n  <li><strong>BMAD Method</strong> — 完整开源 SDD 框架（V6），虚拟 AI\
+    \ 开发团队，scale-adaptive 智能。\U0001F517 <a href=\"https://github.com/bmad-code-org/BMAD-METHOD\">github.com/bmad-code-org/BMAD-METHOD</a></li>\n\n  <li><strong>OpenSpec</strong> — 轻量 spec 层，与 Claude Code/Cursor\
+    \ 集成。\U0001F517 <a href=\"https://github.com/Fission-AI/OpenSpec\">github.com/Fission-AI/OpenSpec</a></li>\n</ol>\n\n<h2>三、关联图谱</h2>\n\n<pre><code>                    Meta-Agent 验证机制 (2605.25233)\n\
+    \                              │\n          ┌───────────────────┼───────────────────┐\n          │                   │                   │\n      理论前身              并行可叠加          训练期互补\n          │\
+    \                   │                   │\n     VERIMAP              MAV (2502)          ReVeal (2506)\n     (2510.17109)         BoN-MAV             TAPO + RL\n     三种验证器            m 个 AV committee\
+    \    co-evolution\n          │                   │                   │\n          ├─ StructuredVerifier                  │\n          │   ↓                                  │\n          │  Outlines\
+    \ / Instructor               │\n          │  Guardrails AI                       │\n          │                                      │\n          ├─ AgentVerifier ──→ Agent-as-Judge Survey (2601)\n\
+    \          │                   DeepVerifier (2601)\n          │\n          └─ BaseVerifier ──→ LLM-as-Judge 集合\n                              Limitations (2503)\n</code></pre>\n\n<h2>四、快速导航</h2>\n\n\
+    <p><strong>如果要立刻实践</strong>：从 <a href=\"https://github.com/megagonlabs/veriMAP\">VERIMAP</a> 开始（Meta-Agent 前身，可直接运行）；或从 <a href=\"https://github.com/Shalev-Lifshitz/MultiAgentVerification\">MAV</a>\
+    \ 的示例数据开始（零 API 调用即可评估 BoN-MAV）。</p>\n\n<p><strong>如果要在现有 agent 上加验证</strong>：<a href=\"https://github.com/567-labs/instructor\">Instructor</a>（Pydantic 验证）或 <a href=\"https://github.com/guardrails-ai/guardrails\"\
+    >Guardrails AI</a>（自定义 validator）是代价最小的切入点。</p>\n\n<p><strong>如果要训练内化验证能力</strong>：读 <a href=\"https://arxiv.org/abs/2506.11442\">ReVeal</a>（ICLR 2026）的 TAPO 算法和 joint reward 设计。</p>\n\n<p><strong>如果要理解验证为什么会失败</strong>：<a\
+    \ href=\"https://arxiv.org/abs/2603.24284\">The Specification Gap</a> 给出量化答案——spec 不足时，agent 会发明共享现实并围绕发明协调。</p>\n\n<p><strong>如果要继续深入 Meta-Agent</strong>：<a href=\"/agent_blog/posts/specification-gap-meta-agent-multi-agent.html\"\
+    >从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的瓶颈与解方</a>（本博客的完整分析）。</p>\n\n<h2>技术声明</h2>\n\n<p>本文为文献清单，不包含原创分析。论文均标注 arXiv ID，可通过 <code>arxiv.org/abs/{id}</code> 直接访问。开源项目链接均为 GitHub。论文选取标准：与 Meta-Agent\
+    \ 验证机制（构造期+执行期双重验证、typed failure signal、三级错误归因）有直接关联或可组合关系。Reflection 方向仅列入奠基工作，未穷举后续变体。</p>"
 - title: Google 开发者工具栈 2026：从 Gemini CLI 到 Antigravity 的 Agent 基础设施全景
   date: June 7, 2026
   slug: google-developer-tool-stack-2026
@@ -7448,69 +7646,6 @@ posts:
     \ CLI\" (2026.06)</li>\n  <li>Google Developers Blog: \"Agents CLI in Agent Platform\" (2026.04)</li>\n  <li>Google I/O 2026 Developer Highlights: blog.google (2026.05.19)</li>\n  <li>The Register:\
     \ \"Bye-bye, Gemini CLI; Google nudges devs toward Antigravity\" (2026.05.20)</li>\n  <li>SWE-bench Verified 数据来自 Antigravity 官方基准测试 (2026.03)</li>\n</ul>\n\n<p>所有工具均为研究分析对象，非商业推广。分析基于截至 2026 年 6 月\
     \ 7 日的公开信息，产品状态可能快速变化。</p>\n"
-- title: Meta-Agent 验证机制相关论文与开源项目清单
-  date: June 8, 2026
-  excerpt: 以 Meta-Agent 的验证机制为核心，整理 20 篇核心论文和 16 个开源项目。覆盖 VERIMAP 前身、MAV 并行验证器、ReVeal 训练期互补、LLM-as-Judge 理论、形式化验证、Reflection 循环六大方向。每个条目附 arXiv ID 和 GitHub 链接。
-  content: "<p><img src=\"/images/meta-agent/cover.png\" alt=\"Meta-Agent 验证机制相关论文与开源项目清单\" style=\"max-width:100%;border-radius:8px;margin:1rem 0;\"></p><h2>为什么需要这份清单</h2>\n\n<p>在对 <a href=\"/agent_blog/posts/specification-gap-meta-agent-multi-agent.html\"\
-    >Meta-Agent 验证机制</a> 的深入分析中，我们梳理了其前身（VERIMAP）、问题诊断（Specification Gap）、并行可叠加方案（MAV）、训练期互补方案（ReVeal）等一系列相关研究。这份清单将 20 篇核心论文和 16 个开源项目整理成一个参考入口——以 Meta-Agent 的验证机制（Generate→Verify→Attribute→Refine 闭环，typed\
-    \ failure signal，三级错误归因）为锚点，按关联方向分组。</p>\n\n<h2>一、核心论文</h2>\n\n<h3>Meta-Agent 及其前身</h3>\n\n<ol>\n  <li><strong>Meta-Agent: From Task Descriptions to Verified Multi-Agent Systems.</strong> Andy Xu, Yu-Wing\
-    \ Tai (Dartmouth College). arXiv 2605.25233, 2026.05.<br>统一验证循环，构造期+执行期双重验证，三级错误归因，typed failure signal F = {spec mismatch, grounding failure, contract violation}。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2605.25233\"\
-    >arXiv</a></li>\n\n  <li><strong>VERIMAP: Verification-Aware Planning for Multi-Agent Systems.</strong> EACL 2026 / arXiv 2510.17109.<br>Meta-Agent 验证机制的前身。Plan→Execute→Verify 循环，三种验证器（Base/Structured/Agent），5\
-    \ 类任务。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2510.17109\">arXiv</a> | <a href=\"https://github.com/megagonlabs/veriMAP\">GitHub</a></li>\n</ol>\n\n<h3>问题诊断</h3>\n\n<ol start=\"3\">\n  <li><strong>The\
-    \ Specification Gap: Coordination Failure Under Partial Knowledge in Code Agents.</strong> Camilo Chacón Sartori. arXiv 2603.24284, 2026.03.<br>精确量化 multi-agent 协调失败：58%→25% 衰减曲线，gap = 协调成本（+16pp）+\
-    \ 信息不对称（+11pp），AST 级 5 类冲突检测。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2603.24284\">arXiv</a> | <a href=\"https://github.com/camilochs/the_specification_gap\">GitHub</a></li>\n\n  <li><strong>Spec\
-    \ Kit Agents: Context-Grounded Agentic Workflows.</strong> GitHub. arXiv 2604.05278.<br>GitHub Spec Kit 的 SDD 四阶段流水线 + context-grounding hooks，PM+Developer 双 agent 角色。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2604.05278\"\
-    >arXiv</a></li>\n</ol>\n\n<h3>多验证器并行（可叠加 Meta-Agent）</h3>\n\n<ol start=\"5\">\n  <li><strong>Multi-Agent Verification: Scaling Test-Time Compute with Multiple Verifiers (MAV).</strong> Lifshitz, McIlraith\
-    \ (UofT), Du (Harvard). arXiv 2502.20379, 2025. ICLR 2025 Workshops.<br>BoN-MAV 算法：m 个 Aspect Verifier 并行验证同一输出，weak-to-strong generalization，self-improvement。与 Meta-Agent 的每个 gate 直接可组合——gate 升级为 committee。<br>\U0001F517\
-    \ <a href=\"https://arxiv.org/abs/2502.20379\">arXiv</a> | <a href=\"https://github.com/Shalev-Lifshitz/MultiAgentVerification\">GitHub</a></li>\n\n  <li><strong>Not All Votes Count! Programs as Verifiers\
-    \ Improve Self-Consistency (PROVE).</strong> 2024.<br>程序化验证器优于 LLM 投票——直接支持 Meta-Agent 中 StructuredVerifier（Python assert）的设计选择。<br>\U0001F517 <a href=\"https://www.researchgate.net/publication/384974495\"\
-    >ResearchGate</a></li>\n</ol>\n\n<h3>Training-Time 验证（与 Meta-Agent 互补）</h3>\n\n<ol start=\"7\">\n  <li><strong>ReVeal: Self-Evolving Code Agents via Reliable Self-Verification.</strong> arXiv 2506.11442,\
-    \ ICLR 2026.<br>TAPO 算法：多轮 RL 联合优化 generation + verification，agent 自主生成测试用例+自我验证，训练后内化验证能力。Inference 时即使不训练，多轮仍持续改进。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2506.11442\">arXiv</a></li>\n\n  <li><strong>Agent-RLVR:\
-    \ Training SWE Agents via Guidance and Environment Rewards.</strong> arXiv 2506.11425, 2025.<br>将 RLVR（可验证奖励 RL）扩展到 agentic 任务，环境执行反馈作为 verifiable reward。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2506.11425\"\
-    >arXiv</a></li>\n\n  <li><strong>CodeScaler: Scaling Code LLM Training and Test-Time Inference.</strong> arXiv 2602.17684, 2026.<br>代码 RL 中的 binary execution feedback 作为 reward。<br>\U0001F517 <a href=\"\
-    https://arxiv.org/abs/2602.17684\">arXiv</a></li>\n\n  <li><strong>Awesome-RLVR.</strong> RLVR 领域论文全集。<br>\U0001F517 <a href=\"https://github.com/opendilab/awesome-RLVR\">GitHub</a></li>\n</ol>\n\n\
-    <h3>LLM-as-Judge / Agent-as-Judge（验证器理论基础）</h3>\n\n<ol start=\"11\">\n  <li><strong>Agent-as-a-Judge: A Survey.</strong> arXiv 2601.05111, 2026.<br>从 LLM-as-Judge 到 Agent-as-Judge 的系统综述，agentic judge\
-    \ 具备分解复杂目标、主动信息收集、多维度评估的能力。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2601.05111\">arXiv</a></li>\n\n  <li><strong>When AIs Judge AIs: The Rise of Agent-as-a-Judge Evaluation.</strong> arXiv 2508.02994,\
-    \ 2025.<br>Multi-agent discussion 评估，Kendall Tau 0.57 vs 0.52（单 judge）。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2508.02994\">arXiv</a></li>\n\n  <li><strong>Limitations of LLM-as-a-Judge Without\
-    \ Human Grounding.</strong> arXiv 2503.05061, 2025.<br>1200 条人类标注数据，评估 LLM judge 的系统性偏差。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2503.05061\">arXiv</a></li>\n\n  <li><strong>LLM-as-a-Judge 论文合集.</strong><br>\U0001F517\
-    \ <a href=\"https://llm-as-a-judge.github.io\">llm-as-a-judge.github.io</a></li>\n</ol>\n\n<h3>Structured / 可执行验证</h3>\n\n<ol start=\"15\">\n  <li><strong>DeepVerifier: Inference-Time Scaling of Verification.</strong>\
-    \ arXiv 2601.15808, 2026.<br>自动构建验证 rubric，test-time 验证缩放，超过 vanilla judge 12-48%（F1）。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2601.15808\">arXiv</a></li>\n\n  <li><strong>SAGA: Rethinking Verification\
-    \ for LLM Code Generation.</strong> NeurIPS 2025.<br>Human-LLM 协作测试用例生成方法，Verifier Accuracy 比 LiveCodeBench-v6 高 10.78%。<br>\U0001F517 <a href=\"https://neurips.cc/virtual/2025/poster/118941\">NeurIPS</a></li>\n\
-    \n  <li><strong>Cross-Verification Collaboration Protocol (CVCP).</strong> MDPI Symmetry, 2025.<br>Symmetry 检测 + adversarial testing + Round-Trip Review，CodeELO Elo +7.1%，hard problems pass rate 1.8x。<br>\U0001F517\
-    \ <a href=\"https://www.mdpi.com/2073-8994/17/10/1660\">MDPI</a></li>\n</ol>\n\n<h3>形式化验证 + LLM</h3>\n\n<ol start=\"18\">\n  <li><strong>Towards Formal Verification of LLM-Generated Code.</strong> arXiv\
-    \ 2507.13290, 2025.<br>Formal Query Language，验证正确代码 83%，识别错误代码 92%。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2507.13290\">arXiv</a></li>\n\n  <li><strong>Constitutional Spec-Driven Development.</strong>\
-    \ arXiv 2602.02584, 2026.<br>安全约束嵌入 spec 层，secure by construction，完全可追溯。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2602.02584\">arXiv</a></li>\n\n  <li><strong>AssertLLM: Generating Hardware Verification\
-    \ Assertions.</strong> arXiv 2411.14436, 2024.<br>Multi-LLM 自动生成验证 assert。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2411.14436\">arXiv</a></li>\n</ol>\n\n<h3>Reflection / Self-Correction 循环</h3>\n\
-    \n<ol start=\"21\">\n  <li><strong>Reflexion: Language Agents with Verbal Reinforcement Learning.</strong> Shinn et al. NeurIPS 2023.<br>反思循环的奠基工作。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2303.11366\"\
-    >arXiv</a></li>\n\n  <li><strong>Self-Refine: Iterative Refinement with Self-Feedback.</strong> Madaan et al. NeurIPS 2023.<br>Generate→Feedback→Refine 循环。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2303.17651\"\
-    >arXiv</a></li>\n\n  <li><strong>Teaching LLMs to Self-Debug.</strong> Chen et al. arXiv 2304.05128, 2023.<br>代码生成场景的 self-debugging。<br>\U0001F517 <a href=\"https://arxiv.org/abs/2304.05128\">arXiv</a></li>\n\
-    </ol>\n\n<h2>二、开源项目</h2>\n\n<h3>可直接运行的验证框架</h3>\n\n<ol>\n  <li><strong>VERIMAP</strong> — Meta-Agent 验证机制的前身。三种验证器（Base/Structured/Agent），DAG/Chain/Graph 多协调模式。\U0001F517 <a href=\"https://github.com/megagonlabs/veriMAP\"\
-    >github.com/megagonlabs/veriMAP</a></li>\n\n  <li><strong>MAV</strong> — BoN-MAV 算法实现。n 候选 + m Aspect Verifier，可运行示例数据（300 MATH 题，Gemini-1.5-Flash）。\U0001F517 <a href=\"https://github.com/Shalev-Lifshitz/MultiAgentVerification\"\
-    >github.com/Shalev-Lifshitz/MultiAgentVerification</a></li>\n\n  <li><strong>The Specification Gap</strong> — AmbigClass benchmark（100 任务×4 spec 级别）+ AST 冲突检测器（5 类冲突）。\U0001F517 <a href=\"https://github.com/camilochs/the_specification_gap\"\
-    >github.com/camilochs/the_specification_gap</a></li>\n\n  <li><strong>GitHub Spec Kit</strong> — GitHub 官方 SDD 工具包，MIT 许可证，12+ agent 支持。\U0001F517 <a href=\"https://github.com/github/spec-kit\">github.com/github/spec-kit</a></li>\n\
-    </ol>\n\n<h3>Structured Output / 验证基础设施</h3>\n\n<ol start=\"5\">\n  <li><strong>Instructor</strong> — Pydantic schema 验证 + 自动重试，15+ LLM provider。\U0001F517 <a href=\"https://github.com/567-labs/instructor\"\
-    >github.com/567-labs/instructor</a></li>\n\n  <li><strong>Outlines</strong> — Token 级约束生成，guaranteed schema compliance，零重试。适合本地模型。\U0001F517 <a href=\"https://github.com/dottxt-ai/outlines\">github.com/dottxt-ai/outlines</a></li>\n\
-    \n  <li><strong>PydanticAI</strong> — Pydantic 团队官方 agent runtime，类型安全的 tool calling。\U0001F517 <a href=\"https://github.com/pydantic/pydantic-ai\">github.com/pydantic/pydantic-ai</a></li>\n\n  <li><strong>Guidance</strong>\
-    \ — Regex + CFG 约束生成，精确控制输出格式。\U0001F517 <a href=\"https://github.com/guidance-ai/guidance\">github.com/guidance-ai/guidance</a></li>\n</ol>\n\n<h3>Guardrails / 验证护栏</h3>\n\n<ol start=\"9\">\n  <li><strong>Guardrails\
-    \ AI</strong> — Input + Output 双向验证，自定义 validator。\U0001F517 <a href=\"https://github.com/guardrails-ai/guardrails\">github.com/guardrails-ai/guardrails</a></li>\n\n  <li><strong>NVIDIA NeMo Guardrails</strong>\
-    \ — 企业级对话安全护栏。\U0001F517 <a href=\"https://github.com/NVIDIA/NeMo-Guardrails\">github.com/NVIDIA/NeMo-Guardrails</a></li>\n\n  <li><strong>Promptfoo</strong> — LLM 输出评估 + 红队测试。\U0001F517 <a href=\"\
-    https://github.com/promptfoo/promptfoo\">github.com/promptfoo/promptfoo</a></li>\n</ol>\n\n<h3>Agent 原生验证</h3>\n\n<ol start=\"12\">\n  <li><strong>Claude Code Hooks</strong> — Pre/post-tool-call hook，无需框架改动即可在现有\
-    \ agent 上叠加验证逻辑。\U0001F517 <a href=\"https://docs.anthropic.com/en/docs/claude-code/hooks\">docs.anthropic.com</a></li>\n\n  <li><strong>OpenAI Agents SDK Guardrails</strong> — Input/output guardrails\
-    \ API，与 Meta-Agent gate 同构。\U0001F517 <a href=\"https://github.com/openai/openai-agents-python\">github.com/openai/openai-agents-python</a></li>\n\n  <li><strong>Agent Self-Review Loop</strong> — 设计模式：agent\
-    \ 自审查 → 安全扫描 → 依赖检查 → 才提 PR。\U0001F517 <a href=\"https://agentpatterns.ai/agent-design/agent-self-review-loop\">agentpatterns.ai</a></li>\n\n  <li><strong>BMAD Method</strong> — 完整开源 SDD 框架（V6），虚拟 AI\
-    \ 开发团队，scale-adaptive 智能。\U0001F517 <a href=\"https://github.com/bmad-code-org/BMAD-METHOD\">github.com/bmad-code-org/BMAD-METHOD</a></li>\n\n  <li><strong>OpenSpec</strong> — 轻量 spec 层，与 Claude Code/Cursor\
-    \ 集成。\U0001F517 <a href=\"https://github.com/Fission-AI/OpenSpec\">github.com/Fission-AI/OpenSpec</a></li>\n</ol>\n\n<h2>三、关联图谱</h2>\n\n<pre><code>                    Meta-Agent 验证机制 (2605.25233)\n\
-    \                              │\n          ┌───────────────────┼───────────────────┐\n          │                   │                   │\n      理论前身              并行可叠加          训练期互补\n          │\
-    \                   │                   │\n     VERIMAP              MAV (2502)          ReVeal (2506)\n     (2510.17109)         BoN-MAV             TAPO + RL\n     三种验证器            m 个 AV committee\
-    \    co-evolution\n          │                   │                   │\n          ├─ StructuredVerifier                  │\n          │   ↓                                  │\n          │  Outlines\
-    \ / Instructor               │\n          │  Guardrails AI                       │\n          │                                      │\n          ├─ AgentVerifier ──→ Agent-as-Judge Survey (2601)\n\
-    \          │                   DeepVerifier (2601)\n          │\n          └─ BaseVerifier ──→ LLM-as-Judge 集合\n                              Limitations (2503)\n</code></pre>\n\n<h2>四、快速导航</h2>\n\n\
-    <p><strong>如果要立刻实践</strong>：从 <a href=\"https://github.com/megagonlabs/veriMAP\">VERIMAP</a> 开始（Meta-Agent 前身，可直接运行）；或从 <a href=\"https://github.com/Shalev-Lifshitz/MultiAgentVerification\">MAV</a>\
-    \ 的示例数据开始（零 API 调用即可评估 BoN-MAV）。</p>\n\n<p><strong>如果要在现有 agent 上加验证</strong>：<a href=\"https://github.com/567-labs/instructor\">Instructor</a>（Pydantic 验证）或 <a href=\"https://github.com/guardrails-ai/guardrails\"\
-    >Guardrails AI</a>（自定义 validator）是代价最小的切入点。</p>\n\n<p><strong>如果要训练内化验证能力</strong>：读 <a href=\"https://arxiv.org/abs/2506.11442\">ReVeal</a>（ICLR 2026）的 TAPO 算法和 joint reward 设计。</p>\n\n<p><strong>如果要理解验证为什么会失败</strong>：<a\
-    \ href=\"https://arxiv.org/abs/2603.24284\">The Specification Gap</a> 给出量化答案——spec 不足时，agent 会发明共享现实并围绕发明协调。</p>\n\n<p><strong>如果要继续深入 Meta-Agent</strong>：<a href=\"/agent_blog/posts/specification-gap-meta-agent-multi-agent.html\"\
-    >从 Specification Gap 到 Meta-Agent：Multi-Agent 代码生成的瓶颈与解方</a>（本博客的完整分析）。</p>\n\n<h2>技术声明</h2>\n\n<p>本文为文献清单，不包含原创分析。论文均标注 arXiv ID，可通过 <code>arxiv.org/abs/{id}</code> 直接访问。开源项目链接均为 GitHub。论文选取标准：与 Meta-Agent\
-    \ 验证机制（构造期+执行期双重验证、typed failure signal、三级错误归因）有直接关联或可组合关系。Reflection 方向仅列入奠基工作，未穷举后续变体。</p>"
 - title: 追溯递归自我改进的底层悖论：从 Anthropic 文章到控制权瓦解
   slug: when-ai-builds-itself-recursive-paradox
   date: June 7, 2026
