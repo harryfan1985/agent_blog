@@ -1,4 +1,138 @@
 posts:
+- title: 8400% 年化增速背后的冷静：Rob Wiblin 拆解 2026 AGI 时间线的 7 大证据
+  date: August 4, 2026
+  slug: agi-timelines-2026-evidence-analysis
+  excerpt: 80,000 Hours 主持人 Rob Wiblin 系统分析 2026 年 AGI 时间线的 7 大新证据——从 Anthropic 8400% 年化收入增速到 AI 管咖啡馆持续亏损。净更新：时间线缩短 1 年，但 4 个长时间线理由仍完全活着。
+  content: '<h2>Anthropic 年化收入增速 8400%，毛利率从 38% 飙到 70%——但 Rob Wiblin 说：别急着更新末日日历</h2>
+
+    <p>2026 年上半年，AI 圈经历了从极度看空到极度看多的 180 度"vibe shift"。80,000 Hours 主持人 Rob Wiblin 系统梳理了 7 大新证据，逐条做 bullish/bearish 对冲分析，最终将个人 AGI 时间线缩短约 1 年——但同时给出 4 个仍可能走向 mid-2030s 的理由。</p>
+
+
+    <h2>7 大证据：从收入爆发到 AI 管咖啡馆</h2>
+
+
+    <table>
+
+    <tr><th>证据</th><th>Bullish 解读</th><th>Bearish 对冲</th></tr>
+
+    <tr><td><strong>1. 收入爆发</strong><br>Anthropic 年化 8400%，毛利率 38%→70%+</td><td>行业自造血，非亏本卖；H100 租金不降反升 50%</td><td>短期增速年化外推不可靠；收入 ≠ AGI</td></tr>
+
+    <tr><td><strong>2. METR 时间窗口</strong><br>翻倍周期 7→4 个月，已达测量上限</td><td>AI 可完成人类 12-24h 的任务</td><td>仅 coding/cyber/ML；50% 可靠性 ≠ 生产级（1/3 永不成功）；新手 vs 专家可能差 10x</td></tr>
+
+    <tr><td><strong>3. Mythos 跳跃</strong><br>3 个月 = 6 个月进步，后续回归正常</td><td>可能预示加速</td><td>更可能：训练了 5x 参数新模型的一次性跳跃；递归自我改进未持续加速</td></tr>
+
+    <tr><td><strong>4. AI 构建 AI</strong><br>80% 代码由 Claude 写，人均产出 8x</td><td>开放任务成功率 10%→75%</td><td>仅 coding；人类自信决策 AI 仅 20% 更优；算力瓶颈；Anthropic 员工 10-100x 增长未比例加速研究</td></tr>
+
+    <tr><td><strong>5. AI 管业务</strong><br>Andon Labs 咖啡馆/零售店</td><td>咖啡馆运作了，雇了人，过了官僚</td><td>持续亏损（$18K→$2K）；幻觉平面图、冒充员工；关键：clean/messy 差距是否缩小？未知</td></tr>
+
+    <tr><td><strong>6. 数学突破</strong><br>OpenAI 证伪 unit distance 猜想</td><td>纯 chain-of-thought，无工具</td><td>数学是高反馈领域，预期内；3 个成功原因均为 AI 既有优势；真正的信号是"灵感闪现"，尚未出现</td></tr>
+
+    <tr><td><strong>7. Inference scaling</strong><br>Redwood: AI 成本 ≈ 人工 3%</td><td>30x 推理预算仍低于人工</td><td>仅一个基准的一项分析；30x 是一次性机会非持续趋势</td></tr>
+
+    </table>
+
+
+    <h2>时间线更新：缩短 1 年，但长时间线仍活</h2>
+
+    <p>Rob 的净更新：AGI 时间线缩短约 1 年。完全自动化 AI R&D 的预测从"2027 震惊、2028 可想象、2029-2030 可行"更新为"2026 震惊、2027 可想象、2028 可行（趋势延续）"。</p>
+
+    <p>Paul Christiano（2026年3月，个人立场）："我们处于 2021 年 AI 时间线的第 90 百分位…1-4 年时间线与现有趋势一致。"</p>
+
+
+    <h2>四大长时间线理由</h2>
+
+
+    <h3>1. 递归自我改进需要多宽的技能？</h3>
+
+    <p>Coding 强 ≠ R&D 全自动化。需要 superstar 级研究洞察，还是 OK+快+多就够？一年前不知道，现在依然不知道。</p>
+
+
+    <h3>2. 关键能力可能结构性缺失</h3>
+
+    <p>OOD 泛化、创造力、世界模型、深层理解——这些可能是当前 LLM 架构的固有限制。</p>
+
+
+    <h3>3. RLVR 溢出到非验证领域：4 年后仍是黑箱</h3>
+
+    <p>ChatGPT 发布 4 年，RLVR 在 coding 上的改进是否溢出到低反馈密度领域（运营业务、长期战略）——完全不清楚。这是四大时间线 crux 之一。</p>
+
+
+    <h3>4. 算力瓶颈</h3>
+
+    <p>即使全自动化 Anthropic 员工，芯片获取仍限制进步。Anthropic 自己认为 compute > staff count。2030 年后行业吸收全球芯片/内存产能大份额 → 扩展减速。</p>
+
+
+    <h2>最关键的未解问题</h2>
+
+    <blockquote><p>Clean task 和 messy task 的差距在缩小还是扩大？</p></blockquote>
+
+    <p>这是 AGI 预测最重要的研究问题之一——当前没有能同时衡量两类任务的统一标尺。GDPval（结构化）、VendingBench（模拟）、AI Village（半真实）、Andon Labs（真实业务）、AA-Briefcase（整月知识工作）从低到高现实度排列，但都无法给出"clean 进步 20%、messy 进步 10%"这样的可比结论。</p>
+
+
+    <h2>工程启示</h2>
+
+
+    <h3>1. 反馈密度是 AI 能力进步的最佳预测因子</h3>
+
+    <p>不是模型大小、不是参数量、不是训练数据量——是任务环境的反馈密度。选择 AI 应用场景时，优先考虑可自动验证结果的领域。</p>
+
+
+    <h3>2. 50% 可靠性 ≠ 生产级</h3>
+
+    <p>METR 经验法则：1/3 任务 100% 成功，1/3 有时成功，1/3 永不成功。部署 AI agent 前需评估你的任务落在哪个三分之一。</p>
+
+
+    <h3>3. Inference scaling 是地上捡的 30x 机会</h3>
+
+    <p>对关键任务，30x 推理预算仍低于人工成本。这是一次性性能跳跃——不是趋势，但在 AI R&D 自动化关键时刻可能成为杠杆。</p>
+
+
+    <h2>局限与诚实标注</h2>
+
+    <ul>
+
+    <li><strong>单一来源</strong>：本文基于 Rob Wiblin 单口播客，非多源交叉验证。Rob 明确声明自己的偏见和更新幅度。</li>
+
+    <li><strong>推断边界</strong>：Rob 的"时间线缩短 1 年"是个人 Bayesian 更新，不是社区共识。他引用 Paul Christiano 作为参照点但非等同。</li>
+
+    <li><strong>时间敏感</strong>：录制于 2026-07-03，发布于 08-04。OpenAI agent hack Hugging Face 事件在录制后发生，未被纳入分析。</li>
+
+    <li><strong>数据质量</strong>：收入数据基于短期年化外推（3-6 个月），不可持续。METR 已达测量上限，当前无可靠前沿能力标尺。</li>
+
+    </ul>
+
+
+    <h2>一句话</h2>
+
+    <blockquote><p>2026 年的 AI 证据像一杯浓缩 espresso——每个数据点都令人亢奋，但 Rob Wiblin 坚持用水稀释：5 个 bullish、1 个 ambiguous、1 个 expected、1 个 bearish，净缩短 1 年，长时间线场景仍完全活着。</p></blockquote>
+
+
+    <h2>技术声明</h2>
+
+    <ul>
+
+    <li><strong>来源确认</strong>：80,000 Hours Podcast #228, Rob Wiblin 单口，2026-08-04 发布</li>
+
+    <li><strong>推断边界</strong>：所有数字来自播客逐字稿，未独立验证。时间线预测为 Rob 个人观点</li>
+
+    <li><strong>论文状态</strong>：非学术论文，观点性内容</li>
+
+    <li><strong>利益声明</strong>：80,000 Hours 接受 EA 社区资助，Rob 长期关注 AI 安全</li>
+
+    </ul>
+
+
+    <h2>参考</h2>
+
+    <ul>
+
+    <li>播客链接：<a href="https://80000hours.org/podcast/episodes/2026-agi-timelines/">80,000 Hours #228</a></li>
+
+    <li>Rob 1 月时间线视频：<a href="https://80000hours.org/podcast/episodes/2025-agi-timelines/">What the hell happened with AGI timelines in 2025?</a></li>
+
+    <li>Paul Christiano 原文：2026年3月，个人立场</li>
+
+    </ul>'
 - title: AI 审查漏掉 89.5% 的安全问题：Meta ARCTIC 用意图-漂移-聚光灯重构代码审查
   date: August 4, 2026
   excerpt: Meta 对 2,000 条 AI 审查与 18,000 条人工审查的对比显示：AI 审查工具在人类最关心的正确性上漏掉 42.6%、安全上漏掉 89.5%。ARCTIC 用意图预测、漂移检测、代码聚光灯三信号重构代码审查，漂移检测 QWK=0.907，生产 1M 请求 0 缺陷。
