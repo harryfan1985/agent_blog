@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastContext：把仓库探索从编码 agent 里拆出来，token 省 60% 还能多解 5.5% 的题 | Agent Blog</title>
+    <meta name="description" content="微软 CoreAI 审计 300 条 GPT-5.4 轨迹发现 56.2% 的回合花在找代码、46.5% token 消耗在探索。FastContext 用 4B-30B 专用探索 subagent 把探索从求解主流程剥离，SWE-bench Pro +5.5% 分辨率、token 最多 -60.3%，成本审计 $28">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="FastContext：把仓库探索从编码 agent 里拆出来，token 省 60% 还能多解 5.5% 的题">
+    <meta property="og:description" content="微软 CoreAI 审计 300 条 GPT-5.4 轨迹发现 56.2% 的回合花在找代码、46.5% token 消耗在探索。FastContext 用 4B-30B 专用探索 subagent 把探索从求解主流程剥离，SWE-bench Pro +5.5% 分辨率、token 最多 -60.3%，成本审计 $28">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 8, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>FastContext：把仓库探索从编码 agent 里拆出来，token 省 60% 还能多解 5.5% 的题</h1>
+                <div class="meta">
+                    <span class="date">August 8, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>56.2% 的回合在找代码，46.5% 的 token 在买"噪音"——微软把仓库探索从求解主流程里拆了出来</h2>
+<p>编码 agent 的钱都花在哪了？微软 CoreAI + 上海交大对 300 条 GPT-5.4 完整轨迹的审计给出一个反直觉的答案：<b>读文件和搜代码占了全部 tool-use 回合的 56.2%（9.96/17.72 回合），消耗主模型 46.5% 的 token</b>——而真正决定成败的编辑只占一小部分。更糟的是，探索是编辑前的一段"漫长的顺序前奏"：中位数实例要 6 个顺序探索回合、15.5 次探索工具调用，才等到第一次源码编辑。</p>
+<p>FastContext（arXiv 2606.14066）把这段探索从主 agent 的轨迹里整体剥离：一个按需调用的专用探索 subagent，用 4B–30B 的小模型，返回紧凑的 file:line-range 证据块，而不是一整条探索历史。端到端效果：SWE-bench Pro 上 GPT-5.4 从 46.0 提到 51.5（+5.5），token 最多降 60.3%。</p>
+<p class="note">⚠️ 注：该论文 v4（2026-06-30）已被撤回，arXiv 备注"涉及产品 IP 问题，需撤回重新审批"，官方代码仓库 github.com/microsoft/fastcontext 不存在。本文基于 v1 全文分析。</p>
+
+<h2>先量化病，再动刀：探索到底贵在哪</h2>
+<p>论文的初步分析（Figure 2）把 300 条 GPT-5.4 轨迹的每次工具调用按 read/search/edit/test 分类，得到三个硬数字：</p>
+<ul>
+<li><b>56.2% 的 tool-use 回合</b>是读和搜（9.96/17.72）——不是编辑，不是测试</li>
+<li><b>46.5% 的主模型 token</b>消耗在探索上——直接对应推理成本，且这些上下文会被 agent 一路扛到底</li>
+<li><b>未解决实例探索更久</b>：首个编辑前的探索回合 8.34 vs 6.67（解决实例）——难题需要更多搜索，但这份搜索量也正在拖垮 solver</li>
+</ul>
+<p>结论很工程化：探索既贵到影响成本，又结构化到可以外包——这就是 FastContext 的存在理由。</p>
+
+<h2>Delegation contract：三个只读工具，一个紧凑答案块</h2>
+<p>FastContext 刻意保持接口最小化，只暴露三个语言无关的只读工具：</p>
+<ul>
+<li><b>Read</b>：带行号的文件内容读取</li>
+<li><b>Glob</b>：路径发现</li>
+<li><b>Grep</b>：基于 ripgrep 的正则全文搜索</li>
+</ul>
+<p>每回合 explorer 可以<b>并行</b>发多个工具调用（覆盖互补假设），最后输出一个 <code>&lt;final_answer&gt;</code> 块，例如：</p>
+<pre><code>&lt;final_answer&gt;
+/src/router.py:42-58 (Router definition)
+/tests/test_router.py:101-119
+&lt;/final_answer&gt;</code></pre>
+<p>主 agent 消费这份 file-line 证据直接进入编辑阶段，探索的完整历史留在 subagent 的轨迹里，不进 solver 的上下文。</p>
+
+<h2>训练配方：SFT 学行为，RL 锚定任务</h2>
+<p>小模型不会天生会探索，训练分两段：</p>
+<p><b>① SFT 初始化（2,954 例，来自 Sonnet 4.6 轨迹）</b>——关键设计是把监督按运行时行为拆成三个来源：</p>
+<ul>
+<li><b>parallel_toolcalls</b>：训练"第一回合广撒网"——给查询+目录列表，要求发出覆盖路径模式/符号/入口点的非冗余并行调用</li>
+<li><b>multiturn_traj</b>：训练多回合证据收集——保留完整参考轨迹（含工具观测）</li>
+<li><b>linerange</b>：训练精确引用——给已取回的文件内容，只输出窄 <code>&lt;final_answer&gt;</code> 块</li>
+</ul>
+<p><b>② RL 精调（400 prompts, GRPO）</b>——reward 完全锚定输出契约：</p>
+<pre><code>R = F1(file) + F1(line) + r_parallel − r_format</code></pre>
+<p>目标文件/行集合从参考 patch 解析而来；r_parallel 奖励有界的多调用探索；r_format 惩罚空/过长/畸形/过度 fan-out 的输出。跑在 4B 模型上的 RL 版本（4B-RL）在多个设置里<b>超过了 30B-SFT</b>——任务锚定的优化比单纯的规模更值钱。</p>
+
+<h2>三个基准的完整账本</h2>
+<table>
+<tr><th>主 Agent</th><th>变体</th><th>SWE-bench Multilingual</th><th>SWE-bench Pro</th><th>SWE-QA</th></tr>
+<tr><td rowspan="2">GPT-5.4</td><td>w/o Explore</td><td>71.7 / 457k tok</td><td>46.0 / 818k tok</td><td>81.3 / 418k tok</td></tr>
+<tr><td>最佳 FC</td><td>75.0 (+3.3) / 356k (−22.1%)</td><td>51.5 (+5.5) / 703k (−14.1%)</td><td>82.0 (+0.7) / 166k (−60.3%)</td></tr>
+<tr><td rowspan="2">GLM-5.1</td><td>w/o Explore</td><td>72.3 / 2514k tok</td><td>17.5 / 2692k tok</td><td>72.7 / 401k tok</td></tr>
+<tr><td>最佳 FC</td><td>73.7 (+1.4) / 1797k (−28.5%)</td><td>22.5 (+5.0) / 2210k (−17.9%)</td><td>73.5 (+0.8) / 249k (−37.9%)</td></tr>
+<tr><td rowspan="2">Kimi-K2.6</td><td>w/o Explore</td><td>76.3 / 1553k tok</td><td>31.0 / 2383k tok</td><td>71.6 / 510k tok</td></tr>
+<tr><td>最佳 FC</td><td>78.3 (+2.0) / 1384k (−10.9%)</td><td>33.5 (+2.5) / 2158k (−9.4%)</td><td>73.0 (+1.4) / 361k (−29.2%)</td></tr>
+</table>
+<p>规律清晰：主 agent 越啰嗦（GLM-5.1 基线 2.5M token），FastContext 省得越多；主 agent 越强越短（Kimi-K2.6），节省越小但精度仍涨。SWE-QA 是纯问答任务，探索占比最大，所以 token 节省最夸张（−60.3%）。</p>
+
+<h2>Standalone 定位质量：不只是省钱，找得更准</h2>
+<p>用 SWE-bench Verified 的 patch 推导出参考位置，单独评测探索器：训练后的 FastContext 4B-RL 达到 file-level F1 71.48、module-level 56.26；30B-SFT 到 73.71/60.35，超过最佳非 FastContext 基线（CodeScout-14B 的 68.57/50.88）。差距在 module/function 粒度最明显——证据被收窄到真正相关的代码区域。</p>
+<p>成本审计更直白：GPT-5.4 主模型整轮 Multilingual 从 $282.47 降到 $208.92，4B-RL 探索器全程只花 $4.52（按 serverless $0.20/1M token 估算；本地部署则这笔都不花）。</p>
+
+<h2>对 Agent 基础设施的工程启示</h2>
+<ul>
+<li><b>探索是独立可训练组件，不是 solver 的隐性成本</b>——把探索从求解轨迹剥离，同时降本和提准，说明 context boundary 本身就是一种架构决策</li>
+<li><b>最小 delegation contract 有效</b>：3 个只读工具 + 结构化输出块，比给 subagent 完整 shell 更可控，输出直接可被主 agent 消费</li>
+<li><b>任务锚定 reward 是性价比路径</b>：4B + GRPO + patch-derived F1 就能超过 30B 纯 SFT——对小模型本地部署是强信号</li>
+<li><b>与 SWE-Pruner Pro 互补</b>：Pruner 裁剪主轨迹里"已读但没用"的内容，FastContext 让探索内容根本不进主轨迹——一个事后清理，一个事前隔离</li>
+</ul>
+
+<h2>局限</h2>
+<ul>
+<li>只集成 Mini-SWE-Agent 一种框架；只测强主模型（GPT-5.4/GLM-5.1/Kimi-K2.6），未验证 30B 级主 agent</li>
+<li>撤回状态（IP 问题）意味着方法可能已产品化，benchmark 数字需谨慎解读；作者也自述存在 benchmark overlap 风险</li>
+<li>主 agent 编辑阶段仍需自己读文件——FastContext 只砍探索阶段</li>
+<li>官方代码未发布，复刻需从附录 recipe 自行实现（SFT 数据构造 + GRPO 训练管线）</li>
+</ul>
+
+<h2>技术声明</h2>
+<p>本文基于 arXiv 2606.14066 v1 全文（arxiv.org/html/2606.14066v1，论文 v4 已撤回，撤回备注为产品 IP 问题）。所有数字均引自论文 Table 1/Table 2 与成本审计章节。参考实现检查：官方仓库不存在（github.com/microsoft/fastcontext 404），基线 RepoSearcher/LocAgent/Agentless/OrcaLoca/CoSIL/OpenHands-Bash/CodeScout 均有公开实现。</p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
