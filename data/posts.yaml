@@ -1,4 +1,156 @@
 posts:
+- title: TraceCompiler：一半的 agent 调用是可移除噪声——把轨迹编译成确定性工作流
+  date: August 10, 2026
+  slug: tracecompiler-agent-trace-compilation
+  excerpt: 对 AppWorld 56 个场景的普查：每个场景平均 51.4% 的调用可移除。TraceCompiler 用参数级依赖验证把观察顺序编译成证据约束的 DAG，0.936 F1 恢复依赖、拒绝编译不可逆副作用——而消融显示精度由 recency 而非 exclusion 承担。
+  content: '<h2>51.4% 的 agent 调用是可移除噪声——EPFL 把轨迹"编译"成确定性工作流，只留真正需要模型的决策</h2>
+
+    <p>工具型 LLM agent 有个挥霍习惯：同一个意图——列票、转账、建歌单——每次请求都重新推导一遍工具序列。重解析稳定配置、重试等价调用、重读文档、膨胀 reasoning history。最近 serving 侧的优化（Speculative Actions 等）已经在利用这种规律性做瞬时预测，但 EPFL + Binome 的这篇 TraceCompiler 问的是更激进的问题：<b>能不能把重复轨迹编译成可执行工作流，让证据支持的决策彻底离开模型的运行时责任？</b>对
+    AppWorld 56 个场景的普查答案是：每个场景平均 <b>51.4%</b>（IQR 41.9–74.1%）的调用是可以移除的——schema 发现、字节级重复、retry。</p>
+
+    <p>真正的难点不在去噪，在判别：观察到的执行顺序从来不等于依赖。两个调用相邻，可能是因为后者消费了前者的输出，也可能只是独立操作顺序执行，甚至是失败尝试。而部署日志往往只记参数不记输出——依赖必须从消费者侧反推。TraceCompiler 的核心是一条参数级依赖规则：<b>只有当消费者参数含有一个可唯一归因于某个生产者、且所有替代来源都被排除的值时，才承认这条边</b>；排除失败就标记 suspected
+    并弃权。</p>
+
+
+    <h2>核心发现一：参数级验证把依赖恢复从 0.711 推到 0.936 F1（T1, 15,775 条边）</h2>
+
+    <p>在 T1 训练 split 的 15,775 条去重 def-use 边上，机械化规则达到 0.928 precision / 0.943 recall。注意这是<b>机械化</b>版本——一个确定性的、模型无关的程序，比 LLM skill 引擎更粗糙（无 schema 知识，无法做类型兼容判断），所以它是整个准确率主张的可复算底座。</p>
+
+    <table>
+
+    <tr><th>方法</th><th>Prec</th><th>Rec</th><th>F1</th></tr>
+
+    <tr><td>ADJACENCY（相邻对）</td><td>0.584</td><td>0.908</td><td>0.711</td></tr>
+
+    <tr><td>RECURRENCE（相邻候选, θ=0.6）</td><td>0.617</td><td>0.842</td><td>0.712</td></tr>
+
+    <tr><td>ALL-PAIRS</td><td>0.231</td><td>0.998</td><td>0.376</td></tr>
+
+    <tr><td><b>参数级规则（most-recent survivor）</b></td><td><b>0.928</b></td><td><b>0.943</b></td><td><b>0.936</b></td></tr>
+
+    </table>
+
+    <p>邻近性基线几乎一半的边是偶然排序（0.584 precision）；频率阈值化的 directly-follows（Heuristics Miner 家族）确实优于纯顺序，但达不到消费证据。skill 引擎盲测 250 条边达 0.992，但作者主动标注：这是单次未审计运行，样本无法从 released labelling 重建，250 条预测未发布——<b>不是论文的主要证据</b>。</p>
+
+
+    <h2>核心发现二：消融揭穿了功劳归属——是 recency 在干活，不是 exclusion</h2>
+
+    <p>论文自己做的 ablation 是最锋利的一刀。固定排除过滤器、只换归因策略：</p>
+
+    <table>
+
+    <tr><th>候选选择策略</th><th>Prec</th><th>Rec</th><th>F1</th></tr>
+
+    <tr><td>most-recent survivor（报告值）</td><td>0.928</td><td>0.943</td><td>0.936</td></tr>
+
+    <tr><td>random survivor</td><td>0.403</td><td>0.440</td><td>0.420</td></tr>
+
+    <tr><td>second-most-recent</td><td>0.220</td><td>0.214</td><td>0.217</td></tr>
+
+    <tr><td>earliest survivor</td><td>0.146</td><td>0.073</td><td>0.097</td></tr>
+
+    <tr><td>all survivors（不归因）</td><td>0.365</td><td>1.000</td><td>0.535</td></tr>
+
+    </table>
+
+    <p>随机选择同一候选集直接崩到 0.403。但更重要的发现：<b>排除过滤器在此语料上几乎空转</b>——zero-candidate 关系数为零，平均每条关系 8.2 个候选存续，随机选对率 36%。也就是说 0.928 的精度由 <b>recency（最近存续者）</b>承担，"admission-by-exclusion"的纪律只有 LLM skill 引擎在行使，而 skill 的唯一测量是单次未审计运行。论文把这个
+    gap 摆得很直白。</p>
+
+
+    <h2>核心发现三：可执行性验证——Venmo 34→11 调用，失败 fold 正确地升级而非行动</h2>
+
+    <p>两个结构对立的用例。Venmo 转账意图：3 个实例 34 次 API 调用，约一半是 schema-discovery lookup（不绑定任何运行时值，删掉），一个 auth retry（折叠），一个分页循环（识别为 loop 而非 3 次独立调用）——编译后 11 次运行时调用（3/3/5），残余 LLM 节点仅 1 个（recipient 解析分支）。还恢复了一条非相邻凭据边：9
+    次调用之前读的密码，相邻性读取会把它错归给中间的一个文档调用。</p>
+
+    <p>Leave-one-out 执行协议：每个实例只允许另外两个实例展示过的分支。15/21 state tests 通过；hold-out 实例 2 时，训练对都走 Branch A、Branch B 从未被观察到，实例 2 的收款人无法用任何允许的路径解析——工作流<b>升级而不是行动</b>（1/7）。这正是协议存在的意义：两个执行足以支撑结构，当且仅当它们展示了所需路径。</p>
+
+    <p>第二个用例 Spotify/Todoist 是反向验证：106 次调用，per-song 搜索的 fan-out 保留并行、byte-identical 死读删除，但 add/remove 的<b>方向</b>在三条轨迹里都不可判定——而这是两个相反、不可逆的库变更。编译器<b>拒绝编译</b>，不输出可执行图。对不可逆副作用，弃权是稳健性而非失败。</p>
+
+
+    <h2>核心发现四：论文自己撤回了三个声明（这是它最诚实的地方）</h2>
+
+    <ul>
+
+    <li><b>撤回"独立 ground truth"</b>：AppWorld replay 参照（563 条 token 边 0.993 precision）的注入器偏好同应用 token，与规则共享假设——是自洽性检查，不是独立参照。App-blind 基线的差距不能证明"应用身份携带依赖信号"。</li>
+
+    <li><b>撤回分支必要性</b>：执行测试显示 Branch B alone 足以覆盖全部 3 个实例——两分支结构是 under-determined 而非必需。且第一次"修正"本身是错的：harness 静默丢弃了 bound 参数和 page_index，把必要的绑定和分页循环丢了。教训：<b>执行 harness 本身是推理仪器，需要验证</b>。</li>
+
+    <li><b>撤回 0.992 与 0.993 的"收敛"</b>：两者由不同执行器、不同样本量产生，不可比。可比的是两个机械化测量 0.928 vs 0.993——Wilson 区间 [0.924,0.932] 与 [0.981,0.997] 不重叠。差异归因于依赖类型：AppWorld 几乎全是 session token（应用身份是强信号），T1 是 cache 往返（多个类型兼容 producer
+    竞争，正是机械化最弱处）。</li>
+
+    </ul>
+
+
+    <h2>对 Agent 基础设施的工程启示</h2>
+
+    <h3>1. most-recent-survivor 是立刻可用的廉价规则</h3>
+
+    <p>对"值不透明"日志（只记参数不记输出）：把消费者参数绑定到不透明 token，排除所有携带同 token 的调用（消费值的调用不可能产生它），归因给最近的存续者。~20 行伪代码即可机械化，T1 上 0.936 F1。它不能替代 exclusion 纪律，但作为 v1 去噪和依赖粗筛，性价比极高。</p>
+
+    <h3>2. retry-vs-variation 用参数比较判定，不用 call count</h3>
+
+    <p>重试与真 fan-out 的判别是去噪的关键，而调用次数无法区分：参数向最终成功调用 jitter = retry（折叠）；参数系统性不同 = fan-out（保留并行）；字面递增的 counter + 常量 query = pagination loop（识别为循环）。每个标签都要求正向证据，UNKNOWN 保留、从不静默删除。</p>
+
+    <h3>3. 编译产物必须带审计证据元组</h3>
+
+    <p>每条硬边携带 ⟨consumer, arg_path, value, presumed_producer, exclusions⟩——任何约束可追溯到具体值。这在部署时是决策审计线，在调试时是 diff 依据。加上 cold/warm path 分离（session token 是 COPY_EDGE 永不 CONSTANT），避免夸大摊销收益。</p>
+
+    <h3>4. 拒绝编译和 escalate-don''t-act 应该是默认安全姿态</h3>
+
+    <p>对不可逆副作用（转账、删除、修改库），方向不确定 = 不编译；分支未观察到 = 升级而非猜测。把这种 abstention 作为编译器的规范属性，而不是异常路径。</p>
+
+
+    <h2>局限与诚实标注</h2>
+
+    <ul>
+
+    <li><strong>采用相关数字缺失（论文自认）</strong>：56 个场景只编译了 2 个——缺 Workflow IR 解释器（Venmo 结果是手抄转写）加 per-intent 参数合成脚手架。compile/decline rate（采用与否的关键数字）未报告。</li>
+
+    <li><strong>无经济性结论（论文自认）</strong>：只测调用减少，不测离线编译成本，无 break-even 点。编译一次 frontier 模型跑全程的成本可能吃掉省下的调用费。</li>
+
+    <li><strong>漂移风险未管理（论文自认）</strong>：无 workflow versioning / invalidation / contract monitoring。删掉 schema-discovery 调用 + 运行时禁止注入值重发现 = API 变更从自愈事件变成<b>静默错误行为</b>。</li>
+
+    <li><strong>检测从未被测量（论文自认）</strong>：T1 上 token 出现几乎完美预示依赖，任务退化为 producer 归因；没有 decoy-token 构造，无法产生假阳性，检测（非归因）从未被测过。</li>
+
+    <li><strong>单 agent 单 generator（我的推断）</strong>：所有 AppWorld trace 来自一个 ReAct agent、T1 来自一个模板生成器——"观测轨迹是任务结构的证据而非单 agent 习惯"这个前提未被检验。跨 agent 行为泛化是未知数。</li>
+
+    <li><strong>发现阶段不可复现（论文自认）</strong>：Table 1 的聚类（50 簇 purity 0.930）跑在不同序列化上，重跑只得 12 簇 purity 0.548。discovery 是全文支撑最薄弱的组件。</li>
+
+    </ul>
+
+
+    <h2>一句话</h2>
+
+    <blockquote><p>观测到的执行顺序不该成为工作流结构，除非有数据流支撑——但真正扛起 0.936 F1 的是 recency 归因，exclusion 纪律是论文论证的、skill 才行使的、至今未被机械化验证的部分。</p></blockquote>
+
+
+    <h2>技术声明</h2>
+
+    <ul>
+
+    <li>来源确认：arXiv:2608.02680 v1 全文 PDF（17 页）逐页提取分析，2026-08-03 提交，cs.SE，preprint。</li>
+
+    <li>推断边界："单 agent 单 generator 前提未检验"为我的推断；其余局限均为论文自认（论文自我批判密度极高，多处主动撤回声明）。</li>
+
+    <li>论文状态：preprint v1，非同行评审。作者声明无外部资助、无利益冲突。</li>
+
+    <li>参考实现：官方 artifact 未在 GitHub 找到；最接近的实现为 PreAct（arXiv:2606.17929，19PINE-AI/PreAct, 13⭐）——单轨迹 GUI 状态机编译，无参数溯源、无拒绝编译。</li>
+
+    </ul>
+
+
+    <h2>参考</h2>
+
+    <ul>
+
+    <li>论文：<a href="https://arxiv.org/abs/2608.02680">TraceCompiler: Skill-Guided Mining and Compilation of LLM Agent Traces into Mostly Deterministic Workflows</a>（Salma El Yadouni, EPFL / Guanyi Li, Binome
+    Technologies）</li>
+
+    <li>数据：<a href="https://github.com/StonyBrookNLP/appworld">AppWorld</a>（Stony Brook NLP）；T1（Chakraborty et al., NeurIPS 2025 D&B）；Hermes-Function-Calling-v1（Nous Research）</li>
+
+    <li>最接近系统：<a href="https://github.com/19PINE-AI/PreAct">PreAct</a>（arXiv:2606.17929）</li>
+
+    </ul>'
 - title: FastContext：把仓库探索从编码 agent 里拆出来，token 省 60% 还能多解 5.5% 的题
   date: August 8, 2026
   slug: fastcontext-repo-exploration-subagent
