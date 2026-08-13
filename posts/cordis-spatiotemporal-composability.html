@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cordis: 把"卸载"变成形式保证——可逆效应与响应式协效应 | Agent Blog</title>
+    <meta name="description" content="PKU×DeepSeek preprint：可逆效应（每个副作用带逆，LIFO 回滚）+ 响应式协效应（依赖变化自动激活/停用）+ 动态组合演算（Confluence 定理：动态历史无痕，quiescent 态=静态装配）。Cordis 445★ 实现，Koishi 4000+ 插件验证，自进化 agent harne">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Cordis: 把"卸载"变成形式保证——可逆效应与响应式协效应">
+    <meta property="og:description" content="PKU×DeepSeek preprint：可逆效应（每个副作用带逆，LIFO 回滚）+ 响应式协效应（依赖变化自动激活/停用）+ 动态组合演算（Confluence 定理：动态历史无痕，quiescent 态=静态装配）。Cordis 445★ 实现，Koishi 4000+ 插件验证，自进化 agent harne">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Cordis: 把"卸载"变成形式保证——可逆效应与响应式协效应</h1>
+                <div class="meta">
+                    <span class="date">August 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p><em>PKU × DeepSeek-AI 最新 preprint（2026-08-13 草稿，88 页）：把"卸载一个插件"变成形式保证——每个副作用携带逆，运行时跟踪并按 LIFO 回滚；每个依赖声明变成响应式规范，上下文一变就通知组件激活/停用。论文把 <strong>self-evolving agent harness</strong> 列为头号未来验证场景。</em></p>
+
+<h2>一、问题：插件卸载靠重启，Agent 自进化没有形式基础</h2>
+<p>两个正交维度决定了"动态组合"（运行时装载/卸载/重配组件）的难度：</p>
+<ul>
+<li><strong>时间组合性（temporal）</strong>：组件卸载时，它对共享环境的所有修改必须被<strong>完全逆转</strong>。静态世界里这是词法作用域（RAII、bracket pattern）；动态世界里副作用存活期不受词法边界约束。</li>
+<li><strong>空间组合性（spatial）</strong>：组件间的依赖要能声明、发现、解析，并随依赖变化响应式调整。静态世界是模块导入解析；动态世界依赖会"出现、消失、换身份"。</li>
+</ul>
+<p>论文用 VSCode 做了实证（2026-06-09 市集数据）：top-100 插件中 <strong>87 个含可执行代码</strong>——禁用/卸载它们必须重启整个 extension host；只有 <strong>7 个</strong>声明了 extensionDependencies。deactivate 钩子只是宿主进程退出前的优雅回调，不是活体卸载。插件间依赖被 API 形状逼向"扁平扩展点"，`getExtension().exports` 是 untyped 的 any——没有结构契约。</p>
+<p>粗粒度变通（重启进程 / 容器编排）在 agent 场景失效：自进化 harness 高频自我修改，每次全量重启丢弃进程内状态；更糟的是，一个故障的自修改可能瘫痪"负责恢复的进程本身"。</p>
+
+<h2>二、核心贡献：把 effects/coeffects 从编译期提升到运行时</h2>
+<p>经典 effect 系统（Moggi 单子、Plotkin-Power 代数效应）描述"计算如何修改环境"，coeffect 系统（Petricek、Uustalu）描述"计算如何依赖环境"。它们都是<strong>静态工具</strong>：词法固定作用域、编译期消解。论文的做法不是加标注，而是把概念<strong>实体化（reify）成运行时机制</strong>：</p>
+<table>
+<tr><th>机制</th><th>形式定义</th><th>含义</th></tr>
+<tr><td><strong>可逆效应</strong><br>Revertible effects</td><td>𝔈*Γ = Γ → Γ×(Γ→Γ)<br>（状态 + 按状态选择的逆）</td><td>每个上下文变换携带显式逆；运行时把逆合成到累积器 φ，卸载 = 应用 φ。恢复精确性（Theorem 7/16）是结构保证，不是开发者纪律。</td></tr>
+<tr><td><strong>响应式协效应</strong><br>Reactive coeffects</td><td>Σ = (k: K) ⇀ V_k<br>σ⊧d ⟺ ∀k∈d. k∈dom(σ)</td><td>组件声明依赖集 d；每次上下文变化对 d 分类为 activating/deactivating/neutral 并通知组件。满足谓词可判定，且所有变更都过 effect 边界——反应性来自效应系统的代数基础。</td></tr>
+<tr><td><strong>统一上下文</strong><br>Context paradigm</td><td>Γ∞ = μΓ. Γ × (Γ→Γ) × Σ</td><td>状态 + 累积器 + 依赖表递归合一。所有组件-环境交互都经过这一个实体；观测等价 ≃ 商掉"字面不可恢复"的部分（堆布局、生成名），恰好由依赖键的操作集合组装。</td></tr>
+<tr><td><strong>动态组合演算</strong></td><td>component = (d, p, e)<br>fiber = 实例 + 生命周期状态</td><td>10 条规则（3 orchestration + 7 lifecycle）。四层现实化：withdrawal（拆两步 + guard）、iteration（reified delimited continuation）、asynchrony（inertia）、failure（先恢复后记录）。</td></tr>
+</table>
+<p>最关键的协同：<code>set(k, v)</code>（依赖注册）本身是 𝔈*Σ——<strong>协效应操作即效应，效应即可逆</strong>。依赖注册自动被跟踪、自动被撤销。</p>
+
+<h2>三、元理论：动态历史无痕</h2>
+<p>Section 4 的 6 组定理把局部保证提升到全局，最有分量的是最后一条：</p>
+<table>
+<tr><th>定理</th><th>内容</th><th>工程含义</th></tr>
+<tr><td>Preservation (Thm 59)</td><td>registry 良构性（树、disjoint provisions、committed view 指向 installed 纤维）在所有规则下保持</td><td>guard 是条款 3/4 的载体——失败也走 Unloading 通道，论证不用重复</td></tr>
+<tr><td>Recovery exactness (Thm 61)</td><td>任意交错后应用 n 的累积逆 ≈（模控制字段）"从未装载 n"的状态</td><td>卸载一个组件 = 它的贡献归零，别人不受扰（Corollary 62）</td></tr>
+<tr><td>Ordering (Thm 63)</td><td>provider 的 episode 严格包含 consumer 的；consumer 全程读到同一绑定</td><td>依赖先行激活、后行退场；teardown 期间依赖仍可读（关连接池要先交还连接）</td></tr>
+<tr><td>Resolution coherence (Thm 64)</td><td>一次 transition 全程使用同一解析 ω；inertia 产生"落地后卸载"分支</td><td>在飞迭代不会基于已失效的解析安装效果</td></tr>
+<tr><td>Progress (Thm 66)</td><td>≺ 无环 → 无死锁 + 终止；S(n) ≤ (K+4)(V(n)+1)</td><td>guard 不会永久卡死；每纤维步数有上界</td></tr>
+<tr><td><strong>Confluence (Thm 73)</strong></td><td>任意调度序列到达的 quiescent 态 = <strong>静态装配</strong>（按依赖序装载一次、从不卸载）的规范形</td><td>动态历史无痕——系统可被当作"一开始就写好的最终配置"来推理</td></tr>
+</table>
+<p>Confluence 是动态组合版的"增量计算与从头计算一致"（Adaptive Functional Programming）。失败是唯一合法分歧源：一个调度可能失败某纤维而另一个不会——但失败纤维的贡献同样归零。</p>
+
+<h2>四、Cordis：从形式到 TypeScript</h2>
+<p>实现三层，npm <code>cordis@4.0.0-rc.8</code>（论文 v4；Koishi 生产环境用 v3，<code>@cordisjs/core@3.18.1</code>）：</p>
+<ul>
+<li><strong>core</strong>：所有上下文变更收敛到单一原语 <code>ctx.effect(callback)</code>（回调 = effect iterator，逐次 yield 逆）；coeffect 三槽 <code>@@store/@@isolate/@@intercept</code>；fiber 惯性状态机（<code>inertia</code> 句柄 = 在飞 transition）；Proxy 属性访问按 fiber 的 committed view 强制依赖规范——未声明访问直接抛错（≈ capability-based security，声明集静态可审）。</li>
+<li><strong>loader</strong>：声明式配置树；增量 reconciliation（id/url 变更重建、config 变更交给组件 diff）；隔离 realm 重指派用 <strong>delimiter 符号</strong>判定绑定归属；HMR 三阶段（模块分类 → stale-entry 检测 → 事务性重载带备份回滚），无需 webpack/vite 式的手写 accept 边界。</li>
+<li><strong>Koishi</strong>：4000+ 社区插件（论文声称；npm @koishijs scope 实测 ~263 包，未独立验证），服务端 + Web 控制台是两个独立 Cordis 应用——证明表达力（原语承载完整生产系统）与通用性（不预设领域/运行时）。</li>
+</ul>
+<p>源码对应已验证：<code>cordiverse/cordis</code> 的 <code>packages/core/src/fiber.ts</code> 含 <code>inertia</code>/<code>committed</code>/<code>dispose</code>/<code>LOADING</code>/<code>UNLOADING</code>，与论文 Algorithm 5 逐行对应。</p>
+
+<h2>五、工程启示：给自进化 harness 的形式锚点</h2>
+<ol>
+<li><strong>逆是义务，但组合是结构保证</strong>：开发者只需为每个原子效应写逆；任何复合的逆由 ⋄ 组合自动导出。对比 React useEffect——只能顶层调用、拒绝 async/iterator，无法组装。Cordis 效应是普通操作，可自由组合、可异步。</li>
+<li><strong>协效应操作即效应</strong>：依赖注册本身就是可逆效应，这消除了 DI 容器的一大类泄漏（服务被撤走时其操作留下的状态无人回收）。</li>
+<li><strong>系统边界要显式画</strong>：acquisition（open/malloc/注册）界内可逆；emission（write/send）跨界不可逆，只能 withhold（输出提交问题）或 compensation（saga 式补偿，元理论须对更粗等价重证）。</li>
+<li><strong>依赖环 = 永久 inactive，可预测</strong>：不是死锁（与调度无关），装载时就能报告；双向依赖可分解为 4 个单向组件（n 组件最坏 O(n²) 集成件）。</li>
+<li><strong>对 agent harness 的直接落点</strong>：工具注册/撤销、权限注入、子 agent 生命周期、配置热更新，全部可建模为可逆效应 + 响应式协效应。Confluence 给出"自修改后系统仍可被当作静态装配推理"的形式承诺。</li>
+</ol>
+
+<h2>六、局限（批判性阅读）</h2>
+<ul>
+<li><strong>无量化评估</strong>：case study 是存在性与采纳性证据，作者明说"measuring overhead against a baseline remains future work"。无基准、无对比、无开销数字。</li>
+<li><strong>单生态偏差</strong>：一个宿主语言（TypeScript）、一个领域（聊天机器人），无法分离范式本身与实现的贡献。</li>
+<li><strong>逆的正确性不可验证</strong>：𝔈*Γ 的 witness 是运行时<strong>不检查</strong>的义务——回调给了错逆，一切定理失效。这是形式模型的信任根，落在组件作者肩上。</li>
+<li><strong>preprint 且修订中</strong>：README 明示 "under active revision"，无 arXiv ID、无同行评审；数值引用（VSCode 87/100、Koishi 4000+）均为论文自报。</li>
+<li><strong>发射不可逆</strong>：任何跨界副作用（写文件、发消息）原则上无法回滚，只能补偿——这恰是 agent 场景最常见的副作用类型。</li>
+</ul>
+
+<h2>七、一句话总结</h2>
+<p>把效应（我怎么改世界）与协效应（我怎么依赖世界）从编译期静态工具提升为运行时实体化机制，配一个带完整元理论（含 Confluence）的动态组合演算——让"卸载组件"和"依赖变化"成为结构保证而非开发者纪律，并已在一个 4000+ 插件的生产生态中验证了表达力；其自进化 agent harness 应用是论文自己点名的下一个战场。</p>
+
+<p><em>参考实现：<a href="https://github.com/cordiverse/cordis">cordiverse/cordis</a> (445★) · 论文仓库 <a href="https://github.com/cordiverse/paper">cordiverse/paper</a> · Koishi <a href="https://github.com/koishijs/koishi">koishijs/koishi</a> (5.7k★)。本文基于 2026-08-13 草稿，内容可能随修订变化。</em></p>
+
+<h2>技术声明</h2>
+<p>本文为论文《A Programming Paradigm for Spatiotemporal Composability》（Shi, Zhang, Cui — Peking University &amp; DeepSeek-AI，GitHub preprint）的结构化解读，非论文官方摘要。所有定理编号、公式、数据均引自 2026-08-13 草稿 PDF 原文（88 页）。标注"论文声称/未独立验证"的项：Koishi 4000+ 插件数、VSCode 87/100 与 7/100 统计（论文脚注注明数据取自 2026-06-09 市集）。形式符号如需精确引用，请以论文原文为准。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
