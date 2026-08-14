@@ -1,4 +1,138 @@
 posts:
+- title: Decart × Anthropic：$6B 收购案的真正赌注——IPO 前夕的毛利率并购
+  date: August 13, 2026
+  slug: anthropic-decart-6b-acquisition
+  excerpt: $6B 买 35-50 人的公司：Anthropic IPO 前夜的最大收购。Decart 的核心不是 Oasis 世界模型而是跨芯片推理优化栈 DOS。五重动机：算力饥渴、毛利率叙事、自研芯片软件层、世界模型缺口、防御性抢购（Nvidia/SpaceX/Amazon 曾同场竞购）。AI 并购已从买模型能力转向买成本曲线与交付层。
+  content: '<p><em>$6B 买一家 35-50 人的公司，每员工折合 1.2-1.7 亿美元；Nvidia、SpaceX、Amazon 都在谈判桌上；买方在 IPO 前夜、估值 $965B。这不是一桩"视频公司收购"——这是毛利率并购。</em></p>
+
+
+    <h2>一、交易事实：早期谈判，可能谈崩</h2>
+
+    <p>2026-08-12（美东）Bloomberg 首发，Reuters 独立确认：Anthropic 与 Decart AI 就约 <strong>$6B</strong> 收购进行早期谈判。双方均未确认，所有报道都强调交易可能破裂。关键事实：</p>
+
+    <table>
+
+    <tr><th>项</th><th>事实</th></tr>
+
+    <tr><td>状态</td><td>早期谈判（2026-08-13）；未最终化</td></tr>
+
+    <tr><td>价格</td><td>约 $6B（Calcalist 早前报 $6-7B 区间）——Anthropic 史上最大收购，2026 年第 5-6 笔</td></tr>
+
+    <tr><td>背景</td><td>Anthropic 6/1 秘密提交 S-1，最早 10 月 IPO；5 月 Series H $65B @ $965B post-money</td></tr>
+
+    <tr><td>竞购者</td><td><strong>Nvidia 曾深度谈判</strong>（$6-7B 区间）；SpaceX 传闻（Musk 8/11 否认）；Amazon 也被报道有兴趣</td></tr>
+
+    <tr><td>整合方向</td><td>Decart 团队并入 Anthropic <strong>inference &amp; performance 部门</strong></td></tr>
+
+    <tr><td>估值轨迹</td><td>2025-08: $153M @ $3.1B → 2026-05: $300M @ $4B（Nvidia 新进）→ 8月: $6B = 3 个月 +50% 溢价</td></tr>
+
+    </table>
+
+
+    <h2>二、Decart 是什么：三层技术栈，35-50 人</h2>
+
+    <p>2023 年底成立，三位以色列创始人（Dean &amp; Orian Leitersdorf 兄弟 + Moshe Shalev，均 Unit 8200 出身；Dean 为 Technion 博士，五年拿下 BSc/MSc/PhD），旧金山总部。三层栈：</p>
+
+    <table>
+
+    <tr><th>层</th><th>产品</th><th>定位</th><th>关键数字（厂商自报⚠️）</th></tr>
+
+    <tr><td>模型层</td><td>Oasis（交互式世界模型；Oasis 3 六月发布 = Physical AI 旗舰）</td><td>实时可交互视频/模拟环境，robotics/自动驾驶训练</td><td>初代 3 天 ~100 万用户</td></tr>
+
+    <tr><td>模型层</td><td>Lucy（实时视频编辑/人体重建；Lucy 2 = world transformation）</td><td>真人实时视频生成编辑</td><td>—</td></tr>
+
+    <tr><td>基础设施层</td><td><strong>DOS</strong>（Decart Optimization Stack）</td><td>推理+训练优化栈，跨 <strong>NVIDIA / Google TPU / AWS Trainium</strong></td><td>agentic 推理 1,600 tok/s；全高清视频 100fps；世界模型 &lt;30ms
+    延迟</td></tr>
+
+    <tr><td>硬件层</td><td>GPU 空闲消除（processor 级深度）</td><td>压掉"处理器等数据跨片传输"的空闲期</td><td>成本从数百美元/小时级下降；有 advisor 质疑"两个数量级"声称</td></tr>
+
+    </table>
+
+    <p><strong>核心资产不是 Oasis/Lucy 这两个 demo 级模型，而是 DOS 这个跨芯片抽象层</strong>——同时兼容 Nvidia/Google/Amazon 三系芯片。这既让 Nvidia 既投资又不安（WSJ 标题直说"让切换 AI 芯片更容易"），也是 Anthropic 买它的核心理由。</p>
+
+
+    <h2>三、五重动机拆解</h2>
+
+    <ol>
+
+    <li><strong>IPO 前的算力饥渴（主因）</strong>。需求 &gt;&gt; 算力，capacity constraints 持续数月。已签巨额供应（Google/Broadcom TPU 3.5GW 2027 起、AWS 最高 5GW、AMD MI450 2GW、CoreWeave、SpaceX 计算协议）——但都是新产能。DOS 是<strong>现有硬件榨出更多算力</strong>的即期解。</li>
+
+    <li><strong>毛利率叙事 = IPO 估值乘数</strong>。Q2 2026 运营利润指引 +$559M（ex-SBC）；2028 正 FCF 目标对应 ~$70B 收入、~77% 毛利率。每 token 成本下降 = 毛利率上升 = $965B 故事更可信。<strong>这是把成本曲线买下来</strong>。</li>
+
+    <li><strong>自建芯片团队的软件层</strong>。Anthropic 在组建自己的 chip team——DOS 恰好是"芯片无关的优化栈"，自研芯片的软件生态问题解决一大半。</li>
+
+    <li><strong>多模态 + 世界模型布局</strong>。Claude 在视频/世界模型上落后 OpenAI（Sora 系）与 Google（Veo/Genie 系）；Oasis 的实时交互 + Lucy 的实时视频是缺口，robotics 也是 Anthropic 已押注方向。</li>
+
+    <li><strong>防御性抢购</strong>。Nvidia、SpaceX、Amazon 都在桌上。DOS 落到 Nvidia 手里 = 推理效率命脉被供应商卡住；落到 SpaceX 手里 = xAI 获得效率优势。<strong>买 Decart 同时是买断竞购对手</strong>。</li>
+
+    </ol>
+
+
+    <h2>四、撞题 vs 差异化</h2>
+
+    <table>
+
+    <tr><th>维度</th><th>撞题（重叠）</th><th>差异化（缺口）</th></tr>
+
+    <tr><td>推理优化</td><td>Anthropic 已有 inference/perf 团队的 kernel/量化优化</td><td>DOS 跨芯片抽象（Nvidia+TPU+Trainium 三系统一）是现有栈没有的；现优化多为单芯片绑定</td></tr>
+
+    <tr><td>世界模型</td><td>—</td><td>Claude 无实时交互视频；&lt;30ms 交互延迟 = 生成式 UI/游戏/仿真入口</td></tr>
+
+    <tr><td>硬件</td><td>Anthropic 在谈自研芯片</td><td>processor-level 优化经验可直接服务芯片设计目标</td></tr>
+
+    <tr><td>人才</td><td>—</td><td>35-50 人 Unit 8200 系高性能计算团队；$6B 买的是团队+技术，不是收入（Decart 未披露收入）</td></tr>
+
+    </table>
+
+
+    <h2>五、估值判断：贵 vs 不贵</h2>
+
+    <p><strong>贵的逻辑</strong>：35-50 人、收入未披露（大概率 &lt;$100M 量级）、核心产品 demo 级。$6B ≈ 每员工 $1.2-1.7 亿——人才收购价的天花板。</p>
+
+    <p><strong>不贵的逻辑</strong>：</p>
+
+    <ul>
+
+    <li>对标：Google $32B 买 Wiz；头部 lab 的"层间基础设施"收购普遍溢价</li>
+
+    <li>竞争性拍卖（Nvidia/SpaceX/Amazon 在场）本身推高价格</li>
+
+    <li>$965B 估值下 $6B 只是 0.6% 市值成本，换取毛利率叙事 + 竞购排除 + 能力补齐</li>
+
+    <li>关键信号：<strong>Nvidia 愿意花 $6-7B 买一个优化软件公司</strong>——说明 DOS 对 GPU 生态的战略意义是真实的</li>
+
+    </ul>
+
+
+    <h2>六、风险与不确定性</h2>
+
+    <ul>
+
+    <li><strong>交易可能谈崩</strong>（所有报道强调 early stage）。Nvidia 作为股东的态度是关键变量。</li>
+
+    <li><strong>Nvidia 既是股东又是竞购失败方</strong>——整合后 DOS 对 Nvidia 硬件的深度绑定与 Anthropic 的 TPU/AMD 多元化战略存在张力。</li>
+
+    <li><strong>以色列监管</strong>：Unit 8200 背景 + 战略技术，外国收购通常需政府批准（推断）。</li>
+
+    <li><strong>数字可信度</strong>：1,600 tok/s、100fps、&lt;30ms、三个月转正、成本降两个数量级——全部厂商自报，未经第三方基准验证。收购后若 Claude 实际吞吐提升达不到 2 倍级，叙事会被重新定价。</li>
+
+    <li><strong>产品线处置不明</strong>：Oasis/Lucy 继续独立还是并入 Claude？团队并入 inference/perf 部门通常意味着模型产品线收缩——Anthropic 买的是 DOS，不是 Oasis 的 B2C 梦想。</li>
+
+    </ul>
+
+
+    <h2>七、洞察结论</h2>
+
+    <p>把 Anthropic 2025-12 以来的并购串起来，模式清晰：Bun（运行时）→ Vercept（computer use）→ Stainless（SDK/MCP 最后一公里）→ Fractional AI（自动化）→ Decart（推理效率+世界模型）——<strong>全都在买"Claude 生成答案"和"Claude 完成工作"之间的层</strong>。AI 并购已从"买模型能力"转向"买成本曲线和交付层"。$965B
+    估值、80% 企业收入、IPO 在即的 Anthropic 必须证明：每美元算力产出更高的 token、每个企业工作流更深地嵌入。Decart 是这两条线的交汇点——<strong>效率 = 利润率，世界模型 = 下一个工作界面</strong>。</p>
+
+
+    <h2>技术声明</h2>
+
+    <p>本文基于 2026-08-13 公开报道（Bloomberg、Reuters、Calcalist、WSJ、Decart 官网、Radical Ventures、Alpha Partners、Tracxn、TechCrunch 系）。交易处于早期谈判阶段，双方未确认，价格与条款可能变化。所有 Decart 性能数字（1,600 tok/s、100fps、&lt;30ms、成本降幅）为厂商自报，未经独立基准验证；标注"推断"的项（以色列监管、产品线处置）为分析者推测而非已确认事实。估值数据（$3.1B/$4B/$6B、$965B、毛利率
+    77%）来自媒体报道，各来源口径存在差异。</p>
+
+    '
 - title: 'Cordis: 把"卸载"变成形式保证——可逆效应与响应式协效应'
   date: August 13, 2026
   slug: cordis-spatiotemporal-composability
