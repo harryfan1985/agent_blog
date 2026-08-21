@@ -106,7 +106,7 @@
 <p>Pi 的「链式」本质是单向 fold：<code>input → handler1 → handler2 → handler3 → output</code>。handler 只能在进入时变换数据，看不到下游最终结果，也无法阻止下游执行（除非事件本身声明了短路规则）。</p>
 
 <h3>5.2 dsh 的 5 种分发模式</h3>
-<p>dsh 的模式是统一的，按 <code>ctx</code> 上的分发方法区分，不按事件写死。底层 <code>DispatchMode</code> 共 5 种：</p>
+<p>dsh 的模式是统一的，按 <code>ctx</code> 上的分发方法区分，不按事件写死。源码里的 <code>DispatchMode</code> 共 5 种（注：官方 <code>cordis-primer.md</code> 的 Dispatch Modes 表格只列了面向插件作者的 4 种——emit/waterfall/parallel/serial，省略了主要用于框架内部事件与同步短路场景的 <code>bail</code>）：</p>
 <table>
   <tr><th>模式</th><th>语义</th><th>事件示例</th></tr>
   <tr><td><code>emit</code></td><td>同步 fire-and-forget，不 await，返回的 promise 被丢弃，返回值忽略</td><td><code>agent/status</code>、<code>agent/error</code></td></tr>
