@@ -73,7 +73,7 @@
 <p><code>ExtensionAPI</code> 的 <code>on(event)</code> + <code>registerTool/Command/Shortcut/Flag/Provider</code>，11 个 <code>emitXxx</code> 写死 6 种语义（通知/短路/链式/字段合并/就地 mutate/累积），本质是单向 pipe。</p>
 
 <h3>4.2 dsh：类型化事件 + next() 委托（around）</h3>
-<p>Cordis 插件 + <code>ctx</code> 服务注册 + 统一 3 种分发（<code>emit</code>/<code>waterfall</code>/<code>serial</code>），waterfall 是洋葱 around，监听器可短路、透传、改写下游结果。</p>
+<p>Cordis 插件 + <code>ctx</code> 服务注册 + 统一 5 种分发（<code>emit</code>/<code>parallel</code>/<code>serial</code>/<code>bail</code>/<code>waterfall</code>），其中 waterfall 是洋葱 around，监听器可短路、透传、改写下游结果。</p>
 
 <h3>4.3 Codex：trait 贡献者 + 四层扩展面</h3>
 <p>Codex 的扩展机制最复杂，因为它同时有四层：</p>
@@ -89,7 +89,7 @@
 <table>
   <tr><th>项目</th><th>扩展点声明</th><th>分发语义</th><th>能力注入</th></tr>
   <tr><td>Pi</td><td><code>on(event)</code> 字符串 + 返回值</td><td>每事件手写（pipe）</td><td>无（ctx 对象）</td></tr>
-  <tr><td>dsh</td><td>类型化事件（声明合并）</td><td>统一 3 种（around）</td><td>无（ctx 服务）</td></tr>
+  <tr><td>dsh</td><td>类型化事件（声明合并）</td><td>统一 5 种（emit/parallel/serial/bail/waterfall）</td><td>无（ctx 服务）</td></tr>
   <tr><td>Codex</td><td><strong>Rust trait</strong></td><td>host 显式遍历/短路/通知</td><td><strong>Capability trait 反向注入</strong></td></tr>
 </table>
 <p>Codex 用 Rust 的编译期 trait 取代了 Pi/dsh 的运行时事件。好处是类型安全、无字符串事件名、分发语义由 host 显式决定；代价是扩展必须编译进二进制，不像 dsh 插件可动态加载，也不像 Pi 扩展可热重载。</p>

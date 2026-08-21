@@ -80,7 +80,7 @@
 <h2>四、三个本质差异</h2>
 
 <h3>4.1 库 + 回调 vs 插件 + 事件</h3>
-<p>Pi 的 <code>Agent</code> 是一个自包含类，扩展点是构造时传入的回调。dsh 里连 agent loop 本身都是插件，扩展点是 Cordis 的类型化事件，有三种分发语义：<code>emit</code>（通知）、<code>waterfall</code>（必须调 <code>next()</code> 委托）、<code>serial</code>（串行无 next）。这是「枚举扩展点」与「开放扩展面」的差别。</p>
+<p>Pi 的 <code>Agent</code> 是一个自包含类，扩展点是构造时传入的回调。dsh 里连 agent loop 本身都是插件，扩展点是 Cordis 的类型化事件，有五种分发语义：<code>emit</code>（同步通知）、<code>parallel</code>（并行等待）、<code>serial</code>（顺序短路）、<code>bail</code>（同步短路）、<code>waterfall</code>（<code>next()</code> 委托）。这是「枚举扩展点」与「开放扩展面」的差别。</p>
 
 <h3>4.2 内存态 vs 事件溯源</h3>
 <p>这是最核心的架构差异。Pi 的核心 Agent 是纯内存：<code>_state.messages</code> 数组就是对话真相，事件监听是副作用的出口。dsh 反过来：<code>Session</code> 是 append-only 的 <code>SessionEvent</code> 日志，有一个硬不变量——<strong>「模型可见即已入日志」（Model-visible means logged）</strong>：每次请求的 <code>messages</code> 通过 <code>deriveMessages()</code> 从日志投影得出，连 inbox 队列都是 durable 事件的增量投影。</p>
@@ -105,15 +105,17 @@
 </table>
 <p>Pi 的「链式」本质是单向 fold：<code>input → handler1 → handler2 → handler3 → output</code>。handler 只能在进入时变换数据，看不到下游最终结果，也无法阻止下游执行（除非事件本身声明了短路规则）。</p>
 
-<h3>5.2 dsh 的 3 种分发模式</h3>
-<p>dsh 的模式是统一的，按 <code>ctx</code> 上的分发方法区分，不按事件写死：</p>
+<h3>5.2 dsh 的 5 种分发模式</h3>
+<p>dsh 的模式是统一的，按 <code>ctx</code> 上的分发方法区分，不按事件写死。底层 <code>DispatchMode</code> 共 5 种：</p>
 <table>
   <tr><th>模式</th><th>语义</th><th>事件示例</th></tr>
-  <tr><td><code>emit</code></td><td>通知，同步 throw 和 promise rejection 都被独立捕获，返回值忽略</td><td><code>agent/status</code>、<code>agent/error</code></td></tr>
-  <tr><td><code>serial</code></td><td>串行 await，返回第一个 bail value</td><td><code>agent/turn-stopping</code></td></tr>
-  <tr><td><code>waterfall</code></td><td>around-middleware，监听器必须调 <code>next()</code> 才委托</td><td><code>agent/pre-step</code>、<code>agent/request</code>、<code>agent/request-error</code></td></tr>
+  <tr><td><code>emit</code></td><td>同步 fire-and-forget，不 await，返回的 promise 被丢弃，返回值忽略</td><td><code>agent/status</code>、<code>agent/error</code></td></tr>
+  <tr><td><code>parallel</code></td><td>所有监听器并行执行并 await 全部 settle，无返回值；任一 reject 抛 AggregateError</td><td><code>session/flush</code></td></tr>
+  <tr><td><code>serial</code></td><td>顺序 await，直到返回 bail 值（非 null/false/undefined），返回第一个 bail 值</td><td><code>agent/turn-stopping</code></td></tr>
+  <tr><td><code>bail</code></td><td>与 serial 同语义，但同步执行（不 await），第一个 bail 值赢</td><td><code>slash/input-begin-command</code></td></tr>
+  <tr><td><code>waterfall</code></td><td>around-middleware，监听器必须调 <code>next()</code> 才委托，返回值从最外层冒出</td><td><code>agent/pre-step</code>、<code>agent/request</code>、<code>agent/request-error</code></td></tr>
 </table>
-<p>waterfall 的监听器有四种选择，这是 Pi 完全没有的：</p>
+<p>其中 <code>serial</code> 与 <code>bail</code> 的差别只在「是否 await 监听器返回值」，<code>parallel</code> 与 <code>emit</code> 的差别在「是否等待并聚合错误」。waterfall 的监听器有四种选择，这是 Pi 完全没有的：</p>
 <pre><code>// 1. 短路：不调 next，下游全部不执行
 if (shouldBlock) return { kind: 'reject' }
 // 2. 透传：调 next，原样返回
