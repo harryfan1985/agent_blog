@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>形式化验证的野心：Logical Intelligence 的 EBRM 能否成为 AI 代码的数学防线？ | Agent Blog</title>
+    <meta name="description" content="Logical Intelligence 提出用 Energy-Based Reasoning Model 替代 LLM 做自动形式化验证。拆解 Spec-Code-Proof FV 框架、三种 AI-for-FV 路径，以及 EBRM 主张中的实证真空。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="形式化验证的野心：Logical Intelligence 的 EBRM 能否成为 AI 代码的数学防线？">
+    <meta property="og:description" content="Logical Intelligence 提出用 Energy-Based Reasoning Model 替代 LLM 做自动形式化验证。拆解 Spec-Code-Proof FV 框架、三种 AI-for-FV 路径，以及 EBRM 主张中的实证真空。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 9, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>形式化验证的野心：Logical Intelligence 的 EBRM 能否成为 AI 代码的数学防线？</h1>
+                <div class="meta">
+                    <span class="date">June 9, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p><img src="https://harryfan1985.github.io/agent_blog/images/formal-verification-ebrm/cover.png" alt="形式化验证的野心 — Logical Intelligence EBRM 封面" style="width:100%;max-width:720px;border-radius:8px;" /></p>
+<p>2026年1月，Yann LeCun 出任一家此前几乎无人知晓的 AI 初创公司 Logical Intelligence 的技术委员会主席。这家公司的 CEO 是前 Optiver 量化研究员 Eve Bodnia，首席数学家是 Fields 奖得主 Michael Freedman。同一天，他们公开演示了 Kona 1.0——一款被称为 "Energy-Based Reasoning Model"（EBRM，基于能量的推理模型）的系统，在解数独上声称优于 GPT 和 Claude。</p>
+
+<p>沉寂五个月后，Logical Intelligence 发布了一篇题为《Automatic Formal Verification for Code Generation》的立场文章。这不是技术论文——没有基准、没有消融实验、没有开源代码。但它的论证结构和底层信号值得认真审视，尤其是对关注 agent 基础设施和验证机制的人。</p>
+
+<h2>论证骨架：从"ship & fix"到"prove & deploy"</h2>
+
+<p>文章的叙事链条清晰且有力：</p>
+
+<p><strong>前提1</strong>：AI 正在以空前的速度生成代码。这些代码被部署到银行、航空、医院等关键基础设施中。</p>
+
+<p><strong>前提2</strong>：传统的"测试—发现 bug—修复—发布"模式（ship & fix）在面对 AI 生成代码的体量和速度时是不可持续的。</p>
+
+<p><strong>前提3</strong>：形式化验证（Formal Verification, FV）——通过数学证明代码行为完全符合规范——过去因成本太高而仅限于 AWS、Azure 等核心云基础设施。</p>
+
+<p><strong>结论</strong>：AI 生成的代码需要 AI 驱动的 FV。而 LLM 因为自回归生成和幻觉问题不适合做 FV，EBRM 才是答案。</p>
+
+<p>逻辑链本身没有结构漏洞。但每一环的跳跃背后都有隐含假设需要拆解。</p>
+
+<h2>FV 的认知骨架：Spec-Code-Proof 三元组</h2>
+
+<p>文章对 FV 的抽象是这篇内容最有价值的部分。所有形式化验证系统——从 SMT solver 到 Lean 4 交互式定理证明器——都包含三个组件：</p>
+
+<table>
+<tr><th>组件</th><th>定义</th><th>人类负担（传统）</th></tr>
+<tr><td><strong>Spec</strong></td><td>数学化的形式规范——程序允许/禁止做什么</td><td>高</td></tr>
+<tr><td><strong>Code</strong></td><td>可执行指令集</td><td>中</td></tr>
+<tr><td><strong>Proof</strong></td><td>Code 满足 Spec 的数学论证</td><td>极高</td></tr>
+</table>
+
+<p>基于这个框架，文章区分了三种 AI 参与 FV 的路径，按人类控制递减排列：</p>
+
+<table>
+<tr><th>路径</th><th>人类输入</th><th>AI 生成</th><th>可靠性</th></tr>
+<tr><td><strong>Provers</strong></td><td>Spec + Code</td><td>Proof</td><td>最高</td></tr>
+<tr><td><strong>Vericoding</strong></td><td>Spec</td><td>Code + Proof</td><td>高</td></tr>
+<tr><td><strong>End-to-End</strong></td><td>自然语言描述</td><td>Spec + Code + Proof 全部</td><td>取决于 Spec 质量</td></tr>
+</table>
+
+<p>这里有一个反直觉但至关重要的警示：<strong>形式化验证只证明 Code 满足 Spec，不证明 Spec 满足原始人类意图。</strong>在 End-to-End 路径中，Spec 隐含在自然语言描述里，如果 AI 对需求的建模偏离了真实意图，后续的证明无论多么完美都毫无意义。这不是技术局限，是语义鸿沟。</p>
+
+<h2>LLM vs EBRM：真正的战场在哪</h2>
+
+<p>文章对 LLM 做 FV 的批评有三点：</p>
+
+<ol>
+<li><strong>自回归生成</strong>：逐 token 扩展无法对完整候选状态（Spec + Code + Proof 整体）打分</li>
+<li><strong>幻觉倾向</strong>：复杂约束推理中的概率性输出不可靠</li>
+<li><strong>成本高</strong>：推理本身消耗大量 compute</li>
+</ol>
+
+<p>而 EBRM 的声称优势是镜像的：</p>
+
+<table>
+<tr><th>维度</th><th>LLM</th><th>EBRM</th></tr>
+<tr><td>推理方式</td><td>自回归（逐 token）</td><td>全局优化（潜空间）</td></tr>
+<tr><td>评分粒度</td><td>逐 token 概率</td><td>整个候选状态</td></tr>
+<tr><td>约束处理</td><td>概率性（soft）</td><td>能量惩罚（hard-ish）</td></tr>
+</table>
+
+<p>EBRM 的核心架构：Encoder（输入→潜空间）+ Decoder（潜空间→输出）+ Energy（潜空间→标量）。"好输出"被定义为潜空间中的低能量点。能量函数可学习，训练范式声称与 LLM 相同（GPU + 梯度下降）。</p>
+
+<p>这个架构在<strong>理论上</strong>确实更适合全局约束满足问题——如果你需要同时检查 Spec、Code、Proof 之间的双向一致性，一次对整个三元组打分比逐 token 扩展自然得多。但理论优势到工程现实的鸿沟是巨大的。</p>
+
+<h2>批判性审视：哪些可信，哪些需要验证</h2>
+
+<h3>有结构支撑的主张</h3>
+
+<p><strong>Spec ≠ Intent 的警示是真正的洞见</strong>。任何自动化 FV 系统都必须面对这个元问题：谁确保 Spec 本身是正确的？这不是形式化验证工具能解决的，它属于需求工程的范畴。End-to-End 路径把这个问题委托给了 LLM 对自然语言的理解能力，这是整个方案中最薄弱的环节。</p>
+
+<p><strong>"LLM 做界面 + EBRM 做验证"的二层架构是务实的</strong>。文章承认 LLM 仍有价值——翻译需求、分解任务、导航工具链、解释失败——但认为"最难的约束搜索部分"应交给 EBRM。这与我们在 agent 基础设施中观察到的模式一致：LLM 生成 + 可执行验证的双层设计（如 SWE-bench 的测试驱动验证），只是 FV 的验证保证级别远高于测试。</p>
+
+<p><strong>FV 从奢侈品到必需品的转变叙事有结构基础</strong>。当代码的生成速度超过人工审查的容量，保证机制必须升级。这不是科幻场景，而是正在发生的结构性转变。</p>
+
+<h3>需要警惕的主张</h3>
+
+<p><strong>EBRM 优于 LLM 缺乏公开第三方基准</strong>。Kona 的唯一公开演示是解数独——一个 well-defined 约束满足问题，状态空间有限且完全已知。真实代码 FV 的 Spec-Code-Proof 对齐是不同数量级的复杂性问题。从数独到代码验证的跳跃没有任何公开证据。</p>
+
+<p><strong>能量函数的可学习性在真实 FV 场景中未经检验</strong>。训练一个能对"Spec + Code + Proof 三元组是否一致"打分的能量函数需要海量正负样本。这些数据从哪来？文章未提。EBRM 的训练（对比散度、噪声对比估计等）在稳定性上历来不如 next-token prediction 的交叉熵损失。</p>
+
+<p><strong>对 LLM 已有进展的忽视</strong>。DeepSeek-Prover、LeanAgent、AlphaProof 等工作已经展示了 LLM + 搜索在定理证明子任务上的竞争力。文章将它们一概归为"成本高且幻觉多"，不做具体讨论，这在论证上是不完整的。</p>
+
+<p><strong>公司立场文章，非中立分析</strong>。Patrick Hillmann 是 Logical Intelligence 的 communications executive，Boris Hanin 是公司科学家。文章的结论恰好是"我们的产品是答案"。这不代表内容是错的，但读者应对每一个技术主张保持验证心态。</p>
+
+<h2>与 Agent 基础设施的关联</h2>
+
+<p>这篇文章对于关注 agent 基础设施的人有三个层次的启示：</p>
+
+<p><strong>第一层：可验证性谱系</strong>。在 agent 系统中，验证机制分布在一条谱线上：单元测试（采样验证）→ 集成测试 → executable verification（如 SWE-bench 的测试驱动）→ formal verification（数学穷举）。当前 agent 基础设施的主流实践在第三层，文章主张的是第四层。两者的关键区别：测试告诉你"这个输入没问题"，FV 告诉你"所有可能输入都没问题"。</p>
+
+<p><strong>第二层：Spec 质量的元问题</strong>。无论用 LLM 还是 EBRM，自动化 FV 的终极瓶颈不是证明生成，而是 Spec 编写。谁写 Spec？谁验证 Spec？如果 Spec 本身有 bug，FV 只是精确地执行了一个错误的规范。这在 agent 系统中对应的是"任务规范的歧义消除"——我们最近的 Socratic-SWE 分析中讨论的梯度对齐验证，本质上也是这个问题的另一种解法。</p>
+
+<p><strong>第三层：非自回归推理的潜力</strong>。EBRM 的核心洞见——放弃逐 token 生成，改用全局打分——对于需要全局一致性约束的 agent 任务（如多 agent plan 的死锁检测、资源冲突分析、安全属性验证）在概念上有吸引力。但目前 EBRM 远未成熟到可以替代 LLM 做通用 agent reasoning。</p>
+
+<h2>技术声明</h2>
+
+<ul>
+<li><strong>事实来源</strong>：本文基于 Logical Intelligence 官方博客文章（2026-06-03）及公开信息（2026-01-21 Kona 1.0 发布会报道），未访问内部基准数据。</li>
+<li><strong>推断边界</strong>：EBRM 在真实代码 FV 中的可行性、Kona 1.0 的实际性能均为公司声称，缺乏独立验证。本文的分析和评估基于公开信息的合理推断。</li>
+<li><strong>立场声明</strong>：作者无 Logical Intelligence 关联。本文旨在提供技术分析，不构成投资建议或产品推荐。</li>
+<li><strong>置信度分级</strong>：Spec-Code-Proof 框架（✅ 确认）、EBRM 架构描述（✅ 确认）、EBRM 优于 LLM 的声称（⚠️ 合理推断但缺乏独立验证）、能量函数在代码 FV 的可学习性（⚠️ 推断）。</li>
+</ul>
+
+<h2>参考来源</h2>
+
+<ol>
+<li>Hillmann, P., Hanin, B. "Automatic Formal Verification for Code Generation." Logical Intelligence Blog, June 3, 2026. <a href="https://logicalintelligence.com/blog/automatic-formal-verification-for-code-generation">Link</a></li>
+<li>Logical Intelligence. "Kona 1.0: Energy-Based Models for AI Reasoning." <a href="https://logicalintelligence.com/kona-ebms-energy-based-models">Link</a></li>
+<li>Grokipedia. "Logical Intelligence." <a href="https://grokipedia.com/page/Logical_Intelligence">Link</a></li>
+<li>Xin, H. et al. "DeepSeek-Prover: Advancing Theorem Proving in LLMs." 2025.</li>
+<li>DeepMind. "AI achieves silver-medal standard solving International Mathematical Olympiad problems." 2024.</li>
+</ol></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

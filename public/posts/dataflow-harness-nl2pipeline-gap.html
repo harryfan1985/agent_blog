@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataFlow-Harness：给 Agent 套上 Harness，成本降 72.5% 产出可编辑 DAG | Agent Blog</title>
+    <meta name="description" content="北大团队定义 NL2Pipeline gap：Agent 产出的脚本无法持久化为平台 DAG。DataFlow-Harness 通过 typed mutation + procedural Skills 将 Agent 限制在 platform-native 操作空间中，93.3% 通过率、成本 -72.5%。Abla">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="DataFlow-Harness：给 Agent 套上 Harness，成本降 72.5% 产出可编辑 DAG">
+    <meta property="og:description" content="北大团队定义 NL2Pipeline gap：Agent 产出的脚本无法持久化为平台 DAG。DataFlow-Harness 通过 typed mutation + procedural Skills 将 Agent 限制在 platform-native 操作空间中，93.3% 通过率、成本 -72.5%。Abla">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 30, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>DataFlow-Harness：给 Agent 套上 Harness，成本降 72.5% 产出可编辑 DAG</h1>
+                <div class="meta">
+                    <span class="date">July 30, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>93.3% 端到端通过率，成本降低 72.5%——不是一个更好的 Agent，而是一个更聪明的 Harness</h2>
+
+<p>LLM coding agent 能帮你写数据处理脚本，但产出的是一堆 <code>.py</code> 文件——用完即弃，无法在平台上可视化为 DAG、无法增量编辑、无法审计。北大和上海 IAAR 的团队把这个问题定义为 <strong>NL2Pipeline gap</strong>：用户用自然语言表达 workflow 需求，但生产环境需要的是持久、可编辑、可治理的 platform-native pipeline 工件。</p>
+
+<p>他们的答案不是「做一个更强的 agent」，而是 <strong>给 agent 套上一个 harness</strong>——限制其只能通过 typed mutation 操作平台 DAG，并注入领域 procedural knowledge。结果？93.3% 的端到端通过率（与最强代码生成 baseline 差距仅 0.9pp），但成本降低 72.5%，延迟降低 49.9%。</p>
+
+<h2>核心机制：四个组件构成的 Harness</h2>
+
+<p>DataFlow-Harness 的架构围绕一个核心原则：<strong>agent 不再直接写代码，而是通过 MCP tool call 对 pipeline DAG 发出 typed mutation</strong>。每次 mutation 必须通过两层验证才生效。</p>
+
+<p><strong>四个组件：</strong></p>
+
+<ol>
+<li><strong>Data Pipeline Backend</strong>：以五元组 P = (D, O, E, S, R) 建模 pipeline（数据源、operator 实例、有向边、schema 状态、运行时状态），是所有接口的单一真相源</li>
+<li><strong>MCP Tools Layer</strong>：暴露 live operator registry + 当前 pipeline 状态，agent 通过 MCP tool call 发出 typed mutation，经 DAG acyclicity + schema compatibility 验证后才 commit</li>
+<li><strong>DataFlow-Skills</strong>：注入领域 procedural knowledge——先做 schema 推断→再选 operator→再配参数→再验证 serving，以及 operator 兼容性规则（modality matching、field-flow conventions）</li>
+<li><strong>DataFlow-WebUI</strong>：对话界面 + 可视化 DAG 编辑器，WebSocket 双向同步</li>
+</ol>
+
+<p>关键设计决策：<strong>Validation 发生在 mutation 层，而不是最终产物层</strong>。这意味着 agent 每次尝试修改 pipeline 都会立即知道结果，不需要等整个 script 跑完才发现 DAG 有环。</p>
+
+<h2>数据：四个 Baseline 的梯度对比</h2>
+
+<p>实验设计很干净——四种配置形成从「自由编码」到「完全 harnessed」的梯度：</p>
+
+<table>
+<tr><th>Method</th><th>产物类型</th><th>E2E Pass</th><th>Cost ($)</th><th>Latency (s)</th></tr>
+<tr><td>Vanilla CC</td><td>Script</td><td>91.7%</td><td>0.950</td><td>190.7</td></tr>
+<tr><td>Context-Aware CC</td><td>Script</td><td>94.2%</td><td>0.456</td><td>115.9</td></tr>
+<tr><td>MCP-only</td><td>DAG</td><td>83.3%</td><td>0.321</td><td>105.5</td></tr>
+<tr><td><strong>DataFlow-Harness</strong></td><td><strong>DAG</strong></td><td><strong>93.3%</strong></td><td><strong>0.261</strong></td><td><strong>95.5</strong></td></tr>
+</table>
+
+<p>MCP-only 的 83.3% 是整个实验中最有价值的数据点。它说明：<strong>只给 tool 接口不给 procedural knowledge，agent 在受限空间中反而挣扎</strong>。从自由编码（Vanilla CC 91.7%）到 DAG 约束（MCP-only 83.3%），通过率反而掉了 8.4pp。这是一个干净的 NL2Pipeline gap 量化——受约束的 agent 比自由的 agent 更难成功，除非给它足够的 scaffolding。</p>
+
+<p>DataFlow-Harness 的 93.3% 说明 Skills 填补了这个 gap。而且它还比 Context-Aware CC 便宜 42.8%、快 17.6%。</p>
+
+<h2>Skills 到底在哪类任务上有用？</h2>
+
+<p>Ablation 实验把 12 个 task 分成三组（每组 10 次试验），揭示了一个清晰的模式：</p>
+
+<table>
+<tr><th>任务组</th><th>MCP-only</th><th>DataFlow-Harness</th><th>收益</th></tr>
+<tr><td>过程知识依赖（QA basic/filter/chain）</td><td>18/30</td><td>29/30</td><td>+36.7%</td></tr>
+<tr><td>简单路由（field rename, filter）</td><td>40/40</td><td>40/40</td><td>0</td></tr>
+<tr><td>非合成瓶颈（multi-field scoring）</td><td>14/20</td><td>14/20</td><td>0</td></tr>
+</table>
+
+<p><strong>Skills 的价值集中在「需要隐性领域知识」的场景</strong>——那些从 operator 描述中无法推断具体怎么组合的任务。对于简单路由（field rename），工具描述本身就足够，Skills 只是冗余。对于 multi-field scoring（失败受限于模型推理本身而非 pipeline 构造），Skills 也无能为力。</p>
+
+<p>这个分层结果是 paper 最有工程价值的部分：它告诉你 procedural knowledge injection 的适用范围——不是 silver bullet，而是在「构筑知识密集但推理浅层」的任务上最有效。</p>
+
+<h2>产出的 pipeline 更好吗？下游训练的两组对照实验</h2>
+
+<p>文章最有野心的部分是 RQ4：不只看 pipeline 能不能跑通，而是看它产出的数据训出来的模型效果如何。两套对照实验：</p>
+
+<p><strong>Math 数据合成 pipeline</strong>（LIMO recipe 微调 Qwen2.5-32B-Instruct）：</p>
+
+<table>
+<tr><th>Pipeline</th><th>Avg@1 epoch</th><th>Avg@2 epoch</th><th>AIME24@32</th><th>AIME25@32</th></tr>
+<tr><td>Vanilla CC 产出数据</td><td>49.9</td><td>54.5</td><td>25.1</td><td>21.6</td></tr>
+<tr><td><strong>DataFlow-Harness 产出数据</strong></td><td><strong>51.6</strong></td><td><strong>55.7</strong></td><td><strong>35.9</strong></td><td><strong>34.5</strong></td></tr>
+</table>
+
+<p>AIME24@32 从 25.1 跳到 35.9（+10.8pp），AIME25@32 从 21.6 到 34.5（+12.9pp）——这不是微调，是大幅跳跃。论文推测 grounded pipeline 应用了更有效的 verification、filtering 和 deduplication，产出了「更干净、更有挑战性的推理链」而非「更多的数据」。</p>
+
+<p><strong>General SFT pipeline</strong>（从零生成 10K instruction–response pairs，微调 Qwen2.5-7B-Base）：</p>
+
+<table>
+<tr><th>Pipeline</th><th>MMLU</th><th>GSM8K</th><th>MATH</th><th>HumanEval</th><th>MBPP</th><th>Avg (9 bench)</th></tr>
+<tr><td>Vanilla CC</td><td>74.4</td><td>82.9</td><td>68.2</td><td>78.0</td><td>64.6</td><td>61.5</td></tr>
+<tr><td><strong>DataFlow-Harness</strong></td><td>74.2</td><td>79.5</td><td><strong>70.1</strong></td><td><strong>80.5</strong></td><td><strong>75.4</strong></td><td><strong>63.8</strong></td></tr>
+</table>
+
+<p>代码能力全面提升，MBPP 尤其显著（75.4 vs 64.6）。论文推测是 grounded 的 critique-then-rewrite 和 judge 阶段产出了更可执行、结构更好的代码。但这是<strong>推断</strong>——protocol 没有隔离具体哪个阶段贡献了多少。</p>
+
+<h2>对 Agent 基础设施的工程启示</h2>
+
+<h3>1. Harness 设计：操作空间压缩比模型升级更高效</h3>
+
+<p>DataFlow-Harness 的核心效率来自操作空间压缩——agent 不再面对无限 token 空间（Python 代码），而是有限 operator 组合空间。Context-Aware CC 和 DataFlow-Harness 用的是同一个模型（Claude Opus 4.7），但 token 消耗差了 2.5 倍。如果目标是降低推理成本，<strong>限制 agent 的操作空间比换更强的模型更值得先尝试</strong>。</p>
+
+<h3>2. MCP 工具暴露 ≠ 平台 grounding</h3>
+
+<p>MCP-only 配置效果最差（83.3%），说明暴露工具元数据（名称、参数、描述）<strong>不等于</strong>平台 grounding。真正的 grounding 需要：(a) agent 看到的 operator 是 live registry 而非静态列表；(b) agent 的操作受平台约束（typed mutation + validation）；(c) agent 有 procedural knowledge（Skills）指导「怎么组合」而非「有什么可用」。</p>
+
+<h3>3. Skills 是一种可复用的 Harness 组件</h3>
+
+<p>DataFlow-Skills 的设计（procedural blueprints + compositional constraints）是一种可以跨领域迁移的模式。不管是 data pipeline、code review pipeline 还是 agent evaluation pipeline，只要领域有「隐性过程知识」，就可以用同样的方式编码为 Skills。这种 Skills ≠ prompts——它们是结构化的、可版本管理的、平台绑定的配置。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+<li><strong>单一模型家族（论文自认）</strong>：只测了 Claude Opus 4.7。其他模型（GPT、Gemini、DeepSeek）在受限操作空间中的表现未知。</li>
+<li><strong>Benchmark 不可迁移（论文自认）</strong>：12-task benchmark 是 DataFlow 平台定制的，不能直接推广到其他数据工程平台。</li>
+<li><strong>Schema validation ≠ 语义正确（论文自认）</strong>：DAG acyclicity + schema compatibility 只能保证 pipeline 结构合法，不保证产出的数据有用。语义正确性只有下游训练效用间接衡量。</li>
+<li><strong>下游实验样本不足（论文自认）</strong>：RQ4 两个 case study，不是独立重复实验。作者明确说「不应解释为一般因果估计」。</li>
+<li><strong>Skills 创作成本未讨论（我的推断）</strong>：谁写 Skills、怎么维护、跨领域迁移需要多少改写——paper 完全没有涉及。但如果 Skills 是 Harness 的核心组件，这个创作成本决定了系统的可推广性。</li>
+<li><strong>Skills 可能降低灵活性（实验证据暗示）</strong>：Table 3 中 task 2b 上 MCP-only 10/10 vs Harness 9/10，论文解释为「prescriptive procedures may reduce flexibility when multiple execution strategies are valid」。Skills 的过度约束是一个真实风险。</li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote><p>DataFlow-Harness 不是让 agent 更强，而是让它更受控——用 typed mutation + procedural knowledge 把 agent 从「自由编码」拉到「平台约束」，在降低 72.5% 成本的同时产出持久可编辑的 DAG。如果 Harness Engineering 需要一个干净的、可量化的案例，这就是。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+<li><strong>来源确认</strong>：所有数据来自 arXiv:2607.16617v2 全文（PyMuPDF 提取），实验方法描述、数据表格和局限声明均来自原论文。</li>
+<li><strong>推断边界</strong>：Skills 创作成本、跨领域迁移性的讨论是我基于论文信息的推断，paper 未涉及。下游训练效用中「为什么代码能力提升」的机制解释是论文的推断（非因果证明）。</li>
+<li><strong>论文状态</strong>：arXiv preprint v2 (cs.SE)，2026-07-24 更新。未标注会议接收状态。</li>
+<li><strong>利益声明</strong>：无。代码开源（Apache-2.0），无商业利益关联。</li>
+</ul>
+
+<h2>参考</h2>
+<ul>
+<li>He et al., <em>DataFlow-Harness: A Grounded Code-Agent Platform for Constructing Editable LLM Data Pipelines</em>, arXiv:2607.16617v2, 2026.</li>
+<li>GitHub: <a href="https://github.com/OpenDCAI/DataFlow-WebUI">OpenDCAI/DataFlow-WebUI</a> (Apache-2.0, 125⭐)</li>
+<li>文档: <a href="https://opendcai.github.io/DataFlow-Doc/">opendcai.github.io/DataFlow-Doc</a></li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

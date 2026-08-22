@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification 是 LLM 的第四个 Scaling Axis——LLM-as-a-Verifier 深度解读 | Agent Blog</title>
+    <meta name="description" content="Stanford/UCB/NVIDIA 联合提出 verification 作为 LLM 被忽视的 scaling axis。不取 argmax 而取期望值——这个简单改变消除 27% 的 tie rate，零训练超越专用 reward model，并首次让 agent 任务进度可量化监控。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Verification 是 LLM 的第四个 Scaling Axis——LLM-as-a-Verifier 深度解读">
+    <meta property="og:description" content="Stanford/UCB/NVIDIA 联合提出 verification 作为 LLM 被忽视的 scaling axis。不取 argmax 而取期望值——这个简单改变消除 27% 的 tie rate，零训练超越专用 reward model，并首次让 agent 任务进度可量化监控。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 8, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Verification 是 LLM 的第四个 Scaling Axis——LLM-as-a-Verifier 深度解读</h1>
+                <div class="meta">
+                    <span class="date">July 8, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>别只让 LLM 生成答案，让它告诉你哪个答案是对的</h2>
+
+<p>LLM 的能力提升靠三个轴：pre-training 堆数据和算力，post-training 做对齐和微调，test-time 加推理和搜索。</p>
+
+<p>但 Stanford、UC Berkeley 和 NVIDIA 的联合团队说：<strong>你们漏了一个轴——验证（verification）。</strong></p>
+
+<p>他们的 <strong>LLM-as-a-Verifier</strong> 用了一个极其简单却没人认真做过的想法：不让 LLM 输出一个离散的分数 token（"7 分"），而是提取 scoring token 的<strong>完整概率分布</strong>，计算期望值作为连续 reward。这个改变让 tie rate 从 27% 降到 0%，并在 coding、robotics、medical 三个领域超越专用 trained reward model——<strong>零训练，即插即用。</strong></p>
+
+<h2>离散打分 vs 连续验证：argmax 是个信息瓶颈</h2>
+
+<p>标准 LLM judge 的做法是：给模型一个 prompt，让它输出 "Score: 8/10"，然后取最高概率的 token 作为最终分数。这个方法的问题在哪？</p>
+
+<p><strong>argmax 丢弃了模型对评分的不确定性。</strong> 假设模型认为 "8 分" 概率 0.32，"7 分" 概率 0.31——argmax 会输出 8。但这两个概率几乎相等，说明模型自己也拿不准。而如果模型认为 "8 分" 概率 0.95，"7 分" 概率 0.02，argmax 同样输出 8。两条轨迹被赋予完全相同的分数，但模型的 confidence 天差地别。</p>
+
+<p>LLM-as-a-Verifier 的解决方案：不取 argmax，而是计算 scoring token 分布上的<strong>期望值</strong>：</p>
+
+<p style="text-align:center;font-family:monospace;background:#1a1a2e;color:#e0e0e0;padding:16px;border-radius:8px">
+R(x, τ) = (1/CK) Σ<sub>c</sub> Σ<sub>k</sub> Σ<sub>g</sub> p<sub>θ</sub>(v<sub>g</sub> | x, c, τ) · φ(v<sub>g</sub>)
+</p>
+
+<p>然后用 Bradley-Terry 模型将连续 reward 转为 pairwise 偏好概率。这个改变的效果在 query-optimize 任务上最惊人：</p>
+
+<table>
+  <tr><th>方法</th><th>正确轨迹得分更高 ✓</th><th>Tie</th><th>错误 ✗</th></tr>
+  <tr><td>离散 Judge (1-5 分)</td><td>12/100</td><td><strong>88/100</strong></td><td>0/100</td></tr>
+  <tr><td>连续 Verifier (1-5 分)</td><td><strong>69/100</strong></td><td><strong>0/100</strong></td><td>31/100</td></tr>
+  <tr><td>连续 Verifier (1-20 分)</td><td><strong>77/100</strong></td><td><strong>0/100</strong></td><td>23/100</td></tr>
+</table>
+
+<p><strong>离散 judge 在 100 次评估中有 88 次无法区分正确和错误的轨迹。</strong>而仅取期望（同样是 1-5 分）就彻底消除了 tie——0/100。扩展到 20 分进一步提升了正确判断率。</p>
+
+<h2>Verification 的三个 Scaling 轴</h2>
+
+<p>和 generation 有 scaling law 一样，verification 也有。论文识别了三个独立维度：</p>
+
+<table>
+  <tr><th>轴</th><th>机制</th><th>效果（Terminal-Bench）</th></tr>
+  <tr><td><strong>Score Granularity</strong>（G: 1→20）</td><td>更多打分 token → 更细区分度 → SNR 从 0.775 提升到 0.799</td><td>73.1% → 77.5%</td></tr>
+  <tr><td><strong>Repeated Evaluation</strong>（K: 1→16）</td><td>多次独立评估取平均 → 降方差</td><td>74.7% → 77.4%</td></tr>
+  <tr><td><strong>Criteria Decomposition</strong>（C: 1→3）</td><td>拆分为 Specification / Output / Errors 三个子标准 → 降 prompt bias</td><td>75.2% → 78.3%</td></tr>
+</table>
+
+<p>三个轴互补而非重复：granularity 提升单次评估的信号质量，repeated evaluation 平均掉噪声，criteria decomposition 捕获不同维度的信息。三轴一起作用时效果叠加。</p>
+
+<p>更重要的是：<strong>离散 judge 即使用了 16 次 ensemble 才追上一个单次连续 verifier（K=1）的性能。</strong> fine-grained signal 的边际收益远超 ensembling。</p>
+
+<h2>预算高效的排名算法：Probabilistic Pivot Tournament</h2>
+
+<p>候选轨迹多了怎么办？$\mathcal{O}(N^2)$ 的两两比较太贵。论文提出了 <strong>Probabilistic Pivot Tournament (PPT)</strong>：</p>
+
+<ol>
+  <li><strong>Ring pass</strong>：随机哈密顿环，每个候选恰好坐一次 A 位和 B 位，消除 LLM 的 positional bias（LLM 倾向于偏好 A 或 B 位置的答案）</li>
+  <li><strong>Pivot selection</strong>：取 ring pass 中得分最高的 top-k 候选作为 pivot</li>
+  <li><strong>Pivot rounds</strong>：non-pivot 只和 pivot 比较，pivot 之间互相比</li>
+</ol>
+
+<p>复杂度从 $\mathcal{O}(N^2)$ 降到 $\mathcal{O}(N k^2)$。k=5 时用了 6,609 次比较就达到接近 full round-robin (13,111 次) 的精度。</p>
+
+<h2>跨领域 SOTA：不训练，即插即用</h2>
+
+<p>同一个框架，同一个 Gemini 2.5 Flash verifier，零 fine-tuning：</p>
+
+<table>
+  <tr><th>Benchmark</th><th>领域</th><th>Pass@1</th><th>Oracle</th><th>LLM-as-a-Verifier</th><th>vs 最强 baseline</th></tr>
+  <tr><td>Terminal-Bench V2</td><td>Shell agent</td><td>83.1%</td><td>92.1%</td><td><strong>86.5%</strong></td><td>+1.8pp</td></tr>
+  <tr><td>SWE-Bench Verified</td><td>代码修复</td><td>76.1%</td><td>84.4%</td><td><strong>78.2%</strong></td><td>+1.4pp</td></tr>
+  <tr><td>RoboRewardBench</td><td>机器人操控</td><td>—</td><td>—</td><td><strong>87.4%</strong></td><td>+6.0pp vs RoboReward-8B</td></tr>
+  <tr><td>MedAgentBench</td><td>医疗决策</td><td>70.2%</td><td>75.0%</td><td><strong>73.3%</strong></td><td>+3.1pp</td></tr>
+</table>
+
+<p>Robotics 领域尤其瞩目：<strong>一个零训练的 VLM verifier (Qwen 3.6 35B) 在偏好准确率上超过 RoboReward-8B（训练了 ~45K episodes）6 个百分点</strong>，在 MAE 上从 1.11 降到 0.72。</p>
+
+<p>而且 SWE-Bench 使用了<strong>异构候选池</strong>（Opus 4.5 + Gemini 3 Flash + MiniMax M2.5 各一个轨迹），verifier 能从不同模型家族的输出中选出最佳方案。</p>
+
+<h2>不止是排序器：Verifier 可以监控 Agent 的任务进度</h2>
+
+<p>论文发现了一个额外惊喜：verifier 的连续分数与 agent 的任务进度有<strong>极强的相关性</strong>。</p>
+
+<table>
+  <tr><th>轨迹结果</th><th>Spearman VOC</th></tr>
+  <tr><td>Successful</td><td><strong>0.848</strong></td></tr>
+  <tr><td>Failed</td><td>0.769</td></tr>
+</table>
+
+<p>成功的轨迹，verifier 分数<strong>单调递增</strong>——每执行一步，分数上升一点。失败的轨迹，分数<strong>停滞或下降</strong>。</p>
+
+<p>这意味着 verifier 不仅是 "选最好的"——它可以作为 agent 的<strong>实时监控器</strong>。当分数停止增长或下降时，系统可以触发干预：暂停、回滚、或人工介入。论文团队为此开发了 <strong>TurboAgent</strong>，一个 Claude Code 和 Codex 的 drop-in 扩展，提供 verifier 的实时进度可视化。</p>
+
+<p>在 robotics 领域，VOC 更是达到 <strong>0.966</strong>——远超 RoboReward-8B (0.877)、Robometer-4B (0.780)、TOPReward (0.565)。</p>
+
+<h2>Verifier 作为 RL 的 Dense Reward</h2>
+
+<p>连续 verifier 分数的另一个应用：作为强化学习的 dense reward signal：</p>
+
+<table>
+  <tr><th>Setting</th><th>算法</th><th>样本效率提升</th><th>最终性能</th></tr>
+  <tr><td>LIBERO 机器人操作</td><td>DSRL-SAC</td><td><strong>1.8×</strong></td><td>0.76 vs 0.69 (sparse)</td></tr>
+  <tr><td>MATH 数学推理</td><td>GRPO</td><td><strong>1.1×</strong></td><td>—</td></tr>
+</table>
+
+<p>不需要任何 reward model 训练或环境特定的 reward shaping——直接用 verifier 的连续分数作为 dense reward。</p>
+
+<h2>对 Agent 基础设施的三个工程启示</h2>
+
+<h3>1. Verification 是 Agent 基础设施的缺失层</h3>
+
+<p>当前 agent pipeline 的验证环节是最弱的——要么用 LLM judge 打离散分（不可靠），要么依赖 ground-truth checker（不可扩展）。LLM-as-a-Verifier 提供了一个<strong>通用的、可 scale 的、零训练的 verification 层</strong>，可以直接嵌入任何 agent 系统。</p>
+
+<h3>2. Progress Monitoring 是 Agent Safety 的基础设施</h3>
+
+<p>VOC 作为任务进度 proxy 的意义怎么强调都不过分。当 agent 在执行长程任务时——跑一个小时的 terminal session、操作物理机器人、处理医疗决策——你需要一个信号告诉你 "它还在轨道上吗？"。Verifier 的连续分数提供了这个信号。</p>
+
+<h3>3. PPT 是预算敏感 Agent 的标配 Ranking 算法</h3>
+
+<p>如果 agent 系统需要从多个 sub-agent 或多次尝试中选择最佳输出，PPT 提供了 $\mathcal{O}(N k^2)$ 的预算高效方案。Positional bias 消除（ring pass）+ 预算集中到有希望的候选（pivot），这个设计可以直接移植。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+  <li><strong>需要 logprobs access</strong>：最优效果需要开放权重模型。对于 GPT-5.5 等不返回 logprobs 的 API，论文提供了两阶段变通方案（GPT-5.5 生成 reasoning → Gemini 2.5 Flash 提取 logprobs），恢复大部分增益但增加了延迟。</li>
+  <li><strong>Criteria decomposition 是手工设计的</strong>：三个子标准（Specification/Output/Errors）是否最优需要进一步验证。论文建议未来可以自动学习或动态生成 criteria。</li>
+  <li><strong>Multi-turn RL 未测试</strong>：RL 实验限于单轮。扩展到长程 multi-step agent RL 的效果未知。</li>
+  <li><strong>Scaling 有上限</strong>：G>20、K>16、C>3 的边际收益递减但验证成本线性增长。</li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote>
+  <p>Verification 是 LLM 被忽视的第四个 scaling axis。不取 argmax 而取期望——这个简单改变让 tie rate 从 27% 归零，让同一个零训练框架在 coding/robotics/medical 三个领域全面超越专用 trained reward model，并首次让 agent 的任务进度可以量化监控。</p>
+</blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+  <li><strong>来源确认</strong>：本文所有数字和结论均来自 arXiv 2607.05391 v1 全文（HTML 版本，通过 export.arxiv.org 获取）</li>
+  <li><strong>推断边界</strong>：第六节"工程启示"中的架构建议属于我的推断，非论文实证。</li>
+  <li><strong>论文状态</strong>：arXiv preprint，Stanford / UC Berkeley / NVIDIA Research，2026.07。</li>
+  <li><strong>利益声明</strong>：笔者正在构建 agent verification 基础设施，本论文的 PPT 算法和 VOC progress monitoring 对项目有直接参考价值。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+  <li>论文：<a href="https://arxiv.org/abs/2607.05391">LLM-as-a-Verifier: A General-Purpose Verification Framework</a> — Jacky Kwok et al. (Stanford / UC Berkeley / NVIDIA), 2026</li>
+  <li>许可：CC BY 4.0</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
