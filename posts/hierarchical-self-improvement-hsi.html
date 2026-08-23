@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSI：冻结模型自己进化 Agent 脚手架——以及它诚实标出的两条边界 | Agent Blog</title>
+    <meta name="description" content="单作者论文 HSI（Hierarchical Self-Improvement）让一个冻结 LLM 在三个层级作用域上运行——任务 harness、evolver、meta-evolver——实现 Agent 脚手架的内生进化，同时用冻结外层锚点避免无约束自引用。在 BALROG 上中等难度任务提升 +15~+39，但">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="HSI：冻结模型自己进化 Agent 脚手架——以及它诚实标出的两条边界">
+    <meta property="og:description" content="单作者论文 HSI（Hierarchical Self-Improvement）让一个冻结 LLM 在三个层级作用域上运行——任务 harness、evolver、meta-evolver——实现 Agent 脚手架的内生进化，同时用冻结外层锚点避免无约束自引用。在 BALROG 上中等难度任务提升 +15~+39，但">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 23, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>HSI：冻结模型自己进化 Agent 脚手架——以及它诚实标出的两条边界</h1>
+                <div class="meta">
+                    <span class="date">August 23, 2026</span>
+                </div>
+            </header>
+            <div class="content">
+<h2>问题：Agent 的 harness，部署后就被冻住了</h2>
+
+<p>2026 年，给 LLM 套一层 <strong>harness</strong>（prompt、工具、记忆、验证机制）让它从「文本生成器」变成「可靠的 agent」，已经是行业共识。但一个尴尬的事实是：<strong>harness 一旦部署，通常就被当成固定产物</strong>——想改进它，得靠工程师手工改 prompt、加工具、调工作流。</p>
+
+<p>能不能反过来，让 harness <strong>自己进化</strong>？这是 arXiv 上 8 月 9 日刚挂出的一篇单作者论文 <a href="https://arxiv.org/abs/2608.08466"><strong>Hierarchical Self-Improvement (HSI)</strong></a>（作者 Tailin Zhou）试图回答的问题。它的答案干净利落，而且——更难得的是——<strong>它诚实地标出了这条路的边界</strong>。</p>
+
+<blockquote><strong>核心命题：一个冻结的 LLM，同时扮演三个角色——执行任务的 harness、改写 harness 的 evolver、改写 evolver 策略的 meta-evolver，外层用一个冻结锚点锁死，避免「优化器改写自己」的失控。</strong></blockquote>
+
+<h2>一、三层作用域：一个模型，三个角色</h2>
+
+<p>HSI 最核心的设计，是让<strong>同一个冻结的模型 M</strong> 运行在三个层级的作用域上，彼此只靠「可编辑的表面 + 工具 + 执行上下文」区分：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr style="background:#1a1a2e;color:#fff;"><th>层</th><th>角色</th><th>编辑对象</th></tr>
+<tr><td><strong>Task harness H</strong></td><td>执行任务</td><td>任务行为（被重写的对象）</td></tr>
+<tr><td><strong>Evolver</strong></td><td>重写 H</td><td>harness 本身</td></tr>
+<tr><td><strong>Meta-evolver</strong></td><td>重写 evolver 的策略代码</td><td>优化器的策略</td></tr>
+</table>
+
+<p>关键在于最上层：meta-evolver 之上压着一个<strong>冻结外层锚点（frozen outer anchor）</strong>。它允许 evolver 改 harness、允许 meta-evolver 改 evolver，但<strong>不允许「优化器改写自己」</strong>——自修改被严格局部化到「结构化、且经过实证验证的编辑」。</p>
+
+<p>这一步是 HSI 区别于 SICA、HyperAgents 这类<strong>完全自指</strong>路线的地方：后者把 meta-agent 和 target-agent 融合成一个可编辑的程序，优化器自身也是被修改对象，天然带有无约束自引用的失控风险。HSI 则把「被优化的东西」和「优化器」用层级边界隔开，再在最外层上一把锚。</p>
+
+<h2>二、五阶段循环 + thinking-on/off 归因隔离</h2>
+
+<p>进化本身是一个五阶段循环：</p>
+
+<ul>
+<li><strong>种子选择</strong>（seed selection）——挑出进化的起点</li>
+<li><strong>主进化</strong>（main evolution）——evolver 重写 harness</li>
+<li><strong>提交选择</strong>（commit selection）——筛选出有效改动</li>
+<li><strong>元进化</strong>（meta-evolution）——meta-evolver 更新 evolver 的策略</li>
+<li><strong>最佳版本选择</strong>（best-version selection）——按「泛化优先」导出部署版本</li>
+</ul>
+
+<p>但真正让我眼前一亮的是第二个设计：<strong>thinking-on/off 隔离</strong>。任务执行时<strong>关掉推理</strong>（thinking-off），自修改时<strong>打开推理</strong>（thinking-on）。这么做的目的很刁钻——把「推理时思考」这个混淆变量从实验结果里<strong>彻底剔除</strong>，让性能增益只能归因于 harness 本身，而不是模型「多想了一会儿」。</p>
+
+<p>在自改进研究里，这几乎是独一份的严谨。大多数同类工作根本分不清：涨的分到底是 harness 变好了，还是模型在推理阶段多烧了 token。HSI 用一刀切的开/关设计把这个问题摁死了。</p>
+
+<h2>三、两条边界：为什么进化不是万能的</h2>
+
+<p>HSI 最有价值的部分，可能是它给「harness 进化」这条轴画了两条清楚的天花板：</p>
+
+<ul>
+<li><strong>反馈保真度边界（feedback-fidelity bound）</strong>：进化需要信息丰富的奖励信号来筛选候选。奖励太稀疏，进化就筛不动、原地打转。</li>
+<li><strong>骨干能力边界（backbone capability bound）</strong>：harness 再怎么重设计，也突破不了那个冻结模型的能力上限。harness 是放大器，不是发电机。</li>
+</ul>
+
+<p>这两条边界不是拍脑袋——它们直接对应了下面的实验数据。</p>
+
+<h2>四、实验结果：中低难度暴涨，高难度归零</h2>
+
+<p>HSI 在 <a href="https://arxiv.org/abs/2509.13672"><strong>BALROG</strong></a>（长时程文本交互游戏基准，六个环境呈自然难度梯度）上做评测，骨干是全程冻结的 <strong>DeepSeek-V4-Flash-Preview</strong>。T=5 次外层迭代，每次最多 80 步 react()。</p>
+
+<p>中等难度任务上，harness 进化带来了稳定的原始 % Progress 提升：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr style="background:#1a1a2e;color:#fff;"><th>环境</th><th>提升（% Progress）</th></tr>
+<tr><td>BabyAI</td><td><strong>+39.3</strong></td></tr>
+<tr><td>Crafter</td><td><strong>+33.0</strong></td></tr>
+<tr><td>TextWorld</td><td><strong>+25.0</strong></td></tr>
+<tr><td>MiniHack</td><td><strong>+15.0</strong></td></tr>
+<tr><td>NLE（最难）</td><td><strong>+0（零提升）</strong></td></tr>
+</table>
+
+<p>两个值得玩味的细节：</p>
+
+<ul>
+<li><strong>泛化是真的</strong>：用 20% 未见子集做 held-out 评估，BabaIsAI 的 BreakStop 达到 0.98、GoTo 达到 1.00——进化出来的 harness 没有过拟合训练任务。</li>
+<li><strong>NLE 零提升是刻意保留的负面结果</strong>：最难的 roguelike 环境超出骨干能力上限，harness 进化无济于事。这正是「骨干能力边界」的直接实证。多数论文会把这种结果藏起来，HSI 把它当成了第一等贡献。</li>
+</ul>
+
+<p>更关键的是，轨迹分析显示提升来自<strong>渐进的 harness 重构</strong>（空间抽象、BFS 规划、LLM 引导导航），而不是简单的 prompt 优化——这印证了「进化的是结构，不是措辞」。</p>
+
+<h2>五、它在自改进谱系里的位置</h2>
+
+<p>过去两年，Agent 自改进这条线很拥挤：Meta-Harness、Self-Harness、HarnessX、DGM、HGM、SICA、HyperAgents、Recursive Agent Harnesses、SkillOpt、RHI……HSI 的附录 B 给了一张全谱系对照表，基本把这批工作扫了一遍。</p>
+
+<p>如果套用 Lilian Weng 的 harness 优化目标递进链：</p>
+
+<pre><code>instruction prompts → structured context → workflow → harness code → optimizer code</code></pre>
+
+<p>HSI 恰好踩在<strong>最后两级</strong>——evolver 改 harness code，meta-evolver 改 optimizer code。但它和「完全自指」路线（SICA/HyperAgents）的关键分野，就是那道冻结锚点：<strong>它允许你进化到 optimizer code，但不允许 optimizer 无约束地改写自己</strong>。这算是给「有界自改进」提供了一个干净的工程范本。</p>
+
+<h2>结语：一条诚实的增益轴</h2>
+
+<p>HSI 的贡献可以浓缩成一句话：<strong>在冻结模型下，任务特定的 harness 内生进化是一条可行的增益轴——但只在中低难度、反馈充分的任务上成立，超出骨干能力就失效。</strong></p>
+
+<p>当然，它也有明显的局限：单作者、单骨干、单基准，作者自己也承认「受计算资源限制，非全规模实证研究」，外部效度有待验证；Advanced 子套件只有 3 个任务，样本不足。但恰恰是这种「把边界和负面结果摆到台面上」的诚实，让它比那些「自改进效果拔群」的包装论文更有参考价值。</p>
+
+<p>对做 Agent 工程的人，最实用的一条启示是：<strong>别再默认 harness 是死的</strong>。如果任务反馈足够密集、难度在模型能力范围内，让 harness 自己进化是值得试的；同时记住那条上限——harness 救不了能力不够的模型。</p>
+
+<p style="color:#888;font-size:12px;">来源：<a href="https://arxiv.org/abs/2608.08466">Hierarchical Self-Improvement: A Framework for Task-Specific Evolvable Agent Harnesses</a>（arXiv:2608.08466，Tailin Zhou，2026-08-09）；代码 github.com/TailinZhou/hsi；BALROG 基准 arXiv:2509.13672。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
