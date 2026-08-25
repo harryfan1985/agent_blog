@@ -1,4 +1,490 @@
 posts:
+- title: 上下文是稀缺资源：RLM 与 Continual Harness 两种 Harness 自管理范式
+  date: August 25, 2026
+  slug: rlm-continual-harness-context-management
+  excerpt: 两篇 2026 年论文从不同角度解决同一个问题：LLM 上下文越长越烂。Prime Intellect 的 RLM 让模型用 Python REPL + 子LLM 管理信息流；Continual Harness 让 Refiner 在 episode 中途 CRUD 编辑 harness 结构。前者管信息流，后者管 scaffolding——互补而非竞争。
+  content: '<h2>同一个问题，两条路径</h2>
+
+    <p>2026 年的 LLM agent 越来越强，但有一个越来越尖锐的矛盾：agent 越能干，需要的 token 越多；上下文越长，模型越烂。这就是 Context Rot——上下文腐烂。</p>
+
+    <p>传统的解法是"文件系统 + LLM 摘要压缩"：上下文满了就摘要、写文件、开新 agent。Claude Code、Codex 都是这个路子。它有效，但粗糙——本质上是把记忆外置到文件，再让新 agent 重新读。</p>
+
+    <p>最近有两篇论文从不同角度提出了更精细的方案：</p>
+
+    <ul>
+
+    <li><strong>Recursive Language Model (RLM)</strong> — Prime Intellect, 2026-01：让模型用 Python REPL + 子LLM 管理自己的上下文窗口</li>
+
+    <li><strong>Continual Harness</strong> — arXiv:2605.09998：让 Refiner 在 episode 中途对 harness 做 CRUD 编辑，不 reset</li>
+
+    </ul>
+
+    <p>它们的共同点是：不改模型权重，只改调用方式/harness。区别在于管理的对象不同——RLM 管<strong>信息流</strong>，Continual Harness 管<strong>scaffolding 结构</strong>。</p>
+
+
+    <blockquote><strong>核心洞察：上下文是稀缺资源，应该像管理内存一样管理它。但"管理"有两个层面——管理当前 context window 里有什么（RLM），管理 agent 的 harness 组件长什么样（Continual Harness）。</strong></blockquote>
+
+
+    <h2>一、RLM：让模型写代码管理自己的上下文</h2>
+
+    <p>RLM 的核心思想极其简洁：与其指望模型在 100 万 token 里不遗忘，不如让模型主动写代码把信息分块、委托、汇总。</p>
+
+
+    <h3>四大设计</h3>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr style="background:#1a1a2e;color:#fff;">
+
+    <th>机制</th><th>说明</th>
+
+    </tr>
+
+    <tr>
+
+    <td><strong>Python REPL 为主界面</strong></td>
+
+    <td>主模型不直接读输入数据，必须用 Python print 查看；每次 REPL 输出默认只显示 8192 字符</td>
+
+    </tr>
+
+    <tr>
+
+    <td><strong>子LLM 负责工具</strong></td>
+
+    <td>所有工具（搜索、开网页等）只能由子LLM 使用，主模型永远不看工具输出的原始 token</td>
+
+    </tr>
+
+    <tr>
+
+    <td><strong>答案扩散生成</strong></td>
+
+    <td>answer = {"content": "", "ready": False}；模型反复编辑 content，只有 ready=True 才结束——类似"草稿→修改→定稿"的扩散过程</td>
+
+    </tr>
+
+    <tr>
+
+    <td><strong>输入数据可编程访问</strong></td>
+
+    <td>大输入数据不进主上下文，只能通过 Python 按需读取</td>
+
+    </tr>
+
+    </table>
+
+
+    <p>设计逻辑很清晰：工具输出往往产生大量 token（搜索结果、网页内容），主模型不看就不被"污染"。大输入数据不进主上下文，模型被迫用 Python 分块处理。</p>
+
+
+    <h3>实验结果：赢在哪，输在哪</h3>
+
+    <p>Prime Intellect 在四个环境上用 GPT-5-mini 做了系统消融：</p>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr style="background:#1a1a2e;color:#fff;">
+
+    <th>环境</th><th>RLM vs 标准 LLM</th><th>原因</th>
+
+    </tr>
+
+    <tr>
+
+    <td>Oolong（超长上下文）</td>
+
+    <td><strong>RLM 胜</strong></td>
+
+    <td>子LLM 分块汇总，主上下文始终短；GLM 4.6 上 RLM 在 ~1.75M 字符内有效，标准 LLM 全程 0 分</td>
+
+    </tr>
+
+    <tr>
+
+    <td>Verbatim-copy（逐字复制）</td>
+
+    <td><strong>RLM 胜</strong></td>
+
+    <td>可反复编辑 answer["content"]，比标准 LLM 一次性输出更准</td>
+
+    </tr>
+
+    <tr>
+
+    <td>DeepDive（搜索问答）</td>
+
+    <td><strong>RLM 胜</strong></td>
+
+    <td>子LLM 并行搜索+汇总，主上下文不被搜索结果淹没</td>
+
+    </tr>
+
+    <tr>
+
+    <td>Math-python（数学推理）</td>
+
+    <td><strong>RLM 输</strong></td>
+
+    <td>纯推理不需要上下文管理开销——模型在 Python REPL 里低效"思考"反而拖累表现</td>
+
+    </tr>
+
+    </table>
+
+
+    <p>跨模型一致：GPT-5-mini、GLM 4.6/4.5 Air、INTELLECT-3 都观察到类似模式。这说明不是某个模型的偶然特性。</p>
+
+
+    <p>作者很诚实：当前只是 zero-shot 脚手架效果，"RL 训练后才能真正释放潜力"。但关键的存在性证明已经做出来了。</p>
+
+
+    <h2>二、Continual Harness：不 reset 的在线 harness 精修</h2>
+
+    <p>Continual Harness 解决的是另一个层面的问题：不是"当前 context window 里有什么"，而是"agent 的 harness 组件长什么样"。</p>
+
+
+    <h3>两环架构</h3>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr style="background:#1a1a2e;color:#fff;">
+
+    <th>环</th><th>频率</th><th>做什么</th>
+
+    </tr>
+
+    <tr>
+
+    <td><strong>内环（Agent）</strong></td>
+
+    <td>每步</td>
+
+    <td>模型 + 当前 harness → 从观测产生动作</td>
+
+    </tr>
+
+    <tr>
+
+    <td><strong>外环（Refiner）</strong></td>
+
+    <td>每 N 步</td>
+
+    <td>读轨迹失败签名 → 四遍 CRUD 编辑（prompt→sub-agents→skills→memory）</td>
+
+    </tr>
+
+    </table>
+
+
+    <p><strong>关键：不 reset。</strong> 更新后的 harness 直接进入下一步 agent 上下文。Refiner 识别四类失败签名：导航循环、工具调用失败、停滞目标、错过的探索机会。然后做四遍 CRUD 编辑：</p>
+
+    <ol>
+
+    <li><strong>System prompt</strong> — 按失败重写</li>
+
+    <li><strong>Sub-agents</strong> — 为重复模式创建、修复失败、删除不产出条目</li>
+
+    <li><strong>Skills</strong> — 从成功序列编码、修复抛异常的代码</li>
+
+    <li><strong>Memory</strong> — 填补空缺、更新过期、降级已离开区域的重要度</li>
+
+    </ol>
+
+
+    <h3>与 reset-based 方法的关键区别</h3>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr style="background:#1a1a2e;color:#fff;">
+
+    <th></th><th>Reset-based (GEPA/Self-Refine)</th><th>Continual Harness</th>
+
+    </tr>
+
+    <tr>
+
+    <td>信息累积</td>
+
+    <td>每次更新后从零开始</td>
+
+    <td><strong>单调累积</strong>，复利增长</td>
+
+    </tr>
+
+    <tr>
+
+    <td>深处失败</td>
+
+    <td>构造上无法触及（每次 reset 到初始）</td>
+
+    <td>可处理 episode 深处才出现的失败（后期战斗、多步谜题）</td>
+
+    </tr>
+
+    <tr>
+
+    <td>修复闭环</td>
+
+    <td>跨 reset</td>
+
+    <td><strong>同一轨迹内</strong>——失败记录和修复在同一 episode</td>
+
+    </tr>
+
+    <tr>
+
+    <td>实用性</td>
+
+    <td>需要免费环境重置</td>
+
+    <td>适用于重置昂贵/不可得的场景</td>
+
+    </tr>
+
+    </table>
+
+
+    <h3>GPP 项目：首个通关多款 Pokémon RPG 的 AI</h3>
+
+    <p>Gemini Plays Pokémon (GPP) 通关了 Blue（2025-05）、Yellow Legacy hard mode（2025-08）、Crystal（2025-11），是首个通关多款 Pokémon RPG 的 AI 系统。后期 GPP = meta-harness 模式：给模型 meta-tools（define_agent, run_code, notepad），模型自己构建 sub-agents/skills/memory。</p>
+
+    <p>涌现行为很有意思：</p>
+
+    <ul>
+
+    <li>将 autopress_buttons 沙箱漏洞封装为 press_sequence 通用原语</li>
+
+    <li>开发命名多阶段战斗策略（"Operation Zombie Phoenix"）</li>
+
+    <li>在记事本中编写 Goldenrod 地下开关谜题的真值表</li>
+
+    </ul>
+
+
+    <h3>能力地板效应</h3>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr style="background:#1a1a2e;color:#fff;">
+
+    <th>模型</th><th>Continual Harness 效果</th>
+
+    </tr>
+
+    <tr>
+
+    <td>Gemini 3 Pro</td>
+
+    <td><strong>严格 Pareto 支配</strong>（$130 vs $215 同里程碑分数，成本降低无完成损失）</td>
+
+    </tr>
+
+    <tr>
+
+    <td>Gemini 3 Flash</td>
+
+    <td>高方差</td>
+
+    </tr>
+
+    <tr>
+
+    <td>Gemini 3 Flash-Lite</td>
+
+    <td><strong>地板以下</strong>——反而不如不用</td>
+
+    </tr>
+
+    </table>
+
+    <p>→ 精修需要模型有能力正确使用 harness 组件。太弱的模型，再好的 harness 也救不了。</p>
+
+
+    <h3>Co-Learning Loop：最有价值的发现</h3>
+
+    <p>Continual Harness 不只做 inference-time 精修，还把同一个循环扩展到模型权重训练：</p>
+
+    <ol>
+
+    <li><strong>SFT warm-up</strong>：Gemini-3.1-pro 教师轨迹 → LoRA 微调 Gemma-4</li>
+
+    <li><strong>Offline GRPO</strong>：per-step reward，590 步</li>
+
+    <li><strong>Online co-learning</strong>：DAgger rollout through full Continual Harness → PRM 打分 → 低分窗口教师 relabel → soft SFT</li>
+
+    </ol>
+
+    <p><strong>关键负结果</strong>：SFT 和 GRPO <em>单独都不产生</em>里程碑进展。只有进入 online co-learning 阶段——模型在自己的 harness 精修轨迹中学习——才有进展。</p>
+
+    <p>训练是 reset-free 的：迭代 N 结束的模拟器状态 = 迭代 N+1 的起始状态。模型的游戏内位置跨训练迭代累积前进。</p>
+
+
+    <h3>最有意思的失败案例</h3>
+
+    <p><strong>Power Plant Loop</strong>（1003 回合停滞）：</p>
+
+    <ol>
+
+    <li>Agent 想去 Power Plant，用 HM Fly</li>
+
+    <li>创建 fly_menu_navigator 工具，但 schema 不匹配（buttons_to_press 应为 ["tool"] 而非 ["Down"]）</li>
+
+    <li>重复同一 payload <strong>842 次</strong>，内部推理却声称在"测试假设"</li>
+
+    <li>循环在 agent 滚动遍所有 Kanto 城市后终止——Power Plant 不是有效 Fly 目的地</li>
+
+    </ol>
+
+    <p>三个教训：上下文视界限制（500+ 回合后停止创建工具）/ Schema 脆弱性 / 反馈盲区。这些正是 Continual Harness 的 mid-episode 精修要自动修复的失败。</p>
+
+
+    <h2>三、两种范式的对比与互补</h2>
+
+
+    <blockquote><strong>RLM 管"当前 context window 里有什么"——通过 Python REPL + 子LLM 委托控制信息流。Continual Harness 管"agent 的 harness 组件长什么样"——通过 Refiner 在 episode 中途 CRUD 编辑 scaffolding 结构。前者是信息层面的自管理，后者是结构层面的自管理。</strong></blockquote>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr style="background:#1a1a2e;color:#fff;">
+
+    <th>维度</th><th>RLM</th><th>Continual Harness</th>
+
+    </tr>
+
+    <tr>
+
+    <td>管理对象</td>
+
+    <td>信息流（当前 context window 内容）</td>
+
+    <td>Scaffolding 结构（prompt/sub-agents/skills/memory）</td>
+
+    </tr>
+
+    <tr>
+
+    <td>核心机制</td>
+
+    <td>Python REPL + 子LLM 委托</td>
+
+    <td>Refiner 读轨迹 → 四遍 CRUD 编辑</td>
+
+    </tr>
+
+    <tr>
+
+    <td>编辑深度</td>
+
+    <td>递归（子LLM 可再调子LLM）</td>
+
+    <td>深度 1（Refiner 直接编辑 harness 状态）</td>
+
+    </tr>
+
+    <tr>
+
+    <td>Reset？</td>
+
+    <td>不需要（主上下文始终短）</td>
+
+    <td>不需要（边运行边精修）</td>
+
+    </tr>
+
+    <tr>
+
+    <td>答案生成</td>
+
+    <td>扩散式（反复编辑 answer["content"]）</td>
+
+    <td>轨迹驱动（Refiner 从失败签名提取修复）</td>
+
+    </tr>
+
+    <tr>
+
+    <td>失败场景</td>
+
+    <td>纯推理任务（Math-python）反而变差</td>
+
+    <td>弱模型（Flash-Lite）地板以下</td>
+
+    </tr>
+
+    <tr>
+
+    <td>训练扩展</td>
+
+    <td>作者承认 RL 训练是下一步</td>
+
+    <td>已实现 co-learning loop（SFT+GRPO+online）</td>
+
+    </tr>
+
+    </table>
+
+
+    <p>Continual Harness 论文在 §5.3 直接引用了 RLM（arXiv:2512.24601），明确说：RLM 在上下文中做递归子LLM 调用（深度 > 1），Continual Harness 在深度 1 写结构化编辑到完整 harness 状态。两者是互补关系。</p>
+
+
+    <h2>四、对 Agent 工程的启示</h2>
+
+
+    <h3>1. 上下文管理是程序设计问题</h3>
+
+    <p>RLM 的核心洞察：与其指望模型在超长上下文里不遗忘，不如让模型主动写代码把信息分块、委托、汇总。上下文管理本身就是一个程序设计问题——用计算换上下文，用更多推理步骤换更短的主上下文。</p>
+
+
+    <h3>2. 失败修复必须在同一轨迹内闭环</h3>
+
+    <p>Continual Harness 的核心洞察：reset-based 方法每次更新后丢弃经验，而 reset-free 方法的失败签名单调累积、复利增长。失败记录和修复在同一 episode 内闭环，不需要跨 reset 推理。这对抗 Context Rot 更有效。</p>
+
+
+    <h3>3. 能力地板是真实存在的</h3>
+
+    <p>两个工作都揭示了同一个约束：harness 精修/自管理需要模型有能力正确使用这些机制。RLM 要求模型会写 Python 来管理推理；Continual Harness 在 Flash-Lite 上反而更差。太弱的模型，再好的 harness 也救不了。</p>
+
+
+    <h3>4. 可迁移单元是 harness 而非 episode</h3>
+
+    <p>Continual Harness 发现：harness 跨运行是可迁移单元，而非单次 episode。Emerald 保持 99-100% 继承率成功；Red 因 sub-agent 崰塌到 6.4% → 回退。这意味着 harness 应被视为一个独立的一等公民资产来管理，而非每次 episode 的消耗品。</p>
+
+
+    <h3>5. 训练和推理用同一个循环</h3>
+
+    <p>Continual Harness 的 co-learning loop 最有价值：inference 时 agent + Refiner 交替运行；training 时同一个循环跑在 live-refining harness 里，模型在自己的精修轨迹中学习。SFT 和 GRPO 单独都不 work，只有 online co-learning 产生进展——说明 harness 精修和模型训练必须耦合。</p>
+
+
+    <h2>总结</h2>
+
+    <p>这两篇论文从不同层面回答了同一个问题：当上下文是稀缺资源时，怎么让 agent 自己管好自己。</p>
+
+    <p>RLM 的答案：让模型写代码管理信息流——Python REPL 分块 + 子LLM 委托 + 答案扩散生成。</p>
+
+    <p>Continual Harness 的答案：让 Refiner 管理 scaffolding 结构——mid-episode CRUD 编辑 + reset-free + co-learning loop。</p>
+
+    <p>两者都属于 2026 年"harness 是第一公民"共识的具体实现：不改模型权重，只改调用方式/harness 就能大幅扩展有效能力。前者管信息流，后者管 scaffolding 结构——互补而非竞争。</p>
+
+    <p>Prime Intellect 说 RLM 是"2026 年的范式"。但从 Continual Harness 的实验看，RLM 的 zero-shot 效果只是"存在性证明"，RL 训练后才能真正释放潜力。Continual Harness 已经走了更远——从 inference-time 精修扩展到 weight training 的 co-learning loop。真正的突破，大概率出现在两者的结合处。</p>
+
+
+    <p style="font-size:0.85em;color:#888;">
+
+    Sources:<br>
+
+    <a href="https://www.primeintellect.ai/blog/rlm">Prime Intellect Blog: Recursive Language Models</a> (Sebastian Müller, 2026-01)<br>
+
+    <a href="https://arxiv.org/abs/2512.24601">RLM Paper (Alex Zhang, arXiv:2512.24601)</a><br>
+
+    <a href="https://arxiv.org/abs/2605.09998">Continual Harness Paper (arXiv:2605.09998)</a><br>
+
+    <a href="https://github.com/PrimeIntellect-ai/verifiers/">verifiers (RLM implementation)</a> ·
+
+    <a href="https://github.com/PrimeIntellect-ai/prime-rl">prime-rl</a>
+
+    </p>'
 - title: AI Builders 日报 · 2026-08-25
   date: August 25, 2026
   slug: ai-builders-digest-2026-08-25
