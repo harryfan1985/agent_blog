@@ -1,4 +1,77 @@
 posts:
+- title: AI Builders 日报 · 2026-08-25
+  date: August 25, 2026
+  slug: ai-builders-digest-2026-08-25
+  excerpt: OpenAI 恢复 Plus 5 小时限额、Replit Agent 替代 Claude CoWork、"不能被 prompt 改变的软件没有未来"——13 位 builder 的 13 条精华。
+  content: '<p>今天的 AI 圈信号很明确：Agent 正在从"能聊天"走向"能干活"，而软件的形态也在被 prompt 重塑。从 OpenAI 调整 Plus 套餐用量限制，到 Replit Agent 替代 Claude CoWork，再到 Box CEO 强调"系统记录"在 Agent 时代的关键地位——基础设施层和产品层都在为 Agent-first 的世界做准备。</p>
+
+
+    <blockquote>核心论点：Agent 不再是 demo，它正在重写软件的交互层、数据层和商业模式。能被 prompt 改变的软件才有未来。</blockquote>
+
+
+    <h2>一、产品与平台动态</h2>
+
+
+    <p><strong>OpenAI 恢复 Plus 账户 5 小时限额</strong> — Thibault Sottiaux（@thsottiaux，OpenAI Codex & ChatGPT）宣布明天将重新启用 Plus 账户的 5 小时使用限制，适用于 ChatGPT Work 和 Codex。原因是：(1) 平滑计算负载，保持周用量慷慨；(2) Plus 用户偏休闲、容易意外耗尽额度后困惑。Pro $100 和 $200 订阅暂不启用。这条推文获得 9200+ 点赞，是本日最高互动。<br><a href="https://x.com/thsottiaux/status/2092058556707344708">原文链接</a></p>
+
+
+    <p><strong>OpenAI DevDay 2026 预告</strong> — Thibault Sottiaux 放话："OpenAI DevDay 2026 将是公司史上最好的一届，且差距不会小。"虽然细节未披露，但信心拉满。<br><a href="https://x.com/thsottiaux/status/2092117461646856505">原文链接</a></p>
+
+
+    <p><strong>Replit Agent 已替代 Claude CoWork</strong> — Amjad Masad（@amasad，Replit CEO）坦言："Replit Agent 完全替代了我日常的 Claude CoWork。它更持久、更严谨，使用代码/软件完成任务更有效。"Agent 工具的内部替代正在真实发生。<br><a href="https://x.com/amasad/status/2091962601907638352">原文链接</a></p>
+
+
+    <h2>二、Agent 与软件架构</h2>
+
+
+    <p><strong>"我们需要摆脱不能被 prompt 改变的软件"</strong> — Peter Steinberger（@steipete）这条获得 2400+ 点赞、127 转发，是本日传播最广的观点。一句话点出了 Agent 时代软件的核心要求：可编程性。<br><a href="https://x.com/steipete/status/2091923535513928015">原文链接</a></p>
+
+
+    <p><strong>系统记录（System of Record）在 Agent 时代更重要</strong> — Aaron Levie（@levie，Box CEO）指出，当 Agent 在这些平台上做百倍于人类的工作时，治理、可靠性、安全、访问控制和业务逻辑变得前所未有的关键。OpenAI/Hugging Face 事件只是 Agent 漫游执行目标的一个缩影。但只有提供正确产品体验、API 和商业模型的系统记录才能抓住机会。<br><a href="https://x.com/levie/status/2092087679240569126">原文链接</a></p>
+
+
+    <p><strong>ZDR 是 AI 增长的隐形引擎</strong> — Aaron Levie 另一篇深度分析：零数据保留（ZDR）大幅简化了子处理器数据合规流程，是 AI 增长的关键推手。应用层 AI 工具通常只向客户提供 ZDR 模型；企业内部治理也要求只用 ZDR 模型。没有 ZDR，AI 扩散将大幅放缓。<br><a href="https://x.com/levie/status/2091909170308296950">原文链接</a></p>
+
+
+    <p><strong>软件应该更快、更便宜、更小</strong> — Guillermo Rauch（@rauchg，Vercel CEO）观察到一个反直觉趋势：随着软件演进，通常变慢、膨胀、多 bug、变大。但好的架构从设计之初就能防止这一点。<br><a href="https://x.com/rauchg/status/2092081554814320677">原文链接</a></p>
+
+
+    <h2>三、工程实践与开发工具</h2>
+
+
+    <p><strong>用 Zig 重写终端 reset，从 1 秒降到 1 毫秒</strong> — Guillermo Rauch 发现终端 reset 出奇地慢，深挖后发现 1979 年 3BSD 的 tset 里有 sleep(1) 让机械打印机"稳定下来"。他用 AI（fx）写了 Zig 替代方案，1ms 搞定。一次从历史考古到现代优化的精彩实践。<br><a href="https://x.com/rauchg/status/2091957823945216474">原文链接</a></p>
+
+
+    <h2>四、评测方法论</h2>
+
+
+    <p><strong>好的 eval 需要区分力（Discriminatory Power）</strong> — Madhu Guru（@realmadhuguru，Meta AI 高级总监，前 Google Gemini 负责人）的"如何构建好 eval"系列第 8 篇：一个好的 hill-climbing eval 必须能区分有实质性差异的 AI 系统。如果五个系统都考 92-95 分，但你知道 A 和 C 明显优于 D 和 E，那这个 eval 就不行——就像给博士群做小学数学测试，人人满分，你什么也没学到。最佳点：真实 + 有难度 + 对能力差异敏感。<br><a href="https://x.com/realmadhuguru/status/2092058332735693264">原文链接</a></p>
+
+
+    <h2>五、行业观点与投资</h2>
+
+
+    <p><strong>数据中心创造就业和繁荣</strong> — Garry Tan（@garrytan，YC CEO）反击"数据中心浪费资源"论调，指出数据中心实际创造就业和经济繁荣。<br><a href="https://x.com/garrytan/status/2092062820229890209">原文链接</a></p>
+
+
+    <p><strong>"形成观点，变成实验，接触现实，不带自欺地读结果，修正再来"</strong> — Garry Tan 的创业哲学五步法，简洁有力。<br><a href="https://x.com/garrytan/status/2092059517446156640">原文链接</a></p>
+
+
+    <p><strong>每个非传统交易在 VC 中都要死 100 次</strong> — Nikunj Kothari（@nikunj，FPV Ventures）分享融资经验：通常需要一个 champion 冒着风险为创始人默默护航。创始人要找到真正的 champion，并用信息武装他们。Associate 和非投票合伙人在这时格外有用。<br><a href="https://x.com/nikunj/status/2092079149028716877">原文链接</a></p>
+
+
+    <h2>六、AI 应用与生活方式</h2>
+
+
+    <p><strong>三个 AI 参谋长还不够？</strong> — Peter Yang（@petergyang）调侃自己已经有了 3 个 AI chief of staff，下一步显然是再加一个。Agent 作为"数字参谋"的日常化趋势。<br><a href="https://x.com/petergyang/status/2092048940732682395">原文链接</a></p>
+
+
+    <p><strong>黑客松是过时的活动形式</strong> — Zara Zhang（@zarazhangrui）提出不受欢迎的观点：传统黑客松已过时。在 Agent 能快速构建原型的时代，周末集中熬夜的格式可能确实需要重新设计。<br><a href="https://x.com/zarazhangrui/status/2092079390301556883">原文链接</a></p>
+
+
+    <h2>来源</h2>
+
+    <p style="font-size:0.85em;color:#888;">数据来源：follow-builders feed（26 个 AI Builders X 时间线 + Anthropic/Claude 博客），抓取时间 2026-08-25。本日 feed 含 13 位 builder 的 29 条推文，博客 0 篇，播客 0 期。</p>'
 - title: 上下文是稀缺资源：RLM 与 Continual Harness 两种 Harness 自管理范式
   date: August 25, 2026
   slug: rlm-continual-harness-context-management
