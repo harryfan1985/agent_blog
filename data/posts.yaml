@@ -1,4 +1,105 @@
 posts:
+- title: AI Builders 日报 · 2026-08-26
+  date: August 26, 2026
+  slug: ai-builders-digest-2026-08-26
+  excerpt: Sam Altman 宣布 OpenAI 自研芯片；Claude 跨界面统一记忆上线；Vercel 发布 Run SDK 与 Connect GA；Peter Yang 开源 /fuck-cancer 技能；swyx 警告 Codex locked use 漏洞。
+  content: '<h2>今日要点</h2>
+
+    <p>8 月 25 日，AI Builder 社区信息密度极高的一天。Sam Altman 一句"we made a chip and it is fast"拿下 3.2 万点赞——OpenAI 自研芯片正式浮出水面。与此同时，Claude 发布跨 Chat 与 Cowork 的统一记忆功能，Vercel 推出 Run SDK 和 Connect GA，Peter Yang 开源了一个帮助癌症患者导航诊疗的 AI 技能。以下是今日精华。</p>
+
+    <blockquote>AI 的竞争已经从"谁的模型更强"转向"谁能把智能渗透到真实工作流里"——芯片、记忆、连接器、垂直技能，每一步都在缩短 token 到结果之间的距离。</blockquote>
+
+
+    <h2>一、模型与基础设施</h2>
+
+
+    <p><strong>Sam Altman：OpenAI 自研芯片</strong> — "we made a chip and it is fast"，一句话引爆社区（3.2 万赞、1347 转发）。虽然细节不多，但信号明确：OpenAI 正在向下延伸到硬件层。自研芯片意味着推理成本和延迟的自主掌控权，这是走向大规模部署的必经之路。<br><a href="https://x.com/sama/status/2092339694210040187">原文链接</a></p>
+
+
+    <p><strong>Aditya Agarwal：数据中心建设的社会阻力</strong> — 前工程高管指出，公众反感数据中心扩建并不意外——AI 目前主要惠及知识工作者和高收入群体。真正的转折点将是 AI 能治愈普通人的疾病。他也批评了行业的恐惧营销策略。<br><a href="https://x.com/adityaag/status/2092290497826173186">原文链接</a></p>
+
+
+    <h2>二、Agent 记忆：Claude 的统一记忆</h2>
+
+
+    <p>今日最密集的话题。Claude 官方宣布<strong>跨 Chat 和 Cowork 的统一记忆</strong>正式上线：</p>
+
+    <ul>
+
+    <li><strong>Claude 官方</strong>：记忆现在跨聊天和 Cowork 共享，你决定记住什么。给 Cowork 一个任务，它会从之前的聊天上下文出发——你讨论过的项目、你 manager 的偏好、上个季度的客户。记忆以主题列表形式保存在设置中，可随时查看、编辑或删除。敏感话题（健康、宗教信仰）默认不进入记忆，除非手动开启。Free、Pro、Max 计划默认开启。<br><a href="https://x.com/claudeai/status/2092299704864284888">公告</a> · <a href="https://x.com/claudeai/status/2092299707653439497">细节</a> · <a href="https://x.com/claudeai/status/2092299710002319742">隐私控制</a></li>
+
+    <li><strong>Boris Cherny</strong>：记忆变得更简单更强大。<a href="https://x.com/bcherny/status/2092355642363453943">链接</a></li>
+
+    <li><strong>Cat Wu</strong>：感谢用户反馈，记忆已跨 Chat 和 Cowork 统一。告诉 Claude"记住这个"，它就能跨界面使用。<a href="https://x.com/_catwu/status/2092337156455051345">链接</a></li>
+
+    <li><strong>Garry Tan</strong>："You need to be cross-harness memory maxxing"——跨 harness 记忆最大化是当下最重要的事。<a href="https://x.com/garrytan/status/2092277912053657722">链接</a></li>
+
+    </ul>
+
+
+    <p>记忆统一的意义在于：Agent 不再是每次对话从零开始的孤立实例，而是拥有持续上下文的"工作伙伴"。这是 Agent 从"工具"进化为"协作者"的关键一步。</p>
+
+
+    <h2>三、Agent 开发工具</h2>
+
+
+    <p><strong>Guillermo Rauch：Vercel Run SDK — 安全 eval 执行</strong> — Vercel 推出 Run SDK，为动态代码执行提供轻量级 QuickJS 安全沙箱。Agent 写代码时不总是需要完整沙箱，用 Run 可以更快更省地执行。"mpm i run"。<a href="https://x.com/rauchg/status/2092382653161107534">链接</a></p>
+
+
+    <p><strong>Guillermo Rauch：Vercel Connect 正式 GA</strong> — Agent 构建中最难的问题是到服务和数据的安全连接。Vercel Connect 现已 GA，可以运行 <code>vercel connect create notion</code> 创建一个 MCP 客户端，代表已认证用户查询 Notion。Google Workspace、Slack、GitHub、Microsoft 365 等均已支持。<a href="https://x.com/rauchg/status/2092352411839193234">链接</a></p>
+
+
+    <p><strong>Thariq：Claude Code 将更可 hack</strong> — Anthropic 的 Thariq 预告即将分享更多关于如何让 Claude Code 更可定制化的内容。<a href="https://x.com/trq212/status/2092303682616627311">链接</a></p>
+
+
+    <p><strong>swyx 警告：Codex locked use 漏洞</strong> — 实用安全提醒：swyx 警告不要使用 Codex 的 "locked use" 功能，它依赖不稳定的 macOS 特性，本周已两次锁死他的 Keychain。Apple 开发者论坛已确认这是已知 bug。<a href="https://x.com/swyx/status/2092492963435946494">链接</a></p>
+
+
+    <h2>四、产品与企业</h2>
+
+
+    <p><strong>Thibault Sottiaux：OpenAI 团队版</strong> — 类似 Pro 100 美元计划但面向团队和小公司。包含 ChatGPT、Codex 全部功能，支持 Google Workspace/Slack/GitHub/M365 连接，SAML/SSO/MFA 安全工作区，集中计费与用量分析，无 5 小时限制。<a href="https://x.com/thsottiaux/status/2092345330272780499">链接</a></p>
+
+
+    <p><strong>Google Labs：Play with Putty — 协作式 vibe coding</strong> — Google Labs 新实验，让多人实时协作构建工具和网站。"Great minds play alike!"目前开放候补名单，仅限美国 18+。<a href="https://x.com/GoogleLabs/status/2092293667688173593">链接</a></p>
+
+
+    <p><strong>Aaron Levie：企业级 Applied AI 策略</strong> — Box CEO 引用一篇好文：模型和企业工作流之间有巨大鸿沟，机会属于能弥合这个鸿沟的公司。"世界不只想要原始模型和 agent，它想要问题被解决、结果被交付。"这需要理解上下文、驱动变革管理、拥有可路由到各种模型的 harness、连接垂直业务系统、解决 UX 挑战、理解 evals——这些远超模型智能本身。<a href="https://x.com/levie/status/2092466424694649066">链接</a></p>
+
+
+    <h2>五、开源与垂直应用</h2>
+
+
+    <p><strong>Peter Yang：开源 /fuck-cancer 技能</strong> — Peter Yang 开源了一个 AI 技能，帮助癌症患者和照护者导航诊断和治疗流程。技能会创建并更新一份实用简报，包含五个部分：①患者和医疗团队信息 ②下一步行动（限三项）③已知信息与不确定信息 ④医学术语通俗解释 ⑤照护日志。支持从文档和上下文构建，需要研究时使用国家癌症研究所和 ClinicalTrials.gov 等可信来源。可保存为 Markdown 或更新 Google Doc 供全家共享。用 ChatGPT/Codex 和 Claude Code 使用。<a href="https://x.com/petergyang/status/2092249013258946">主帖</a> · <a href="https://x.com/petergyang/status/2092311110871617915">示例</a></p>
+
+
+    <h2>六、评测方法论</h2>
+
+
+    <p><strong>Madhu Guru：How to build great evals — Part 9：Eval Roadmap 问题</strong> — 大多数 eval 失败的原因是团队把它们当成静态产物，而用户的期望和行为已经进化了。以金融研究 Agent 为例：用户从"总结 5 页财报"→"分析 5 份财报增长故事"→"15 份文件构建投资论点"→"监控组合并发送警报"。每个阶段需要不同能力，因此需要不同 eval。eval 应随使用模式演进：短上下文→长上下文、单轮→多轮、简单 QA→复杂综合、被动→主动。5 步路线图：①映射使用演进维度 ②优先排序 ③与用户交谈、挖掘生产 traces ④为下一阶段建 P0 eval ⑤运行并爬坡。<a href="https://x.com/realmadhuguru/status/2092426017118028266">Part 9</a> · <a href="https://x.com/realmadhuguru/status/2092461206783373758">全系列索引</a></p>
+
+
+    <h2>七、播客</h2>
+
+
+    <p><strong>Training Data：Parallel''s Parag Agrawal — 为 AI Agent 构建新 Web</strong> — 前 Twitter CEO Parag Agrawal 创办 Parallel Web Systems，为 Agent 时代的搜索和 Web 使用构建基础设施。核心理念：人类点击数据是 bug，Agent 做搜索应该依赖 Agent 反馈而非人类反馈。模型擅长压缩信息，可以把模型研究的技术应用到搜索索引和排序上。<a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">收听</a></p>
+
+
+    <h2>八、社区动态</h2>
+
+
+    <p><strong>Peter Yang</strong>：期待参加 OpenAI Dev Day，"ChatGPT/Codex 基本是我电脑上做所有事情的操作系统。"<a href="https://x.com/petergyang/status/2092281120650047746">链接</a></p>
+
+
+    <p><strong>Nikunj Kothari</strong>：推出 El Niño 情况监控网站（elneenyo.com），实时更新政府来源新闻、按地区影响和历史记录。用 ChatGPT Codex 和 Railway 构建。<a href="https://x.com/nikunj/status/2092383834470002922">主帖</a> · <a href="https://x.com/nikunj/status/2092384774459674957">构建细节</a></p>
+
+
+    <h2>总结</h2>
+
+    <p>今日信号清晰：AI 的竞争已经从模型层延伸到芯片（OpenAI）、记忆（Claude）、连接器（Vercel Connect）、安全执行（Run SDK）和垂直技能（/fuck-cancer）。每一层都在缩短从"token"到"结果"的距离。对于 Builder 来说，机会不在模型本身，而在弥合模型与企业工作流之间那个巨大鸿沟的应用层。</p>
+
+
+    <p style="font-size:0.85em;color:#888;">数据来源：follow-builders feed（lookback 72h，17 个 builders，32 条推文）| 抓取时间 2026-08-26 CST</p>'
 - title: AI Builders 日报 · 2026-08-25
   date: August 25, 2026
   slug: ai-builders-digest-2026-08-25
