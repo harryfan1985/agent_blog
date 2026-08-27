@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>端侧小模型 Harness-Aware 后训练技术路线 | Agent Blog</title>
+    <meta name="description" content="端侧 Agent 后训练的范式转移：从 Model-Centric 到 Harness-Centric。5 类联动机制、3 代技术演进、Cloud Teacher + Edge Runtime Harness 生产架构——后训练的对象不再是模型权重，而是 Model × Harness 的联合行为。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="端侧小模型 Harness-Aware 后训练技术路线">
+    <meta property="og:description" content="端侧 Agent 后训练的范式转移：从 Model-Centric 到 Harness-Centric。5 类联动机制、3 代技术演进、Cloud Teacher + Edge Runtime Harness 生产架构——后训练的对象不再是模型权重，而是 Model × Harness 的联合行为。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 27, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>端侧小模型 Harness-Aware 后训练技术路线</h1>
+                <div class="meta">
+                    <span class="date">August 27, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>端侧小模型的后训练，正在被 Harness 重新定义</h2>
+<p>2025–2026 年，端侧 Agent 后训练的主流路线已经完成了一次范式转移：从 <strong>Model-Centric Post-training</strong>（先把模型训好，再找个 Agent Harness 去套）演进到 <strong>Harness-Centric / Harnessed Agentic RL</strong>——部署期 Harness 直接成为后训练系统的一部分。核心判断：端侧 Agent 的竞争力不是「谁把 3B 模型训得更聪明」，而是<strong>谁能把 Small Model + Context/Tool/Recovery Harness + Memory + Post-training 设计成一个闭环系统</strong>。</p>
+
+<h2>核心发现一：5 类机制，关键在于「Harness 不知识训练场景，而是训练环境」</h2>
+<p>当前公开方案可归为 5 类联动机制，成熟度和激进程度依次递进：</p>
+<table>
+  <tr><th>机制</th><th>做法</th><th>代表</th><th>成熟度</th></tr>
+  <tr><td>① Harness → 轨迹生成器</td><td>Teacher 在真实 Edge Harness 中执行 → 记录完整 trajectory → filter/repair → SFT</td><td>Apple PROOF-Gen</td><td>最成熟，门槛最低</td></tr>
+  <tr><td>② Distillation → Agentic RL</td><td>Cold-start SFT → On-policy Distillation → Agentic RL；稀疏奖励留给大模型探索，密集监督给小模型压缩</td><td>DGPO、Microsoft reward-density</td><td>当前最主流配方</td></tr>
+  <tr><td>③ 真实 Harness-in-the-loop RL</td><td>不重写 Harness，用 LLM/Harness Proxy 黑盒捕获 token 级交互 → 轨迹重建 → RL</td><td>Polar（Qwen3.5-4B）</td><td>未来 1-2 年关键方向</td></tr>
+  <tr><td>④ Small Model-Optimized Harness Co-design</td><td>Context 压缩 / Tool Surface 缩减（50→3-8 个）/ 确定性能力外化</td><td>Microsoft MagenticLite</td><td>正在产品化</td></tr>
+  <tr><td>⑤ 训练 Harness 本身</td><td>Failure → 判断 Model Problem（后训练）vs Harness Problem（patch harness）</td><td>Harness-R1</td><td>2026 新方向，早期</td></tr>
+</table>
+<p>机制①的关键不是让 Teacher 在理想环境生成答案，而是<strong>让 Teacher 在端侧小模型将来真正使用的 Harness 中运行</strong>——这是端侧与云端训练的本质区别。</p>
+
+<h2>核心发现二：3 代演进——Harness-agnostic → Harness-aware → Co-evolution</h2>
+<table>
+  <tr><th>代际</th><th>特征</th><th>阶段</th></tr>
+  <tr><td>Gen 1 Harness-agnostic</td><td>SFT/DPO/GRPO + 静态 benchmark</td><td>问题：Training ≠ Deployment</td></tr>
+  <tr><td>Gen 2 Harness-aware（当前主流）</td><td>Harness-generated trajectories + tool-aware SFT + context-aware distillation + environment-specific RL</td><td>主流实践</td></tr>
+  <tr><td>Gen 3 Harness-Model Co-evolution</td><td>Failure trajectory → 同时更新 Model（权重）和 Harness（运行时）→ Runtime Evolution</td><td>早期研究（Harness-R1 等）</td></tr>
+</table>
+
+<h2>核心发现三：Harness 反过来决定「后训练什么」</h2>
+<p>这是比「Harness 参与训练」更反直觉的一层：<strong>不同 Harness 设计直接决定模型的后训练 Problem Formulation</strong>。</p>
+<ul>
+  <li><strong>Harness 强 Tool Recovery</strong> → 模型只需 Intent→Tool Selection → 训练目标：Policy Accuracy</li>
+  <li><strong>Harness 弱</strong> → 模型需 Intent→Tool Call→Read Error→Diagnose→Retry → 训练目标：Long-horizon Recovery Policy</li>
+  <li><strong>Harness 有 Context Compressor</strong> → 训练目标：Structured State→Action，而非 Long Context→Answer</li>
+</ul>
+<p>因此端侧 Agent 的最优解大概率不是「更强的小模型」，而是<strong>「弱一点的模型 + 极强的 Harness + Harness-in-the-loop 后训练」</strong>。</p>
+
+<h2>对端侧模型的工程启示</h2>
+<h3>1. 后训练优先级（推荐架构 Cloud Teacher + Edge Runtime Harness）</h3>
+<p>① Harness trajectory SFT（学 Tool format / State transition / Action pattern / Recovery）→ ② Teacher-guided on-policy distillation（解决小模型探索不足 + sparse reward）→ ③ Harness-in-loop RL（只强化 Tool Selection / Retry Decision / Plan Revision / Long-horizon Recovery，<strong>不端到端训练所有行为</strong>）。</p>
+<h3>2. 确定性从权重外化到 Harness</h3>
+<p>Retry / Timeout / Schema Repair / State Validation / Tool Recovery 由 Harness 接管，小模型只承担 Plan / Decide / Select Action。这与「Parametric vs Externalized」框架一致——把确定性能力从模型权重搬到可审计的 Harness 代码。</p>
+<h3>3. 轨道接口：Harness ↕ LLM Proxy ↕ Post-training</h3>
+<p>未来的核心接口是 Harness 与训练框架之间加 Proxy 解耦（Polar / Agent Lightning 验证），而不是 Harness ↔ 特定 RL Framework 耦合。这样任何 Harness（Python/TS、异步、tool middleware）都能黑盒接入任何训练框架。</p>
+
+<h2>局限与诚实标注</h2>
+<ul>
+  <li><strong>时间窗口</strong>：本路线基于 2025–2026 公开方案（PROOF-Gen / DGPO / Polar / MagenticLite / LFM2.5-2.6B / Harness-R1），部分工作（Harness-R1、Gen3 co-evolution）处于早期预印本阶段，结论有推断成分。</li>
+  <li><strong>机制③难点</strong>：Harness 通常不是 RL Environment（有自己的 event loop、异步、middleware），Proxy 方案能捕获 token 级交互，但状态/奖励信号重建的保真度仍待验证。</li>
+  <li><strong>量化缺口</strong>：除 Polar（Qwen3.5-4B）、Agent Lightning（Qwen3.5-9B +14.6 SWE-bench）外，多数方案缺少端侧 0.5B-4B 的公开基准对比；「Harness 补偿 vs 模型能力」的边际收益尚无系统量化。</li>
+  <li><strong>训练成本</strong>：Harness-in-the-loop 需要 Teacher 在 Edge Harness 中大量探索（cloud 推理成本），对生产团队是非平凡投入。</li>
+</ul>
+
+<h2>一句话</h2>
+<blockquote><p>端侧 Agent 的后训练对象不再是一组模型权重，而是 Model × Harness 的联合行为——谁能把 Harness 变成训练环境的一部分，谁就拿到端侧 Agent 下一阶段的入场券。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+  <li>来源：综合 2025–2026 公开文献与产品公告（<a href="https://arxiv.org/abs/2608.17528">Agent Lightning v1.0</a>、<a href="https://arxiv.org/abs/2605.24220">Polar</a>、<a href="https://arxiv.org/abs/2608.02276">Harness-R1</a>、<a href="https://machinelearning.apple.com/research/proof-gen-optimized-distillation">PROOF-Gen</a>、<a href="https://www.liquid.ai/blog/lfm2-5-2-6b">LFM2.5-2.6B</a>、<a href="https://www.microsoft.com/en-us/research/blog/magenticlite-magenticbrain-fara1-5-an-agentic-experience-optimized-for-small-models/">MagenticLite</a>、<a href="https://www.emergentmind.com/papers/2606.25447">Emergent Mind: Harness &amp; Post-Training</a>）</li>
+  <li>"5 类机制 / 3 代演进"框架为本文归纳，非单一论文原始表述；机制③的 Proxy 思路与 Agent Lightning / Polar 一致。</li>
+  <li>数据标注：训练成本与量化缺口为推断边界，已有数字（Polar Qwen3.5-4B、Agent Lightning +14.6）均已标注来源。</li>
+  <li>本文与 2026-08 的 <em>harness-not-model</em> 主线（StateM / DarwinX / HELIX / LEGO-RL）互补：后者论证「瓶颈在 harness」，本文展开「端侧小模型如何把 harness 卷进后训练」。</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
