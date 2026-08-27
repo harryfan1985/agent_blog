@@ -1,34 +1,111 @@
 posts:
 - title: 端侧小模型 Harness-Aware 后训练技术路线
   date: August 27, 2026
-  excerpt: 端侧 Agent 后训练的范式转移：从 Model-Centric 到 Harness-Centric。5 类联动机制、3 代技术演进、Cloud Teacher + Edge Runtime Harness 生产架构——后训练的对象不再是模型权重，而是 Model × Harness 的联合行为。
+  excerpt: 端侧小模型的后训练正从 Model-Centric 演进到 Harness-Centric：Harness 从推理外壳变成训练环境。本文梳理 5 类联动机制（轨迹生成、蒸馏→Agentic RL、Harness-in-the-loop、Co-design、训练 Harness 本身）、3 代技术演进（Harness-agnostic → Harness-aware → Co-evolution）与
+    Cloud Teacher + Edge Runtime Harness 生产架构。
   slug: edge-model-harness-aware-post-training
-  content: "<h2>端侧小模型的后训练，正在被 Harness 重新定义</h2>\n<p>2025–2026 年，端侧 Agent 后训练的主流路线已经完成了一次范式转移：从 <strong>Model-Centric Post-training</strong>（先把模型训好，再找个 Agent Harness 去套）演进到 <strong>Harness-Centric / Harnessed\
-    \ Agentic RL</strong>——部署期 Harness 直接成为后训练系统的一部分。核心判断：端侧 Agent 的竞争力不是「谁把 3B 模型训得更聪明」，而是<strong>谁能把 Small Model + Context/Tool/Recovery Harness + Memory + Post-training 设计成一个闭环系统</strong>。</p>\n\n<h2>核心发现一：5\
-    \ 类机制，关键在于「Harness 不知识训练场景，而是训练环境」</h2>\n<p>当前公开方案可归为 5 类联动机制，成熟度和激进程度依次递进：</p>\n<table>\n  <tr><th>机制</th><th>做法</th><th>代表</th><th>成熟度</th></tr>\n  <tr><td>① Harness → 轨迹生成器</td><td>Teacher 在真实 Edge\
-    \ Harness 中执行 → 记录完整 trajectory → filter/repair → SFT</td><td>Apple PROOF-Gen</td><td>最成熟，门槛最低</td></tr>\n  <tr><td>② Distillation → Agentic RL</td><td>Cold-start SFT → On-policy Distillation → Agentic\
-    \ RL；稀疏奖励留给大模型探索，密集监督给小模型压缩</td><td>DGPO、Microsoft reward-density</td><td>当前最主流配方</td></tr>\n  <tr><td>③ 真实 Harness-in-the-loop RL</td><td>不重写 Harness，用 LLM/Harness Proxy 黑盒捕获 token 级交互 → 轨迹重建 → RL</td><td>Polar（Qwen3.5-4B）</td><td>未来\
-    \ 1-2 年关键方向</td></tr>\n  <tr><td>④ Small Model-Optimized Harness Co-design</td><td>Context 压缩 / Tool Surface 缩减（50→3-8 个）/ 确定性能力外化</td><td>Microsoft MagenticLite</td><td>正在产品化</td></tr>\n  <tr><td>⑤\
-    \ 训练 Harness 本身</td><td>Failure → 判断 Model Problem（后训练）vs Harness Problem（patch harness）</td><td>Harness-R1</td><td>2026 新方向，早期</td></tr>\n</table>\n<p>机制①的关键不是让 Teacher 在理想环境生成答案，而是<strong>让 Teacher\
-    \ 在端侧小模型将来真正使用的 Harness 中运行</strong>——这是端侧与云端训练的本质区别。</p>\n\n<h2>核心发现二：3 代演进——Harness-agnostic → Harness-aware → Co-evolution</h2>\n<table>\n  <tr><th>代际</th><th>特征</th><th>阶段</th></tr>\n  <tr><td>Gen\
-    \ 1 Harness-agnostic</td><td>SFT/DPO/GRPO + 静态 benchmark</td><td>问题：Training ≠ Deployment</td></tr>\n  <tr><td>Gen 2 Harness-aware（当前主流）</td><td>Harness-generated trajectories + tool-aware SFT + context-aware\
-    \ distillation + environment-specific RL</td><td>主流实践</td></tr>\n  <tr><td>Gen 3 Harness-Model Co-evolution</td><td>Failure trajectory → 同时更新 Model（权重）和 Harness（运行时）→ Runtime Evolution</td><td>早期研究（Harness-R1\
-    \ 等）</td></tr>\n</table>\n\n<h2>核心发现三：Harness 反过来决定「后训练什么」</h2>\n<p>这是比「Harness 参与训练」更反直觉的一层：<strong>不同 Harness 设计直接决定模型的后训练 Problem Formulation</strong>。</p>\n<ul>\n  <li><strong>Harness 强 Tool Recovery</strong>\
-    \ → 模型只需 Intent→Tool Selection → 训练目标：Policy Accuracy</li>\n  <li><strong>Harness 弱</strong> → 模型需 Intent→Tool Call→Read Error→Diagnose→Retry → 训练目标：Long-horizon Recovery Policy</li>\n  <li><strong>Harness\
-    \ 有 Context Compressor</strong> → 训练目标：Structured State→Action，而非 Long Context→Answer</li>\n</ul>\n<p>因此端侧 Agent 的最优解大概率不是「更强的小模型」，而是<strong>「弱一点的模型 + 极强的 Harness + Harness-in-the-loop 后训练」</strong>。</p>\n\
-    \n<h2>对端侧模型的工程启示</h2>\n<h3>1. 后训练优先级（推荐架构 Cloud Teacher + Edge Runtime Harness）</h3>\n<p>① Harness trajectory SFT（学 Tool format / State transition / Action pattern / Recovery）→ ② Teacher-guided on-policy\
-    \ distillation（解决小模型探索不足 + sparse reward）→ ③ Harness-in-loop RL（只强化 Tool Selection / Retry Decision / Plan Revision / Long-horizon Recovery，<strong>不端到端训练所有行为</strong>）。</p>\n<h3>2. 确定性从权重外化到 Harness</h3>\n\
-    <p>Retry / Timeout / Schema Repair / State Validation / Tool Recovery 由 Harness 接管，小模型只承担 Plan / Decide / Select Action。这与「Parametric vs Externalized」框架一致——把确定性能力从模型权重搬到可审计的 Harness 代码。</p>\n<h3>3.\
-    \ 轨道接口：Harness ↕ LLM Proxy ↕ Post-training</h3>\n<p>未来的核心接口是 Harness 与训练框架之间加 Proxy 解耦（Polar / Agent Lightning 验证），而不是 Harness ↔ 特定 RL Framework 耦合。这样任何 Harness（Python/TS、异步、tool middleware）都能黑盒接入任何训练框架。</p>\n\
-    \n<h2>局限与诚实标注</h2>\n<ul>\n  <li><strong>时间窗口</strong>：本路线基于 2025–2026 公开方案（PROOF-Gen / DGPO / Polar / MagenticLite / LFM2.5-2.6B / Harness-R1），部分工作（Harness-R1、Gen3 co-evolution）处于早期预印本阶段，结论有推断成分。</li>\n\
-    \  <li><strong>机制③难点</strong>：Harness 通常不是 RL Environment（有自己的 event loop、异步、middleware），Proxy 方案能捕获 token 级交互，但状态/奖励信号重建的保真度仍待验证。</li>\n  <li><strong>量化缺口</strong>：除 Polar（Qwen3.5-4B）、Agent Lightning（Qwen3.5-9B\
-    \ +14.6 SWE-bench）外，多数方案缺少端侧 0.5B-4B 的公开基准对比；「Harness 补偿 vs 模型能力」的边际收益尚无系统量化。</li>\n  <li><strong>训练成本</strong>：Harness-in-the-loop 需要 Teacher 在 Edge Harness 中大量探索（cloud 推理成本），对生产团队是非平凡投入。</li>\n</ul>\n\
-    \n<h2>一句话</h2>\n<blockquote><p>端侧 Agent 的后训练对象不再是一组模型权重，而是 Model × Harness 的联合行为——谁能把 Harness 变成训练环境的一部分，谁就拿到端侧 Agent 下一阶段的入场券。</p></blockquote>\n\n<h2>技术声明</h2>\n<ul>\n  <li>来源：综合 2025–2026 公开文献与产品公告（<a\
-    \ href=\"https://arxiv.org/abs/2608.17528\">Agent Lightning v1.0</a>、<a href=\"https://arxiv.org/abs/2605.24220\">Polar</a>、<a href=\"https://arxiv.org/abs/2608.02276\">Harness-R1</a>、<a href=\"https://machinelearning.apple.com/research/proof-gen-optimized-distillation\"\
-    >PROOF-Gen</a>、<a href=\"https://www.liquid.ai/blog/lfm2-5-2-6b\">LFM2.5-2.6B</a>、<a href=\"https://www.microsoft.com/en-us/research/blog/magenticlite-magenticbrain-fara1-5-an-agentic-experience-optimized-for-small-models/\"\
-    >MagenticLite</a>、<a href=\"https://www.emergentmind.com/papers/2606.25447\">Emergent Mind: Harness &amp; Post-Training</a>）</li>\n  <li>\"5 类机制 / 3 代演进\"框架为本文归纳，非单一论文原始表述；机制③的 Proxy 思路与 Agent Lightning\
-    \ / Polar 一致。</li>\n  <li>数据标注：训练成本与量化缺口为推断边界，已有数字（Polar Qwen3.5-4B、Agent Lightning +14.6）均已标注来源。</li>\n  <li>本文与 2026-08 的 <em>harness-not-model</em> 主线（StateM / DarwinX / HELIX / LEGO-RL）互补：后者论证「瓶颈在\
-    \ harness」，本文展开「端侧小模型如何把 harness 卷进后训练」。</li>\n</ul>\n"
+  content: "\n<p>当前业界正在形成一个非常明确的方向：</p>\n<blockquote>\n<p><strong>端侧小模型的后训练，不再是\"先把模型训好，再找个 Agent Harness 去套\"；而是把 Harness 直接变成后训练系统的一部分。</strong></p>\n</blockquote>\n<p>如果结合 2025–2026 年公开方案，主流技术路线已经从 <strong>Model-Centric\
+    \ Post-training</strong> 演进到 <strong>Harness-Centric / Harnessed Agentic RL</strong>。</p>\n<hr />\n<h2>一、核心架构：Harness 从推理外壳变成训练环境</h2>\n<p>传统链路是：</p>\n<pre><code class=\"language-text\">Base Model\n\
+    \   ↓\nSFT / DPO / RL\n   ↓\nDeploy Model\n   ↓\nAgent Harness\n   ↓\nTools / OS / App / Device\n</code></pre>\n<p>现在越来越多方案是：</p>\n<pre><code class=\"language-text\">                  ┌─────────────────────────┐\n\
+    \                  │      Agent Harness      │\n                  │ Context / Tools / State │\n                  │ Retry / Recovery / Plan │\n                  └───────────┬─────────────┘\n        \
+    \                      │\n                        Agent Execution\n                              │\n                      Token / Action Trace\n                              ↓\n┌────────────────────────────────────────────────┐\n\
+    │                Post-training Loop              │\n│                                                │\n│   SFT → Distillation → On-policy RL → Eval    │\n│    ↑                          │         \
+    \       │\n│    └──── Failure / Reward ────┘                │\n└────────────────────────────────────────────────┘\n</code></pre>\n<p><strong>核心变化：</strong></p>\n<p>Harness 不再只是：</p>\n<ul>\n<li>Prompt\
+    \ 组装器</li>\n<li>Tool Router</li>\n<li>Runtime Controller</li>\n</ul>\n<p>而变成：</p>\n<ul>\n<li><strong>Trajectory Generator</strong></li>\n<li><strong>State Environment</strong></li>\n<li><strong>Reward\
+    \ Context</strong></li>\n<li><strong>Failure Signal Producer</strong></li>\n<li><strong>Training Distribution Controller</strong></li>\n</ul>\n<p>这类范式已经被明确称为 <strong>Harnessed Agentic RL</strong>。近期的\
+    \ Agent Lightning v1.0 将它定义为：部署期 Harness 直接参与模型后训练，从而缩小\"训练环境\"和\"真实运行环境\"之间的鸿沟。(<a href=\"https://huggingface.co/papers/2608.17528\">Hugging Face</a>)</p>\n<hr />\n<h2>二、当前最主流的 5 类联动机制</h2>\n<h3>1.\
+    \ Harness 作为轨迹生成器：Harness → Post-training Data</h3>\n<p>这是目前<strong>最成熟、工程门槛最低</strong>的方案。</p>\n<pre><code class=\"language-text\">真实 Harness\n    ↓\nTeacher / Large Model 执行\n    ↓\nHarness 记录完整 Trajectory\n\
+    \    ↓\n成功/失败评估\n    ↓\nFilter / Repair / Relabel\n    ↓\nSFT / Distillation\n    ↓\nSmall Edge Model\n</code></pre>\n<p>训练数据不再只是：</p>\n<pre><code class=\"language-text\">Instruction → Answer\n</code></pre>\n\
+    <p>而是：</p>\n<pre><code class=\"language-text\">System Prompt\n+ Context State\n+ Tool Definition\n+ Action\n+ Tool Result\n+ Action\n+ Error\n+ Recovery\n+ Final Result\n</code></pre>\n<p>对于端侧模型，这是非常重要的。</p>\n\
+    <p>因为端侧模型真正要学习的通常不是：</p>\n<blockquote>\n<p>\"如何完成任务\"</p>\n</blockquote>\n<p>而是：</p>\n<blockquote>\n<p><strong>如何在受限工具、有限上下文和有限算力下推进任务。</strong></p>\n</blockquote>\n<p>Apple 最新的 PROOF-Gen 就体现了这个方向：不仅保留\
+    \ Teacher 成功轨迹，还针对失败执行轨迹进行反思和修复，把原本会被丢弃的 near-miss failure 转化成高质量训练数据，并报告了向实际部署的 on-device model 的正向迁移。(<a href=\"https://machinelearning.apple.com/research/proof-gen-optimized-distillation\">Apple\
+    \ Machine Learning Research</a>)</p>\n<h4>对端侧模型的典型做法</h4>\n<pre><code class=\"language-text\">Cloud Frontier Model\n        │\n        │ Generate Trajectory\n        ↓\n┌────────────────────┐\n│  Real\
+    \ Edge Harness │\n│                    │\n│ Tool A             │\n│ Tool B             │\n│ Context Window     │\n│ Memory Budget      │\n│ Retry Policy       │\n└────────────────────┘\n        ↓\n\
+    Teacher Trajectory\n        ↓\nTrajectory Compression\n        ↓\nSmall Model SFT\n</code></pre>\n<p><strong>关键不是让 Teacher 在一个理想环境中生成答案。</strong></p>\n<p>而是：</p>\n<blockquote>\n<p><strong>让 Teacher\
+    \ 在端侧 Small Model 将来真正使用的 Harness 中运行。</strong></p>\n</blockquote>\n<hr />\n<h3>2. Distillation → Agentic RL：当前端侧小模型最主流的后训练配方</h3>\n<p>目前小模型直接做 RL 的问题非常明显：</p>\n<pre><code class=\"language-text\">Small\
+    \ Model\n   ↓\nExploration\n   ↓\n大量失败\n   ↓\nSparse Reward\n   ↓\n训练不稳定\n</code></pre>\n<p>尤其是 0.5B–4B 模型：</p>\n<ul>\n<li>Initial policy 太弱</li>\n<li>Tool call 容易错</li>\n<li>多步任务 reward 极稀疏</li>\n\
+    <li>很难自己探索到成功轨迹</li>\n</ul>\n<p>所以当前越来越主流的是：</p>\n<pre><code class=\"language-text\">Teacher Demonstration\n        ↓\nCold Start SFT\n        ↓\nOn-policy Distillation\n        ↓\nAgentic RL\n    \
+    \    ↓\nEdge Model\n</code></pre>\n<p>例如 DGPO 针对 compact model agentic RAG，使用 <strong>cold-start teacher demonstration + policy optimization 中持续的 teacher guidance</strong> 来解决小模型稀疏奖励和探索困难。(<a href=\"\
+    https://aclanthology.org/2026.acl-long.1751/\">ACL Anthology</a>)</p>\n<p>Microsoft 近期提出的 reward-density 思路也很有代表性：</p>\n<pre><code class=\"language-text\">Sparse Reward\n    │\n    ├── 更适合强模型 Exploration\n\
+    \    ↓\nStrong Teacher Policy\n    │\n    ↓\nDense Teacher Signal\n    │\n    ↓\nSmall Deployment Model\n</code></pre>\n<p>也就是说：</p>\n<blockquote>\n<p><strong>稀疏奖励给大模型做探索，密集监督给小模型做压缩。</strong></p>\n\
+    </blockquote>\n<p>这可能比\"直接对端侧模型 GRPO\"更符合当前小模型能力边界。(<a href=\"https://www.microsoft.com/en-us/research/publication/beyond-grpo-and-on-policy-distillation-an-empirical-sparse-to-dense-reward-principle-for-language-model-post-training/\"\
+    >微软</a>)</p>\n<hr />\n<h3>3. 真实 Harness-in-the-loop RL：目前最值得关注的方向</h3>\n<p>这是<strong>未来 1–2 年最关键的演进方向</strong>。</p>\n<p>核心结构：</p>\n<pre><code class=\"language-text\">┌──────────────┐\n│ Small Model\
+    \  │\n└──────┬───────┘\n       │\n       ▼\n┌──────────────────┐\n│ Production Harness│\n│                  │\n│ Context          │\n│ Tool Calling     │\n│ Memory           │\n│ Recovery         │\n\
+    │ Routing          │\n└───────┬──────────┘\n        │\n        ▼\n   Environment\n        │\n        ▼\n Reward / Failure\n        │\n        ▼\n RL Trainer\n</code></pre>\n<p>这里的核心难题是：</p>\n<blockquote>\n\
+    <p><strong>Harness 本身通常不是 RL Environment。</strong></p>\n</blockquote>\n<p>Agent Harness 往往：</p>\n<ul>\n<li>是 Python/TypeScript 工程</li>\n<li>有自己的 Event Loop</li>\n<li>有异步调用</li>\n<li>有 Tool Middleware</li>\n\
+    <li>有 Context Management</li>\n<li>有多个 LLM Call</li>\n<li>有状态机</li>\n</ul>\n<p>所以新的方案不是重写 Harness，而是使用 <strong>LLM Proxy / Harness Proxy</strong>。</p>\n<p>Polar 的方案很典型：</p>\n<pre><code class=\"language-text\"\
+    >Agent Harness\n     │\n     │ LLM API Call\n     ▼\n┌──────────────────┐\n│   Proxy Layer    │\n│                  │\n│ Capture Tokens   │\n│ Capture Context  │\n│ Capture Action   │\n└────────┬─────────┘\n\
+    \         │\n         ▼\nTrajectory Reconstruction\n         │\n         ▼\nRL Trainer\n</code></pre>\n<p>Polar 可以把 Agent Harness 当成 Black Box，通过代理模型调用捕获 token-level interaction，并重建训练轨迹。论文报告在多种 coding\
+    \ harness 上训练 Qwen3.5-4B。(<a href=\"https://arxiv.org/abs/2605.24220\">arXiv</a>)</p>\n<p>这意味着未来的核心接口可能是：</p>\n<pre><code class=\"language-text\">Harness\n   ↕\nLLM Proxy\n   ↕\nRollout / Trajectory\n\
+    \   ↕\nPost-training Framework\n</code></pre>\n<p>而不是：</p>\n<pre><code class=\"language-text\">Harness\n   ↕\n某个特定 RL Framework\n</code></pre>\n<hr />\n<h3>4. Small Model–Optimized Harness Co-design</h3>\n\
+    <p>这是目前端侧 Agent 和传统 Agent 最大的区别之一。</p>\n<h4>大模型 Harness</h4>\n<p>可以假设：</p>\n<pre><code class=\"language-text\">Model 很强\n  ↓\nHarness 主要做组织\n</code></pre>\n<p>但端侧模型是：</p>\n<pre><code class=\"language-text\"\
+    >Model 较弱\n  ↓\nHarness 必须补偿能力\n</code></pre>\n<p>所以变成：</p>\n<pre><code class=\"language-text\">Model + Harness = Agent Capability\n</code></pre>\n<p>而不是：</p>\n<pre><code class=\"language-text\">Model\
+    \ = Agent Capability\n</code></pre>\n<p>微软近期的 MagenticLite/MagenticBrain/Fara1.5 就明确在探索：</p>\n<blockquote>\n<p><strong>small model + codesigned tools + optimized execution harness</strong></p>\n</blockquote>\n\
+    <p>MagenticLite 的 Harness 是专门围绕小模型能力设计的，而不是把 Frontier Agent 的复杂 Harness 直接缩小。(<a href=\"https://www.microsoft.com/en-us/research/blog/magenticlite-magenticbrain-fara1-5-an-agentic-experience-optimized-for-small-models/\"\
+    >微软</a>)</p>\n<p>对于端侧 Harness，通常需要优化：</p>\n<h4>A. Context Compression</h4>\n<pre><code class=\"language-text\">Raw Context\n   ↓\nState Extraction\n   ↓\nStructured State\n   ↓\nSmall Model\n</code></pre>\n\
+    <p>例如：</p>\n<pre><code class=\"language-json\">{\n  &quot;task&quot;: &quot;Book flight&quot;,\n  &quot;current_step&quot;: 3,\n  &quot;completed&quot;: [\n    &quot;search_flight&quot;\n  ],\n  &quot;next_options&quot;:\
+    \ [\n    &quot;select_flight&quot;,\n    &quot;change_date&quot;\n  ]\n}\n</code></pre>\n<p>替代：</p>\n<pre><code class=\"language-text\">10000 tokens raw history\n</code></pre>\n<hr />\n<h4>B. Tool Surface\
+    \ Reduction</h4>\n<p>大模型可能看到：</p>\n<pre><code class=\"language-text\">50 Tools\n</code></pre>\n<p>小模型最好看到：</p>\n<pre><code class=\"language-text\">3～8 Relevant Tools\n</code></pre>\n<p>所以：</p>\n<pre><code\
+    \ class=\"language-text\">Global Tool Set\n       ↓\nTool Router / Retriever\n       ↓\nTask-specific Tool Subset\n       ↓\nSmall Model\n</code></pre>\n<p>这个 Router 本身也可能由：</p>\n<ul>\n<li>Rule</li>\n\
+    <li>Small Classifier</li>\n<li>Embedding Retrieval</li>\n<li>Tiny Model</li>\n</ul>\n<p>实现。</p>\n<hr />\n<h4>C. Deterministic Harness Control</h4>\n<p>小模型不应该承担：</p>\n<pre><code class=\"language-text\"\
+    >Retry\nTimeout\nSchema Repair\nState Validation\nTool Recovery\n</code></pre>\n<p>Harness 应该接管。</p>\n<pre><code class=\"language-text\">Small Model\n    │\n    ├── Plan\n    ├── Decide\n    └── Select\
+    \ Action\n             │\n             ▼\nHarness\n    ├── Validate\n    ├── Retry\n    ├── Repair\n    ├── Recover\n    └── Execute\n</code></pre>\n<p>所以一个重要趋势是：</p>\n<blockquote>\n<p><strong>把确定性能力从\
+    \ Model Weight 外化到 Harness。</strong></p>\n</blockquote>\n<p>这与之前关注的 <strong>Parametric vs Externalized</strong> 框架高度一致。</p>\n<hr />\n<h2>三、Harness 会反过来决定后训练什么</h2>\n<p>这是更重要的一层。</p>\n<p>传统：</p>\n<pre><code\
+    \ class=\"language-text\">Training Objective\n        ↓\nTrain Model\n        ↓\nAdapt to Runtime\n</code></pre>\n<p>未来：</p>\n<pre><code class=\"language-text\">Harness Capability Boundary\n       \
+    \ ↓\nDefine Model Responsibility\n        ↓\nDefine Training Distribution\n        ↓\nPost-train Model\n</code></pre>\n<p>例如：</p>\n<h3>Harness A：强 Tool Recovery</h3>\n<p>模型只需要：</p>\n<pre><code class=\"\
+    language-text\">Intent\n→ Tool Selection\n</code></pre>\n<p>训练：</p>\n<pre><code class=\"language-text\">Policy Accuracy\n</code></pre>\n<h3>Harness B：模型自己 Recovery</h3>\n<p>模型需要：</p>\n<pre><code class=\"\
+    language-text\">Intent\n→ Tool Call\n→ Read Error\n→ Diagnose\n→ Retry\n</code></pre>\n<p>训练：</p>\n<pre><code class=\"language-text\">Long-horizon Recovery Policy\n</code></pre>\n<h3>Harness C：Context\
+    \ Compressor</h3>\n<p>模型训练：</p>\n<pre><code class=\"language-text\">Structured State → Action\n</code></pre>\n<p>而不是：</p>\n<pre><code class=\"language-text\">Long Context → Answer\n</code></pre>\n<p>所以：</p>\n\
+    <blockquote>\n<p><strong>Harness 设计实际上决定了 Small Model 的后训练 Problem Formulation。</strong></p>\n</blockquote>\n<p>近期研究也开始明确把 Harness Design 作为 post-training 的可控变量，而不是固定的工程细节；结果显示 harness-aware post-training\
+    \ 能提升分布内表现，也有助于适应任务和工具环境变化。(<a href=\"https://www.emergentmind.com/papers/2606.25447\">Emergent Mind</a>)</p>\n<hr />\n<h2>四、端侧特有的一种新架构：Cloud Teacher + Edge Student + Runtime Harness</h2>\n<p>这是当前最实用的生产级结构。</p>\n\
+    <pre><code class=\"language-text\">                  ┌─────────────────┐\n                  │ Cloud Teacher   │\n                  │ Frontier LLM    │\n                  └────────┬────────┘\n      \
+    \                     │\n                           │ Exploration\n                           ▼\n               ┌────────────────────────┐\n               │   Edge Runtime Harness │\n              \
+    \ │                        │\n               │ Device APIs            │\n               │ Local Tools            │\n               │ Memory                 │\n               │ Context Compressor   \
+    \  │\n               │ Error Recovery         │\n               └────────────┬───────────┘\n                            │\n                            ▼\n                    Agent Trajectory\n     \
+    \                       │\n                   ┌────────┴─────────┐\n                   │                  │\n                 Success             Failure\n                   │                  │\n \
+    \                  │          Reflection / Repair\n                   │                  │\n                   └────────┬─────────┘\n                            │\n                            ▼\n  \
+    \                 Distillation Data\n                            │\n                            ▼\n                   Small Model SFT\n                            │\n                            ▼\n\
+    \                     On-policy RL\n                            │\n                            ▼\n                    Edge Deployment\n</code></pre>\n<p>Liquid AI 最新的 LFM2.5-2.6B 是非常典型的公开案例：</p>\n<pre><code\
+    \ class=\"language-text\">SFT\n ↓\nDomain Specialist Teachers\n ↓\nMulti-domain On-policy Distillation\n ↓\nAgentic RL in Real Harnesses\n ↓\nOn-device Agent\n</code></pre>\n<p>其公开描述明确提到，Agentic RL\
+    \ 在真实 agentic harness 中运行，并通过 Harness Proxy 将 Harness 作为黑盒接入训练系统。(<a href=\"https://www.liquid.ai/blog/lfm2-5-2-6b\">Liquid AI</a>)</p>\n<hr />\n<h2>五、最新趋势：不只训练 Model，开始训练 Harness 本身</h2>\n<p>这是 2026\
+    \ 年刚出现、但非常重要的方向。</p>\n<p>传统优化：</p>\n<pre><code class=\"language-text\">Failure\n  ↓\nUpdate Model Weights\n</code></pre>\n<p>新方向：</p>\n<pre><code class=\"language-text\">Failure\n   ↓\nAnalyze\n   ├──\
+    \ Model Problem?\n   │       ↓\n   │   Post-training\n   │\n   └── Harness Problem?\n           ↓\n      Patch Harness\n</code></pre>\n<p>例如：</p>\n<pre><code class=\"language-text\">Failure:\nModel\
+    \ keeps selecting wrong tool\n</code></pre>\n<p>可能不需要重新训练模型，而是：</p>\n<pre><code class=\"language-text\">Tool Description Rewrite\nTool Schema Simplification\nTool Filtering\nContext Reordering\nValidator\
+    \ Addition\nRetry Policy Update\n</code></pre>\n<p>近期 Harness-R1 更进一步，直接探索通过 agent failure trajectories 学习修改 executable runtime harness，而不是只更新模型权重。(<a href=\"https://huggingface.co/papers/2608.02276\"\
+    >Hugging Face</a>)</p>\n<p>这意味着未来可能形成：</p>\n<pre><code class=\"language-text\">              Failure Trajectory\n                     │\n          ┌──────────┴──────────┐\n          ▼              \
+    \       ▼\n    Model Optimizer       Harness Optimizer\n          │                     │\n     Update Weight        Update Runtime\n          │                     │\n          └──────────┬──────────┘\n\
+    \                     ▼\n              Better Agent System\n</code></pre>\n<hr />\n<h2>六、当前的技术路线已经可以分成 3 代</h2>\n<h3>第一代：Harness-agnostic Post-training</h3>\n<pre><code class=\"language-text\">Model\
+    \ Training\n      │\n      ▼\n   Model\n      │\n      ▼\n  Harness\n</code></pre>\n<p>特点：</p>\n<ul>\n<li>SFT</li>\n<li>DPO</li>\n<li>GRPO</li>\n<li>Static benchmark</li>\n</ul>\n<p><strong>问题：Training\
+    \ ≠ Deployment</strong></p>\n<hr />\n<h3>第二代：Harness-aware Post-training</h3>\n<pre><code class=\"language-text\">Harness Design\n      │\n      ▼\nTraining Data\n      │\n      ▼\nSmall Model\n   \
+    \   │\n      ▼\nSame Harness\n</code></pre>\n<p>特点：</p>\n<ul>\n<li>Harness-generated trajectories</li>\n<li>Tool-aware SFT</li>\n<li>Context-aware distillation</li>\n<li>Environment-specific RL</li>\n\
+    </ul>\n<p><strong>这是当前主流。</strong></p>\n<hr />\n<h3>第三代：Harness-Model Co-evolution</h3>\n<pre><code class=\"language-text\">       ┌───────────────┐\n       │ Runtime Agent │\n       └───────┬───────┘\n\
+    \               │\n       Failure Trajectory\n               │\n      ┌────────┴────────┐\n      ▼                 ▼\nUpdate Model       Update Harness\n      │                 │\n      └────────┬────────┘\n\
+    \               ▼\n        Runtime Evolution\n</code></pre>\n<p>这才是真正的：</p>\n<blockquote>\n<p><strong>Self-improving Edge Agent</strong></p>\n</blockquote>\n<p>目前还偏早期研究，但 Harness-R1 等工作已经开始探索这个方向。(<a\
+    \ href=\"https://huggingface.co/papers/2608.02276\">Hugging Face</a>)</p>\n<hr />\n<h2>七、针对端侧小模型，建议的主流技术架构</h2>\n<p>建议采用：</p>\n<pre><code class=\"language-text\">                    ┌─────────────────┐\n\
+    \                    │ Cloud Teacher   │\n                    │ 30B / 70B+      │\n                    └────────┬────────┘\n                             │\n                       Exploration\n     \
+    \                        ▼\n┌───────────────────────────────────────────┐\n│             Target Edge Harness           │\n│                                           │\n│  Context Manager          \
+    \                │\n│  Tool Retriever                           │\n│  State Machine                            │\n│  Validator                                │\n│  Retry / Recovery                 \
+    \        │\n│  Memory                                   │\n└────────────────────┬──────────────────────┘\n                     │\n              Trajectory Store\n                     │\n       ┌─────────────┼─────────────┐\n\
+    \       ▼             ▼             ▼\n    Success       Near Miss       Failure\n       │             │             │\n       ▼             ▼             ▼\n      SFT        Repair + SFT   Diagnosis\n\
+    \                     │             │\n                     └──────┬──────┘\n                            ▼\n                   On-policy Distillation\n                            │\n               \
+    \             ▼\n                     Small Model\n                            │\n                    Harness-in-loop RL\n                            │\n                            ▼\n             \
+    \          Edge Model\n</code></pre>\n<h3>后训练的优先级</h3>\n<p>对于 <strong>0.5B–4B 端侧 Agent Model</strong>，建议：</p>\n<h4>第一优先级</h4>\n<p><strong>Harness trajectory SFT</strong></p>\n<p>学习：</p>\n<ul>\n<li>Tool\
+    \ format</li>\n<li>State transition</li>\n<li>Action pattern</li>\n<li>Recovery behavior</li>\n</ul>\n<hr />\n<h4>第二优先级</h4>\n<p><strong>Teacher-guided on-policy distillation</strong></p>\n<p>解决：</p>\n\
+    <ul>\n<li>小模型探索能力不足</li>\n<li>Sparse reward</li>\n<li>长轨迹失败</li>\n</ul>\n<hr />\n<h4>第三优先级</h4>\n<p><strong>Harness-in-loop RL</strong></p>\n<p>只强化少量真正需要 Policy Learning 的部分：</p>\n<ul>\n<li>Tool Selection</li>\n\
+    <li>Retry Decision</li>\n<li>Plan Revision</li>\n<li>Long-horizon Recovery</li>\n</ul>\n<p>而不是端到端训练所有行为。</p>\n<hr />\n<h2>最核心的判断</h2>\n<p>端侧小模型未来最重要的技术竞争，不是：</p>\n<pre><code class=\"language-text\"\
+    >谁把 3B 模型训得更聪明\n</code></pre>\n<p>而是：</p>\n<pre><code class=\"language-text\">谁能把：\nSmall Model\n+ Context Harness\n+ Tool Harness\n+ Recovery Harness\n+ Memory\n+ Post-training\n</code></pre>\n<p>设计成一个<strong>闭环系统</strong>。</p>\n\
+    <p>换句话说：</p>\n<blockquote>\n<p><strong>对于端侧 Agent，后训练的对象不应该只是一组模型权重，而应该是 Model × Harness 的联合行为。</strong></p>\n</blockquote>\n<p>甚至可以把它抽象成一个优化目标：</p>\n<pre><code class=\"language-text\">Maximize Agent\
+    \ Capability\nSubject to:\n\nModel Compute\n+ Harness Complexity\n+ Context Budget\n+ Memory Cost\n+ Tool Latency\n+ Power Consumption\n≤ Edge Budget\n</code></pre>\n<p>因此未来端侧 Agent 的最优解，大概率不是\"更强的小模型\"\
+    ，而是：</p>\n<blockquote>\n<p><strong>弱一点的模型 + 极强的 Harness + Harness-in-the-loop 后训练。</strong></p>\n</blockquote>\n<p>如果继续往下拆，可以进一步形成一套完整的 <strong>\"端侧小模型 Harness-Aware Post-training 技术架构\"</strong>，包括\
+    \ <strong>训练数据层、Trajectory Store、Harness Proxy、Rollout Engine、Distillation、RL、Failure Mining、线上持续学习</strong> 八个模块。</p>\n<hr />\n<h2>参考资料</h2>\n<ol>\n<li><a href=\"https://huggingface.co/papers/2608.17528\"\
+    >Paper page - Agent Lightning v1.0: Towards Harnessed Agentic RL</a></li>\n<li><a href=\"https://machinelearning.apple.com/research/proof-gen-optimized-distillation\">PROOF-Gen: From Optimized Data\
+    \ to Better Distillation - Apple Machine Learning Research</a></li>\n<li><a href=\"https://aclanthology.org/2026.acl-long.1751/\">Can Compact Language Models Search Like Agents? Distillation-Guided\
+    \ Policy Optimization for Preserving Agentic RAG Capabilities - ACL Anthology</a></li>\n<li><a href=\"https://www.microsoft.com/en-us/research/publication/beyond-grpo-and-on-policy-distillation-an-empirical-sparse-to-dense-reward-principle-for-language-model-post-training/\"\
+    >Beyond GRPO and On-Policy Distillation: An Empirical Sparse-to-Dense Reward Principle for Language-Model Post-Training - Microsoft Research</a></li>\n<li><a href=\"https://arxiv.org/abs/2605.24220\"\
+    >Polar: Agentic RL on Any Harness at Scale</a></li>\n<li><a href=\"https://www.microsoft.com/en-us/research/blog/magenticlite-magenticbrain-fara1-5-an-agentic-experience-optimized-for-small-models/\"\
+    >MagenticLite, MagenticBrain, Fara1.5: An agentic experience optimized for small models - Microsoft Research</a></li>\n<li><a href=\"https://www.emergentmind.com/papers/2606.25447\">Harness & Post-Training\
+    \ in LLM Agents</a></li>\n<li><a href=\"https://www.liquid.ai/blog/lfm2-5-2-6b\">LFM2.5-2.6B: Deploy Agents Everywhere — Blog — Liquid AI</a></li>\n<li><a href=\"https://huggingface.co/papers/2608.02276\"\
+    >Paper page - Harness-R1: Learning to Edit Executable Runtime Harnesses from Agent Failure Trajectories</a></li>\n</ol>"
 - title: Pi / DeepSeek Harness / Codex CLI：编码 Agent 运行时的三条路线
   date: August 18, 2026
   excerpt: 三方对比 Pi、DeepSeek Harness 与 Codex CLI：工程形态、采样循环层级、状态模型（内存 vs 日志 vs 数据库）、扩展模型（返回值 pipe vs next() 委托 vs trait 贡献者）、工具与安全。结论——三条路线对应简单可嵌入、可组合可恢复、生产级可迁移。
