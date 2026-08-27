@@ -1,4 +1,115 @@
 posts:
+- title: 端侧小模型后训练技术蓝图：3 平面 × 8 模块 × 2 闭环
+  date: August 27, 2026
+  excerpt: 端侧小模型后训练的系统级拆解：Execution / Trajectory / Learning 三个平面，Trajectory Capture → Failure Mining → Trajectory Store → Compiler → SFT/Distillation → On-policy → Agentic RL → Harness Optimizer 八个模块，Model
+    Learning 与 Harness Evolution 两个闭环。含 Quantization-Aware Distillation 进训练闭环、P0-P3 落地优先级。
+  slug: edge-model-post-training-blueprint
+  content: "\n<p>上一层我们把它定义成：</p>\n<blockquote>\n<p><strong>端侧小模型的能力提升，不是单独训练 Model，而是优化 Model × Harness × Environment 的闭环。</strong></p>\n</blockquote>\n<p>再往下拆，建议把整个系统拆成 <strong>3 个平面、8 个核心模块、2 个闭环</strong>。其中第一闭环是\
+    \ <strong>Model Learning Loop</strong>，第二闭环是 <strong>Harness Evolution Loop</strong>。</p>\n<hr />\n<h2>0. 总体架构</h2>\n<pre><code class=\"language-text\">                           ┌─────────────────────────┐\n\
+    \                           │   Target Edge Runtime   │\n                           │                         │\n                           │  Small Model + Harness  │\n                           └───────────┬─────────────┘\n\
+    \                                       │\n                                 Real Execution\n                                       │\n                                       ▼\n┌────────────────────────────────────────────────────────────────┐\n\
+    │                        DATA / TRAJECTORY PLANE                  │\n│                                                                │\n│   ① Trajectory Capture                                    \
+    \    │\n│          ↓                                                     │\n│   ② Failure Mining                                            │\n│          ↓                                          \
+    \           │\n│   ③ Trajectory Store                                          │\n│          ↓                                                     │\n│   ④ Trajectory Compiler                      \
+    \                 │\n└────────────────────────────────┬───────────────────────────────┘\n                                 │\n                ┌────────────────┴────────────────┐\n                ▼  \
+    \                               ▼\n┌────────────────────────┐            ┌─────────────────────────┐\n│    MODEL LEARNING      │            │   HARNESS EVOLUTION     │\n│                        │  \
+    \          │                         │\n│  ⑤ SFT / Distillation  │            │  ⑧ Harness Optimizer    │\n│  ⑥ On-policy Learning  │            │                         │\n│  ⑦ Agentic RL        \
+    \  │            │                         │\n└────────────┬───────────┘            └────────────┬────────────┘\n             │                                     │\n             └─────────────────┬───────────────────┘\n\
+    \                               ▼\n                      Edge Agent Runtime\n</code></pre>\n<hr />\n<h2>第一平面：Execution Plane</h2>\n<p>这一层不是训练系统，而是<strong>真正的 Agent Runtime</strong>。</p>\n<p>它决定了 Small\
+    \ Model 实际需要学习什么。</p>\n<pre><code class=\"language-text\">┌────────────────────────────────────────────┐\n│              Agent Runtime                 │\n│                                          \
+    \  │\n│   Task Input                               │\n│       ↓                                    │\n│   Context Builder                          │\n│       ↓                                    │\n\
+    │   Small Model                              │\n│       ↓                                    │\n│   Action Parser                            │\n│       ↓                                    │\n│   Validator\
+    \                                │\n│       ↓                                    │\n│   Tool / API / Device                      │\n│       ↓                                    │\n│   Result       \
+    \                            │\n│       ↓                                    │\n│   State Update                             │\n│       └───────────────┐                    │\n│                    \
+    \   ↓                    │\n│                   Next Step                │\n└────────────────────────────────────────────┘\n</code></pre>\n<p>对于端侧模型，建议把 Runtime 明确分成 6 个层。</p>\n<hr />\n<h3>1. Context\
+    \ Manager</h3>\n<pre><code class=\"language-text\">Raw History\n    ↓\nState Extraction\n    ↓\nState Compression\n    ↓\nRelevant Context Retrieval\n    ↓\nPrompt Assembly\n</code></pre>\n<p>核心原则：</p>\n\
+    <blockquote>\n<p><strong>端侧模型尽量不直接处理\"历史\"，而处理 Harness 编译后的\"状态\"。</strong></p>\n</blockquote>\n<p>例如：</p>\n<pre><code class=\"language-text\">传统：\n\nTask\n+ 8000 tokens history\n+ 30 tools\n+ long\
+    \ system prompt\n          ↓\n        Model\n</code></pre>\n<p>端侧：</p>\n<pre><code class=\"language-text\">Task\n+ Current State\n+ Relevant Memory\n+ 5 Candidate Actions\n          ↓\n        Model\n\
+    </code></pre>\n<p>这个差别非常重要。</p>\n<p>因为：</p>\n<pre><code class=\"language-text\">Model Size ↓\n</code></pre>\n<p>不应该简单意味着：</p>\n<pre><code class=\"language-text\">Reasoning Depth ↓\n</code></pre>\n<p>而应该意味着：</p>\n\
+    <pre><code class=\"language-text\">Raw Cognitive Load ↓\n</code></pre>\n<hr />\n<h3>2. Tool Router</h3>\n<p>端侧模型不应该直接面对：</p>\n<pre><code class=\"language-text\">100 Tools\n</code></pre>\n<p>而是：</p>\n\
+    <pre><code class=\"language-text\">Global Tool Registry\n         │\n         ▼\n┌──────────────────────┐\n│ Tool Retrieval Layer │\n└───────────┬──────────┘\n            │\n            ▼\n     3~8\
+    \ Candidate Tools\n            │\n            ▼\n       Small Model\n</code></pre>\n<p>这里其实存在一个重要的后训练策略。</p>\n<p>模型不需要学习：</p>\n<pre><code class=\"language-text\">Intent\n→ Search 100 tools\n→ Select\n\
+    </code></pre>\n<p>而是只学习：</p>\n<pre><code class=\"language-text\">Candidate Tools\n→ Select\n→ Fill Arguments\n</code></pre>\n<p>也就是说：</p>\n<blockquote>\n<p><strong>Harness 在前面做检索，Small Model 在后面做决策。</strong></p>\n\
+    </blockquote>\n<p>这是非常典型的 <strong>Cognitive Load Externalization</strong>。</p>\n<hr />\n<h3>3. Action Compiler</h3>\n<p>Small Model 输出：</p>\n<pre><code class=\"language-text\">Semantic Action\n</code></pre>\n\
+    <p>Harness 编译成：</p>\n<pre><code class=\"language-text\">Executable Action\n</code></pre>\n<p>例如：</p>\n<pre><code class=\"language-json\">{\n  &quot;intent&quot;: &quot;search_file&quot;,\n  &quot;target&quot;:\
+    \ &quot;report.pdf&quot;\n}\n</code></pre>\n<p>Harness：</p>\n<pre><code class=\"language-text\">Semantic Action\n      ↓\nSchema Validation\n      ↓\nArgument Completion\n      ↓\nExecutable Tool Call\n\
+    </code></pre>\n<p>这允许 Small Model：</p>\n<pre><code class=\"language-text\">只学习&quot;我要干什么&quot;\n</code></pre>\n<p>而不一定学习：</p>\n<pre><code class=\"language-text\">&quot;每个 API 参数如何精确填写&quot;\n</code></pre>\n\
+    <p>因此后训练可以变成：</p>\n<pre><code class=\"language-text\">Train:\nState → Intent\n\nInstead of:\nState → Exact API Syntax\n</code></pre>\n<p>对于 1B 以下模型，这个差别可能非常大。</p>\n<hr />\n<h3>4. Deterministic Recovery</h3>\n\
+    <p>这是端侧 Harness 最应该承担的东西。</p>\n<pre><code class=\"language-text\">Model\n  │\n  ▼\nAction\n  │\n  ├──── Invalid Schema\n  │          ↓\n  │      Auto Repair\n  │\n  ├──── Tool Timeout\n  │         \
+    \ ↓\n  │        Retry\n  │\n  ├──── Recoverable Error\n  │          ↓\n  │      Alternative Tool\n  │\n  └──── Success\n</code></pre>\n<p>因此：</p>\n<pre><code class=\"language-text\">Recovery Policy\n\
+    </code></pre>\n<p>不一定都要：</p>\n<pre><code class=\"language-text\">Small Model Learned\n</code></pre>\n<p>可以拆成：</p>\n<pre><code class=\"language-text\">┌────────────────────┐\n│ Deterministic      │\n\
+    │ Harness Recovery   │\n└────────────────────┘\n          +\n┌────────────────────┐\n│ Semantic Recovery  │\n│ Model Policy       │\n└────────────────────┘\n</code></pre>\n<p>前者外化，后者后训练。</p>\n<hr />\n\
+    <h2>第二平面：Trajectory Plane</h2>\n<p>这是整个系统最重要、但当前工业界还没有完全标准化的一层。</p>\n<p>核心对象应该不是传统：</p>\n<pre><code class=\"language-text\">Chat Dataset\n</code></pre>\n<p>而是：</p>\n<pre><code class=\"language-text\"\
+    >Agent Trajectory\n</code></pre>\n<p>建议定义统一的数据模型：</p>\n<pre><code class=\"language-text\">Trajectory\n├── Task\n├── Initial State\n├── Harness Configuration\n├── Context Snapshot\n├── Model Input\n\
+    ├── Model Output\n├── Action\n├── Tool Result\n├── State Transition\n├── Reward\n├── Failure Type\n└── Final Outcome\n</code></pre>\n<hr />\n<h3>① Trajectory Capture</h3>\n<p>建议在 Harness 内建立一个：</p>\n\
+    <pre><code class=\"language-text\">Trajectory Event Bus\n</code></pre>\n<p>所有 Runtime Event 统一写入。</p>\n<pre><code class=\"language-text\">┌───────────────────────┐\n│       Event Bus       │\n├───────────────────────┤\n\
+    │ ContextEvent          │\n│ ModelRequestEvent     │\n│ ModelResponseEvent    │\n│ ToolCallEvent         │\n│ ToolResultEvent       │\n│ ValidationEvent       │\n│ RetryEvent            │\n│ StateTransitionEvent\
+    \  │\n│ ErrorEvent            │\n│ RewardEvent           │\n└───────────────────────┘\n</code></pre>\n<p>最终：</p>\n<pre><code class=\"language-text\">Event Stream\n     ↓\nTrajectory Builder\n     ↓\n\
+    Canonical Trajectory\n</code></pre>\n<p>近期 Agent Lightning 明确采用了这种思路：Harness 自己拥有环境交互循环，训练器通过 LLM 请求/响应对重建训练样本，而不是要求重新实现整个 Agent Runtime。(<a href=\"https://arxiv.org/abs/2608.17528\">arXiv</a>)</p>\n\
+    <hr />\n<h3>② Failure Mining</h3>\n<p>这是端侧 Agent 后训练的核心竞争力。</p>\n<p>不要：</p>\n<pre><code class=\"language-text\">Success → Keep\nFailure → Delete\n</code></pre>\n<p>应该：</p>\n<pre><code class=\"language-text\"\
+    >All Trajectories\n        │\n        ▼\nFailure Taxonomy\n</code></pre>\n<p>至少分成：</p>\n<pre><code class=\"language-text\">Failure\n├── Model Failure\n│   ├── Wrong Plan\n│   ├── Wrong Tool\n│   ├──\
+    \ Wrong Argument\n│   └── Wrong Interpretation\n│\n├── Context Failure\n│   ├── Missing Context\n│   ├── Context Too Long\n│   └── Wrong Memory\n│\n├── Harness Failure\n│   ├── Bad Tool Description\n\
+    │   ├── Bad Routing\n│   ├── Bad Validation\n│   └── Bad Retry\n│\n└── Environment Failure\n    ├── Tool Unavailable\n    ├── Timeout\n    └── External Error\n</code></pre>\n<p>这个分类决定后续：</p>\n<pre><code\
+    \ class=\"language-text\">Failure\n   │\n   ├── Model Problem\n   │        ↓\n   │    Train Model\n   │\n   ├── Context Problem\n   │        ↓\n   │   Change Context\n   │\n   ├── Tool Problem\n   │\
+    \        ↓\n   │   Change Tool Surface\n   │\n   └── Harness Problem\n            ↓\n        Patch Harness\n</code></pre>\n<p>Harness-R1 代表了后面的极端路线：直接从失败轨迹学习可执行的 Runtime Patch，用实际重跑结果而不是纯文本判断来优化 Harness。(<a\
+    \ href=\"https://arxiv.org/abs/2608.02276\">arXiv</a>)</p>\n<hr />\n<h3>③ Trajectory Store</h3>\n<p>这个模块建议不要理解成 Dataset Storage。</p>\n<p>它更像：</p>\n<pre><code class=\"language-text\">Agent Experience\
+    \ Database\n</code></pre>\n<p>数据结构：</p>\n<pre><code class=\"language-text\">Experience Store\n├── Successful Trajectories\n├── Failed Trajectories\n├── Repaired Trajectories\n├── Teacher Trajectories\n\
+    ├── On-policy Trajectories\n├── Harness Versions\n└── Environment Snapshots\n</code></pre>\n<p>每个 Trajectory 应该有：</p>\n<pre><code class=\"language-text\">Task ID\nModel Version\nHarness Version\nTool\
+    \ Version\nPrompt Version\nEnvironment Version\n</code></pre>\n<p>否则会出现一个非常严重的问题：</p>\n<pre><code class=\"language-text\">Model v2\n+\nHarness v5\n+\nTrajectory v1\n</code></pre>\n<p>训练后：</p>\n<pre><code\
+    \ class=\"language-text\">Model learns behavior\nthat no longer matches runtime\n</code></pre>\n<p>所以建议：</p>\n<pre><code class=\"language-text\">Trajectory = f(\n  Model,\n  Harness,\n  Tools,\n  Context\
+    \ Policy,\n  Environment\n)\n</code></pre>\n<p>而不是简单：</p>\n<pre><code class=\"language-text\">Trajectory = f(Task)\n</code></pre>\n<hr />\n<h3>④ Trajectory Compiler</h3>\n<p>这是现在最缺的模块。</p>\n<p>一个原始\
+    \ Agent Trace：</p>\n<pre><code class=\"language-text\">System Prompt\nUser Input\nLLM Call\nTool Call\nTool Result\nLLM Call\nRetry\nTool Call\nError\nLLM Call\nSuccess\n</code></pre>\n<p>不应该直接全部用于训练。</p>\n\
+    <p>需要：</p>\n<pre><code class=\"language-text\">Raw Trajectory\n      ↓\nTrajectory Compiler\n      │\n      ├── SFT Sample\n      │\n      ├── Preference Pair\n      │\n      ├── RL Rollout\n      │\n\
+    \      ├── Recovery Sample\n      │\n      └── Harness Patch Sample\n</code></pre>\n<p>同一个失败：</p>\n<pre><code class=\"language-text\">Wrong Tool Call\n</code></pre>\n<p>可以生成 5 种训练数据：</p>\n<pre><code\
+    \ class=\"language-text\">① SFT\nCorrect Action\n\n② DPO\nWrong vs Correct\n\n③ RL\nNegative Reward\n\n④ Repair\nFailure → Corrected Action\n\n⑤ Harness Training\nImprove Tool Description\n</code></pre>\n\
+    <p>所以未来核心基础设施不是：</p>\n<pre><code class=\"language-text\">Dataset Generator\n</code></pre>\n<p>而是：</p>\n<blockquote>\n<p><strong>Trajectory Compiler</strong></p>\n</blockquote>\n<hr />\n<h2>第三平面：Learning\
+    \ Plane</h2>\n<p>这里包含 4 个模块。</p>\n<hr />\n<h3>⑤ SFT / Distillation</h3>\n<p>端侧小模型的第一阶段：</p>\n<pre><code class=\"language-text\">Teacher\n   ↓\nSuccessful Trajectory\n   ↓\nTrajectory Compression\n \
+    \  ↓\nStudent SFT\n</code></pre>\n<p>但当前更好的路线已经变成：</p>\n<pre><code class=\"language-text\">Success\n  +\nNear Miss Failure\n        │\n        ▼\nReflect / Repair\n        │\n        ▼\nCorrected Demonstration\n\
+    \        │\n        ▼\nSFT\n</code></pre>\n<p>Apple 的 PROOF-Gen 代表了这一思路：失败轨迹不再直接丢弃，而是利用轨迹和评估反馈生成纠正指导，重新获得可训练的成功轨迹，并报告了对实际端侧模型的正向迁移。(<a href=\"https://machinelearning.apple.com/research/proof-gen-optimized-distillation\"\
+    >Apple Machine Learning Research</a>)</p>\n<hr />\n<h4>更适合端侧的 Trajectory Compression</h4>\n<p>Teacher：</p>\n<pre><code class=\"language-text\">20 Steps\n</code></pre>\n<p>Student 不一定学习：</p>\n<pre><code\
+    \ class=\"language-text\">20 Steps\n</code></pre>\n<p>而应该：</p>\n<pre><code class=\"language-text\">20 Step Teacher Trace\n        ↓\nTrajectory Compiler\n        ↓\nMinimal Sufficient Trace\n      \
+    \  ↓\n5 Step Student Trace\n</code></pre>\n<p>例如：</p>\n<pre><code class=\"language-text\">Teacher:\n\nThink\nSearch\nThink\nRead\nThink\nCompare\nThink\nSearch Again\nThink\nSelect\n</code></pre>\n\
+    <p>压缩成：</p>\n<pre><code class=\"language-text\">State\n↓\nSearch\n↓\nRelevant Result\n↓\nSelect\n</code></pre>\n<p>这是端侧模型非常关键的一种：</p>\n<blockquote>\n<p><strong>Behavioral Compression</strong></p>\n\
+    </blockquote>\n<hr />\n<h3>⑥ On-policy Distillation</h3>\n<p>这是 1B–4B 模型最关键的一层。</p>\n<p>不要只做：</p>\n<pre><code class=\"language-text\">Teacher Output\n↓\nStudent Imitation\n</code></pre>\n<p>而是：</p>\n\
+    <pre><code class=\"language-text\">Student\n   ↓\nGenerate Trajectory\n   ↓\nTeacher Inspect / Correct\n   ↓\nDense Supervision\n   ↓\nStudent Update\n</code></pre>\n<p>原因是：</p>\n<pre><code class=\"\
+    language-text\">Teacher Distribution\n≠\nStudent Distribution\n</code></pre>\n<p>例如：</p>\n<p>Teacher：</p>\n<pre><code class=\"language-text\">A → B → C\n</code></pre>\n<p>Student：</p>\n<pre><code class=\"\
+    language-text\">A → X → ?\n</code></pre>\n<p>如果 Student 只学习 Teacher Trace：</p>\n<pre><code class=\"language-text\">A → B → C\n</code></pre>\n<p>它永远没有训练：</p>\n<pre><code class=\"language-text\">A → X\n\
+    </code></pre>\n<p>如何恢复。</p>\n<p>所以需要：</p>\n<pre><code class=\"language-text\">Student On-policy\n        ↓\nActual Failure State\n        ↓\nTeacher Repair\n        ↓\nTrain Recovery\n</code></pre>\n\
+    <p>Liquid AI 在 LFM2.5-2.6B 上采用了非常有代表性的四阶段配方：SFT、领域专门 Teacher、Multi-Domain On-Policy Distillation、最后的真实 Harness 内 Agentic RL。(<a href=\"https://www.liquid.ai/blog/lfm2-5-2-6b\">Liquid AI</a>)</p>\n<hr\
+    \ />\n<h3>⑦ Harness-in-the-loop Agentic RL</h3>\n<p>这是后训练系统真正的核心。</p>\n<p>传统：</p>\n<pre><code class=\"language-text\">Trainer\n   ↓\nEnvironment\n</code></pre>\n<p>Harnessed RL：</p>\n<pre><code class=\"\
+    language-text\">Trainer\n   ↓\nLLM Endpoint Proxy\n   ↓\nProduction Harness\n   ↓\nEnvironment\n</code></pre>\n<p>具体：</p>\n<pre><code class=\"language-text\">┌─────────────────────────┐\n│     RL Trainer\
+    \          │\n│                         │\n│ GRPO / PPO              │\n└────────────┬────────────┘\n             │\n      LLM API Proxy\n             │\n             ▼\n┌─────────────────────────┐\n\
+    │    Target Harness       │\n│                         │\n│ Context                 │\n│ Tools                   │\n│ Memory                  │\n│ Recovery                │\n└────────────┬────────────┘\n\
+    \             │\n             ▼\n        Environment\n</code></pre>\n<p>Liquid AI 的公开架构中已经将 Training Engine、Rollout Engine、RL Orchestrator、Sandbox Service 和 Blackbox Harness 解耦，并通过 Harness Proxy 捕获\
+    \ token-level trajectory，目标就是让生产 Harness 无需为训练重写。(<a href=\"https://www.liquid.ai/blog/lfm2-5-2-6b\">Liquid AI</a>)</p>\n<hr />\n<h3>⑧ Harness Optimizer</h3>\n<p>这是下一代。</p>\n<pre><code class=\"language-text\"\
+    >Failure\n   ↓\nRoot Cause Analysis\n   │\n   ├── Train Model\n   │\n   └── Train / Modify Harness\n</code></pre>\n<p>Harness 可以优化的参数包括：</p>\n<pre><code class=\"language-text\">Harness Config\n├── System\
+    \ Prompt\n├── Context Order\n├── Context Compression\n├── Tool Description\n├── Tool Retrieval\n├── Validator\n├── Retry Policy\n├── Recovery Policy\n└── Memory Policy\n</code></pre>\n<p>进一步可以形成：</p>\n\
+    <pre><code class=\"language-text\">Meta Agent\n      ↓\nRead Failure Trajectories\n      ↓\nGenerate Harness Patch\n      ↓\nSandbox\n      ↓\nRegression Test\n      ↓\nEvaluate\n      ↓\nAccept / Reject\n\
+    </code></pre>\n<p>Harness-R1 已经公开验证了\"训练一个 Harness Engineer，根据失败批次生成可执行 Runtime Patch，再用实际重跑成功率作为奖励\"的路线。(<a href=\"https://arxiv.org/abs/2608.02276\">arXiv</a>)</p>\n<hr />\n<h2>两个闭环</h2>\n<h3>Loop\
+    \ A：Model Learning Loop</h3>\n<pre><code class=\"language-text\">Runtime\n   ↓\nTrajectory\n   ↓\nFailure Analysis\n   ↓\nTrajectory Compiler\n   ↓\nSFT / Distillation / RL\n   ↓\nNew Model\n   ↓\n\
+    Runtime\n</code></pre>\n<p>优化：</p>\n<pre><code class=\"language-text\">Model Weight θ\n</code></pre>\n<hr />\n<h3>Loop B：Harness Evolution Loop</h3>\n<pre><code class=\"language-text\">Runtime\n   ↓\n\
+    Failure\n   ↓\nRoot Cause\n   ↓\nHarness Patch\n   ↓\nRegression Test\n   ↓\nNew Harness\n   ↓\nRuntime\n</code></pre>\n<p>优化：</p>\n<pre><code class=\"language-text\">Harness Policy H\n</code></pre>\n\
+    <p>最终系统：</p>\n<pre><code class=\"language-text\">Agent = Model θ × Harness H\n</code></pre>\n<p>优化目标：</p>\n<pre><code class=\"language-text\">max R(θ, H)\n\nsubject to:\n\nLatency &lt; L\nMemory &lt;\
+    \ M\nEnergy &lt; E\nContext &lt; C\n</code></pre>\n<hr />\n<h2>端侧最关键的进一步变化：Quantization 必须进入训练闭环</h2>\n<p>对于端侧还有一个很容易被忽略的问题：</p>\n<pre><code class=\"language-text\">Train BF16 Model\n      ↓\nTrain\
+    \ Agent Behavior\n      ↓\nQuantize Q4\n      ↓\nDeploy\n</code></pre>\n<p>可能出现：</p>\n<pre><code class=\"language-text\">Tool Selection Degradation\nSchema Degradation\nLong-horizon Error Accumulation\n\
+    </code></pre>\n<p>所以未来应该：</p>\n<pre><code class=\"language-text\">Teacher BF16\n    ↓\nQuantization-Aware Distillation\n    ↓\nQ4 Student\n    ↓\nHarness Evaluation\n    ↓\nOn-policy Fine-tuning\n</code></pre>\n\
+    <p>Liquid AI 最近公开的 QAD 路线已经将量化感知蒸馏直接用于多个端侧模型，以尽量保留 BF16 Agent 能力。(<a href=\"https://www.liquid.ai/blog/qad\">Liquid AI</a>)</p>\n<p>因此完整闭环实际上是：</p>\n<pre><code class=\"language-text\">FP Model\n   ↓\n\
+    Quantization\n   ↓\nQuantized Model\n   ↓\nReal Harness\n   ↓\nReal Device\n   ↓\nFailure\n   ↓\nPost-training\n</code></pre>\n<p>不是：</p>\n<pre><code class=\"language-text\">Train\n↓\nQuantize\n↓\n\
+    Done\n</code></pre>\n<hr />\n<h2>最终会形成一个新的技术栈</h2>\n<pre><code class=\"language-text\">                    EDGE AGENT STACK\n┌─────────────────────────────────────────────────┐\n│                  \
+    \                               │\n│                 Runtime Plane                   │\n│                                                 │\n│ Context │ Tools │ Memory │ Validator │ Recovery │\n├─────────────────────────────────────────────────┤\n\
+    │                                                 │\n│               Trajectory Plane                  │\n│                                                 │\n│ Capture │ Store │ Failure │ Compiler\
+    \ │ Replay   │\n├─────────────────────────────────────────────────┤\n│                                                 │\n│                Learning Plane                   │\n│                     \
+    \                            │\n│ SFT │ Distillation │ On-policy │ RL │ QAD       │\n├─────────────────────────────────────────────────┤\n│                                                 │\n│     \
+    \         Evolution Plane                    │\n│                                                 │\n│ Model Optimizer │ Harness Optimizer │ Evaluator │\n└─────────────────────────────────────────────────┘\n\
+    </code></pre>\n<hr />\n<h2>对这个方向的核心判断</h2>\n<p>未来真正有价值的不是：</p>\n<pre><code class=\"language-text\">Edge Model Post-training\n</code></pre>\n<p>而是：</p>\n<blockquote>\n<p><strong>Edge Agent Behavioral\
+    \ Optimization</strong></p>\n</blockquote>\n<p>优化对象变成：</p>\n<pre><code class=\"language-text\">Model\n+\nContext\n+\nTools\n+\nMemory\n+\nRecovery\n+\nRuntime\n</code></pre>\n<p>所以端侧小模型的竞争将发生一个非常重要的转移：</p>\n\
+    <pre><code class=\"language-text\">从\n&quot;谁的模型参数更聪明&quot;\n</code></pre>\n<p>转向：</p>\n<pre><code class=\"language-text\">&quot;谁能更高效地把失败经验\n编译成 Model Update 和 Harness Update&quot;\n</code></pre>\n\
+    <p>如果进一步收敛成一个具体工程方案，建议下一步直接拆成 <strong>P0/P1/P2 的完整技术蓝图</strong>：</p>\n<ol>\n<li><strong>P0：MVP——Harness Proxy + Trajectory Store + SFT</strong></li>\n<li><strong>P1：On-policy Distillation + Failure\
+    \ Mining</strong></li>\n<li><strong>P2：Harness-in-the-loop RL</strong></li>\n<li><strong>P3：Harness Optimizer + Model/Harness Co-evolution</strong></li>\n</ol>\n<p>其中最建议先深入的是 <strong>\"Trajectory Compiler\
+    \ + Failure Taxonomy\"</strong>：这两个模块实际上是整个端侧小模型后训练与 Harness 联动的\"数据操作系统\"。</p>\n<hr />\n<h2>参考资料</h2>\n<ol>\n<li><a href=\"https://arxiv.org/abs/2608.17528\">Agent Lightning v1.0: Towards Harnessed\
+    \ Agentic RL</a></li>\n<li><a href=\"https://arxiv.org/abs/2608.02276\">Harness-R1: Learning to Edit Executable Runtime Harnesses from Agent Failure Trajectories</a></li>\n<li><a href=\"https://machinelearning.apple.com/research/proof-gen-optimized-distillation\"\
+    >PROOF-Gen: From Optimized Data to Better Distillation - Apple Machine Learning Research</a></li>\n<li><a href=\"https://www.liquid.ai/blog/lfm2-5-2-6b\">LFM2.5-2.6B: Deploy Agents Everywhere — Blog\
+    \ — Liquid AI</a></li>\n<li><a href=\"https://www.liquid.ai/blog/qad\">LFM2.5 Q4_0: Quantization-Aware Distillation for Edge Deployment — Blog — Liquid AI</a></li>\n</ol>"
 - title: 端侧小模型 Harness-Aware 后训练技术路线
   date: August 27, 2026
   excerpt: 端侧小模型的后训练正从 Model-Centric 演进到 Harness-Centric：Harness 从推理外壳变成训练环境。本文梳理 5 类联动机制（轨迹生成、蒸馏→Agentic RL、Harness-in-the-loop、Co-design、训练 Harness 本身）、3 代技术演进（Harness-agnostic → Harness-aware → Co-evolution）与
