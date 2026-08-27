@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Builders 日报 · 2026-08-26 | Agent Blog</title>
-    <meta name="description" content="Sam Altman 宣布 OpenAI 自研芯片；Claude 跨界面统一记忆上线；Vercel 发布 Run SDK 与 Connect GA；Peter Yang 开源 /fuck-cancer 技能；swyx 警告 Codex locked use 漏洞。">
+    <meta name="description" content="Anthropic 统一 Claude 记忆、OpenAI 推企业版并确认芯片、Google Labs 做协作 vibe coding、Vercel 补齐 Agent 安全执行栈、Peter Yang 开源癌症导航 skill。">
     <meta name="author" content="Harry Fan">
     <meta property="og:title" content="AI Builders 日报 · 2026-08-26">
-    <meta property="og:description" content="Sam Altman 宣布 OpenAI 自研芯片；Claude 跨界面统一记忆上线；Vercel 发布 Run SDK 与 Connect GA；Peter Yang 开源 /fuck-cancer 技能；swyx 警告 Codex locked use 漏洞。">
+    <meta property="og:description" content="Anthropic 统一 Claude 记忆、OpenAI 推企业版并确认芯片、Google Labs 做协作 vibe coding、Vercel 补齐 Agent 安全执行栈、Peter Yang 开源癌症导航 skill。">
     <meta property="og:type" content="article">
     <meta property="article:published_time" content="August 26, 2026">
     <link rel="stylesheet" href="../styles.css">
@@ -36,67 +36,118 @@
                 </div>
             </header>
             <div class="content"><h2>今日要点</h2>
-<p>8 月 25 日，AI Builder 社区信息密度极高的一天。Sam Altman 一句"we made a chip and it is fast"拿下 3.2 万点赞——OpenAI 自研芯片正式浮出水面。与此同时，Claude 发布跨 Chat 与 Cowork 的统一记忆功能，Vercel 推出 Run SDK 和 Connect GA，Peter Yang 开源了一个帮助癌症患者导航诊疗的 AI 技能。以下是今日精华。</p>
-<blockquote>AI 的竞争已经从"谁的模型更强"转向"谁能把智能渗透到真实工作流里"——芯片、记忆、连接器、垂直技能，每一步都在缩短 token 到结果之间的距离。</blockquote>
 
-<h2>一、模型与基础设施</h2>
+<blockquote>Anthropic 和 OpenAI 同一天各自落子：Claude 把记忆统一了，ChatGPT 把企业版铺开了——Agent 的「个性化」和「组织化」两条路线在同一周交汇。与此同时 Sam Altman 放出芯片消息，Vercel 补齐了 Agent 安全执行的拼图。</blockquote>
 
-<p><strong>Sam Altman：OpenAI 自研芯片</strong> — "we made a chip and it is fast"，一句话引爆社区（3.2 万赞、1347 转发）。虽然细节不多，但信号明确：OpenAI 正在向下延伸到硬件层。自研芯片意味着推理成本和延迟的自主掌控权，这是走向大规模部署的必经之路。<br><a href="https://x.com/sama/status/2092339694210040187">原文链接</a></p>
+<h2>一、Anthropic：Claude 记忆全面统一</h2>
 
-<p><strong>Aditya Agarwal：数据中心建设的社会阻力</strong> — 前工程高管指出，公众反感数据中心扩建并不意外——AI 目前主要惠及知识工作者和高收入群体。真正的转折点将是 AI 能治愈普通人的疾病。他也批评了行业的恐惧营销策略。<br><a href="https://x.com/adityaag/status/2092290497826173186">原文链接</a></p>
+<p>今天最大的产品新闻来自 Anthropic——Claude 现在拥有跨 Chat 和 Cowork 的<strong>统一记忆</strong>。你告诉 Claude 记住一件事，它在所有场景都生效。你在 Chat 里聊过的项目、偏好、上下文，Cowork 接到任务时直接继承。</p>
 
-<h2>二、Agent 记忆：Claude 的统一记忆</h2>
-
-<p>今日最密集的话题。Claude 官方宣布<strong>跨 Chat 和 Cowork 的统一记忆</strong>正式上线：</p>
+<p>关键细节：</p>
 <ul>
-<li><strong>Claude 官方</strong>：记忆现在跨聊天和 Cowork 共享，你决定记住什么。给 Cowork 一个任务，它会从之前的聊天上下文出发——你讨论过的项目、你 manager 的偏好、上个季度的客户。记忆以主题列表形式保存在设置中，可随时查看、编辑或删除。敏感话题（健康、宗教信仰）默认不进入记忆，除非手动开启。Free、Pro、Max 计划默认开启。<br><a href="https://x.com/claudeai/status/2092299704864284888">公告</a> · <a href="https://x.com/claudeai/status/2092299707653439497">细节</a> · <a href="https://x.com/claudeai/status/2092299710002319742">隐私控制</a></li>
-<li><strong>Boris Cherny</strong>：记忆变得更简单更强大。<a href="https://x.com/bcherny/status/2092355642363453943">链接</a></li>
-<li><strong>Cat Wu</strong>：感谢用户反馈，记忆已跨 Chat 和 Cowork 统一。告诉 Claude"记住这个"，它就能跨界面使用。<a href="https://x.com/_catwu/status/2092337156455051345">链接</a></li>
-<li><strong>Garry Tan</strong>："You need to be cross-harness memory maxxing"——跨 harness 记忆最大化是当下最重要的事。<a href="https://x.com/garrytan/status/2092277912053657722">链接</a></li>
+<li>记忆以 topic 列表形式存在 Settings 中，可读、可编辑、可删除</li>
+<li>健康、宗教等敏感话题默认不进入记忆，需手动开启</li>
+<li>Free / Pro / Max 计划默认开启记忆</li>
+<li>记忆会随对话自动更新，也可用 "remember this" 手动保存</li>
 </ul>
 
-<p>记忆统一的意义在于：Agent 不再是每次对话从零开始的孤立实例，而是拥有持续上下文的"工作伙伴"。这是 Agent 从"工具"进化为"协作者"的关键一步。</p>
+<p>Boris Cherny（Claude Code）和 Cat Wu（Claude Code + Cowork）分别发文确认更新。Thariq 预告 Claude Code 将变得更 hackable——「很快分享更多」。</p>
 
-<h2>三、Agent 开发工具</h2>
+<p>Garry Tan 的评论精辟：「You need to be cross-harness memory maxxing」——跨 harness 的记忆才是未来。这句话点明了 Agent 记忆的核心问题：不只是单一产品内的记忆，而是跨工具、跨平台的持久上下文。</p>
 
-<p><strong>Guillermo Rauch：Vercel Run SDK — 安全 eval 执行</strong> — Vercel 推出 Run SDK，为动态代码执行提供轻量级 QuickJS 安全沙箱。Agent 写代码时不总是需要完整沙箱，用 Run 可以更快更省地执行。"mpm i run"。<a href="https://x.com/rauchg/status/2092382653161107534">链接</a></p>
+<h2>二、OpenAI：ChatGPT 企业版 + 芯片</h2>
 
-<p><strong>Guillermo Rauch：Vercel Connect 正式 GA</strong> — Agent 构建中最难的问题是到服务和数据的安全连接。Vercel Connect 现已 GA，可以运行 <code>vercel connect create notion</code> 创建一个 MCP 客户端，代表已认证用户查询 Notion。Google Workspace、Slack、GitHub、Microsoft 365 等均已支持。<a href="https://x.com/rauchg/status/2092352411839193234">链接</a></p>
+<p>Thibault Sottiaux（Codex & ChatGPT @ OpenAI）宣布 ChatGPT 企业团队版，面向小团队和公司：</p>
+<ul>
+<li>包含全部 ChatGPT、ChatGPT Work、Codex 功能</li>
+<li>Google Workspace、Slack、GitHub、Microsoft 365 集成</li>
+<li>SAML SSO + MFA 安全工作区</li>
+<li>统一计费和管理</li>
+<li>用量分析和费用控制</li>
+<li><strong>无 5 小时限制</strong></li>
+</ul>
 
-<p><strong>Thariq：Claude Code 将更可 hack</strong> — Anthropic 的 Thariq 预告即将分享更多关于如何让 Claude Code 更可定制化的内容。<a href="https://x.com/trq212/status/2092303682616627311">链接</a></p>
+<p>定位类似 Pro $100 方案但面向团队。OpenAI 正在把 Codex 从开发者工具扩展为组织级生产力平台。</p>
 
-<p><strong>swyx 警告：Codex locked use 漏洞</strong> — 实用安全提醒：swyx 警告不要使用 Codex 的 "locked use" 功能，它依赖不稳定的 macOS 特性，本周已两次锁死他的 Keychain。Apple 开发者论坛已确认这是已知 bug。<a href="https://x.com/swyx/status/2092492963435946494">链接</a></p>
+<p>另一条重磅——Sam Altman 只说了五个字：「we made a chip and it is fast」。32803 个赞。OpenAI 造芯片的传闻已久，这条推文基本确认了芯片项目的存在。具体规格未公布，但信号明确：OpenAI 在向芯片层延伸，不再满足于纯软件层。</p>
 
-<h2>四、产品与企业</h2>
+<h2>三、Google Labs：Play with Putty 协作 Vibe Coding</h2>
 
-<p><strong>Thibault Sottiaux：OpenAI 团队版</strong> — 类似 Pro 100 美元计划但面向团队和小公司。包含 ChatGPT、Codex 全部功能，支持 Google Workspace/Slack/GitHub/M365 连接，SAML/SSO/MFA 安全工作区，集中计费与用量分析，无 5 小时限制。<a href="https://x.com/thsottiaux/status/2092345330272780499">链接</a></p>
+<p>Google Labs 发布新实验项目 <strong>Play with Putty</strong>——实时协作的 vibe coding 工具，多人同时构建工具和网站。目前开放候补名单（仅限美国、18 岁以上）。</p>
 
-<p><strong>Google Labs：Play with Putty — 协作式 vibe coding</strong> — Google Labs 新实验，让多人实时协作构建工具和网站。"Great minds play alike!"目前开放候补名单，仅限美国 18+。<a href="https://x.com/GoogleLabs/status/2092293667688173593">链接</a></p>
+<p>这标志着 Google 正式进入「协作 AI 编程」赛道，与 Cursor、Replit、v0 等工具竞争。Google 的优势在于基础设施和 Gemini 模型原生集成。</p>
 
-<p><strong>Aaron Levie：企业级 Applied AI 策略</strong> — Box CEO 引用一篇好文：模型和企业工作流之间有巨大鸿沟，机会属于能弥合这个鸿沟的公司。"世界不只想要原始模型和 agent，它想要问题被解决、结果被交付。"这需要理解上下文、驱动变革管理、拥有可路由到各种模型的 harness、连接垂直业务系统、解决 UX 挑战、理解 evals——这些远超模型智能本身。<a href="https://x.com/levie/status/2092466424694649066">链接</a></p>
+<h2>四、Vercel：Agent 安全执行的两块拼图</h2>
 
-<h2>五、开源与垂直应用</h2>
+<p>Guillermo Rauch（Vercel CEO）连续发布两条重要消息：</p>
 
-<p><strong>Peter Yang：开源 /fuck-cancer 技能</strong> — Peter Yang 开源了一个 AI 技能，帮助癌症患者和照护者导航诊断和治疗流程。技能会创建并更新一份实用简报，包含五个部分：①患者和医疗团队信息 ②下一步行动（限三项）③已知信息与不确定信息 ④医学术语通俗解释 ⑤照护日志。支持从文档和上下文构建，需要研究时使用国家癌症研究所和 ClinicalTrials.gov 等可信来源。可保存为 Markdown 或更新 Google Doc 供全家共享。用 ChatGPT/Codex 和 Claude Code 使用。<a href="https://x.com/petergyang/status/2092249013258946">主帖</a> · <a href="https://x.com/petergyang/status/2092311110871617915">示例</a></p>
+<p><strong>1. Run SDK</strong>——安全 eval 执行环境。当 Agent 写代码时，不一定需要完整沙箱，可以用轻量级 QuickJS 安全上下文运行。更快、更省钱。安装：<code>npm i run</code>。这是 Agent 代码执行的工程化方案——把「Agent 生成的代码怎么跑」这件事从黑箱变成可控的模块。</p>
 
-<h2>六、评测方法论</h2>
+<p><strong>2. Vercel Connect GA</strong>——解决「Agent 构建中最难的问题：到服务和数据的安全连接」。运行 <code>vercel connect create notion</code> 后获得一个 MCP client，可以代表已认证用户查询数据。这把 Agent 到企业系统的认证连接标准化了。</p>
 
-<p><strong>Madhu Guru：How to build great evals — Part 9：Eval Roadmap 问题</strong> — 大多数 eval 失败的原因是团队把它们当成静态产物，而用户的期望和行为已经进化了。以金融研究 Agent 为例：用户从"总结 5 页财报"→"分析 5 份财报增长故事"→"15 份文件构建投资论点"→"监控组合并发送警报"。每个阶段需要不同能力，因此需要不同 eval。eval 应随使用模式演进：短上下文→长上下文、单轮→多轮、简单 QA→复杂综合、被动→主动。5 步路线图：①映射使用演进维度 ②优先排序 ③与用户交谈、挖掘生产 traces ④为下一阶段建 P0 eval ⑤运行并爬坡。<a href="https://x.com/realmadhuguru/status/2092426017118028266">Part 9</a> · <a href="https://x.com/realmadhuguru/status/2092461206783373758">全系列索引</a></p>
+<p>两条消息合起来看：Vercel 在构建 Agent 基础设施栈——从代码执行到数据连接，端到端的安全层。</p>
 
-<h2>七、播客</h2>
+<h2>五、开源：/fuck-cancer AI Skill</h2>
 
-<p><strong>Training Data：Parallel's Parag Agrawal — 为 AI Agent 构建新 Web</strong> — 前 Twitter CEO Parag Agrawal 创办 Parallel Web Systems，为 Agent 时代的搜索和 Web 使用构建基础设施。核心理念：人类点击数据是 bug，Agent 做搜索应该依赖 Agent 反馈而非人类反馈。模型擅长压缩信息，可以把模型研究的技术应用到搜索索引和排序上。<a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">收听</a></p>
+<p>Peter Yang 开源了 <strong>/fuck-cancer</strong>——一个帮助癌症患者和照护者导航诊断和治疗的 AI skill。1389 个赞，158 次转发。</p>
 
-<h2>八、社区动态</h2>
+<p>Skill 创建并更新一份实用 brief，包含五个部分：</p>
+<ul>
+<li>患者和护理团队信息（方便通话时查阅）</li>
+<li>下一步做什么（限三个具体行动）</li>
+<li>已知信息（区分确认事实和待确认事项）</li>
+<li>医学术语通俗解释</li>
+<li>护理日志（近期更新和决策记录）</li>
+</ul>
 
-<p><strong>Peter Yang</strong>：期待参加 OpenAI Dev Day，"ChatGPT/Codex 基本是我电脑上做所有事情的操作系统。"<a href="https://x.com/petergyang/status/2092281120650047746">链接</a></p>
+<p>从文档和上下文构建 brief，需要研究时使用 NCI（国家癌症研究所）和 ClinicalTrials.gov API 等可信源。可与 ChatGPT/Codex 和 Claude Code 配合使用，保存为 Markdown 或更新到共享 Google Doc。</p>
 
-<p><strong>Nikunj Kothari</strong>：推出 El Niño 情况监控网站（elneenyo.com），实时更新政府来源新闻、按地区影响和历史记录。用 ChatGPT Codex 和 Railway 构建。<a href="https://x.com/nikunj/status/2092383834470002922">主帖</a> · <a href="https://x.com/nikunj/status/2092384774459674957">构建细节</a></p>
+<p>这是 AI Agent 技能用于真实生活场景的标杆案例——不是炫技，是解决病患面临的信息不对称和决策困难。</p>
 
-<h2>总结</h2>
-<p>今日信号清晰：AI 的竞争已经从模型层延伸到芯片（OpenAI）、记忆（Claude）、连接器（Vercel Connect）、安全执行（Run SDK）和垂直技能（/fuck-cancer）。每一层都在缩短从"token"到"结果"的距离。对于 Builder 来说，机会不在模型本身，而在弥合模型与企业工作流之间那个巨大鸿沟的应用层。</p>
+<h2>六、评测方法论：Eval Roadmap</h2>
 
-<p style="font-size:0.85em;color:#888;">数据来源：follow-builders feed（lookback 72h，17 个 builders，32 条推文）| 抓取时间 2026-08-26 CST</p></div>
+<p>Madhu Guru（前 Google，曾负责 Gemini/Veo）发布「How to build great evals」系列第九篇——<strong>The Eval Roadmap Problem</strong>。</p>
+
+<p>核心论点：大多数 eval 失败的原因是团队把它们当作静态产物，而用户预期和行为已经演化了。Eval 需要随产品和实际使用模式演进的 roadmap。</p>
+
+<p>以金融研究 Agent 为例，使用场景会进化：</p>
+<ul>
+<li>第 1 周：总结 5 页财报</li>
+<li>第 3 周：回顾最近 5 份财报，解释增长故事</li>
+<li>第 2 个月：处理 15 份文件、财报和研报，构建投资论点</li>
+<li>最终：监控股票组合，有重大变化时发提醒</li>
+</ul>
+
+<p>Eval 应随使用模式变化：短上下文→长上下文、单轮 QA→多轮、段落引用→文档行引用、简单 QA→复杂综合、被动聊天→主动 Agent。</p>
+
+<p>实践步骤：1) 映射使用演化的维度；2) 优先排序；3) 与用户对话、挖掘生产 trace；4) 为下一阶段构建 P0 eval；5) 跑 eval、找失败模式、爬坡。</p>
+
+<h2>七、行业观点与安全提示</h2>
+
+<p><strong>Aaron Levie（Box CEO）</strong>分享企业 AI 落地策略：模型智能和实际业务工作流之间有巨大鸿沟，这正是应用 AI 公司的机会。「世界不只需要原始模型和 Agent；需要问题被解决、结果被实现。」需要理解上下文、推动变革管理、构建能路由到不同模型的 harness、连接关键业务系统、解决 UX 挑战、理解 eval——这些价值远超模型智能本身。</p>
+
+<p><strong>Aditya Agarwal（SPC 合伙人）</strong>讨论数据中心建设的公众态度：AI 目前主要帮助知识工作者和高收入群体，公众反感数据中心建设不意外。真正的转变将在 AI 能为所有人找到疾病治疗方案时发生。行业也没帮自己——太多恐吓营销，没有描绘积极的未来愿景。</p>
+
+<p><strong>Swyx 安全警告</strong>：不要使用 Codex 的 "locked use" 功能。它依赖不稳定的 macOS 特性，本周两次锁死了他的 macOS Keychain。Apple 开发者论坛已确认这是 known bug。云方案暂时还不到位，但在本地先避开这个功能。</p>
+
+<h2>八、播客</h2>
+
+<p><strong>Training Data</strong>：Parallel 的 Parag Agrawal 谈「Building a New Web for AI Agents」。Parallel 是前 Twitter CEO 创办的 Agent 浏览器公司，这期讨论为 AI Agent 构建新一代 Web 的愿景。</p>
+
+<hr>
+<p><small>来源：feed-x.json（17 builders, 32 tweets, 24h lookback）、feed-blogs.json（0 篇）、feed-podcasts.json（1 期）。数据抓取时间 2026-08-26。</small></p>
+<p><small>X 帖来源链接：</small></p>
+<ul>
+<li><small><a href="https://x.com/claudeai/status/2092299704864284888">Claude 统一记忆</a> | <a href="https://x.com/bcherny/status/2092355642363453943">Boris Cherny: memory update</a> | <a href="https://x.com/_catwu/status/2092337156455051345">Cat Wu: 统一记忆反馈</a> | <a href="https://x.com/trq212/status/2092303682616627311">Thariq: Claude Code hackable</a></small></li>
+<li><small><a href="https://x.com/thsottiaux/status/2092345330272780499">Thibault: ChatGPT 企业版</a> | <a href="https://x.com/sama/status/2092339694210040187">Sam Altman: chip</a> | <a href="https://x.com/GoogleLabs/status/2092293667688173593">Google Labs: Play with Putty</a></small></li>
+<li><small><a href="https://x.com/rauchg/status/2092382653161107534">Vercel Run SDK</a> | <a href="https://x.com/rauchg/status/2092352411839193234">Vercel Connect GA</a></small></li>
+<li><small><a href="https://x.com/petergyang/status/2092249012913258946">Peter Yang: /fuck-cancer 开源</a></small></li>
+<li><small><a href="https://x.com/realmadhuguru/status/2092426017118028266">Madhu Guru: Eval Roadmap Part 9</a></small></li>
+<li><small><a href="https://x.com/levie/status/2092466424694649066">Aaron Levie: 企业 AI 策略</a> | <a href="https://x.com/adityaag/status/2092290497826173186">Aditya Agarwal: 数据中心公众态度</a></small></li>
+<li><small><a href="https://x.com/garrytan/status/2092277912053657722">Garry Tan: cross-harness memory</a> | <a href="https://x.com/swyx/status/2092492963435946494">Swyx: Codex locked use 警告</a></small></li>
+<li><small>播客：<a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">Training Data: Parallel's Parag Agrawal</a></small></li>
+</ul>
+</div>
             <footer>
                 <a href="../index.html" class="back-link">← 返回首页</a>
             </footer>
