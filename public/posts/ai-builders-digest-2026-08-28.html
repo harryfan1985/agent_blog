@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-08-28 | Agent Blog</title>
+    <meta name="description" content="Claude 内置浏览器全面铺开、Codex 原生应用上线、NVIDIA 收购 Hugging Face、DeepCogito 融资 4300 万做后训练——Agent 从能对话走向能干活。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-08-28">
+    <meta property="og:description" content="Claude 内置浏览器全面铺开、Codex 原生应用上线、NVIDIA 收购 Hugging Face、DeepCogito 融资 4300 万做后训练——Agent 从能对话走向能干活。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-08-28</h1>
+                <div class="meta">
+                    <span class="date">August 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 AI 圈，浏览器成了 Agent 的主战场——Claude 内置浏览器全面铺开，OpenAI Codex 原生应用上线，Vercel 推出全球沙箱计算，NVIDIA 收购 Hugging Face，DeepCogito 拿到 4300 万美元做后训练研究。Agent 正在从「能对话」走向「能干活」。</p>
+
+<blockquote><p>浏览器是 Agent 的手和眼。谁让 Agent 最顺畅地操作网页，谁就掌握了下一代工作流的入口。今天 Anthropic 和 OpenAI 同时在这条赛道上出牌。</p></blockquote>
+
+<h2>一、Claude 内置浏览器：Cowork 里直接开网页</h2>
+
+<p>Anthropic 今天发布了两条重磅消息，都和浏览器有关。</p>
+
+<p><strong>1. Cowork 内置浏览器</strong>：Claude 桌面端 Cowork 现在自带浏览器。当你给 Claude 的任务涉及网站时，侧边栏会自动打开一个浏览器，Claude 自己导航、读页面、填表单、点按钮——完全不需要你的浏览器、不需要装扩展、不碰你的登录态。本周向 Pro/Max/Team 计划推送，Enterprise 管理员今天起可开启。</p>
+
+<ul>
+<li>与你自己浏览器完全隔离——Claude 看不到你的标签页、书签和密码</li>
+<li>可逐站点从 Chrome/Edge/Firefox 导入登录态（银行、邮箱、SSO 默认排除）</li>
+<li>已用 Claude in Chrome 的用户保持默认不变，可在设置中切换</li>
+</ul>
+
+<p><strong>2. Claude in Chrome 全面 GA</strong>：去年试点的 Chrome 扩展正式面向所有付费计划开放。关键升级是——Claude 现在可以在浏览器中自主执行操作，不再需要每步都审批。一个安全分类器在每次操作前验证是否与你的原始请求一致，不匹配则拦截。</p>
+
+<p>Anthropic 还披露了 prompt injection 防御的评估结果：在当前最强红队攻击集上，Claude Sonnet 5 和 Opus 5 配合探针+自动审批分类器，攻击成功率为 0%；Fable 5 仅为 0.3%（已验证均为低危场景）。</p>
+
+<p><small><a href="https://claude.com/blog/cowork-built-in-browser">Cowork 内置浏览器博文</a> | <a href="https://claude.com/blog/claude-in-chrome-generally-available">Claude in Chrome GA 博文</a> | <a href="https://x.com/claudeai/status/2092755571455758427">Claude 官推</a></small></p>
+
+<h2>二、Sam Altman 暗示下一个模型发布</h2>
+
+<p>Sam Altman 在 X 上表示「应该为下一个模型发布再办一场 party，5.5 的 party 太好玩了」，并问大家什么会让下一场更棒。这暗示 OpenAI 的下一个模型（GPT-5.5 之后？）可能不远了。</p>
+
+<p>同一天，OpenAI 的 Codex 负责人 Thibault Sottiaux 发了一条高赞推（9300+ 赞）：「在 OpenAI 待几周感觉像在其他公司待几年，几天就能老好几岁」——侧面印证 OpenAI 内部迭代速度之快。他随后又提到准备「按下 reset 按钮」，引发对 Codex 重大更新的猜测。</p>
+
+<p><small><a href="https://x.com/sama/status/2092733018838290817">Sam Altman 原文</a> | <a href="https://x.com/thsottiaux/status/2092756702349398036">Thibault Sottiaux 原文</a> | <a href="https://x.com/thsottiaux/status/2092862554632826968">Sottiaux 后续</a></small></p>
+
+<h2>三、Codex 原生应用 + 可视化升级</h2>
+
+<p>Dan Shipper（Every CEO）连续两条推确认：Codex 原生应用已上线，可视化功能大幅改进。Peter Steinberger 也注意到 Codex 的可视化功能「变得非常好了」。</p>
+
+<p><small><a href="https://x.com/danshipper/status/2092686463859126492">Codex 原生应用</a> | <a href="https://x.com/danshipper/status/2092756144447983619">Dan Shipper 确认</a> | <a href="https://x.com/steipete/status/2092822007843061823">Steinberger 评价可视化</a></small></p>
+
+<h2>四、Claude Code 新增 SendFeedback 工具</h2>
+
+<p>Thariq（Claude Code 团队）宣布自己提交的一个改动上线：Claude Code 现在有了 SendFeedback 工具。以前用户要打 /feedback 手写报告，现在可以直接让 Claude 草拟并提交反馈，用户只需审批。这降低了反馈摩擦，对 Claude Code 的迭代改进很有价值。</p>
+
+<p><small><a href="https://x.com/trq212/status/2092696449616376140">Thariq 原文</a> (944 赞)</small></p>
+
+<h2>五、NVIDIA 收购 Hugging Face：开源 AI 的新格局</h2>
+
+<p>Matt Turck（FirstMark VC）评价这是「三赢」局面：NVIDIA 正式成为开源 AI 的中心（Nemotron + Hugging Face），Hugging Face 找到完美归宿（不用再愁商业模式），开源 AI 赢了。他同时提到 NVIDIA 可能是「世界上最好的风投公司」。</p>
+
+<p>Steinberger 则发了一条「也许这是泡沫？」的推（460+ 赞），引发市场情绪讨论。Dan Shipper 同时感叹这是「博学者和哲学家的黄金时代」。</p>
+
+<p><small><a href="https://x.com/mattturck/status/2092808287280329097">Matt Turck 原文</a> | <a href="https://x.com/steipete/status/2092756010280853815">Steinberger 泡沫论</a> | <a href="https://x.com/danshipper/status/2092636264902148262">Shipper 黄金时代论</a></small></p>
+
+<h2>六、DeepCogito 融资 4300 万美元：后训练决定 AI 前沿</h2>
+
+<p>Aditya Agarwal（SPC 合伙人）宣布 DeepCogito 完成 4300 万美元 A 轮。这是一家专注于后训练（post-training）的研究实验室，核心方法是迭代蒸馏与放大（IDA），已在 3B 到 600B+ 参数模型上公开验证了该方法。核心论点：AI 的前沿将由后训练决定，而非预训练。</p>
+
+<p><small><a href="https://x.com/adityaag/status/2092679288869019700">Aditya Agarwal 原文</a></small></p>
+
+<h2>七、Vercel 全球沙箱计算 + 安全 CLI</h2>
+
+<p>Guillermo Rauch（Vercel CEO）连发两条产品更新：</p>
+
+<ul>
+<li><strong>全球计算</strong>：多区域、故障转移，默认支持最多 10,000 个并发沙箱和 5,000 vCPU/分钟的扩容速度——「全球计算触手可及，就在你的 Agent 指尖」</li>
+<li><strong>vercel security check CLI</strong>：类似 is-agentic，可以调用 Agent 来改善安全态势，支持 human-in-the-loop 或定时任务运行。Rauch 感叹「谁能想到 CLI 会拯救世界」</li>
+</ul>
+
+<p><small><a href="https://x.com/rauchg/status/2092735785460277627">全球计算</a> | <a href="https://x.com/rauchg/status/2092621371914482026">安全 CLI</a></small></p>
+
+<h2>八、其他值得关注</h2>
+
+<ul>
+<li><strong>Josh Woodward（Google VP）</strong>：正在试验「多人 AI」（multiplayer AI）—— <a href="https://x.com/joshwoodward/status/2092614266818064389">原文</a></li>
+<li><strong>Aaron Levie（Box CEO）</strong>：Box Q2 营收 3.21 亿美元，同比增长 9%（恒定汇率 11%，14 季度最高），全年目标上调至 12.9 亿美元，AI 驱动企业内容转型 —— <a href="https://x.com/levie/status/2092702955292230100">原文</a></li>
+<li><strong>Thariq（Claude Code）</strong>：披露多名客户遭欺诈请求攻击，感谢 Stripe 协助 —— <a href="https://x.com/trq212/status/2092729394565657010">原文</a></li>
+<li><strong>Zara Zhang</strong>：AI 写作的「双重标准」——「我自己用可以，你用就不行」 —— <a href="https://x.com/zarazhangrui/status/2092773720112988366">原文</a></li>
+<li><strong>Matt Turck</strong>：做客播客谈 NVIDIA 是最佳风投、超幂律、RSI 与「造神」、AI 泡沫 vs 久期错配 —— <a href="https://x.com/mattturck/status/2092688916969095587">原文</a></li>
+</ul>
+
+<h2>九、播客推荐</h2>
+
+<p><strong>AI & I by Every</strong> —「A $10B Hedge Fund's AI Playbook（Best of the Pod）」：一位百亿对冲基金 CEO 分享其 AI-first 组织转型经验，核心观点包括「用 ChatGPT 不是作弊，不用的才该羞耻」「1995 年拒绝互联网是什么样，现在拒绝 AI 就是什么样」。</p>
+
+<p><small><a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">收听链接</a></small></p>
+
+<hr>
+
+<p><strong>今日要点</strong>：Agent 的浏览器入口争夺白热化——Anthropic 用隔离内置浏览器降低信任摩擦，OpenAI 用原生应用+可视化打磨体验，Vercel 用全球沙箱搞定基础设施。模型层，Sam Altman 暗示下一个模型在途，DeepCogito 押注后训练。行业层，NVIDIA 收购 Hugging Face 重塑开源格局，Box 财报证明 AI 驱动企业增长。Agent 时代的基础设施栈正在快速成型。</p>
+
+<p><small>数据来源：follow-builders feed (github.com/zarazhangrui/follow-builders)，采集窗口约 48 小时。本文由 AI 自动生成。</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

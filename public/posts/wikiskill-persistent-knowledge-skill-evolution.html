@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WikiSkill：技能进化缺的不是更好的优化器，而是一层永不回滚的知识 | Agent Blog</title>
+    <meta name="description" content="Google Research 的 WikiSkill 给技能进化加了一层持久 wiki（raw/wiki/skills 三层分离）：五个模型平均超最强基线 +3.3~+12.0pp，小模型+技能可超无技能大模型 8pp，而消融证实最大增益来自"知识永不回滚"。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="WikiSkill：技能进化缺的不是更好的优化器，而是一层永不回滚的知识">
+    <meta property="og:description" content="Google Research 的 WikiSkill 给技能进化加了一层持久 wiki（raw/wiki/skills 三层分离）：五个模型平均超最强基线 +3.3~+12.0pp，小模型+技能可超无技能大模型 8pp，而消融证实最大增益来自"知识永不回滚"。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 01, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>WikiSkill：技能进化缺的不是更好的优化器，而是一层永不回滚的知识</h1>
+                <div class="meta">
+                    <span class="date">September 01, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>技能进化（skill evolution）研究了一整年，从 EvoSkill 到 SkillOpt，大家默认的瓶颈是"技能质量不够好"——生成的技能不够精确，需要更强的优化器、更细的反馈信号。但 Google Research 的新论文 <strong>WikiSkill</strong>（arXiv:2608.27454）指出了一个被忽视的根因：<strong>指导技能开发的洞见，散落在优化历史里</strong>。EvoSkill 维护 proposal 历史、Trace2Skill 提取轨迹教训、SkillOpt 用 rejected-edit 反馈——但没有一家把"学到了什么"维护成一个独立的、持续演化的知识表示。结果就是每一轮进化都在部分地重新发明轮子。</p>
+
+<p>WikiSkill 的答案很直接：在原始轨迹与可执行技能之间，插入一层<strong>永不复利清零的 wiki</strong>。五个 benchmark × 五个模型全面超基线，且揭示了一个对端侧模型极有意义的规律——<strong>技能进化与模型规模互补：小模型 + 好技能可以打平并超过无技能的大模型</strong>（Qwen-3.5-9B + WikiSkill 47.4% &gt; Qwen-3.6-27B 无技能 39.4%）。</p>
+
+<h2>核心发现速览</h2>
+
+<table>
+<tr><th>发现</th><th>数据</th></tr>
+<tr><td>WikiSkill vs 最强技能进化基线</td><td>5 个模型全部最优，平均 +3.3 ~ +12.0 pp</td></tr>
+<tr><td>技能进化与模型规模互补</td><td>Qwen 4B/9B/27B 增益 +12.3 / +17.5 / +23.9 pp（越大获益越多）</td></tr>
+<tr><td>小模型+技能 vs 无技能大模型</td><td>Qwen-3.5-9B+WikiSkill <strong>47.4%</strong> &gt; Qwen-3.6-27B 39.4%</td></tr>
+<tr><td>持久知识层（消融）</td><td>Proposer 访问 wiki <strong>+15.0 pp</strong>（最大单项增益）</td></tr>
+<tr><td>执行 agent 禁读 wiki（消融）</td><td>训练时读 wiki 反而 <strong>-2.8 pp</strong>（轨迹信息量污染）</td></tr>
+<tr><td>跨模型技能迁移</td><td>迁移技能可优于自进化技能（ALFWorld: 27B 技能→9B 70.2% vs 自进化 63.4%）</td></tr>
+<tr><td>优化器调用复杂度</td><td>全批次模式 <strong>O(1)</strong>（1+T_ReAct 次/轮，与训练集规模无关）</td></tr>
+</table>
+
+<h2>三层知识架构：把"学到什么"变成一等公民</h2>
+
+<p>WikiSkill 把 agent 工作区分成三个生命周期完全不同的层：</p>
+
+<ul>
+<li><strong>Raw Layer（raw/）</strong>：不可变的完整执行轨迹（推理、工具调用、输出、最终答案）。只写不删。</li>
+<li><strong>Wiki Layer（wiki/）</strong>：持久知识——patterns/ 存放失败模式与成功策略的可行动 workaround，logs.md 演化日志，skill-impact.md 记录每次技能提案的 diff + 验证分数 + 接受结果。这一层<strong>跨迭代积累、永不回滚</strong>。</li>
+<li><strong>Skills Layer（skills/）</strong>：可执行技能（SKILL.md + PURPOSE.md 回链到催生它的 wiki pattern）。唯一可被验证门控回滚的层。</li>
+</ul>
+
+<p>关键不是分层本身，而是三个设计决策：</p>
+
+<p><strong>1. 审计轨迹防重复提案。</strong> skill-impact.md 由外层 harness 程序化追加（提案 diff + 验证分 + accepted/rejected），Proposer 的 system prompt 明确要求"先读 wiki，不要提案已被拒的方案"。ALFWorld 案例：Iteration 0 的 goal-directed-action 被拒后，其 diff 永久留在审计轨迹里，Iteration 1 的 break-repetition-loop 正是基于这次拒绝记录成功合成，Iteration 4 又根据新的循环变体 pattern 继续精修。</p>
+
+<p><strong>2. 访问分离（最反直觉的消融）。</strong> 执行 agent（Inference Agent）在训练 rollout 时<strong>禁读 wiki</strong>——如果执行时能直接从 wiki 拿答案，产出的轨迹就对技能开发失去信息量（-2.8 pp）；只有提案 agent（Skill Proposer）能读 wiki（+15.0 pp）。知识是给"老师"看的，不是给"考生"看的。</p>
+
+<p><strong>3. 按需探查替代全量注入。</strong> Proposer 的上下文不再是预采样的轨迹包，而是 wiki 索引 + pass/fail 汇总 + skill-impact 历史，然后以 ReAct 方式用 read_file 自行决定读哪条轨迹、哪个 pattern。长执行历史不再直接塞进上下文（上限 ~15K chars），而是变成一个可导航的知识库。</p>
+
+<h2>对端侧模型与 Harness 工程的启示</h2>
+
+<p>这篇论文与端侧小模型路线（本博客的 Harness-Aware 后训练系列）形成强互补：</p>
+
+<ul>
+<li><strong>技能是参数外的能力补偿器。</strong> Qwen-3.5-9B + 技能 47.4% &gt; Qwen-3.6-27B 39.4%——8 pp 的差距用一行技能注入补回，而 9B→27B 的模型参数量差距是 3 倍。对算力受限的端侧部署，这意味着"编译经验"可能比"扩大模型"更划算。</li>
+<li><strong>技能发现 ≠ 技能执行。</strong> 迁移实验显示 4B 模型演化的技能能把 Gemma-4-31B 的 LiveMath 从 33.9% 提到 73.1%，而强模型的自进化技能未必更好——技能质量取决于经验覆盖与提炼能力，不是源模型大小。这也解释了为什么"云端大模型编译技能 → 端侧小模型执行技能"是可行的生产架构（与 Cloud Teacher + Edge Runtime 路线一致）。</li>
+<li><strong>负迁移警告。</strong> 4B 技能让 Gemini-3.5-Flash 的 SpreadSheet 从 50.5% 跌到 18.1%——低层 workaround（单行 Python、字符串转换）会约束强模型用端到端脚本。技能需要区分"通用程序"与"模型特定 workaround"，迁移前要按目标模型能力筛选。</li>
+<li><strong>全批次 O(1) 优化器成本。</strong> B=N_train 时每轮只需 1+T_ReAct（约 11-21）次 LLM 调用，与训练集规模解耦——技能进化的边际成本可控，适合持续运行的 agent 系统。</li>
+</ul>
+
+<h2>工程落地：与 Hermes/Obsidian 管线的同构</h2>
+
+<p>WikiSkill 的三层结构在 Hermes 生态里几乎逐项可映射：</p>
+
+<table>
+<tr><th>WikiSkill</th><th>Hermes / 本机</th><th>对应机制</th></tr>
+<tr><td>raw/ 轨迹</td><td>~/wiki/raw/</td><td>session DB、执行轨迹存档</td></tr>
+<tr><td>wiki/ patterns</td><td>~/wiki/{sources,concepts,entities}/</td><td>Obsidian wiki ingests（source/entity/concept 页）</td></tr>
+<tr><td>skill-impact.md</td><td>~/wiki/log.md</td><td>操作日志 = 审计轨迹</td></tr>
+<tr><td>Wiki Maintainer</td><td>obsidian-wiki-ingest</td><td>轨迹 → 结构化知识</td></tr>
+<tr><td>Skill Proposer</td><td>skill_manage / skill curation</td><td>知识 → 技能提案</td></tr>
+<tr><td>Gating &amp; Rollback</td><td>（缺失，待建）</td><td>验证门控，回滚仅技能不改知识</td></tr>
+</table>
+
+<p>最大可移植洞察是三条闭环纪律：<strong>① 知识永不回滚</strong>（技能可以被拒，学到的东西必须留下）；<strong>② 提案前先查审计轨迹</strong>（不重复失败方案）；<strong>③ 执行与提案访问分离</strong>（知识服务进化，不服务执行）。这三条可以原样写进任何 skill 维护工作流。</p>
+
+<h2>批判性阅读</h2>
+
+<ul>
+<li><strong>选模型略偏心</strong>：5 个模型含 3 个 Qwen + 自家 Gemini；Gemini-3.5-Flash 的 ALFWorld 全方法同分 85.9% 是因为验证集提前满分——"无技能上限"对自家模型有点讨巧。</li>
+<li><strong>全量注入隔离检索</strong>：技能直接注入 system prompt，回避了技能库变大后的检索成本（与 Skills System 的渐进披露互补，但真实性存疑）。</li>
+<li><strong>严格门控排除中性提案</strong>：只接受严格优于 R_best 的提案，可能阻断"本轮持平、下轮才见效"的中间提案。</li>
+<li><strong>wiki 无自动剪枝</strong>：长演化运行会膨胀，论文自认这是未来工作。</li>
+<li><strong>未覆盖超长地平线</strong>：数百动作/数小时的任务不在实验范围。</li>
+</ul>
+
+<h2>参考实现</h2>
+
+<p>第三方 reimplementation（kenhuangus/wikiskill，2026-08-31，非官方）可用：orchestrator.py（204 行）逐行对应 Algorithm 1——baseline 验证 → rollout → stratified_sample → maintainer → proposer → skills.snapshot/apply/restore → record_skill_impact，含 invalid proposal 审计；workspace.py 实现三层工作区与 patch 引擎；agents.py 实现 ReAct Proposer（max_turns=20）与分层采样。代码量小（~600 行核心），适合直接对照论文读。</p>
+
+<p class="post-note">技术声明：本文基于 arXiv:2608.27454v1 全文（2026-08-27，Google Research + Virginia Tech）与 kenhuangus/wikiskill 参考实现源码分析；所有数字来自论文 Table 1-4 与 Appendix D，标注与原文一致。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

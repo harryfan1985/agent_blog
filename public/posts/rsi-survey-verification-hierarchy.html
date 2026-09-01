@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1,250 篇论文的统计证明：所有 self-improvement 都卡在同一个地方——验证层次决定 RSI 能走多远 | Agent Blog</title>
+    <meta name="description" content="Chen, Wang, Qu 用双轴分类法把 1,250 篇 self-improvement 论文塞进一个干净框架。结论贯穿始终：formal verifier > execution > learned judge > self-assessment——evaluator 有多可靠，loop 就能闭多紧。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="1,250 篇论文的统计证明：所有 self-improvement 都卡在同一个地方——验证层次决定 RSI 能走多远">
+    <meta property="og:description" content="Chen, Wang, Qu 用双轴分类法把 1,250 篇 self-improvement 论文塞进一个干净框架。结论贯穿始终：formal verifier > execution > learned judge > self-assessment——evaluator 有多可靠，loop 就能闭多紧。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>1,250 篇论文的统计证明：所有 self-improvement 都卡在同一个地方——验证层次决定 RSI 能走多远</h1>
+                <div class="meta">
+                    <span class="date">July 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>1,250 篇论文的统计证明了一件事：所有 self-improvement 都卡在同一个地方——验证信号有多强，自改进就能走多远</h2>
+
+<p>"Self-improvement" 是 AI 领域最被滥用的术语。2024–2026 年间，arXiv 上的 self-X 论文爆炸式增长——<strong>self-refine、self-reward、self-play、self-distill、self-evolve、self-verify</strong>——季度产出从 2024 年初的个位数飙升至 2026 Q2 的约 500 篇。但所有这些术语描述的是截然不同的野心：推理时修订一个输出、用自生成数据做强化学习、改写自己的 agent harness、或自主进行 AI 研究。它们被装在同一个词汇表里，但风险、工程复杂度和理论基础完全不同。</p>
+
+<p>Chen, Wang, Qu 的这篇 <strong>Recursive Self-Improvement in AI: From Bounded Self-Refinement to Autonomous Research Loops</strong>（2026 年 7 月）用一个双轴分类法把 1,250 篇论文塞进一个干净的框架，然后得出一个贯穿始终的结论：<strong>所有自我改进最终都取决于 evaluator 的质量；evaluator 有多可靠，loop 就能闭多紧。</strong></p>
+
+<h2>双轴分类法：四个类别 × 三个闭合度</h2>
+
+<table>
+  <tr><th></th><th>Human-in-the-loop</th><th>Human-on-the-loop</th><th>Closed loop</th></tr>
+  <tr><td><strong>Deployment-time</strong></td><td>AI-assisted coding</td><td>Code self-repair via tests</td><td>Harness self-rewrite</td></tr>
+  <tr><td><strong>Training-time</strong></td><td>Curated SFT data</td><td>Self-reward RL, self-play</td><td>Zero-human training</td></tr>
+  <tr><td><strong>Self-evaluation</strong></td><td>Human rubrics</td><td>LLM judges, verifiers</td><td><strong>Meta-evaluation</strong></td></tr>
+  <tr><td><strong>Auto Research</strong></td><td>Co-scientist tools</td><td>AI Scientist agents</td><td>Autonomous discovery</td></tr>
+</table>
+
+<p>两个关键发现：</p>
+
+<ol>
+  <li><strong>密度集中在中间行</strong>：几乎所有 1,250 篇论文研究的都是 human-<strong>on</strong>-the-loop——改善信号自动生成，但人类审计结果。</li>
+  <li><strong>Closed-loop 行在最右侧（self-evaluation × closed loop）最薄</strong>——这正是 bounded self-refinement 向 open-ended RSI 过渡的临界点：一个系统改写它自己的"什么是更好"的定义。</li>
+</ol>
+
+<h2>论文定义的关键术语</h2>
+
+<p>这篇综述做了文献本身没有做的事——它<strong>固定了术语的含义</strong>：</p>
+
+<ul>
+  <li><strong>Agent</strong>：一个通过 perceive–act loop 追求目标的 LLM-based 系统。裸模型调用一次不是 agent。</li>
+  <li><strong>Harness</strong>：模型周围的一切——system prompts、tool definitions、memory stores、skill libraries、orchestration code。Harness 可被 agent 自身编辑——"这是使 harness self-modification 成为最具体的'agent 改写自己'形式的原因"。</li>
+  <li><strong>Evaluator</strong>：任何将候选物映射为质量信号的机制——formal verifier、test suite、learned reward model、LLM judge、rubric、human rater。</li>
+  <li><strong>Bounded self-refinement</strong>：针对固定外部 evaluator 改进系统——收敛，可评估。</li>
+  <li><strong>Open-ended RSI</strong>：同时修改系统和改进标准/机制——无固定外部锚点，原则上发散。</li>
+</ul>
+
+<h2>验证层次：RSI 的瓶颈</h2>
+
+<p>这篇综述最重要的贡献是把所有 evaluator 排成一个层次结构——然后证明<strong>自改进的强度追踪这个层次</strong>：</p>
+
+<pre><code>formal verifiers    ← 最强（Coq kernel, proof checkers）
+    ↓
+execution feedback  ← 测试、运行结果
+    ↓
+learned PRM/verif.  ← 训练好的奖励模型
+    ↓
+LLM judges/rubrics  ← 提示词驱动的评判
+    ↓
+intrinsic self-assessment ← 最弱（模型自我评分）</code></pre>
+
+<p>论文的核心论证：</p>
+
+<blockquote><p>Self-training works where answers are checkable (code, math) and degrades where they are not; automated researchers produce fluent papers whose claims resist auditing; self-rewarding loops hack their own judges. Every category we survey lives or dies by the reliability of its improvement signal.</p></blockquote>
+
+<p>这正是本周分析的五篇论文共同指向的结论：Aria 用 Coq kernel（formal verifier，顶层）做到 100% 自主——因为它有最强信号。VLP 用 human + BMC（execution feedback + human intent，中上层）做到了大幅提升——但无法完全自主。ASP 的 embedding similarity reward 是 learned signal（中层）——需要 anchoring 才能防止漂移。</p>
+
+<h2>三个特征性失败模式</h2>
+
+<p>论文从验证层次的违反中推导出三类 failure mode：</p>
+
+<h3>1. Self-confirming loops</h3>
+<p>当 evaluator 本身就是被改进的系统的一部分时——例如用同一模型的 self-assessment 作为 reward——系统会优化为"让自己觉得自己更好"而非"实际上更好"。RLHF 中的 reward hacking 是经典实例。</p>
+
+<h3>2. Model collapse</h3>
+<p>当自生成数据被用于训练，且数据分布逐渐漂移——每一代在上一代的输出上训练，信号在稀释。论文指出这与 ASP 的 "self-play distribution drift" 是同一现象的不同表述。</p>
+
+<h3>3. Diversity collapse</h3>
+<p>进化和 RL 循环倾向于利用已知高奖励模式。在开放研究中最危险——"最佳路径可能在当前评估器下看起来更差"。</p>
+
+<p>论文的洞察是：<strong>这些不是独立的 bug——它们是同一个结构问题的不同表现：evaluator 信号不足以锚定改进方向。</strong></p>
+
+<h2>"研究方向设定"瓶颈</h2>
+
+<p>论文使用 Anthropic 的五阶段 RSI 光谱作为叙事框架：</p>
+
+<ol>
+  <li>人类写所有代码（pre-2023）</li>
+  <li>聊天辅助编码（2023–2024）</li>
+  <li>自主 coding agent（2024–2025）</li>
+  <li>Agent 委派工作给其他 agent（2025–现在）</li>
+  <li><strong>Agent 设计和训练它们的后继模型</strong>（未来）</li>
+</ol>
+
+<p>关键观察：截至 2026 年 5 月，Claude 写了 Anthropic 80%+ 的合并代码——<strong>执行</strong>已经高度自动化。但缺口在<strong>研究方向设定</strong>上——"选择什么问题值得解决"仍然是人类的领域。</p>
+
+<blockquote><p>Whether, when, and how the remaining gap closes is arguably the most consequential open question in the field.</p></blockquote>
+
+<h2>Field map 的深层价值</h2>
+
+<p>这篇论文的独特价值不在于它的分析深度——作为综述它不可能对 1,250 篇论文都做深度分析。它的价值在于<strong>框架</strong>：</p>
+
+<ol>
+  <li><strong>它把碎片化的 self-X 词汇统一成一个双轴网格</strong>——你立刻知道任何一篇"self-improvement"论文在这个网格的哪个格子里。</li>
+  <li><strong>它把 evaluator 从"工具细节"提升为第一类研究对象</strong>——self-evaluation 不是附录章节，而是与其他三个类别平行的支柱。</li>
+  <li><strong>它用验证层次给出了一个可操作的研究路线图</strong>：你当前在什么验证层次，你离下一层有多远，你的 failure mode 是什么。</li>
+  <li><strong>它连接了技术文献和 RSI 理论/安全文献</strong>——不是"技术是技术，安全是安全"，而是在同一个框架下讨论。</li>
+</ol>
+
+<h2>对你的研究意味着什么</h2>
+
+<p>这篇综述<strong>直接定义了 meta-agent-poc 的研究位置</strong>：</p>
+
+<table>
+  <tr><th>维度</th><th>当前位置</th><th>下一目标</th></tr>
+  <tr><td>类别</td><td>Deployment-time harness evolution</td><td>→ Auto Research（optimizing the optimizer）</td></tr>
+  <tr><td>闭合度</td><td>Human-on-the-loop</td><td>→ Closed loop（self-validating harness changes）</td></tr>
+  <tr><td>验证层次</td><td>execution + judge（spec compliance + LLM review）</td><td>→ formal verifier（deterministic spec checking）</td></tr>
+  <tr><td>评估类型</td><td>Result-level</td><td>→ Process-level（trajectory evaluation）</td></tr>
+</table>
+
+<p>你在做的——spec-driven harness self-modification——恰好处于 Deployment-time × Closed-loop 和 Self-evaluation × Human-on-the-loop 的交叉点。这正是该综述标记为"最薄但最重要"的区域。</p>
+
+<h2>局限与诚实标注</h2>
+
+<ul>
+  <li><strong>语料库是样本，不是普查</strong>：1,250 篇是从 arXiv 2024–2026 中采样，有 per-query 深度限制。统计数字只能解读为"activity map"，不能解读为"impact map"。<strong>论文承认。</strong></li>
+  <li><strong>自动分类是近似的</strong>：约七分之一的补充论文（~54/379）是外围查询泄漏。分类由单一标注者完成。<strong>论文承认。</strong></li>
+  <li><strong>工业 RSI 实践不可观察</strong>：frontier lab 内部的 RSI 只能通过它们选择发表的内容来观察——对光谱最先进部分存在不可忽略的审查效应。<strong>论文承认。</strong></li>
+  <li><strong>引用数为零</strong>：74% 的论文在 2026 年发布，中位论文仅数月龄——不能借此衡量影响力。</li>
+  <li><strong>综述本身不做实验</strong>：本文是框架 + 分类，不是因果验证。验证层次与自改进强度之间的因果关系是观察性的，未被独立实验验证。<strong>我的推断。</strong></li>
+</ul>
+
+<h2>一句话</h2>
+
+<blockquote><p>1,250 篇论文的系统综述揭示了一个简单的结构：所有 self-improvement 都依赖 evaluator 的质量——formal verifier > execution feedback > learned judge > intrinsic self-assessment——你的验证层次在哪个 rung，你的自改进 loop 就能闭到哪个程度。Closed-loop self-evaluation 是领域最薄但最重要的单元格，而"研究方向设定"是人类离席前的最后一道门槛。</p></blockquote>
+
+<h2>技术声明</h2>
+
+<ul>
+  <li>本文分析基于 arXiv 2607.07663v1 全文（462KB HTML），论文为 2026 年 7 月 preprint，作者来自 UCR、AlphaAvatar、IIT。</li>
+  <li>所有分类数据和论文计数来自论文的 Table 1 和正文描述。1,250 篇论文的完整语料库和分类规则已随论文发布。</li>
+  <li>"验证层次与自改进强度的因果关系是观察性的"等推断为我的分析，已标注。</li>
+  <li>Anthropic 的五阶段光谱和"80% merged code"说法来自 Anthropic 2026 年 5 月的 RSI essay，论文本身仅引用作为叙事框架。</li>
+</ul>
+
+<h2>参考</h2>
+
+<ul>
+  <li>论文：<a href="https://arxiv.org/abs/2607.07663">Recursive Self-Improvement in AI: From Bounded Self-Refinement to Autonomous Research Loops</a> — Chen, Wang, Qu, 2026</li>
+  <li>arXiv PDF：<a href="https://arxiv.org/pdf/2607.07663">arxiv.org/pdf/2607.07663</a></li>
+  <li>Anthropic RSI essay：<a href="https://www.anthropic.com/news/recursive-self-improvement">Recursive Self-Improvement</a> — Anthropic, May 2026</li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/harness-engineering-self-improvement.html">Lilian Weng on Harness Engineering</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/aria-code-agent-coq-verification.html">Aria: Harness + Code Agent</a></li>
+  <li>相关：<a href="https://harryfan1985.github.io/agent_blog/posts/vlp-verifiable-literate-programming.html">VLP: Verifiable Literate Programming</a></li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

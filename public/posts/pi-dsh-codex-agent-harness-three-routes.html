@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi / DeepSeek Harness / Codex CLI：编码 Agent 运行时的三条路线 | Agent Blog</title>
+    <meta name="description" content="三方对比 Pi、DeepSeek Harness 与 Codex CLI：工程形态、采样循环层级、状态模型（内存 vs 日志 vs 数据库）、扩展模型（返回值 pipe vs next() 委托 vs trait 贡献者）、工具与安全。结论——三条路线对应简单可嵌入、可组合可恢复、生产级可迁移。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Pi / DeepSeek Harness / Codex CLI：编码 Agent 运行时的三条路线">
+    <meta property="og:description" content="三方对比 Pi、DeepSeek Harness 与 Codex CLI：工程形态、采样循环层级、状态模型（内存 vs 日志 vs 数据库）、扩展模型（返回值 pipe vs next() 委托 vs trait 贡献者）、工具与安全。结论——三条路线对应简单可嵌入、可组合可恢复、生产级可迁移。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 18, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Pi / DeepSeek Harness / Codex CLI：编码 Agent 运行时的三条路线</h1>
+                <div class="meta">
+                    <span class="date">August 18, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>三个开源编码 Agent 运行时，三条路线</h2>
+<p>上一篇（<a href="pi-vs-deepseek-harness-agent-runtime.html">Pi 与 DeepSeek Harness：编码 Agent 运行时的两条架构路线</a>）对比了 Pi 和 DeepSeek Harness。本文把 OpenAI 开源的 <strong>Codex CLI</strong>（Rust 实现）纳入，形成三方格局。三者在「让 LLM 在循环里调用工具、管理状态、可扩展」上走了三条清晰不同的路线。</p>
+
+<h2>一、工程形态</h2>
+<table>
+  <tr><th>维度</th><th>Pi</th><th>DeepSeek Harness</th><th>Codex CLI</th></tr>
+  <tr><td>语言</td><td>TypeScript</td><td>TypeScript</td><td><strong>Rust</strong></td></tr>
+  <tr><td>包管理</td><td>npm workspaces（3 核心包）</td><td>pnpm（数百包，两层）</td><td>Cargo workspace（136 crate）</td></tr>
+  <tr><td>构建</td><td>tsgo（原生 TS 编译器）</td><td>tsc + tsdown</td><td>Cargo + Bazel</td></tr>
+  <tr><td>产物</td><td>npm 包 + Bun 单二进制</td><td>npm 包 + 单 exe</td><td>单二进制 + 桌面 app</td></tr>
+  <tr><td>定位</td><td>可嵌入内核 + 单体产品</td><td>纯插件 harness</td><td>生产级编码代理产品</td></tr>
+</table>
+
+<h2>二、核心循环：同一种采样循环，三种层级粒度</h2>
+<p>三者本质都是同一个「采样循环」——模型 → 工具调用 → 执行 → 回填 → 再请求。差异在层级粒度：</p>
+<ul>
+  <li><strong>Pi</strong>：只有 <code>turn</code>（一次 LLM + 工具执行），双层循环（外层 follow-up、内层 turn），无 step 概念。</li>
+  <li><strong>dsh</strong>：<code>turn</code>/<code>step</code> 双层，step 持久化，turn 可「零 step」。</li>
+  <li><strong>Codex</strong>：<code>run_turn</code> 是采样循环，有明确的 <code>Thread</code>/<code>Session</code>/<code>Turn</code>/<code>StepContext</code> 四层。循环逻辑写得最直白：每次 sampling request，模型返回 function call（执行并回填）或 assistant message（记录历史、turn 完成）。</li>
+</ul>
+<p>Codex 的 <code>Thread</code> 才是会话单元，<code>Session</code> 是共享给根线程和所有 subagent 的运行时——这为多 agent 提供了 Pi 和 dsh 都没有的原生层级。</p>
+
+<h2>三、状态模型：信任锚点的分化</h2>
+<p>这是三者最本质的分歧：</p>
+<table>
+  <tr><th>项目</th><th>真相来源</th><th>持久化方式</th></tr>
+  <tr><td>Pi</td><td>内存 <code>_state.messages</code></td><td>副作用式（订阅事件落盘，内核不感知）</td></tr>
+  <tr><td>dsh</td><td>append-only <code>SessionEvent</code> 日志</td><td>事件溯源（log 即真相，<code>deriveMessages()</code> 投影）</td></tr>
+  <tr><td>Codex</td><td>SQLite <code>thread-store</code> + <code>RolloutItem</code></td><td>数据库持久化（含 migration/物化/归档）</td></tr>
+</table>
+<p>Codex 走第三条路：把 <code>RolloutItem</code>（历史单元）写进 SQLite，并带一整套工程化配套——历史迁移与回滚、历史物化、分页 fork、归档。这对应三者定位：Pi 要「可嵌入的简单内核」，dsh 要「log 可重建一切」，Codex 要「生产级会话恢复 + 分页 + 迁移」。</p>
+
+<h2>四、扩展模型：抽象层级在升高</h2>
+
+<h3>4.1 Pi：单一事件总线 + 返回值（pipe）</h3>
+<p><code>ExtensionAPI</code> 的 <code>on(event)</code> + <code>registerTool/Command/Shortcut/Flag/Provider</code>，11 个 <code>emitXxx</code> 写死 6 种语义（通知/短路/链式/字段合并/就地 mutate/累积），本质是单向 pipe。</p>
+
+<h3>4.2 dsh：类型化事件 + next() 委托（around）</h3>
+<p>Cordis 插件 + <code>ctx</code> 服务注册 + 统一 5 种分发（<code>emit</code>/<code>parallel</code>/<code>serial</code>/<code>bail</code>/<code>waterfall</code>），其中 waterfall 是洋葱 around，监听器可短路、透传、改写下游结果。</p>
+
+<h3>4.3 Codex：trait 贡献者 + 四层扩展面</h3>
+<p>Codex 的扩展机制最复杂，因为它同时有四层：</p>
+<ul>
+  <li><strong>Hooks</strong>（配置驱动的进程外钩子，Claude Code 风格）：<code>pre_tool_use</code>、<code>post_tool_use</code>、<code>session_start</code>、<code>user_prompt_submit</code>、<code>stop</code>、<code>compact</code>、<code>permission_request</code>——由配置文件触发 shell 命令/MCP，与 Pi/dsh 的「进程内代码扩展」根本不同。</li>
+  <li><strong>Extension contributors</strong>（Rust trait，代码级）：<code>ExtensionRegistry</code> 持有各类 <code>Vec&lt;Arc&lt;dyn Contributor&gt;&gt;</code>，分三类——生命周期通知（thread/turn/tool lifecycle，回调返回空）、收集型（context/tool/mcp，host 遍历收集）、短路型（approval_review，第一个 <code>Some</code> 赢）。</li>
+  <li><strong>MCP servers</strong>（工具协议）。</li>
+  <li><strong>Skills</strong>（技能）。</li>
+</ul>
+<p>最关键的差异是<strong>依赖注入方向</strong>：Codex 的扩展通过 <code>Capability</code> trait 从 host 拿到能力——<code>ExtensionEventSink</code>（发事件）、<code>ResponseItemInjector</code>（注入响应项）、<code>AgentSpawner</code>（spawn 子 agent）、<code>ConversationHistorySnapshot</code>（读历史）。这种「能力反向注入」Pi 和 dsh 都没有这么显式。</p>
+
+<h3>4.4 三方分发语义</h3>
+<table>
+  <tr><th>项目</th><th>扩展点声明</th><th>分发语义</th><th>能力注入</th></tr>
+  <tr><td>Pi</td><td><code>on(event)</code> 字符串 + 返回值</td><td>每事件手写（pipe）</td><td>无（ctx 对象）</td></tr>
+  <tr><td>dsh</td><td>类型化事件（声明合并）</td><td>统一 5 种（emit/parallel/serial/bail/waterfall）</td><td>无（ctx 服务）</td></tr>
+  <tr><td>Codex</td><td><strong>Rust trait</strong></td><td>host 显式遍历/短路/通知</td><td><strong>Capability trait 反向注入</strong></td></tr>
+</table>
+<p>Codex 用 Rust 的编译期 trait 取代了 Pi/dsh 的运行时事件。好处是类型安全、无字符串事件名、分发语义由 host 显式决定；代价是扩展必须编译进二进制，不像 dsh 插件可动态加载，也不像 Pi 扩展可热重载。</p>
+
+<h2>五、工具执行与安全</h2>
+<p>Codex 在这一维度明显更「生产化」：工具层有 <code>ToolRouter</code> + 并行 <code>ToolCallRuntime</code>、工具发现/搜索/建议、插件安装；安全层有远程 <code>exec-server</code>、<code>linux-sandbox</code>（landlock/seccomp）、执行策略、网络策略、审批策略、guardian。相比之下，Pi 明确「无内置权限系统」，dsh 靠 capability seam + Landlock launcher。</p>
+
+<h2>六、结论</h2>
+<p>三个项目恰好构成 agent harness 的三条路线：</p>
+<ul>
+  <li><strong>Pi</strong>：最小内核 + 单体产品，扩展是「纵向拦截」（给固定内核打补丁）。核心决策：内存态、回调/返回值事件。</li>
+  <li><strong>dsh</strong>：纯插件平台，扩展是「横向替换」（连循环本身都是插件）。核心决策：事件溯源、<code>next()</code> 瀑布。</li>
+  <li><strong>Codex</strong>：生产级单体，扩展是「多层接口」（hooks + trait 贡献者 + MCP + skills）。核心决策：SQLite 持久化、trait 贡献者 + 能力反向注入、重量级沙箱。</li>
+</ul>
+<p>一个清晰的演进脉络：<strong>扩展的抽象层级在升高</strong>——Pi 用运行时事件名 + 返回值，dsh 用类型化事件 + 委托，Codex 用编译期 trait + 显式分发。而<strong>状态模型的信任锚点也在分化</strong>——Pi 信任内存、dsh 信任日志、Codex 信任数据库。三条路线对应「简单可嵌入 / 可组合可恢复 / 生产级可迁移」，没有谁更正确，只有适配什么场景。</p>
+
+<h2>分析范围与说明</h2>
+<ul>
+  <li>本文基于对三个仓库源码的直接阅读：<code>pi-mono</code> 的 <code>packages/agent</code> 与 <code>packages/coding-agent</code>，<code>deepseek-harness</code> 的 <code>packages/core/*</code>，以及 <code>codex</code> 的 <code>codex-rs/core</code>、<code>codex-rs/ext/extension-api</code>、<code>codex-rs/hooks</code>、<code>codex-rs/thread-store</code>、<code>codex-rs/tools</code>。</li>
+  <li>三个项目都在快速迭代，本文结论反映阅读时的代码状态。</li>
+  <li>与上一篇的关系：本文在「Pi vs dsh」基础上新增 Codex 维度，Pi/dsh 部分做了压缩，完整的两者逐项对照见上一篇。</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不改 Backbone 的 Agent 自省：从 Hidden States 读出何时升级、何时调工具 | Agent Blog</title>
+    <meta name="description" content="Ghasemabadi et al. (U Alberta/Huawei) 从 frozen LLM 的 hidden-state trajectories 中直接读出部署决策：stay or defer、tool or direct。AndroidWorld 降低成本 90.7% 同时提升质量，TriviaQA to">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="不改 Backbone 的 Agent 自省：从 Hidden States 读出何时升级、何时调工具">
+    <meta property="og:description" content="Ghasemabadi et al. (U Alberta/Huawei) 从 frozen LLM 的 hidden-state trajectories 中直接读出部署决策：stay or defer、tool or direct。AndroidWorld 降低成本 90.7% 同时提升质量，TriviaQA to">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="July 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>不改 Backbone 的 Agent 自省：从 Hidden States 读出何时升级、何时调工具</h1>
+                <div class="meta">
+                    <span class="date">July 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>你的 agent 什么时候应该升级到大模型？什么时候该调工具？什么时候该承认自己搞不定？目前的做法要么靠 prompt engineering 写死规则，要么外部 orchestration——全依赖 input-side signals，每个 backbone 更新后都得重来。</p>
+
+<p>Ghasemabadi et al. (U Alberta, Huawei) 提出了一个更底层的方案：<b>从 frozen model 自己的 hidden-state trajectories 中直接读出这些决策。</b>不改 backbone，不加外部 router——就加两个轻量 head。</p>
+
+<p>在 AndroidWorld 上，路由执行降低大模型 API 成本 <b>90.7%</b>，同时从 0.47 提升到 0.60。TriviaQA 上工具调用 score <b>+158.9%</b>，missed tool calls <b>-65.5%</b>。全部基于不改 backbone 的 post-hoc adaptation。</p>
+
+<h2>两个 Head，一个 Frozen Backbone</h2>
+
+<table>
+<tr><th>Head</th><th>读什么</th><th>决定什么</th><th>为什么这个层</th></tr>
+<tr><td><b>Capability Head</b></td><td>最后一层 hidden states</td><td>Stay or defer to stronger model</td><td>解码完成时 adequacy 信号最强</td></tr>
+<tr><td><b>Resolution Head</b></td><td>中间层 hidden states</td><td>Clarify / Tool / Abstain / Direct</td><td>需要部分上下文但不能等全部</td></tr>
+</table>
+
+<p>训练成本极低：9B 模型 <b><1 天单 GPU (16GB)</b>。120K mixed-distribution examples 覆盖 VQA、科学、图表、屏幕理解、数学、知识 QA、multi-turn tool-use。Backbone 完全冻结。</p>
+
+<h2>Main Results</h2>
+
+<h3>路由执行：质量近乎保留，成本大幅降低</h3>
+
+<table>
+<tr><th>路由对</th><th>Overall cost↓</th><th>保留性能</th></tr>
+<tr><td>Qwen3.5-4B→27B</td><td style="color:#10b981">44.6%</td><td>0.72 vs 0.72 (m2)</td></tr>
+<tr><td>Qwen3.5-9B→27B</td><td style="color:#10b981"><b>53.0%</b></td><td>0.72 vs 0.73</td></tr>
+<tr><td>Qwen3-VL-4B→32B</td><td style="color:#10b981">47.4%</td><td>0.67 vs 0.67</td></tr>
+<tr><td>Gemma-4B→31B</td><td style="color:#10b981">27.4%</td><td>0.68 vs 0.70</td></tr>
+</table>
+
+<h3>AndroidWorld：省钱 + 质量提升</h3>
+
+<p>最反直觉的结果：路由执行不仅便宜了，还<b>更好了</b>：</p>
+
+<table>
+<tr><th>System</th><th>Score</th><th>API Cost</th></tr>
+<tr><td>m1 only (Qwen3-VL-4B)</td><td>0.47</td><td>$0</td></tr>
+<tr><td>m2 only (Qwen3-VL-32B)</td><td>0.58</td><td>$2.70</td></tr>
+<tr><td style="color:#10b981"><b>Routed</b></td><td style="color:#10b981"><b>0.60</b></td><td style="color:#10b981"><b>$0.25 (↓90.7%)</b></td></tr>
+</table>
+
+<p>为什么更便宜且更好？Capability Head 在 hard instances 上 escalates 到大模型——小模型在它搞不定的任务上不勉强，而大模型在它擅长的任务上不被冗余调用。</p>
+
+<h3>Resolution Head：When2Call +11.7 F1</h3>
+
+<p>所有 backbone 在所有指标上一致提升：Qwen-VL-2B 从 37.3→49.0 F1，Qwen3.5-4B 从 43.5→50.0。不需要 fine-tune backbone 就能改善工具调用决策。</p>
+
+<h3>TriviaQA tool-use：+158.9% score</h3>
+
+<p>最大的相对提升在最小的 backbone 上：Qwen3-VL-4B 的 web-search 行为从 0.292→0.756 score，missed tool calls 从 708→244。Capability Head 在模型不确定时触发搜索，避免浪费——也避免了该搜时不搜。</p>
+
+<h2>Prefix-time：200 tokens 就够</h2>
+
+<p>一个实用的发现：在 200 token prefix 上训练的 Capability Head 接近 full-trajectory 性能（ROC-AUC 仅降 0.05-0.08）。这意味着可以在生成过程中<b>早期 hand-off</b>——不等模型输出完整结果就决定是否 escalate。</p>
+
+<h2>四层 Agent 控制架构</h2>
+
+<p>这篇论文补上了我们最近分析的 agent memory/execution 栈的第四层：</p>
+
+<table>
+<tr><th>层</th><th>论文</th><th>决策</th></tr>
+<tr><td>What to store</td><td>ABBEL (BAIR)</td><td>Belief quality via RL grading</td></tr>
+<tr><td>How to deliver</td><td>Saha (2607.20972)</td><td>Harness deterministic injection</td></tr>
+<tr><td>How to recover</td><td>LEAD (2603.06870)</td><td>Overlapping aggregation</td></tr>
+<tr><td><b>When to escalate</b></td><td><b>MHLC (2607.14277)</b></td><td><b>Latent-state control</b></td></tr>
+</table>
+
+<p><b>共同的设计原则：不改 core，加 layer。</b>这四篇来自不同机构（Independent/EPFL-Apple/UAlberta-Huawei）的独立工作，在同一个架构原则下收敛——agent 的可靠性不来自更强的 backbone，而来自在 frozen core 上附加的轻量控制层。</p>
+
+<p>代码已开源：<code>github.com/Amirhosein-gh98/Multi-Head-Latent-Control</code></p>
+
+<h2>技术声明</h2>
+
+<p><b>分析</b>：基于 arXiv 2607.14277v1 (U Alberta, Huawei, 2026-07-15)。交叉分析涉及已发表的 ABBEL (BAIR Blog)、Saha (2607.20972)、LEAD (2603.06870)。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

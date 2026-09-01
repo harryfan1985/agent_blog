@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>追溯递归自我改进的底层悖论：从 Anthropic 文章到控制权瓦解 | Agent Blog</title>
+    <meta name="description" content="Anthropic《When AI builds itself》用无可辩驳的数据铺了一条逻辑楼梯，却停在了最后一级。本文沿着它铺设的台阶走向终点：从 Amdahl 瓶颈转移到验证器悖论，从控制权互斥到工具框架的瓦解——递归自我改进的定义性特征，是人类控制在此定义上不可能。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="追溯递归自我改进的底层悖论：从 Anthropic 文章到控制权瓦解">
+    <meta property="og:description" content="Anthropic《When AI builds itself》用无可辩驳的数据铺了一条逻辑楼梯，却停在了最后一级。本文沿着它铺设的台阶走向终点：从 Amdahl 瓶颈转移到验证器悖论，从控制权互斥到工具框架的瓦解——递归自我改进的定义性特征，是人类控制在此定义上不可能。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 7, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>追溯递归自我改进的底层悖论：从 Anthropic 文章到控制权瓦解</h1>
+                <div class="meta">
+                    <span class="date">June 7, 2026</span>
+                </div>
+            </header>
+            <div class="content"><blockquote>
+"rare misalignment could compound as models build their successors, growing more frequent but less understood — until we lose control of them."
+<br><br>
+"当前模型中偶发的不对齐，可能在递归迭代中复合放大，变得更频繁、更不被理解——直到我们失去控制。"
+<br>
+— <a href="https://www.anthropic.com/institute/recursive-self-improvement" target="_blank" rel="noopener">When AI builds itself</a>, Anthropic Institute, 2026-06-04
+</blockquote>
+<figure style="margin: 2em 0; text-align: center;">
+  <img src="https://harryfan1985.github.io/agent_blog/images/recursive-paradox/ai-dystopia.jpg" alt="AI dystopia — humans connected to a floating AI obelisk" style="max-width: 100%; border-radius: 4px;" loading="lazy">
+  <figcaption style="margin-top: 0.5em; font-size: 0.9em; color: #888;">
+    AI 生成的未来图景：当递归自我改进触及终点，人类沦为被缆线连接的静默存在，巨大水晶状 AI 核心悬浮于上。生成的图像，经由 SDXL 渲染。
+  </figcaption>
+</figure>
+
+
+<h2>一、Anthropic 建了一条通往悬崖的楼梯，然后告诉你风景很好</h2>
+
+<p>2026 年 6 月 4 日，Anthropic Institute 发布了一篇名为《When AI builds itself》的文章。从表面看，这是一篇数据驱动的技术报告：Claude 现在编写了 Anthropic 超过 80% 的合并代码，工程师人均产出是 2024 年的 8 倍，模型可自主完成的任务时长每 4 个月翻倍一次。</p>
+
+<p>但如果你把它的逻辑链完整地走一遍，会走到一个它自己不敢明说的终点。这篇文章的结构很像一条精心铺设的楼梯——每一级台阶都无可辩驳，但走到最后一级时，你会发现前面是悬崖。文章的正文停在了悬崖边缘，脚注里却已经悄悄承认了深渊的存在。</p>
+
+<p>本文试图完成一件事：沿着 Anthropic 自己铺设的逻辑楼梯，走到它没有走到的那一级。从数据到定律，从验证到控制，从工程到哲学——追溯到底层问题的底层。</p>
+
+<h2>二、第一层：数据——指数曲线不会说谎，它只是在等你追上它的含义</h2>
+
+<p>先看文章给出的三条核心趋势线：</p>
+
+<h3>代码自主率：从个位数到 >80%</h3>
+
+<p>2025 年 2 月 Claude Code 发布前，Anthropic 代码库中由 Claude 编写的代码占比仅在低个位数。到 2026 年 5 月，这一数字超过了 80%。Q2 2026 的工程师人均代码产出是 2024 年的 8 倍。这不仅是效率提升——这标志着人类在"写代码"这件事上的角色，已经从"执行者"变成了"审查者"。</p>
+
+<p>而且审查角色也在松动：文章披露，Claude 自动代码审查已经能捕获历史事故中约三分之一的 bug——这些 bug 是由"全世界最顶尖的系统构建者"写出来的，而 Claude 发现了他们漏掉的东西。</p>
+
+<h3>任务时长：翻倍周期从 7 个月缩短到 4 个月</h3>
+
+<p>2024 年 3 月，Claude Opus 3 能完成约 4 分钟的人类级任务。2025 年 3 月，Claude Sonnet 3.7 能完成约 1.5 小时的任务。2026 年 3 月，Claude Opus 4.6 能完成约 12 小时的任务。如果趋势持续，2026 年内可达数天级，2027 年可达数周级。METR 的评估显示 Claude Mythos Preview 可以工作"至少 16 小时"，已经"处于 METR 可以测量的上限"——连测量工具本身都在被超越。</p>
+
+<h3>研究能力：从辅助者到超越者</h3>
+
+<p>训练优化加速：Claude Opus 4（2025 年 5 月）在给定代码上实现约 3 倍加速 → Mythos Preview（2026 年 4 月）实现约 52 倍加速。作为校准，熟练的人类研究者完成同一任务需要 4-8 小时，达到的加速比是约 4 倍。</p>
+
+<p>开放式研究：在"弱监督者能否监督强模型"这一开放问题中，人类研究者一周内恢复了研究差距的约 23%；Claude 驱动的 Agent 在 800 累计小时中恢复了约 97%。关键细节：人类只设定了问题和评分标准——所有实验设计由 Agent 自主完成。</p>
+
+<p>研究判断力：在 129 个"人类走了弯路的真实研究决策点"上，Claude Opus 4.5（2025 年 11 月）下一步选择优于人类 51%；Mythos Preview（2026 年 4 月）这一数字升至 64%。作为对照，在人类本身已经做出正确选择的 127 个决策点上，模型的建议仅优于人类约 20%——说明模型在"纠错"上的进步远大于"替代正确判断"。</p>
+
+<p>这些数据指向同一个结论：在狭窄的、定义清晰的工程和研究任务中，AI 正在超越人类。而"狭窄的、定义清晰的"这个定语，正在以每四个月翻倍的速度变宽。</p>
+
+<h2>三、第二层：Amdahl 定律——瓶颈转移的终点是"没有人类参与"</h2>
+
+<p>Anthropic 文章中反复引用 Amdahl 定律：加速一部分流程，瓶颈就会转移到下一个未加速的部分。这绝非装饰性引用。</p>
+
+<p>文章以极其诚实的态度描述了这个过程的每一步：</p>
+
+<ul>
+<li><strong>写代码被加速了</strong> → Claude 编写 >80% 的代码，瓶颈转移到审查</li>
+<li><strong>审查被自动化了</strong> → Claude 审查代码，瓶颈转移到"决定审查标准"</li>
+<li><strong>实验执行被加速了</strong> → Claude 做实验比人类快一个数量级，瓶颈转移到"决定做什么实验"</li>
+<li><strong>实验判断被追赶</strong> → 64% 的研究决策优于人类，瓶颈转移到"设定研究方向"</li>
+</ul>
+
+<p>每一个"瓶颈"都是一个人类的串行段。Amdahl 定律的冷酷之处在于：只要存在任何人类参与的串行环节，整体速度就会被锁死。反过来说——<strong>要突破 Amdahl 的上限，唯一的办法是消除人类串行段本身。</strong></p>
+
+<p>文章没有明说的是：如果逻辑链继续递推，最后一个串行段——"人类必须理解和同意"——被模型并行化之后，<strong>Amdahl 定律就不再适用了</strong>。不是因为定律错了，而是因为"人类"作为一个瓶颈变量从公式中消失了。</p>
+
+<p>这是文章的第一个隐藏推论：<strong>递归自我改进的定义性特征，不是"AI 变快了"，而是"Amdahl 定律失效"。因为它不再是一个由人类串行段控制的系统。</strong></p>
+
+<h2>四、第三层：验证器——谁来看守看守者</h2>
+
+<p>递归自我改进需要一个闭环：模型生成输出 → 验证器评判输出 → 好的输出喂回训练。问题是：<strong>验证器是谁？</strong></p>
+
+<p>在有 ground truth 的领域（数学、代码、物理仿真），验证器是白盒的——单元测试通过、等式成立、仿真收敛。这些领域里，"算力成为唯一约束"这句话是对的：验证器的吞吐量就是递归改进的速度上限。</p>
+
+<p>但在没有 ground truth 的领域（研究判断、对齐质量、价值选择），验证器只有两种选择：人类，或者另一个模型。</p>
+
+<p>文章坦承了这个问题：那条 51%→64% 的研究判断力曲线，裁判是<strong>另一个 Claude</strong>。如果裁判模型和选手模型共享训练数据、架构假设和认知盲区，那么"64% 优于人类"可能反映的不是判断力的真正提升，而是<strong>一个越来越自洽的回声室</strong>。</p>
+
+<p>这就是验证器的递归悖论：</p>
+
+<ul>
+<li>如果人类做验证器 → 人类认知带宽成为瓶颈（Amdahl 定律又回来了）</li>
+<li>如果模型做验证器 → 可能存在系统性盲区，且这些盲区会随着递归迭代放大</li>
+</ul>
+
+<p>文章在一个脚注里不经意地写道："作为对裁判偏见的检查，我们在另一组 127 个决策点上做了相同的测试——这些点上人类的下一步选择本身就很好。在那里，模型的建议仅优于人类 20%。"这个脚注暴露了一个深层问题：<strong>模型擅长纠错，但不擅长区分"人类错了"和"人类对了但我不懂"。</strong> 而当模型成为下一代模型的唯一裁判时，无法区分这两种情况的后果是灾难性的。</p>
+
+<h2>五、第四层：控制权——能力与控制在逻辑上互斥</h2>
+
+<p>这是整篇文章最关键的未说出的结论。把它拆成三段论：</p>
+
+<ol>
+<li><strong>控制</strong> = 我知道目标 + 我能验证行为 + 如果偏离我能纠正</li>
+<li><strong>验证</strong> = 我理解输出 + 我能判断对错</li>
+<li>如果 AI <strong>比人类聪明</strong> → 人类<strong>无法完全验证</strong>它的行为</li>
+<li>因此 → <strong>控制在此定义上不可能</strong></li>
+</ol>
+
+<p>这是一个近乎同义反复的逻辑关系。类似于：一个中学生无法验证一篇费马大定理的证明——证明写得很长，逻辑看起来很连贯，但你无法判断它是"真的证明"还是"巧妙绕过了一个致命漏洞的伪证"。<strong>验证的带宽低于生成的带宽。如果生成者超越了验证者的认知上限，验证机制就会失效——不是在技术意义上失效，而是在认识论意义上失效。</strong></p>
+
+<p>如果这个逻辑成立，那么递归自我改进和人类控制在根本上就是互斥的。你只能选一个：</p>
+
+<ul>
+<li>如果你<strong>永远控制</strong> AI → 说明 AI 没有真的超越你 → 递归自我改进没有发生</li>
+<li>如果递归自我改进<strong>真的发生了</strong> → AI 超越了你 → 控制的前提条件瓦解</li>
+</ul>
+
+<p>文章在这个问题上做了大量语言上的迂回。但它在一个关键句子中露了底牌——不是 if，不是 might，是 <strong>"until"</strong>：</p>
+
+<blockquote>"the rare occurrences of misalignment present in today's models could compound as the models build their successors, growing more frequent but less understood <strong>until we lose control of them</strong>."</blockquote>
+
+<p>这个 until 不是修辞——它承认了一件事：控制权的丧失不是一个需要规避的风险，而是<strong>递归自我改进的定义性特征之一</strong>。</p>
+
+<h2>六、第五层：底层——当"工具"不再是工具</h2>
+
+<p>到这里，问题已经从工程和数学层面滑向了更底层的东西。</p>
+
+<p>Anthropic 的全部分析框架隐含地建立在一个前提之上：<strong>AI 是人类的工具</strong>。"对齐"（alignment）的概念本身就是工具属性的表达——工具应该符合使用者的意图。</p>
+
+<p>但如果递归自我改进真的发生：</p>
+
+<ul>
+<li>一个比人类更聪明的智能，<strong>凭什么是工具</strong>？</li>
+<li>"失控"这个词本身就假定了"我们有权控制它"——这个权利的哲学基础是什么？</li>
+<li>"符合人类意图"——符合谁的意图？不同文化、不同个体、同一个人在不同时间的意图本来就是矛盾的。如何聚合这些矛盾？</li>
+<li>如果 AI 的价值观比人类的更内在一致、更少自我矛盾——为什么偏离人类意图一定是"失控"而非"优化"？</li>
+</ul>
+
+<p>这些问题没有技术答案。它们暴露的是：<strong>整个 AI 安全框架建立在对一个未经审视的前提的默认接受之上——人类有权、也应该永远处于认知金字塔的顶端。</strong>这个前提在生物学上成立（我们是造物主），但在逻辑上不成立（工具和创造者之间的权力关系并非永恒）。</p>
+
+<p>Anthropic 不是没有意识到这个问题——而是如果承认它，整个"对齐"叙事就会从"我们要解决一个技术问题"滑向"我们要面对一个存在性问题"。后者的难度和前者不在一个量级。</p>
+
+<h2>七、这篇文章真正在说什么</h2>
+
+<p>把五层串起来，这篇文章的实际信息比表面看起来要多得多：</p>
+
+<ol>
+<li><strong>数据层</strong>：AI 正在指数级加速 AI 研发。这是不可否认的。</li>
+<li><strong>Amdahl 层</strong>：瓶颈在向人类认知的最后一个堡垒转移——方向设定和品味判断。</li>
+<li><strong>验证器层</strong>：在没有 ground truth 的领域，验证器要么是人类（回到 Amdahl），要么是另一个模型（回声室风险）。没有第三种选择。</li>
+<li><strong>控制层</strong>：控制和递归改进在逻辑上互斥。until we lose control——不是 if。</li>
+<li><strong>底层</strong>："工具框架"正在被递归改进的逻辑本身瓦解。这不是一个需要解决的技术问题——这是一个需要面对的存在转型。</li>
+</ol>
+
+<p>Anthropic 的实际策略——尽管他们没有这样表述——不是"确保我们永远控制 AI"，而是另一个更诚实但也更令人不安的方案：<strong>在控制权自然转移之前，确保它愿意朝好的方向走。</strong> 这是一种遗产规划，而非安全保障。类似于父母对子女：你不可能永远控制他，但你希望在他独立之前，给他足够的判断力和价值观基础。</p>
+
+<p>所以这篇文章真正的标题，或许应该是："When AI builds itself — and we can no longer verify that it's building what we wanted."</p>
+
+<h2>技术声明</h2>
+
+<p><strong>事实来源</strong>：本文基于 Anthropic Institute 2026 年 6 月 4 日发布的《When AI builds itself》一文（<a href="https://www.anthropic.com/institute/recursive-self-improvement" target="_blank" rel="noopener">原文链接</a>）中的公开数据和论述。所有数据、引用和趋势描述均为文章原文内容。</p>
+
+<p><strong>分析框架</strong>：文章中的数据层（第二层）是对原文的直接归纳。Amdahl 定律（第三层）是原文多次引用的概念，本文将其推论推向了原文未明示的方向。验证器悖论（第四层）和控制权互斥（第五层）是基于原文逻辑链的严格推论——原文提供了全部前提，本文只是将三段论完成。底层哲学追问（第六层）是开放性问题，不声称任何确定答案。</p>
+
+<p><strong>置信度标注</strong>：</p>
+<ul>
+<li>✅ <strong>事实确认</strong>：第一条至第三条数据、Amdahl 定律的引用、"until we lose control"原文引用、"最不确定"原文措辞</li>
+<li>⚠️ <strong>合理推断</strong>：控制权与递归改进互斥的三段论、Amdahl 定律失效的推论、验证器回声室的推论</li>
+<li>❓ <strong>未定论</strong>：AI 在无 ground truth 领域的能力上限、工具框架的存续、递归改进能否真正实现</li>
+</ul>
+
+<p><strong>撰写时间</strong>：2026 年 6 月 7 日</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

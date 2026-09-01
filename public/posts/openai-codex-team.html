@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Codex 团队：从 Chat 到 Agent 的产品哲学 | Agent Blog</title>
+    <meta name="description" content="深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。从 Thibault Sottiaux 到 Michael Bolin，了解这个打造 AI 编码代理的精英团队。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="OpenAI Codex 团队：从 Chat 到 Agent 的产品哲学">
+    <meta property="og:description" content="深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。从 Thibault Sottiaux 到 Michael Bolin，了解这个打造 AI 编码代理的精英团队。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 26, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>OpenAI Codex 团队：从 Chat 到 Agent 的产品哲学</h1>
+                <div class="meta">
+                    <span class="date">May 26, 2026</span>
+                </div>
+            </header>
+            <div class="content"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Codex 团队核心成员解析 | Agent Blog</title>
+    <meta name="description" content="深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。从 Thibault Sottiaux 到 Michael Bolin，了解这个打造 AI 编码代理的精英团队。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="OpenAI Codex 团队核心成员解析">
+    <meta property="og:description" content="深度解析 OpenAI Codex 团队的核心成员背景、技术选型和工作方式。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="May 20, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>OpenAI Codex 团队核心成员解析</h1>
+                <div class="meta">
+                    <span class="date">May 20, 2026</span>
+                    <span class="read-time">5 分钟阅读</span>
+                </div>
+            </header>
+            <div class="content">
+
+<h2>目录</h2>
+
+<p>1. <a href="#1-核心领导层">核心领导层</a></p>
+<p>2. <a href="#2-技术骨干">技术骨干</a></p>
+<p>3. <a href="#3-团队工作方式">团队工作方式</a></p>
+<p>4. <a href="#4-技术选型">技术选型</a></p>
+<p>5. <a href="#5-参考资源">参考资源</a></p>
+
+<hr>
+
+<h2 id="1-核心领导层">1. 核心领导层</h2>
+
+<h3>Thibault "Tibo" Sottiaux — Head of Codex</h3>
+
+<p>Tibo 是 Codex 的工程负责人，直接向 OpenAI 高层汇报。他的背景非常有趣：</p>
+
+<p>- <strong>前 Google 软件工程师</strong>，在 Google 期间积累了大规模系统开发经验</p>
+<p>- <strong>应用研究背景</strong>：专注于决策系统、预测建模和数据库系统</p>
+<p>- 在 OpenAI 的职级是 <strong>Member of Technical Staff</strong></p>
+
+<p>Tibo 在多个公开场合分享了 Codex 的愿景，包括 OpenAI Forum 和 Software Engineering Daily 播客。他强调 Codex 的目标不仅是代码生成，而是<strong>"agentic SDLC"</strong>（代理驱动的软件开发生命周期）。</p>
+
+<blockquote>
+<p>"Greg 和 Sam 有强烈的信念：'最终，我们应该有一个自主软件工程师与我们一起工作'……时机就是现在。"</p>
+<p>—— Thibault Sottiaux</p>
+</blockquote>
+
+<h3>Greg Brockman — OpenAI Co-founder</h3>
+
+<p>Greg Brockman 是推动 Codex 成为 OpenAI 战略重点的关键人物：</p>
+
+<p>- 2024 年底，他将 <strong>aSWE (Autonomous Software Engineer)</strong> 定为 2025 年的 top-line goal</p>
+<p>- 与 Sam Altman 共同推动了 Codex 从实验项目到核心产品的转变</p>
+<p>- 在 Apple Podcasts 的访谈中与 Tibo 一起讨论 Codex 的演进</p>
+
+<h3>Sam Altman — OpenAI CEO</h3>
+
+<p>Sam Altman 对 Codex 的评价非常直接：</p>
+
+<blockquote>
+<p>"Codex 是我们最受喜爱的内部产品。"</p>
+</blockquote>
+
+<p>这一评价反映了 Codex 在 OpenAI 内部的使用深度——不仅是面向外部的产品，也是 OpenAI 工程师日常工作的核心工具。</p>
+
+<hr>
+
+<h2 id="2-技术骨干">2. 技术骨干</h2>
+
+<h3>Michael Bolin — Tech Lead（开源仓库）</h3>
+
+<p>Michael Bolin 负责 Codex 开源仓库的技术方向：</p>
+
+<p>- <strong>前 Meta Distinguished Engineer (E9)</strong>：Meta 的最高工程职级之一</p>
+<p>- 曾在 <strong>Google 和 Meta</strong> 工作，积累了丰富的 Big Tech 工程经验</p>
+<p>- 主导了 Codex CLI 的架构设计，包括 agent loop 的 state machine 实现</p>
+<p>- 发表了技术博客 <a href="https://openai.com/index/unrolling-the-codex-agent-loop/">"Unrolling the Codex Agent Loop"</a></p>
+
+<p>Michael 在访谈中提到，他在 OpenAI 学到的关键经验是：<strong>"技术上正确是不够的"</strong>——必须考虑用户体验和实际影响。</p>
+
+<h3>Gabriel Peal — Engineering Lead（IDE Extension & Desktop App）</h3>
+
+<p>Gabriel 负责 Codex 的 IDE 扩展和桌面应用：</p>
+
+<p>- <strong>前 Airbnb</strong>：React Native 迁移决策的核心人物，主导了 Airbnb 从 React Native 回归原生开发的工程</p>
+<p>- <strong>前 Google</strong>：Android GSE (Google Software Engineer)</p>
+<p>- <strong>前 Watershed、Tonal</strong>：气候科技和健身科技领域的工程经验</p>
+<p>- <strong>Lo 维护者</strong>：一个开源动画库</p>
+
+<p>Gabriel 几乎是独立构建了 VS Code 扩展，并奠定了桌面应用的基础。他的多领域经验（移动端、桌面端、云）让 Codex 的多平台策略更加扎实。</p>
+
+<h3>Fouad Matin — Safety & Security Lead</h3>
+
+<p>Fouad 负责 Codex 的安全和沙箱机制：</p>
+
+<p>- <strong>前 Indent 联合创始人/CEO</strong>（2018-2024）：云访问管理领域的网络安全创业公司</p>
+<p>- <strong>前 Segment 工程师</strong>（2016-2017）：数据基础设施</p>
+<p>- <strong>VotePlz 联合创始人</strong>：帮助数百万人投票的公益项目</p>
+<p>- 在 OpenAI 专注于<strong>代码执行代理的安全和沙箱技术</strong></p>
+
+<p>Fouad 的背景在 Codex 团队中至关重要——Codex 的核心差异化之一就是<strong>默认安全沙箱</strong>，这让非技术用户也能安全使用。</p>
+
+<hr>
+
+<h2 id="3-团队工作方式">3. 团队工作方式</h2>
+
+<h3>Agent-First 开发</h3>
+
+<p>Codex 团队是<strong>自己产品的重度用户</strong>：</p>
+
+<p>- 典型工程师同时运行 <strong>4-8 个并行 agent</strong></p>
+<p>- 工程师的角色从"写代码"转变为<strong>"agent 管理者"</strong></p>
+<p>- 每天到达工位时，多个 agent 已经在处理：代码审查、功能实现、安全审计、代码库理解、计划总结、bug 修复等</p>
+
+<h3>自举开发（Self-Hosted）</h3>
+
+<p>Codex 团队实现了真正的<strong>自举</strong>：</p>
+
+<p>- <strong>>90% 的 Codex 代码由 Codex 自己生成</strong></p>
+<p>- 这与 Anthropic 的 Claude Code 团队报告的数据一致</p>
+<p>- GPT-5.3-Codex 是第一个<strong>帮助创造自己</strong>的模型</p>
+
+<h3>发布频率</h3>
+
+<p>- <strong>内部发布</strong>：每天 3-4 次</p>
+<p>- <strong>外部发布</strong>：每几天一次（通过 Homebrew、npm）</p>
+<p>- 截至 2026 年 4 月，Codex CLI 已有 <strong>709 个 release</strong></p>
+
+<h3>技能系统（Skills）</h3>
+
+<p>团队内部有 <strong>100+ 个 skill</strong>，持续在内部共享：</p>
+
+<table>
+<tr><th>Skill</th><th>功能</th></tr>
+<tr><td>Security best-practices</td><td>检查代码是否符合安全规范，生成补丁</td></tr>
+<tr><td>"Yeet"</td><td>从计划自动生成 PR 标题/描述，一键创建 draft PR</td></tr>
+<tr><td>Datadog integration</td><td>连接 Datadog，审查告警/问题，尝试生成修复</td></tr>
+</table>
+
+<h3>分层代码审查</h3>
+
+<p>- <strong>AI 审查</strong>： bespoke 模型自动运行，约 90% 的 AI 评论指出有效问题</p>
+<p>- <strong>非关键代码</strong>：AI 审查后即可合并，无需人工</p>
+<p>- <strong>核心代码</strong>（agent、开源部分）：强制人工审查</p>
+
+<hr>
+
+<h2 id="4-技术选型">4. 技术选型</h2>
+
+<h3>为什么用 Rust？</h3>
+
+<p>团队曾对比 TypeScript、Go 和 Rust，最终选择 Rust：</p>
+
+<p>- <strong>性能</strong>：大规模场景下每毫秒都重要</p>
+<p>- <strong>正确性</strong>：强类型和内存管理</p>
+<p>- <strong>工程文化</strong>：Rust 设定了高门槛</p>
+<p>- <strong>依赖少</strong>：避免 npm 依赖链的脆弱性</p>
+<p>- <strong>长期愿景</strong>：agent 需要在嵌入式系统、数据中心、笔记本上运行</p>
+
+<p>团队甚至雇佣了 <strong>Ratatui</strong>（Rust TUI 库）的维护者全职加入。</p>
+
+<h3>Agent Loop 架构</h3>
+
+<p>核心是一个 state machine：</p>
+
+<p>1. <strong>Prompt assembly</strong>：用户输入 + 系统指令 + 工具列表 + 文件 + 环境</p>
+<p>2. <strong>Inference</strong>：token 发送到模型，流式返回推理步骤、工具调用或响应</p>
+<p>3. <strong>Response</strong>：流式输出到终端；如果是工具调用，执行（读文件、运行 bash、写代码）</p>
+<p>4. <strong>Tool response</strong>（可选）：失败时错误返回模型诊断/重试</p>
+<p>5. <strong>Assistant message</strong>：最终消息给用户，循环重启</p>
+
+<h3>Compaction 机制</h3>
+
+<p>当对话超过 token 阈值时，特殊的 Responses API endpoint 生成紧凑表示，避免二次推理成本。</p>
+
+<h3>安全沙箱</h3>
+
+<p>- 默认在沙箱中运行（限制网络/文件系统）</p>
+<p>- 用户可以禁用，但默认安全</p>
+<p>- 这是 Codex 区别于其他终端 agent 的关键设计</p>
+
+<hr>
+
+<h2 id="5-参考资源">5. 参考资源</h2>
+
+<p>- <a href="https://newsletter.pragmaticengineer.com/p/how-codex-is-built">How Codex is Built - Pragmatic Engineer</a>（Gergely Orosz, 2026年2月）</p>
+<p>- <a href="https://github.com/openai/codex">OpenAI Codex GitHub</a></p>
+<p>- <a href="https://openai.com/index/unrolling-the-codex-agent-loop/">Unrolling the Codex Agent Loop - Michael Bolin</a></p>
+<p>- <a href="https://www.reddit.com/r/ChatGPT/comments/1ko3tp1/ama_with_openai_codex_team">AMA with OpenAI Codex team - Reddit</a></p>
+<p>- <a href="https://softwareengineeringdaily.com/2026/01/29/openai-and-codex-with-thibault-sottiaux-and-ed-bayes">OpenAI and Codex - Software Engineering Daily</a></p>
+
+            </div>
+        </article>
+    </main>
+
+    <footer class="container">
+        <p>© 2026 Harry Fan. Built with curiosity and AI assistance.</p>
+    </footer>
+
+    <script>
+        // Navigation scroll behavior
+        let lastScroll = 0;
+        const navbar = document.querySelector('.navbar');
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+
+            if (currentScroll <= 0) {
+                navbar.classList.remove('scroll-up');
+                return;
+            }
+
+            if (currentScroll > lastScroll && !navbar.classList.contains('scroll-down')) {
+                navbar.classList.remove('scroll-up');
+                navbar.classList.add('scroll-down');
+            } else if (currentScroll < lastScroll && navbar.classList.contains('scroll-down')) {
+                navbar.classList.remove('scroll-down');
+                navbar.classList.add('scroll-up');
+            }
+            lastScroll = currentScroll;
+        });
+    </script>
+</body>
+</html>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

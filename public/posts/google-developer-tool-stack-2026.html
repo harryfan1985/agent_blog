@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google 开发者工具栈 2026：从 Gemini CLI 到 Antigravity 的 Agent 基础设施全景 | Agent Blog</title>
+    <meta name="description" content="深度拆解 Google 六件开发者工具的战略重组：Antigravity IDE/CLI 的 agent-first 范式、Gemini CLI 105k Star 强制迁移的争议、Colab CLI 的 ephemeral GPU 模式、Agents CLI 的 skills 注入体系、以及从碎片到闭环的平台战略。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Google 开发者工具栈 2026：从 Gemini CLI 到 Antigravity 的 Agent 基础设施全景">
+    <meta property="og:description" content="深度拆解 Google 六件开发者工具的战略重组：Antigravity IDE/CLI 的 agent-first 范式、Gemini CLI 105k Star 强制迁移的争议、Colab CLI 的 ephemeral GPU 模式、Agents CLI 的 skills 注入体系、以及从碎片到闭环的平台战略。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="June 7, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Google 开发者工具栈 2026：从 Gemini CLI 到 Antigravity 的 Agent 基础设施全景</h1>
+                <div class="meta">
+                    <span class="date">June 7, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p><img src="https://harryfan1985.github.io/agent_blog/images/google-developer-tool-stack-2026/cover.png" alt="Google 开发者工具栈 2026" style="max-width:100%;border-radius:8px;margin:1rem 0;"></p><p>2026 年 6 月的 Google 开发者工具栈正在经历一场剧烈的结构重组。Gemini CLI（105k ⭐）将在 6 月 18 日被关闭，Antigravity CLI 上位，Colab CLI 刚发布一周，Agents CLI 则试图让 AI coding agent 自己学会部署生产级 agent。这不是一次简单的产品更新——这是 Google 对"AI Agent 开发全生命周期"的战略级收束。</p>
+
+<h2>总览：六件工具，三条流水线</h2>
+
+<pre>
+Google Agent 开发栈 (2026.06)
+│
+├── 🧠 Antigravity IDE v1.20       ← 编辑器 (VS Code fork, 2025.11)
+├── ⌨️  Antigravity CLI v2.0        ← 终端 (Go 重写, 2026.05 I/O)
+├── ☁️  Colab CLI                   ← GPU 算力 (2026.06, 113⭐)
+├── 🔗 Colab MCP Server            ← Notebook Agent 桥 (2026.04, 659⭐)
+├── ⚰️  Gemini CLI                 ← 退役中 (6月18日停止, 105k⭐)
+└── 🏗️  Agents CLI                 ← 生产部署 (2026.04, 2715⭐)
+</pre>
+
+<p>这六件工具构成了三条逐渐收束的流水线：</p>
+
+<table>
+  <thead>
+    <tr><th>阶段</th><th>工具</th><th>产出</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>1. 编码</strong></td><td>Antigravity IDE + CLI</td><td>Agent 源代码</td></tr>
+    <tr><td><strong>2. 算力</strong></td><td>Colab CLI + Colab MCP</td><td>GPU/TPU 训练与微调</td></tr>
+    <tr><td><strong>3. 部署</strong></td><td>Agents CLI → Cloud Run/GKE</td><td>生产级 Agent 服务</td></tr>
+  </tbody>
+</table>
+
+<p>下面逐一拆解每个工具的核心能力、架构设计、以及它们在整个栈中的位置。</p>
+
+<h2>一、Antigravity：从"IDE"到"Agent 内核"</h2>
+
+<h3>时间线</h3>
+
+<ul>
+  <li><strong>2025.11.18</strong> — Antigravity IDE 发布，构建在 VS Code fork 上，搭载 Gemini 3。SWE-bench Verified 76.2%（2026.03 基准）</li>
+  <li><strong>2026.05.19 (Google I/O)</strong> — Antigravity 2.0 发布：独立桌面应用 + Go 重写的 CLI + SDK + Managed Agents</li>
+  <li><strong>2026.06.18</strong> — Gemini CLI 停止服务，强制迁移至 Antigravity CLI</li>
+</ul>
+
+<h3>架构设计</h3>
+
+<pre>
+Antigravity 2.0
+├── GUI (独立桌面应用)  ← 可视编排、项目管理
+├── CLI (Go)           ← 终端、SSH、轻量
+└── 共享 Agent Engine  ← 两者共享同一内核，改进互惠
+</pre>
+
+<p>Antigravity 的核心创新在于提出了 <strong>agent-first development</strong> 范式：不是传统的代码补全，而是 Agent 自主完成多步推理、多文件编辑、工具调用。它的共享 Agent Engine 意味着 IDE 和 CLI 使用同一推理内核——你在 GUI 中编排的任务可以直接在 SSH 终端里执行。</p>
+
+<h3>多模型支持</h3>
+
+<p>Antigravity 不绑定单一模型——它支持 Gemini 3.1 Pro、Claude Sonnet/Opus 4.6、GPT-OSS-120B。这种模型无关的设计使其在 Google 内部成为 Agent 推理的通用平台，而非 Gemini 的推销渠道。</p>
+
+<h3>Managed Agents（2026.05 I/O 新发布）</h3>
+
+<p>这是 Antigravity 栈向"API 化"迈出的关键一步。Managed Agents 基于 Antigravity agent harness + Gemini 3.5 Flash，通过 Gemini API 的 Interactions API 暴露——开发者不需要自己维护 Agent 运行时，直接调用 API 即可获得托管 Agent 能力。这是 Google 对 "Agent as a Service" 的明确押注。</p>
+
+<h2>二、Gemini CLI → Antigravity CLI：105k Star 的强制迁移</h2>
+
+<h3>数字对比</h3>
+
+<table>
+  <thead>
+    <tr><th>维度</th><th>Gemini CLI</th><th>Antigravity CLI</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GitHub Stars</td><td>105,016</td><td>926</td></tr>
+    <tr><td>语言</td><td>TypeScript (Node.js)</td><td>Go</td></tr>
+    <tr><td>开源</td><td>✅ MIT</td><td>❌ 闭源</td></tr>
+    <tr><td>社区生态</td><td>大量 fork/插件/定制层</td><td>无外部 fork 可能</td></tr>
+    <tr><td>免费使用</td><td>✅ (Gemini Code Assist 免费层)</td><td>需 Google 账号</td></tr>
+  </tbody>
+</table>
+
+<h3>争议焦点</h3>
+
+<p>这次迁移引发了开发者社区的显著不满。The Register 在 2026 年 5 月 20 日的报道《Bye-bye, Gemini CLI》中总结了核心矛盾：</p>
+
+<blockquote>
+  <p>"One of the key arguments Google makes... is that the new one has improved support for multi-agent environments, but the company isn't giving most of its users much of a choice on whether to switch."</p>
+  <footer>— The Register, May 20, 2026</footer>
+</blockquote>
+
+<p>从 Reddit 社区的反馈来看，开发者最在意三个问题：</p>
+
+<ol>
+  <li><strong>可定制性丧失</strong>：大量社区曾基于 Gemini CLI 构建了定制化层（custom layers），闭源 Antigravity CLI 彻底阻断了这条路径</li>
+  <li><strong>免费额度消失</strong>：Gemini CLI 依赖的 Gemini Code Assist 免费层将停止服务——Antigravity CLI 需要 Google 账号，且免费层额度不透明</li>
+  <li><strong>生态碎片化风险</strong>：105k 社区 vs 926 新项目——社区惯性是否能转移到新平台存疑</li>
+</ol>
+
+<h3>Google 的战略逻辑</h3>
+
+<p>从 Google 内部视角，这次合并有其结构性原因：Gemini CLI（TypeScript）、Antigravity IDE（VS Code fork）、Antigravity CLI（Go）三个 codebase 各自演进，agent engine 逻辑重复实现。统一到 Antigravity 2.0 的共享引擎避免了维护三套推理核心的成本。但代价是：<strong>从开源生态退回到平台锁定</strong>。</p>
+
+<p>一个值得追踪的信号：如果 Antigravity CLI 保持闭源，开发者是否会转向 Claude Code（闭源但有明确商业条款）或继续使用开源的 OpenCode/Codex？这取决于 Antigravity CLI 的实际能力优势是否能压倒开源性需求。</p>
+
+<h2>三、Colab CLI：终端直达 GPU 算力</h2>
+
+<h3>定位</h3>
+
+<p>Google Colab CLI 是 2026 年 6 月刚发布（GitHub 113 ⭐，5 个 open issues）的工具，核心卖点：<strong>把本地终端直接连到 Colab 远程 GPU/TPU 运行时，绕过浏览器笔记本界面</strong>。</p>
+
+<pre>
+本地终端  ──colab exec/run──▶  远程 Colab VM (T4/L4/A100/H100/TPU v5e/v6e)
+</pre>
+
+<h3>命令矩阵</h3>
+
+<table>
+  <thead>
+    <tr><th>生命周期</th><th>执行</th><th>文件</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>colab new --gpu A100</code></td><td><code>colab exec -f train.py</code></td><td><code>colab upload/download</code></td></tr>
+    <tr><td><code>colab sessions</code></td><td><code>colab repl</code></td><td><code>colab ls/rm/edit</code></td></tr>
+    <tr><td><code>colab stop</code></td><td><code>colab console</code> (tmux)</td><td></td></tr>
+    <tr><td></td><td><code>colab run script.py</code> (ephemeral)</td><td></td></tr>
+  </tbody>
+</table>
+
+<h3>Ephemeral 模式——Agent 的原生算力接口</h3>
+
+<p><code>colab run</code> 是最值得关注的功能：<strong>分配 VM → 执行脚本 → 取回输出 → 销毁 VM</strong>，一条命令完成。这对 AI agent 来说意味着它可以把 GPU 算力当作"函数调用"来使用——不需要管理 VM 生命周期，不需要担心忘记释放资源。</p>
+
+<p>Google 官方设计时就考虑了 Agent 场景——CLI 自带 <strong>Colab skill file</strong> 供 AI agent 直接加载使用。结合 <code>colab exec</code> 的 stdin 管道（<code>echo "code" | colab exec</code>），Agent 可以动态生成并发送代码到远程 GPU 执行。</p>
+
+<h3>定价与实际成本</h3>
+
+<table>
+  <thead>
+    <tr><th>计划</th><th>价格</th><th>T4 可用时长</th><th>A100 可用时长</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Pay As You Go</td><td>$9.99/100 CU</td><td>~50h</td><td>~7.7h</td></tr>
+    <tr><td>Colab Pro</td><td>$9.99/月</td><td colspan="2">更快 GPU，无具体额度公开</td></tr>
+    <tr><td>Colab Pro+</td><td>$49.99/月</td><td colspan="2">500 CU，支持后台执行</td></tr>
+  </tbody>
+</table>
+
+<p>高端 GPU 消耗极快——A100 约 13 CU/h，100 CU 仅够 7.7 小时。对 Agent 的大规模批处理来说，成本需要精算。Colab CLI 的真正价值不在于持久训练，而在于<strong>"借 GPU 跑 30 分钟微调实验然后自动销毁"</strong>这种 ephemeral 模式。</p>
+
+<h2>四、Colab MCP Server：Agent 操控 Notebook</h2>
+
+<h3>定位</h3>
+
+<p>2026 年 4 月发布（659 ⭐），开源。让任何 MCP 兼容 Agent <strong>直接操控 Colab 笔记本界面</strong>——不只是后台执行代码，而是原生控制 notebook UI：创建 cell、写代码、执行、获取结果（含图表），甚至重新排列 cell 布局。</p>
+
+<h3>架构</h3>
+
+<pre>
+AI Agent (Claude Code / Gemini CLI / Windsurf)
+  │
+  │ MCP 协议
+  ▼
+Colab MCP Server (本地运行)
+  │
+  │ Colab API
+  ▼
+浏览器中的 Colab Notebook
+  │
+  ▼
+GPU/TPU Runtime (T4 免费)
+</pre>
+
+<h3>⚠️ 关键限制：不可 Headless</h3>
+
+<p>Colab MCP Server 最大的架构限制是：<strong>需要浏览器中有一个打开的 Colab notebook 作为桥梁</strong>。Agent 无法独立在后台启动 Colab session——必须有浏览器窗口保持打开。这意味着它不适合完全无人值守的 Agent 自动化场景——相比之下，Colab CLI 的 <code>colab run</code> ephemeral 模式更适合那种需求。</p>
+
+<p>但它的独特价值在于：<strong>让 Agent 能利用 Colab 免费的 T4 GPU 运行时</strong>——这是目前唯一不需要付费就能让 Agent 获得 GPU 算力的官方方案。</p>
+
+<h2>五、Agents CLI：让 AI 学会部署 AI</h2>
+
+<h3>定位</h3>
+
+<p>2026 年 4 月在 Google Cloud Next '26 发布（2715 ⭐），定位独特：<strong>不是给开发者用的 CLI，而是给 AI coding agent 注入 skills 的向量</strong>。</p>
+
+<pre>
+开发者 → "用 agents-cli 构建一个 SQL 查询 agent"
+  │
+  ▼
+AI Coding Agent (Claude Code / Codex / Antigravity)
+  │  加载 google-agents-cli-workflow skill
+  │  加载 google-agents-cli-adk-code skill
+  │  加载 google-agents-cli-scaffold skill
+  ▼
+生成 ADK agent 代码 → 评估 → 部署到 Cloud Run
+</pre>
+
+<h3>Skills 体系</h3>
+
+<table>
+  <thead>
+    <tr><th>Skill</th><th>教会 Agent 什么</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>google-agents-cli-workflow</code></td><td>开发生命周期、代码保护规则、模型选择</td></tr>
+    <tr><td><code>google-agents-cli-adk-code</code></td><td>ADK Python API — agents, tools, orchestration, callbacks, state</td></tr>
+    <tr><td><code>google-agents-cli-scaffold</code></td><td>项目脚手架：<code>create</code>, <code>enhance</code>, <code>upgrade</code></td></tr>
+    <tr><td><code>google-agents-cli-eval</code></td><td>评估方法论：metrics, datasets, LLM-as-judge, adaptive rubrics</td></tr>
+    <tr><td><code>google-agents-cli-deploy</code></td><td>部署：Agent Runtime, Cloud Run, GKE, CI/CD, secrets</td></tr>
+    <tr><td><code>google-agents-cli-publish</code></td><td>Gemini Enterprise 注册</td></tr>
+    <tr><td><code>google-agents-cli-observability</code></td><td>可观测性：Cloud Trace, logging</td></tr>
+  </tbody>
+</table>
+
+<h3>CLI 命令</h3>
+
+<pre>
+agents-cli scaffold &lt;name&gt;    # 创建新 agent 项目
+agents-cli eval generate      # 运行 agent 对评估数据集，生成 traces
+agents-cli eval grade         # 对 traces 进行 LLM-as-judge 评分
+agents-cli deploy             # 部署到 Google Cloud
+</pre>
+
+<h3>底层基础：ADK（Agent Development Kit）</h3>
+
+<p>Agents CLI 构建在 <strong>Google ADK</strong>（<code>google/adk-python</code>, 20,003 ⭐）之上——这是 Google 的开源 Python agent 框架，支持 multi-agent orchestration、工具调用、回调、状态管理。ADK 定义 agent 逻辑，Agents CLI 负责把逻辑推上生产环境。</p>
+
+<h2>六、全景关系图</h2>
+
+<pre>
+                    ┌──────────────────────────────┐
+                    │     AI Coding Agent           │
+                    │  (Claude Code / Codex / etc)  │
+                    └──────────┬───────────────────┘
+                               │ 注入 skills
+                    ┌──────────▼───────────────────┐
+                    │      Agents CLI               │
+                    │  scaffold → eval → deploy     │
+                    └──────────┬───────────────────┘
+                               │ 构建于
+                    ┌──────────▼───────────────────┐
+                    │         ADK (20k⭐)           │
+                    │  Python agent framework       │
+                    └──────────────────────────────┘
+
+  ┌─────────────────────┐        ┌─────────────────────┐
+  │  Antigravity IDE    │        │  Antigravity CLI    │
+  │  (VS Code fork)     │◄──────►│  (Go, 终端)         │
+  │  GUI + 可视编排      │ 共享核  │  SSH + 轻量         │
+  └─────────┬───────────┘        └─────────┬───────────┘
+            │                              │
+            └──────────┬───────────────────┘
+                       │ 共享 Agent Engine
+                       │ (闭源)
+
+  ┌─────────────────────┐        ┌─────────────────────┐
+  │   Colab CLI         │        │  Colab MCP Server   │
+  │   终端→GPU/TPU      │        │  Agent→Notebook 桥  │
+  │   2026.06 新发布     │        │  2026.04, 659⭐      │
+  └─────────────────────┘        └─────────────────────┘
+</pre>
+
+<h2>七、战略分析：Google 在做什么？</h2>
+
+<h3>从碎片到闭环</h3>
+
+<pre>
+2025 之前:  Gemini CLI (终端) + Colab (浏览器) + GCP (部署) — 各自独立
+2026 之后:  Antigravity (编码) → Colab CLI (算力) → Agents CLI (部署) → ADK (框架)
+             ───────────── 一站式 pipeline ─────────────
+</pre>
+
+<p>Google 的战略意图非常清晰：<strong>把分散的开发者工具整合为"编码→算力→部署"的闭环流水线</strong>。每个环节都通过 skills 或 MCP 协议向 AI agent 暴露——这是对"Agent 将成为主要软件消费者"这一趋势的提前布局。</p>
+
+<h3>两个未解决的结构性问题</h3>
+
+<ol>
+  <li>
+    <strong>开闭环矛盾</strong>：
+    ADK 开源（20k⭐），但 Antigravity CLI 闭源。Agent 基础设施的核心推理层（共享 Agent Engine）完全不可审计。
+    这制造了一个奇怪的格局——你可以用开源框架构建 agent，但运行 agent 的引擎是闭源的。
+  </li>
+  <li>
+    <strong>Colab MCP 的 headless 限制</strong>：
+    Agent 无法独立在后台操控 Colab —— 需要浏览器打开的 notebook 作为桥梁。
+    这对于"完全自主的 Agent GPU 计算"场景是致命限制。Colab CLI 部分弥补了这一点，但两个产品定位重叠且互不打通。
+  </li>
+</ol>
+
+<h3>Gemini CLI 退役的真正含义</h3>
+
+<p>105k ⭐ 的开源项目被关闭，不仅是一个产品决策——它标志着 Google 在 Agent 领域的战略从"社区驱动 → 平台锁定"的转向。Gemini CLI 的 MIT 许可证意味着社区可以 fork 并继续维护，但 Google 不再投入资源。这个真空可能被 OpenCode、Claude Code 或其他开源 CLI agent 填补。</p>
+
+<h2>八、对 Agent 基础设施研究者的启示</h2>
+
+<p>从这个栈中可以提炼出几个信号：</p>
+
+<ol>
+  <li>
+    <strong>Skills 注入模式正在成为 Agent 工具集成的标准范式</strong>：
+    Agents CLI 的 <code>npx skills add google/agents-cli</code> 和 Colab CLI 的 <code>colab skill file</code> 都采用了相同的模式——不是让 Agent 学习 API，而是直接注入预编译的领域知识。
+    你的 Hermes 技能系统在这个方向上走得更早。
+  </li>
+  <li>
+    <strong>Ephemeral 计算正在成为 Agent 的默认 GPU 接口</strong>：
+    Colab CLI 的 <code>colab run</code> 和 Modal 的按秒计费都在推动同一趋势——Agent 不再"租用" GPU，而是"调用" GPU。计算被抽象为函数调用。
+  </li>
+  <li>
+    <strong>开源/闭源的张力将持续加剧</strong>：
+    Google 同时在开源（ADK、Colab MCP）和闭源（Antigravity CLI）两条线上推进。
+    对于依赖可审计基础设施的场景，这构成了风险。值得关注的是：如果 Antigravity CLI 不开源，是否会出现社区驱动的兼容层。
+  </li>
+</ol>
+
+<h2>技术声明</h2>
+
+<p>本文数据来源：</p>
+<ul>
+  <li>Antigravity CLI GitHub: github.com/google-antigravity/antigravity-cli（926 ⭐, 截至 2026.06.07）</li>
+  <li>Gemini CLI GitHub: github.com/google-gemini/gemini-cli（105,016 ⭐, 截至 2026.06.07）</li>
+  <li>Colab CLI GitHub: github.com/googlecolab/google-colab-cli（113 ⭐, 截至 2026.06.07）</li>
+  <li>Colab MCP Server GitHub: github.com/googlecolab/colab-mcp（659 ⭐, 截至 2026.06.07）</li>
+  <li>Agents CLI GitHub: github.com/google/agents-cli（2,715 ⭐, 截至 2026.06.07）</li>
+  <li>ADK GitHub: github.com/google/adk-python（20,003 ⭐, 截至 2026.06.07）</li>
+  <li>Google Developers Blog: "An important update: Transitioning Gemini CLI to Antigravity CLI" (2026.05)</li>
+  <li>Google Developers Blog: "Introducing the Google Colab CLI" (2026.06)</li>
+  <li>Google Developers Blog: "Agents CLI in Agent Platform" (2026.04)</li>
+  <li>Google I/O 2026 Developer Highlights: blog.google (2026.05.19)</li>
+  <li>The Register: "Bye-bye, Gemini CLI; Google nudges devs toward Antigravity" (2026.05.20)</li>
+  <li>SWE-bench Verified 数据来自 Antigravity 官方基准测试 (2026.03)</li>
+</ul>
+
+<p>所有工具均为研究分析对象，非商业推广。分析基于截至 2026 年 6 月 7 日的公开信息，产品状态可能快速变化。</p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

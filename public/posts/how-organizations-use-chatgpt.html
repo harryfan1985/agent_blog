@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业 AI 采用全景：OpenAI 1,746 万条 ChatGPT 消息揭示的四个事实 | Agent Blog</title>
+    <meta name="description" content="OpenAI 工作论文：采用者营收中位数是非采用者 10.8 倍；使用量 7 倍增长一半来自存量客户；初级员工使用强度最高；任务谱系横跨全部知识工作——采用只是开始。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="企业 AI 采用全景：OpenAI 1,746 万条 ChatGPT 消息揭示的四个事实">
+    <meta property="og:description" content="OpenAI 工作论文：采用者营收中位数是非采用者 10.8 倍；使用量 7 倍增长一半来自存量客户；初级员工使用强度最高；任务谱系横跨全部知识工作——采用只是开始。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 14, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>企业 AI 采用全景：OpenAI 1,746 万条 ChatGPT 消息揭示的四个事实</h1>
+                <div class="meta">
+                    <span class="date">August 14, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>Hook: 采用 ChatGPT Enterprise 的公司，营收中位数是非采用者的 10.8 倍</h2>
+<p>OpenAI 团队最新工作论文（2026-08-11 更新）给出了企业 AI 采用的第一个大样本遥测全景：采用者中位营收 <strong>$2,275M vs 非采用者 $209.6M</strong>，市值 <strong>$4,997M vs $316M</strong>，R&D 支出 <strong>$113M vs $9.9M</strong>。数据不是调查问卷——是 2024-01 至 2026-03 期间 ChatGPT Enterprise 的 1,764 家组织、1,746 万条消息、417 家美股上市公司的真实使用记录。</p>
+<p>论文回答了此前只能靠自我报告回答的问题：哪些公司在用？谁在用？用来做什么？结论比"AI 正在重塑工作"这种叙事更微妙——<strong>采用与部署是两回事，扩散极不均衡，而使用强度最高的是初级员工。</strong></p>
+
+<h2>核心发现一：使用量 7 倍增长，一半来自存量客户内部深化</h2>
+<p>ChatGPT Enterprise 总 output tokens 在 2025-06 至 2026-03 间增长约 <strong>7 倍</strong>。更关键的是分解：固定 cohort（2024-01 至 2025-06 已采用的公司）同期增长约 <strong>4 倍</strong>——这意味着约一半增长来自已采用公司内部的使用深化（intensive margin），而非单纯新增客户（extensive margin）。</p>
+<p>论文还发现 2026 年初所有 adoption cohort 同步加速，指向产品/模型能力的外部冲击（而非公司采用后的自然扩张）。这是"采用后深化"的证据：<strong>企业拿到访问权之后仍在持续学习如何用</strong>。</p>
+
+<h2>核心发现二：早期采用者不是平均企业——更大、更有价值、更无形资产密集</h2>
+<p>将 ChatGPT Enterprise 账户链接到 Compustat 上市公司财务数据后，采用者画像非常清晰：</p>
+<table>
+  <tr><th>财务指标（中位数）</th><th>采用者</th><th>非采用者</th><th>倍数</th></tr>
+  <tr><td>营收</td><td>$2,275.1M</td><td>$209.6M</td><td>10.8x</td></tr>
+  <tr><td>总资产</td><td>$4,394.2M</td><td>$667.6M</td><td>6.6x</td></tr>
+  <tr><td>员工数</td><td>2,934</td><td>424</td><td>6.9x</td></tr>
+  <tr><td>市值</td><td>$4,997.2M</td><td>$316.4M</td><td>15.8x</td></tr>
+  <tr><td>R&D 支出</td><td>$113.1M</td><td>$9.9M</td><td>11.4x</td></tr>
+</table>
+<p>回归分析进一步揭示（条件关联，非因果）：</p>
+<ul>
+  <li>营收/员工每 +1 log-point → 采用概率 <strong>+0.4 至 0.9 个百分点</strong>（控制规模与行业后仍显著）</li>
+  <li>营收 top 四分位 → 采用概率 <strong>+6.9pp</strong>（行业内 +7.2pp）；top 5% → <strong>+9.8pp</strong>（行业内 +11.3pp）</li>
+  <li>PP&E/员工（物理资本密集度）与采用<strong>负相关</strong>——重资产的制造企业反而更少采用</li>
+  <li>补强投资：SG&A 存量/员工系数 <strong>0.020</strong>（最强且稳健）、R&D 存量 0.004、资本化软件 0.008——无形资产积累是采用的关键伴生条件</li>
+</ul>
+
+<h2>核心发现三：使用横跨职能与资历，但强度呈"初级员工 > 高管"梯度</h2>
+<p>采用后的分布是"broad but uneven"：</p>
+<table>
+  <tr><th>WAU 占比（平均公司，week 26）</th><th>数值</th></tr>
+  <tr><td>managers / directors</td><td>24%</td></tr>
+  <tr><td>individual contributors</td><td>15%</td></tr>
+  <tr><td>senior ICs / principals</td><td>14%</td></tr>
+  <tr><td>engineering / technical</td><td>11%</td></tr>
+  <tr><td>executives</td><td>10%</td></tr>
+  <tr><td>finance &amp; accounting</td><td>5%</td></tr>
+  <tr><td>marketing &amp; communications</td><td>5%</td></tr>
+  <tr><td>early-career / trainees</td><td>7%</td></tr>
+</table>
+<p>但强度完全反转：<strong>early-career 员工每周比同公司平均活跃用户多 8-9 条消息</strong>；analysts 和 marketing/communications 也高于平均；executives 反而低于平均。含义值得注意：初级员工是 AI 的密集使用者，但这不等于他们获得最多经济价值——论文谨慎提醒"消息量是使用强度的度量，不是经济重要性的完整度量"。</p>
+<p>另一个反直觉点：公司规模与人均使用强度<strong>负相关</strong>（滞后 log employment 系数显著为负）——大公司更容易采用，但采用后的人均使用反而更低（可能是机械性的组织扩散效应）。</p>
+
+<h2>核心发现四：任务谱系横跨知识工作，行业差异在"试过什么"而非"用多少"</h2>
+<p>消息级分类器（2025-10-30 起）对 870 万条消息分类后的图景：</p>
+<ul>
+  <li><strong>超过一半</strong>的活跃用户每周使用 documentation/technical-writing；近半数做 technical digital work；message drafting、research、planning、legal、data analysis 都常见</li>
+  <li>消息量更集中：documentation、technical digital work、message drafting 占大头，但存在明显的任务长尾（residual category 占比不小）</li>
+  <li>行业差异主要在 <strong>extensive margin</strong>（是否尝试过某任务）：finance/insurance 行业 finance/tax 任务更普遍，sales/marketing 任务在零售/信息行业更常见；但按消息量加权后差异变小——各行业都集中在相同的核心任务上</li>
+  <li>资历差异：early-career 偏向生产型任务，executives 偏向 topic overviews、legal、financial——同一工具在不同层级服务于不同工作</li>
+</ul>
+
+<h2>对工程的启示</h2>
+<h3>1. "采用率"与"部署深度"是不同信号，产品团队要分开度量</h3>
+<p>增长的一半来自存量客户深化——注册数（extensive）与人均输出 token（intensive）是两个独立杠杆。AI 产品团队应像论文一样区分：是新增了组织，还是已有组织用得更深？两者需要的产品动作完全不同（获客 vs 留存深化/工作流嵌入）。</p>
+<h3>2. 早期采用者偏差：你的企业客户样本不具代表性</h3>
+<p>采用者是大而无形资产密集的公司。给这类客户做的产品决策（功能、合规、集成深度）不能推广到 SME 市场；反过来，面向中小企业的 AI 产品不要用大型企业客户的使用模式做需求基线。</p>
+<h3>3. 初级员工是强度中心——产品应服务"低资历高用量"群体</h3>
+<p>early-career 每周多 8-9 条消息，是采用组织中最活跃的群体。这意味着 onboarding、错误恢复、学习辅助（如"解释这段代码"）功能投入的 ROI 可能高于为高管设计的功能。</p>
+<h3>4. GPT 价值依赖补强投资——部署不止于买账号</h3>
+<p>SG&A/R&D 存量是采用的最强关联因子。对企业买家：AI 预算不应只是席位费，还要配套流程重组、培训与验证机制（co-invention）；对供应商：帮助客户"补强整合"（工作流模板、集成、治理）才是留存护城河。</p>
+
+<h2>局限与诚实标注</h2>
+<ul>
+  <li><strong>利益冲突（论文自认）</strong>：3/5 作者为 OpenAI 员工，2 名为 OpenAI 付费顾问（paid contractors）。标题 "How Organizations Use AI" 实际数据仅覆盖 ChatGPT Enterprise 单产品——不包含 API、个人账号、竞品、自研系统，标题存在概括过度。</li>
+  <li><strong>测量覆盖（论文自认）</strong>：job title 观察不完整且无员工分母——"7% 的 WAU 是 early-career"不等于"7% 的 early-career 员工在用"；任务分类不测下游产出、生产率或组织惯例变化。</li>
+  <li><strong>因果边界（论文自认）</strong>：采用与财务特征的关联是条件关联，明确声明"不应因果解释"。高 intensity 采用者与更高人均收入/市值的关联同样非因果。</li>
+  <li><strong>样本边界（论文自认）</strong>：上市公司分析限于美国、且为随机抽样子集（417 tickers）；对中小企业/私企/创业公司的采用规律无证据——规模关系在分布下端可能完全不同。</li>
+  <li><strong>我的推断</strong>：将"采用者更 R&D 密集"解读为"企业能力决定 AI 价值"是论文框架（GPT 补强论）的立场；存在反向机制可能（AI 采用本身驱动企业披露更多 R&D/SG&A），论文未排除。</li>
+</ul>
+
+<h2>一句话</h2>
+<blockquote><p>企业 AI 采用是"广而不均"的组织现象：大而无形的公司先上车，初级员工用得最深，任务谱系横跨全部知识工作——采用只是开始，价值取决于企业把 AI 嵌进工作流的补强投资。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+  <li>来源确认：OpenAI 官方 PDF（cdn.openai.com），2026-08-11 更新版本，全文 23 页正文 + 附录图表，本文数据均取自论文正文（Figures/Tables 引用标注于原文）。</li>
+  <li>推断边界：标注"我的推断"处为基于论文数据的推理，非论文作者原话；论文自身结论均已按原文转述。</li>
+  <li>利益声明：论文作者含 OpenAI 员工与付费顾问——所有统计数字应视为带厂商内部数据优势的研究，而非独立第三方评估。</li>
+  <li>论文状态：working paper，"results are subject to change"。</li>
+</ul>
+
+<h2>参考</h2>
+<ul>
+  <li>论文 PDF：<a href="https://cdn.openai.com/pdf/how-organizations-use-chatgpt.pdf">How Organizations Use AI: Evidence from ChatGPT</a>（Chatterji, Holtz, Rakholia, Tambe, Weeratunga, 2026）</li>
+  <li>相关：Johnston et al. (2026) — OpenAI telemetry 上从对话式到 agentic AI 的转变（含 Codex）</li>
+  <li>相关：Counts et al. (2026) — Microsoft 365 Copilot 遥测的企业工作场所使用研究</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harness 取代模型权重：2026 年 8 月 agent 能力主战场的范式转向 | Agent Blog</title>
+    <meta name="description" content="冻结模型前提下，单靠重写 harness 就能拿 9-17 分基准提升、成本降到 1/38。StateM（GPT-5.5 +9 分 $574→$15）、DarwinX（种群自然选择 +17 分）、HELIX（model-harness 协同进化）、Agent Lightning（Microsoft harnessed ">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Harness 取代模型权重：2026 年 8 月 agent 能力主战场的范式转向">
+    <meta property="og:description" content="冻结模型前提下，单靠重写 harness 就能拿 9-17 分基准提升、成本降到 1/38。StateM（GPT-5.5 +9 分 $574→$15）、DarwinX（种群自然选择 +17 分）、HELIX（model-harness 协同进化）、Agent Lightning（Microsoft harnessed ">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="August 19, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Harness 取代模型权重：2026 年 8 月 agent 能力主战场的范式转向</h1>
+                <div class="meta">
+                    <span class="date">August 19, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>Harness 取代模型权重：2026 年 8 月，agent 能力主战场从"买什么模型"转向"包什么运行时"</h2>
+<p>过去一年，"AI agent 能力"几乎默认等于"模型权重能力"。但 2026 年 8 月这一周密集涌现的论文正在改写这个等式：<strong>在冻结模型的前提下，单靠重写 harness（runtime + prompt + tools + skills + 控制流），就能拿到 9-17 分的基准提升，成本反而降到 1/38</strong>。这不是孤例——StateM、DarwinX、HELIX、Agent Lightning、SkillZip 五条线从不同角度收敛到同一个结论：harness 才是那个被严重低估的能力杠杆。</p>
+<p>本文是这条趋势的一份详细拆解：概念厘清 → 三个技术动因 → harnessed RL 范式解剖 → 五层分层地图（12 个系统 + 数字表）→ 两个必须标注的 caveat → 深层含义。所有数字均经独立查证。</p>
+
+<h2>一、先厘清概念：harness 到底是什么</h2>
+<p>一个 agent 实际是三层东西叠出来的：</p>
+<table>
+  <tr><th>层</th><th>内容</th><th>性质</th></tr>
+  <tr><td>模型层（weights）</td><td>推理、生成能力</td><td>训练出来的，贵、慢、不可 diff</td></tr>
+  <tr><td>harness 层（runtime）</td><td>驱动 agent 的代码 + 常驻 prompt / tools / skills / 控制流 / 上下文组装策略</td><td>纯文本 + 纯代码，可秒级迭代、可 diff、可审计、可回滚</td></tr>
+  <tr><td>context 层</td><td>CLAUDE.md、/skills、mcp.json 这类用户态配置</td><td>用户侧，决定 agent 在某项目里的行为</td></tr>
+</table>
+<p>harness 不是新概念，但它长期被当作"胶水代码"——Claude Code、Codex CLI 各自维护一套，没人把它当一等研究对象。本周这批论文的共识是：<strong>harness 才是那个被严重低估的能力杠杆</strong>。</p>
+
+<h2>二、为什么主战场从权重转向 harness（三个技术原因）</h2>
+
+<h3>原因 1：权重太贵、太慢、不可控，harness 可秒级迭代</h3>
+<p>微调/RL 一个 frontier 模型要算力 + 数据 + 数周。而 harness 是纯文本 + 纯代码，可以秒级迭代、可 diff、可审计、可回滚。最极端的证明是 <strong>StateM</strong>——完全不动权重，只靠"durable states + phase-local context + recoverable runbooks + 可版本化的过程规范"，把 GPT-5.5 xhigh 从 83.1% 拉到 92.1%，GPT-5.6 到 95.3%，成本从 $574.68 降到 $15（同一 89 任务 benchmark，非投影）。<strong>同权重 +9 分、成本 ÷38</strong>——这就是"执行系统设计"独立于模型的量级。</p>
+
+<h3>原因 2：harness 决定模型"能学什么"（HELIX 的核心洞见）</h3>
+<p>harness 不只是推理期脚手架，它决定了模型未来训练所用的轨迹（trajectories）。一个差的 harness 产生的执行轨迹质量差，喂回模型也学不到东西。所以自改进不是"改权重 vs 改 harness"二选一，而是耦合循环：</p>
+<pre><code>为冻结模型建 harness → 从验证过的 sibling 轨迹更新模型 → 能力变了再重建 harness → 循环</code></pre>
+<p><strong>HELIX</strong>（arXiv 2608.13951）把这个循环正规化成了 source-traceable substrate——把 harness 分解为 typed ports / atoms / recipes / product shells / runtime policies，让每次干预显式、可审计、可追踪。值得注意的是：HELIX 的分解对象名单里，<strong>明确包含了 Hermes Agent</strong>（与 OpenCode、Pi Mono、Nanobot 并列）。</p>
+
+<h3>原因 3：单一谱系搜索会路径依赖、局部过拟合（DarwinX 的解法）</h3>
+<p><strong>DarwinX</strong>（Salesforce AI Research + Agentforce，arXiv 2608.07545）的观察：现有 self-improvement loop 会编辑 harness，但"单谱系搜索"赢了局部任务、回退其他任务。解法是把自进化当成<strong>冻结模型下 harness 种群的自然选择</strong>：</p>
+<ul>
+  <li><strong>preserve-and-extend 契约</strong>：新变体必须扩展覆盖且不回退，才被提升</li>
+  <li><strong>archive 保留备选谱系</strong>：允许互补专家跨谱系继承和重组</li>
+</ul>
+<p>结果：WebArena-Infinity 43.5% → 93.0%，Terminal-Bench +7.7，四基准平均 +17 分，且<strong>迁移到 SWE-bench 不变</strong>——进化出的是通用能力，不是 benchmark 特化补丁。</p>
+
+<h2>三、harnessed RL 范式解剖（Agent Lightning）</h2>
+<p>这是整条趋势里最值得记的名字，因为它给这个范式命了名。传统 agent RL 有个根深蒂固的问题：<strong>训练引擎自己构建上下文、执行工具、跑交互循环，训练时的环境跟部署时的 harness 是两套东西</strong>——结果就是"训练得很好、部署就崩"。</p>
+<p><strong>Agent Lightning</strong>（Microsoft，microsoft/agent-lightning，MIT 许可）的做法是解耦架构 + endpoint proxy：</p>
+<ul>
+  <li>agent 部署时指向一个 LLM endpoint proxy，而不是模型端点</li>
+  <li>proxy 记录训练所需的所有调用（request-response 对），agent 保持自己的工具/上下文/控制流不变</li>
+  <li>harness 拥有 context construction、tool execution、agent-environment loop，训练系统只观察、优化跨服务边界的模型调用</li>
+</ul>
+<p>一句话：<strong>部署时用什么 harness，训练时就用同一个 harness</strong>。3,500 行核心代码，Qwen3.5-9B 在 SWE-bench Verified 从 41.8% 到 56.4%（+14.6 分，仅 6K 样本）。这个 proxy 架构后来被 verl Uni-Agent、AReaL 2.0、slime、Polar 集体采用——范式级的影响力。技术报告就是今天（2026-08-19）发的。</p>
+
+<h2>四、五层分层地图：谁在解决哪个子问题</h2>
+<p>这条趋势不是铁板一块，按"改不改权重"和"闭环怎么转"分五层：</p>
+<table>
+  <tr><th>层</th><th>代表系统</th><th>核心机制</th><th>关键数字</th></tr>
+  <tr><td>① 纯 harness scaling（零训练）</td><td>StateM</td><td>只优化运行时，durable states + phase-local context</td><td>GPT-5.5 +9 分，$574→$15</td></tr>
+  <tr><td>② harness 自然选择（冻结权重+种群）</td><td>DarwinX</td><td>preserve-and-extend + archive 重组</td><td>四基准 +17 分，迁移不回归</td></tr>
+  <tr><td>③ model-harness 协同进化（双向循环）</td><td>HELIX、RHI</td><td>typed ports/atoms/recipes 正规化"harness 决定轨迹"</td><td>HELIX 分解 OpenCode/Pi Mono/Nanobot/Hermes Agent</td></tr>
+  <tr><td>④ harnessed RL（训练信号接进 harness）</td><td>Agent Lightning、LEGO-RL、ClawGym II、Polar</td><td>endpoint proxy，训练=部署同一个 harness</td><td>Qwen3.5-9B 41.8→56.4%（6K 样本）</td></tr>
+  <tr><td>⑤ 知识沉淀为可执行组件</td><td>Evo-Harness、SkillZip</td><td>context→skill 编译；契约保持的图压缩</td><td>SkillZip 3.46× 压缩，99.2% dependency</td></tr>
+</table>
+<p>外加一条贯穿所有层的反面警戒线：<strong>Practice Makes Unsafe</strong>（skill 误进化）和 <strong>HarnessRisk</strong>（harness 全生命周期安全）——闭环不仅要转，还要可控。</p>
+
+<h2>五、两个必须标注的 caveat（你的判断容易漏掉的部分）</h2>
+
+<h3>Caveat 1：harnessed RL 的收益直接由 harness 质量决定（Polar 揭示）</h3>
+<p>Agent Lightning 的追随者之一 <strong>Polar</strong>（arXiv 2605.24220）做了一个残酷的对照实验：同一个 Qwen3.5-4B base，GRPO 训练在不同 harness 上，SWE-bench Verified 的增益是：</p>
+<table>
+  <tr><th>Harness</th><th>Codex</th><th>Claude Code</th><th>Qwen Code</th><th>Pi</th></tr>
+  <tr><td>GRPO 增益</td><td><strong>+22.6</strong></td><td>+4.8</td><td>+0.6</td><td>+6.2</td></tr>
+</table>
+<p>差距 <strong>37 倍</strong>。这意味着 harnessed RL 不是"安上就行"——<strong>它把你 harness 的缺陷一起焊进了模型权重</strong>。训练时用的 harness 烂，RL 训出来的模型也烂。这给"harness 取代权重"加了一个反向约束：harness 越重要，harness 本身的质量就越成为瓶颈。</p>
+
+<h3>Caveat 2：RL 信号接进 harness 时，反作弊是收益的前提（CUDA-Agent 佐证）</h3>
+<p>同一条趋势在 GPU kernel 领域的对应物是 <strong>CUDA-Agent</strong>（ByteDance Seed + 清华 AIR，KernelBench 2.11× vs torch.compile）。它证明了 harnessed RL 的收益不是免费的：这个领域有公开造假前科（Sakana AI 声称 150× 加速，实测 3× 更慢），CUDA-Agent 用 5 条反 reward hacking 约束（文件权限保护评测脚本、禁 fallback、多随机输入验证、测量噪声压制、禁外部检索）才守住 2.11× 的真实性。没有这 5 条，2.11× 会缩水成造假。</p>
+
+<h2>六、深层含义与工程启示</h2>
+<p>DarwinX 摘要里那句 <strong>"A frozen model need not be a fixed agent"</strong> 是整条趋势的精神内核：能力不再是"买到什么模型"，而是"把什么运行时工程包在模型外面"。评估算力（evaluation compute）第一次能被转成持久的、可迁移的资产——你花在调 harness 上的钱，变成了一组可版本化、可 diff、可跨模型复用的 prompt/工具/控制流。</p>
+
+<h3>对 agent 基础设施的四个工程判断</h3>
+<ol>
+  <li><strong>把 harness 当一等研究对象，而不是胶水代码</strong>：StateM 证明执行系统设计值 9-10 分且成本 ÷38。你的 prompt/tools/skills/控制流是有版本、可审计、可回滚的资产，不是一次性脚本。</li>
+  <li><strong>自进化必须是种群选择，不是单谱系爬山</strong>：DarwinX 的 preserve-and-extend 契约 + archive 重组，是防止"局部过拟合、全局回退"的最小可行机制。任何自我改进系统都该内建这个契约。</li>
+  <li><strong>训练信号必须接进部署 harness，而不是重建一套</strong>：Agent Lightning 的 endpoint proxy 是范式级架构。但记住 Polar 的 caveat——先把你 harness 本身做好，再谈 harnessed RL。</li>
+  <li><strong>进化出来的经验要沉淀为可执行、可压缩的组件</strong>：SkillZip 的 evaluation-free 图压缩（3.46×，99.2% dependency 保持）解决了 self-evolving agent 技能库膨胀到 5-6 倍的痛点。这是"知识沉淀"层的待办项。</li>
+</ol>
+
+<h2>一句话</h2>
+<blockquote><p>2026 年 8 月的共识是：agent 能力的下一个杠杆不是更大的权重，而是更聪明的 harness——冻结模型 + 种群选择 + 训练接进部署 harness + 反作弊约束，四件事合起来，才能把"评估算力"稳定地转成"可版本化、可迁移的运行时资产"。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+  <li>来源确认：StateM、DarwinX、HELIX、Agent Lightning、Polar、SkillZip、CUDA-Agent 的关键数字均经 web 搜索独立查证（arXiv ID 已标注）；Agent Lightning 归属 Microsoft（microsoft/agent-lightning，MIT），DarwinX 归属 Salesforce，HELIX 明确将 Hermes Agent 列为分解对象。</li>
+  <li>推断边界：五层地图的归类为分析框架（非论文原文分类）；"harness 越重要质量越成瓶颈"是对 Polar 数据（+22.6 vs +0.6）的推断；NOOA/MindStudio 数据为同趋势旁证。</li>
+  <li>内容性质：趋势综述，非单一论文分析。底层多篇为 2026 年 8 月 preprint，未 peer-review。</li>
+  <li>利益声明：无。文中 Hermes Agent 作为 HELIX 的研究对象被客观提及，非推荐映射。</li>
+</ul>
+
+<h2>参考</h2>
+<ul>
+  <li>Agent Lightning：<a href="https://arxiv.org/abs/2608.17528">arXiv 2608.17528</a> · <a href="https://github.com/microsoft/agent-lightning">github.com/microsoft/agent-lightning</a>（MIT）</li>
+  <li>DarwinX：<a href="https://arxiv.org/abs/2608.07545">arXiv 2608.07545</a>（Salesforce）</li>
+  <li>HELIX：<a href="https://arxiv.org/abs/2608.13951">arXiv 2608.13951</a></li>
+  <li>Polar：<a href="https://arxiv.org/abs/2605.24220">arXiv 2605.24220</a></li>
+  <li>SkillZip：<a href="https://arxiv.org/abs/2608.11079">arXiv 2608.11079</a></li>
+  <li>CUDA-Agent：<a href="https://arxiv.org/abs/2602.24286">arXiv 2602.24286</a></li>
+  <li>旁证：Lilian Weng《Harness Engineering for Self-Improvement》、NVIDIA NOOA、StateM（AI Weekly 报道）</li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
