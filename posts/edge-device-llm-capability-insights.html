@@ -46,8 +46,8 @@
 <p>结合 Artificial Analysis 的真机数据和 arXiv:2505.15030 的系统评估，端侧小模型的能力可以清晰地分为四层：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>参数规模</th><th>代表模型</th><th>MMLU</th><th>GSM8K</th><th>独立可完成任务</th><th>无法完成的任务</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">参数规模</th><th style="background:#1a1a2e;color:#fff;">代表模型</th><th style="background:#1a1a2e;color:#fff;">MMLU</th><th style="background:#1a1a2e;color:#fff;">GSM8K</th><th style="background:#1a1a2e;color:#fff;">独立可完成任务</th><th style="background:#1a1a2e;color:#fff;">无法完成的任务</th>
 </tr>
 <tr>
 <td>&lt;1B</td><td>MobileLLM-350M, Gemma 3 1B</td><td>28-33</td><td>30-63</td><td>通知分诊、消息分类、文本补全</td><td>推理、多步逻辑、知识问答</td>
@@ -72,8 +72,8 @@
 <p>在 iPhone 17 Pro 上，41 个量化模型中 33 个成功运行。排名结果：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>排名</th><th>模型</th><th>平均分</th><th>响应时间</th><th>峰值内存</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">排名</th><th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">平均分</th><th style="background:#1a1a2e;color:#fff;">响应时间</th><th style="background:#1a1a2e;color:#fff;">峰值内存</th>
 </tr>
 <tr><td>1并列</td><td>Nanbeige4.2-3B</td><td>63</td><td>21.4秒</td><td>4.0 GB</td></tr>
 <tr><td>1并列</td><td>LFM2.5-2.6B</td><td>63</td><td><strong>8.0秒</strong></td><td><strong>2.3 GB</strong></td></tr>
@@ -157,8 +157,8 @@
 <p>一个任务能否由端侧小模型独立完成，取决于三个维度：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>维度</th><th>1B 足够</th><th>3B 可行</th><th>7B+ 起步</th><th>必须上云</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">1B 足够</th><th style="background:#1a1a2e;color:#fff;">3B 可行</th><th style="background:#1a1a2e;color:#fff;">7B+ 起步</th><th style="background:#1a1a2e;color:#fff;">必须上云</th>
 </tr>
 <tr>
 <td>推理深度</td><td>单步逻辑</td><td>2-3步链式</td><td>多步复杂推理</td><td>前沿研究级</td>

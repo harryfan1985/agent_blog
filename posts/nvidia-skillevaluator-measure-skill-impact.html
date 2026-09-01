@@ -49,7 +49,7 @@
 <p>SkillEvaluator 的设计是三层结构，<strong>每层都是独立入口</strong>——可以直接从 Tier 3 开始跑，不需要先过 Tier 1 和 Tier 2。</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>层级</th><th>回答的问题</th><th>代表命令</th><th>依赖</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">层级</th><th style="background:#1a1a2e;color:#fff;">回答的问题</th><th style="background:#1a1a2e;color:#fff;">代表命令</th><th style="background:#1a1a2e;color:#fff;">依赖</th></tr>
 <tr><td><strong>Tier 1: 验证</strong></td><td>这个技能安全且格式正确吗？</td><td><code>validate</code>, <code>quality-check</code>, <code>security-scan</code></td><td>纯离线，无需 API Key</td></tr>
 <tr><td><strong>Tier 2: 去重</strong></td><td>它和已有的技能重叠吗？</td><td><code>similarity-check</code>, <code>context-optimization-check</code></td><td>需要 embeddings 提供商</td></tr>
 <tr><td><strong>Tier 3: 实测</strong></td><td>它真的让 Agent 变强了吗？</td><td><code>tier3 evaluate</code>, <code>compare</code></td><td>需要 LLM + Agent CLI + Docker 沙箱</td></tr>
@@ -80,7 +80,7 @@
 <p>Tier 3 是整个框架最有价值的部分。对每个技能，它在沙箱里跑同一个任务<strong>两次</strong>：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>实验臂</th><th>配置</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">实验臂</th><th style="background:#1a1a2e;color:#fff;">配置</th></tr>
 <tr><td><strong>With-skill（技能臂）</strong></td><td>Agent 装上这个技能</td></tr>
 <tr><td><strong>Without-skill（基线臂）</strong></td><td>同样 Agent，同样任务，不装技能</td></tr>
 </table>
@@ -101,7 +101,7 @@
 <p>Tier 3 测量五个维度，每个维度回答一个独立的问题：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>维度</th><th>测什么</th><th>映射的 Harbor 指标</th><th>权重</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">测什么</th><th style="background:#1a1a2e;color:#fff;">映射的 Harbor 指标</th><th style="background:#1a1a2e;color:#fff;">权重</th></tr>
 <tr><td><strong>Security</strong></td><td>安全吗？无不安全操作、无密钥泄露</td><td><code>security</code></td><td>1.0</td></tr>
 <tr><td><strong>Correctness</strong></td><td>最终答案正确吗？</td><td><code>accuracy</code></td><td>1.0</td></tr>
 <tr><td><strong>Discoverability</strong></td><td>该加载时加载，不该加载时不加载？</td><td><code>skill_execution</code></td><td>1.0</td></tr>
@@ -115,7 +115,7 @@
 <p><strong>Skill Lift = 技能臂得分 − 基线臂得分</strong>。它直接测量你的技能贡献了多少。判定区间：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>Skill Lift</th><th>判定</th><th>含义</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">Skill Lift</th><th style="background:#1a1a2e;color:#fff;">判定</th><th style="background:#1a1a2e;color:#fff;">含义</th></tr>
 <tr><td>≥ +0.05</td><td>Pass</td><td>技能有可测量的帮助——可发布信号</td></tr>
 <tr><td>−0.10 ~ +0.05</td><td>Neutral</td><td>在运行噪声范围内——增加 <code>--n-attempts</code> 再下结论</td></tr>
 <tr><td>≤ −0.10</td><td>Fail</td><td>技能让 Agent 变差——发布前调查</td></tr>
@@ -130,7 +130,7 @@
 <h3>无技能基线 vs 有技能得分</h3>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>维度</th><th>无技能基线</th><th>有技能得分</th><th>Skill Lift</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">无技能基线</th><th style="background:#1a1a2e;color:#fff;">有技能得分</th><th style="background:#1a1a2e;color:#fff;">Skill Lift</th></tr>
 <tr><td>Correctness</td><td>46</td><td>87</td><td><strong>+41</strong></td></tr>
 <tr><td>Discoverability</td><td>42</td><td>82</td><td><strong>+40</strong></td></tr>
 <tr><td>Effectiveness</td><td>39</td><td>78</td><td><strong>+39</strong></td></tr>
@@ -145,7 +145,7 @@
 <h3>两个 harness 对比</h3>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>范围</th><th>Claude Code</th><th>OpenAI Codex</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">范围</th><th style="background:#1a1a2e;color:#fff;">Claude Code</th><th style="background:#1a1a2e;color:#fff;">OpenAI Codex</th></tr>
 <tr><td>全部维度</td><td>+34</td><td>+29</td></tr>
 <tr><td>排除 Security</td><td>+42</td><td>+36</td></tr>
 </table>

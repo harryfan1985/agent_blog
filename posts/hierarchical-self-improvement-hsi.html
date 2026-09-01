@@ -49,7 +49,7 @@
 <p>HSI 最核心的设计，是让<strong>同一个冻结的模型 M</strong> 运行在三个层级的作用域上，彼此只靠「可编辑的表面 + 工具 + 执行上下文」区分：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>层</th><th>角色</th><th>编辑对象</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">层</th><th style="background:#1a1a2e;color:#fff;">角色</th><th style="background:#1a1a2e;color:#fff;">编辑对象</th></tr>
 <tr><td><strong>Task harness H</strong></td><td>执行任务</td><td>任务行为（被重写的对象）</td></tr>
 <tr><td><strong>Evolver</strong></td><td>重写 H</td><td>harness 本身</td></tr>
 <tr><td><strong>Meta-evolver</strong></td><td>重写 evolver 的策略代码</td><td>优化器的策略</td></tr>
@@ -93,7 +93,7 @@
 <p>中等难度任务上，harness 进化带来了稳定的原始 % Progress 提升：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>环境</th><th>提升（% Progress）</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">环境</th><th style="background:#1a1a2e;color:#fff;">提升（% Progress）</th></tr>
 <tr><td>BabyAI</td><td><strong>+39.3</strong></td></tr>
 <tr><td>Crafter</td><td><strong>+33.0</strong></td></tr>
 <tr><td>TextWorld</td><td><strong>+25.0</strong></td></tr>
