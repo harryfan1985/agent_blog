@@ -53,8 +53,8 @@
       <h2>二、实验：四个维度的证据</h2>
       <h3>2.1 长程扩展（Warehouse，视野 T=10→200，Gemini-3-Flash）</h3>
       <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-        <tr style="background:#1a1a2e;color:#fff;">
-          <th>视野 T</th><th>运行时</th><th>准确率</th><th>平均提示词</th><th>总 Token</th>
+        <tr>
+          <th style="background:#1a1a2e;color:#fff;">视野 T</th><th style="background:#1a1a2e;color:#fff;">运行时</th><th style="background:#1a1a2e;color:#fff;">准确率</th><th style="background:#1a1a2e;color:#fff;">平均提示词</th><th style="background:#1a1a2e;color:#fff;">总 Token</th>
         </tr>
         <tr><td rowspan="4">200</td><td>ReAct</td><td>0.74</td><td>48,007</td><td>2,608,755</td></tr>
         <tr><td>Memory（摘要）</td><td>0.84</td><td>84,364</td><td>6,175,509</td></tr>
@@ -68,8 +68,8 @@
       <p>物品被外部挪走、分支被 force push——历史型基线会幻觉 5–14 轮（过时事实压制新观察），SKILL.state <strong>0 步恢复</strong>：决策基于当前结构化状态，纠正警报一到立即更新。</p>
       <h3>2.4 公开交互基准（Gemini-3-Flash）</h3>
       <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-        <tr style="background:#1a1a2e;color:#fff;">
-          <th>基准</th><th>ReAct</th><th>Memory</th><th>Stateful</th><th>SKILL.state</th>
+        <tr>
+          <th style="background:#1a1a2e;color:#fff;">基准</th><th style="background:#1a1a2e;color:#fff;">ReAct</th><th style="background:#1a1a2e;color:#fff;">Memory</th><th style="background:#1a1a2e;color:#fff;">Stateful</th><th style="background:#1a1a2e;color:#fff;">SKILL.state</th>
         </tr>
         <tr><td>InterCode CTF pass@1</td><td>43.2%</td><td>46.4%</td><td>41.8%</td><td><strong>54.2%</strong></td></tr>
         <tr><td>τ-Bench Retail</td><td>48.2%</td><td>29.9%</td><td>51.7%</td><td><strong>58.3%</strong></td></tr>
@@ -80,8 +80,8 @@
       <h2>三、最关键的消融：预算匹配对照</h2>
       <p>"是不是只是提示词短？"论文把 ReAct 系基线全部限到与 SKILL.state 相同的 ~1,800 token 预算（T=100）：</p>
       <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-        <tr style="background:#1a1a2e;color:#fff;">
-          <th>配置</th><th>分数</th>
+        <tr>
+          <th style="background:#1a1a2e;color:#fff;">配置</th><th style="background:#1a1a2e;color:#fff;">分数</th>
         </tr>
         <tr><td>完整 ReAct（不设限）</td><td>0.84</td></tr>
         <tr><td>Truncated 滑动窗口</td><td>0.18</td></tr>
