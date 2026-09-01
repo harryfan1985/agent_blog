@@ -52,8 +52,8 @@
 
 <h3>四大设计</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>机制</th><th>说明</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">机制</th><th style="background:#1a1a2e;color:#fff;">说明</th>
 </tr>
 <tr>
 <td><strong>Python REPL 为主界面</strong></td>
@@ -78,8 +78,8 @@
 <h3>实验结果：赢在哪，输在哪</h3>
 <p>Prime Intellect 在四个环境上用 GPT-5-mini 做了系统消融：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>环境</th><th>RLM vs 标准 LLM</th><th>原因</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">环境</th><th style="background:#1a1a2e;color:#fff;">RLM vs 标准 LLM</th><th style="background:#1a1a2e;color:#fff;">原因</th>
 </tr>
 <tr>
 <td>Oolong（超长上下文）</td>
@@ -112,8 +112,8 @@
 
 <h3>两环架构</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>环</th><th>频率</th><th>做什么</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">环</th><th style="background:#1a1a2e;color:#fff;">频率</th><th style="background:#1a1a2e;color:#fff;">做什么</th>
 </tr>
 <tr>
 <td><strong>内环（Agent）</strong></td>
@@ -137,8 +137,8 @@
 
 <h3>与 reset-based 方法的关键区别</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th></th><th>Reset-based (GEPA/Self-Refine)</th><th>Continual Harness</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;"></th><th style="background:#1a1a2e;color:#fff;">Reset-based (GEPA/Self-Refine)</th><th style="background:#1a1a2e;color:#fff;">Continual Harness</th>
 </tr>
 <tr>
 <td>信息累积</td>
@@ -173,8 +173,8 @@
 
 <h3>能力地板效应</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>模型</th><th>Continual Harness 效果</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">Continual Harness 效果</th>
 </tr>
 <tr>
 <td>Gemini 3 Pro</td>
@@ -216,8 +216,8 @@
 <blockquote><strong>RLM 管"当前 context window 里有什么"——通过 Python REPL + 子LLM 委托控制信息流。Continual Harness 管"agent 的 harness 组件长什么样"——通过 Refiner 在 episode 中途 CRUD 编辑 scaffolding 结构。前者是信息层面的自管理，后者是结构层面的自管理。</strong></blockquote>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;">
-<th>维度</th><th>RLM</th><th>Continual Harness</th>
+<tr>
+<th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">RLM</th><th style="background:#1a1a2e;color:#fff;">Continual Harness</th>
 </tr>
 <tr>
 <td>管理对象</td>

@@ -61,7 +61,7 @@
 
 <h3>1.3 CUDA vs ROCm 战略对比</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>维度</th><th>CUDA (NVIDIA)</th><th>ROCm (AMD)</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">CUDA (NVIDIA)</th><th style="background:#1a1a2e;color:#fff;">ROCm (AMD)</th></tr>
 <tr><td>历史</td><td>18+ 年 (2006–)</td><td>10 年 (2016–)</td></tr>
 <tr><td>许可</td><td>闭源专有</td><td>开源 (MIT/Apache 2.0)</td></tr>
 <tr><td>开发者社区</td><td>庞大成熟</td><td>增长中，较小</td></tr>
@@ -113,7 +113,7 @@
 
 <h3>3.1 AMD Instinct 数据中心 GPU 全代际</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>GPU</th><th>架构</th><th>LLVM Target</th><th>VRAM</th><th>带宽</th><th>CU</th><th>最低 ROCm</th><th>关键特性</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">GPU</th><th style="background:#1a1a2e;color:#fff;">架构</th><th style="background:#1a1a2e;color:#fff;">LLVM Target</th><th style="background:#1a1a2e;color:#fff;">VRAM</th><th style="background:#1a1a2e;color:#fff;">带宽</th><th style="background:#1a1a2e;color:#fff;">CU</th><th style="background:#1a1a2e;color:#fff;">最低 ROCm</th><th style="background:#1a1a2e;color:#fff;">关键特性</th></tr>
 <tr><td><strong>MI455X</strong> (2026)</td><td>CDNA 5</td><td>gfx950*</td><td>432GB HBM4</td><td>19.6 TB/s</td><td>~32K</td><td>ROCm 10+</td><td>FP4/FP8, UALink</td></tr>
 <tr><td><strong>MI430X</strong> (2026/27)</td><td>CDNA 5</td><td>gfx950*</td><td>432GB HBM4</td><td>19.6 TB/s</td><td>~32K</td><td>ROCm 10+</td><td>FP64 原生, HPC</td></tr>
 <tr><td><strong>MI355X</strong> (2025)</td><td>CDNA 4</td><td>gfx950</td><td>288GB HBM3E</td><td>8 TB/s</td><td>256</td><td>ROCm 7.0.1</td><td>FP8 加速, MoE 优化</td></tr>
@@ -127,7 +127,7 @@
 
 <h3>3.2 MI300X 峰值性能（代表性数据类型）</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>数据类型</th><th>FLOPS/clock/CU</th><th>Peak TFLOPS</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">数据类型</th><th style="background:#1a1a2e;color:#fff;">FLOPS/clock/CU</th><th style="background:#1a1a2e;color:#fff;">Peak TFLOPS</th></tr>
 <tr><td>Matrix FP64</td><td>256</td><td>163.4</td></tr>
 <tr><td>Matrix FP32</td><td>256</td><td>163.4</td></tr>
 <tr><td>Matrix BF16</td><td>2048</td><td>1307.4</td></tr>
@@ -138,7 +138,7 @@
 <h3>3.3 消费级 GPU：ROCm on Radeon</h3>
 <p>ROCm 7.2.1 起正式支持 Radeon 9000 系列（RDNA 4）和部分 7000 系列（RDNA 3），并首次支持 Ryzen APU。这使开发者可以在消费级 GPU 上进行本地开发和推理，然后无缝迁移到数据中心 Instinct GPU。</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>GPU</th><th>架构</th><th>LLVM Target</th><th>VRAM</th><th>支持</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">GPU</th><th style="background:#1a1a2e;color:#fff;">架构</th><th style="background:#1a1a2e;color:#fff;">LLVM Target</th><th style="background:#1a1a2e;color:#fff;">VRAM</th><th style="background:#1a1a2e;color:#fff;">支持</th></tr>
 <tr><td>Radeon RX 9070 XT</td><td>RDNA 4</td><td>gfx1201</td><td>16 GB</td><td>✅</td></tr>
 <tr><td>Radeon RX 9060 XT</td><td>RDNA 4</td><td>gfx1200</td><td>16 GB</td><td>✅</td></tr>
 <tr><td>Radeon RX 7900 XTX</td><td>RDNA 3</td><td>gfx1100</td><td>24 GB</td><td>✅</td></tr>
@@ -171,7 +171,7 @@
 
 <h3>4.3 HIP Runtime API：CUDA 对等表</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>功能</th><th>CUDA API</th><th>HIP API</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">功能</th><th style="background:#1a1a2e;color:#fff;">CUDA API</th><th style="background:#1a1a2e;color:#fff;">HIP API</th></tr>
 <tr><td>内存分配</td><td>cudaMalloc</td><td>hipMalloc</td></tr>
 <tr><td>内存拷贝</td><td>cudaMemcpy</td><td>hipMemcpy</td></tr>
 <tr><td>Kernel 启动</td><td>cudaLaunchKernel</td><td>hipLaunchKernelGGL</td></tr>
@@ -186,7 +186,7 @@
 
 <h3>4.5 其他编程模型</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>模型</th><th>特点</th><th>适用场景</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">特点</th><th style="background:#1a1a2e;color:#fff;">适用场景</th></tr>
 <tr><td>HIP</td><td>C++ kernel 编程，CUDA 兼容</td><td>自定义 GPU kernel</td></tr>
 <tr><td>OpenMP</td><td>指令式编程 (<code>#pragma omp target</code>)</td><td>HPC 移植</td></tr>
 <tr><td>OpenCL</td><td>开放标准</td><td>跨平台计算</td></tr>
@@ -196,7 +196,7 @@
 
 <h3>5.1 编译器栈</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>组件</th><th>功能</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">组件</th><th style="background:#1a1a2e;color:#fff;">功能</th></tr>
 <tr><td><strong>HIPCC / amdclang++</strong></td><td>主编译器，编译 HIP C++ 代码为 GPU 可执行</td></tr>
 <tr><td><strong>LLVM</strong></td><td>底层编译框架，ROCm 定制版</td></tr>
 <tr><td><strong>FLANG</strong></td><td>Fortran 编译器前端（HPC 场景）</td></tr>
@@ -221,7 +221,7 @@ Code Object（.hsaco / 嵌入 fat binary）</code></pre>
 
 <h3>5.3 二进制分析工具</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>工具</th><th>功能</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">工具</th><th style="background:#1a1a2e;color:#fff;">功能</th></tr>
 <tr><td><code>llvm-objdump --offloading</code></td><td>列出/提取 fat binary 中的代码对象</td></tr>
 <tr><td><code>llvm-objdump --triple=amdgcn</code></td><td>反汇编 GPU kernel 为可读 ISA</td></tr>
 <tr><td><code>llvm-readobj --offloading</code></td><td>列出 fat binary 的 offload bundle 条目</td></tr>
@@ -238,7 +238,7 @@ Code Object（.hsaco / 嵌入 fat binary）</code></pre>
 
 <h3>6.1 数学库全景</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>库</th><th>功能</th><th>CUDA 等价</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">库</th><th style="background:#1a1a2e;color:#fff;">功能</th><th style="background:#1a1a2e;color:#fff;">CUDA 等价</th></tr>
 <tr><td><strong>rocBLAS / hipBLAS</strong></td><td>密集 BLAS (GEMM 等)</td><td>cuBLAS</td></tr>
 <tr><td><strong>hipBLASLt</strong></td><td>高级 GEMM，灵活 API</td><td>cuBLASLt</td></tr>
 <tr><td><strong>rocFFT / hipFFT</strong></td><td>快速傅里叶变换</td><td>cuFFT</td></tr>
@@ -288,7 +288,7 @@ Code Object（.hsaco / 嵌入 fat binary）</code></pre>
 <h3>8.3 AITER：最重要的 AI 性能库</h3>
 <p><strong>AITER（AI Tensor Engine for ROCm）</strong>是 ROCm 生态中最重要的 AI 性能库之一，提供生产级 GPU kernel 优化：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>特性</th><th>详情</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">特性</th><th style="background:#1a1a2e;color:#fff;">详情</th></tr>
 <tr><td>多后端</td><td>Triton + Composable Kernel (CK) + 手工 ASM</td></tr>
 <tr><td>核心算子</td><td>MHA, MLA, Paged Attention, Fused MoE, GEMM, RMSNorm, RoPE+KVCache, All-reduce</td></tr>
 <tr><td>vLLM 集成</td><td>默认 attention backend on ROCm</td></tr>
@@ -304,7 +304,7 @@ Code Object（.hsaco / 嵌入 fat binary）</code></pre>
 
 <h3>9.1 框架支持矩阵（ROCm 10.0）</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>框架</th><th>支持版本</th><th>安装方式</th><th>支持程度</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">框架</th><th style="background:#1a1a2e;color:#fff;">支持版本</th><th style="background:#1a1a2e;color:#fff;">安装方式</th><th style="background:#1a1a2e;color:#fff;">支持程度</th></tr>
 <tr><td><strong>PyTorch</strong></td><td>2.13.0</td><td>Docker / Wheels / 源码</td><td>✅ 全功能</td></tr>
 <tr><td><strong>JAX</strong></td><td>0.11.0, 0.10.2</td><td>Docker</td><td>✅ 训练+推理</td></tr>
 <tr><td><strong>TensorFlow</strong></td><td>2.21</td><td>Docker / Wheels</td><td>✅ 训练+推理</td></tr>
@@ -332,7 +332,7 @@ vllm serve &lt;model&gt; --attention-backend TRITON_ATTN --tensor-parallel-size 
 
 <h3>10.1 Profiler 工具</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>工具</th><th>功能</th><th>CUDA 等价</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">工具</th><th style="background:#1a1a2e;color:#fff;">功能</th><th style="background:#1a1a2e;color:#fff;">CUDA 等价</th></tr>
 <tr><td><strong>ROCprofiler-SDK / rocprofv3</strong></td><td>GPU 计算 profiling 和 tracing</td><td>Nsight Systems/Compute</td></tr>
 <tr><td><strong>ROCm Compute Profiler</strong></td><td>kernel 级 ML/HPC profiling</td><td>Nsight Compute</td></tr>
 <tr><td><strong>ROCm Systems Profiler</strong></td><td>CPU+GPU 全栈 tracing</td><td>Nsight Systems</td></tr>
@@ -362,7 +362,7 @@ vllm serve &lt;model&gt; --attention-backend TRITON_ATTN --tensor-parallel-size 
 <p>Hyperloom 是一个开源的自主 agent 系统，<strong>将原本需要数周的人工优化压缩到数小时</strong>。优化循环：Profile → Analyze → Plan → Optimize → Validate。</p>
 <p>五组件架构：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>组件</th><th>功能</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">组件</th><th style="background:#1a1a2e;color:#fff;">功能</th></tr>
 <tr><td><strong>TraceLens</strong></td><td>性能分析 SDK，从 GPU trace 识别瓶颈，生成优化优先级列表</td></tr>
 <tr><td><strong>Magpie</strong></td><td>轻量级 GPU kernel 评估框架，运行工作负载、生成 trace</td></tr>
 <tr><td><strong>IntelliKit</strong></td><td>LLM 友好的 GPU 工具套件（Kerncap/Metrix/Linex/Nexus/Accordo），对话式性能分析</td></tr>
@@ -414,7 +414,7 @@ ninja -C build dist      # 分发</code></pre>
 
 <h3>13.1 性能对比（2026年8月）</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>维度</th><th>状态</th><th>数据</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">状态</th><th style="background:#1a1a2e;color:#fff;">数据</th></tr>
 <tr><td>标准 LLM 推理</td><td>ROCm 达 H100 90-95%</td><td>MI355X + vLLM/SGLang</td></tr>
 <tr><td>MI300X 早期</td><td>H100 的 37-66%</td><td>软件不成熟导致</td></tr>
 <tr><td>TensorRT-LLM</td><td>CUDA 独占</td><td>无 ROCm 等价</td></tr>
@@ -446,7 +446,7 @@ ninja -C build dist      # 分发</code></pre>
 <h3>14.1 MI400 系列（2026 H2）</h3>
 <p><strong>CDNA 5 架构</strong>，TSMC 2nm (XCD) + 3nm (IOD)，320B 晶体管：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>指标</th><th>MI455X</th><th>MI430X</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">指标</th><th style="background:#1a1a2e;color:#fff;">MI455X</th><th style="background:#1a1a2e;color:#fff;">MI430X</th></tr>
 <tr><td>定位</td><td>AI 训练+推理</td><td>HPC+主权 AI</td></tr>
 <tr><td>FP4 Matrix</td><td>40 PFLOPS</td><td>40 PFLOPS</td></tr>
 <tr><td>FP8 Matrix</td><td>20 PFLOPS</td><td>20 PFLOPS</td></tr>
@@ -477,7 +477,7 @@ ninja -C build dist      # 分发</code></pre>
 
 <h3>15.1 安装方式</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>方式</th><th>适用场景</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">方式</th><th style="background:#1a1a2e;color:#fff;">适用场景</th></tr>
 <tr><td>ROCm CLI（推荐）</td><td>新方式，版本无关，自动环境管理</td></tr>
 <tr><td>Native package manager</td><td>apt/yum/dnf 标准安装</td></tr>
 <tr><td>Docker 容器</td><td>生产部署推荐</td></tr>
@@ -508,7 +508,7 @@ ninja -C build dist      # 分发</code></pre>
 
 <h3>成熟度评估</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>维度</th><th>成熟度</th><th>评级</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">成熟度</th><th style="background:#1a1a2e;color:#fff;">评级</th></tr>
 <tr><td>核心计算栈</td><td>成熟</td><td>★★★★☆</td></tr>
 <tr><td>AI 框架集成</td><td>生产级</td><td>★★★★☆</td></tr>
 <tr><td>通信库</td><td>成熟</td><td>★★★★☆</td></tr>
@@ -532,7 +532,7 @@ ninja -C build dist      # 分发</code></pre>
 
 <h3>选型建议</h3>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>场景</th><th>推荐</th><th>理由</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">场景</th><th style="background:#1a1a2e;color:#fff;">推荐</th><th style="background:#1a1a2e;color:#fff;">理由</th></tr>
 <tr><td>大模型推理（>70B）</td><td>AMD MI355X/MI455X</td><td>显存容量优势决定性</td></tr>
 <tr><td>标准训练（PyTorch）</td><td>两者皆可</td><td>ROCm 已达 90-95%</td></tr>
 <tr><td>极致推理优化</td><td>NVIDIA + TRT-LLM</td><td>TRT-LLM 无 ROCm 等价</td></tr>

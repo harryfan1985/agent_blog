@@ -46,7 +46,7 @@
 <h2>二、核心设计：认知-后果分离</h2>
 <p>SwarmWorld 最关键的方法论创新是<strong>将 LLM 的认知提议与确定性模拟器的物理后果裁定分离</strong>：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>层</th><th>职责</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">层</th><th style="background:#1a1a2e;color:#fff;">职责</th></tr>
 <tr><td><strong>Agent 认知层</strong></td><td>接收局部观察 → 检索私有记忆 → 制定计划 → 输出动作队列（最多12个原子动作）</td></tr>
 <tr><td><strong>模拟器后果层</strong></td><td>验证所有动作 → 资源更新 → 环境场扩散 → 扰动发生 → 人工制品程序执行</td></tr>
 </table>
@@ -54,7 +54,7 @@
 
 <h2>三、四种实验条件：逐步剥离协调机制</h2>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>条件</th><th>可用协调基础</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">条件</th><th style="background:#1a1a2e;color:#fff;">可用协调基础</th></tr>
 <tr><td><strong>Full culture</strong></td><td>共享世界 + 显式通信 + 教学/发表/交易 + 程序 fork + 物理共识性</td></tr>
 <tr><td><strong>No communication</strong></td><td>共享世界 + 物理共识性 + 程序复用/fork，<strong>无直接文化通道</strong></td></tr>
 <tr><td><strong>No explicit culture</strong></td><td>共享世界 + <strong>仅物理共识性</strong>（移除跨 agent 程序遗传）</td></tr>
@@ -65,7 +65,7 @@
 <h2>四、有界蜂群优势：集体赢组合，独立赢峰值</h2>
 <p>论文最重要的结论是：<strong>集体交互改变的是群体构建"什么"，而非普遍最大化每个指标。</strong></p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>指标 (tick 3200, N=100)</th><th>Full culture</th><th>No explicit culture</th><th>Independent</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">指标 (tick 3200, N=100)</th><th style="background:#1a1a2e;color:#fff;">Full culture</th><th style="background:#1a1a2e;color:#fff;">No explicit culture</th><th style="background:#1a1a2e;color:#fff;">Independent</th></tr>
 <tr><td>组合韧性 (Portfolio resilience)</td><td><strong>0.2474</strong></td><td>0.2365</td><td>0.1794</td></tr>
 <tr><td>验证发明数 (Validated inventions)</td><td>5.75</td><td><strong>7.00</strong></td><td>2.75</td></tr>
 <tr><td>留出韧性 (Held-out resilience)</td><td>~0.0356</td><td><strong>0.0446</strong></td><td>0.0356</td></tr>
@@ -82,7 +82,7 @@
 <h2>五、自发角色分化：没人分配，但角色自然涌现</h2>
 <p>所有 agent 初始同质（相同 LLM、相同系统提示、相同记忆约束），<strong>无任何角色分配</strong>。但行为分析恢复了四种自发角色：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>行为状态</th><th>Full culture 起始→终点</th><th>No explicit culture 终点</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">行为状态</th><th style="background:#1a1a2e;color:#fff;">Full culture 起始→终点</th><th style="background:#1a1a2e;color:#fff;">No explicit culture 终点</th></tr>
 <tr><td>建造者/操作员</td><td>0.008 → <strong>0.535</strong></td><td>0.252</td></tr>
 <tr><td>文化协调者</td><td>0.695 → 0.292</td><td>—</td></tr>
 <tr><td>移动勘探者</td><td>—</td><td><strong>0.633</strong></td></tr>
@@ -93,7 +93,7 @@
 <h2>六、物理观察 > 直接通信：最反直觉的发现</h2>
 <p>论文最反直觉的发现：约 <strong>95% 的首次技术复用是通过直接物理观察开始的</strong>，而非创造者→采纳者的消息传递。</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>指标</th><th>Full culture</th><th>No explicit culture</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">指标</th><th style="background:#1a1a2e;color:#fff;">Full culture</th><th style="background:#1a1a2e;color:#fff;">No explicit culture</th></tr>
 <tr><td>非创造者复用的制品比例</td><td><strong>99.3%</strong></td><td>96.9%</td></tr>
 <tr><td>首次复用中位时间（ticks）</td><td><strong>5</strong></td><td>8</td></tr>
 <tr><td>平均采纳广度（非创造者数）</td><td><strong>13.53</strong></td><td>7.49</td></tr>
@@ -114,7 +114,7 @@
 <p>Agent-制品关系随规模超线性增长，幂律指数 α≈3.47。Full culture 在 tick 3200 有 4,031 条唯一关系，约为 No explicit culture 的两倍。</p>
 <p>结构鲁棒性测试：</p>
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr style="background:#1a1a2e;color:#fff;"><th>移除策略</th><th>Full culture 存活率</th><th>No explicit culture</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">移除策略</th><th style="background:#1a1a2e;color:#fff;">Full culture 存活率</th><th style="background:#1a1a2e;color:#fff;">No explicit culture</th></tr>
 <tr><td>随机移除 50% agent</td><td><strong>98.3%</strong></td><td>95.2%</td></tr>
 <tr><td>移除高度数 agent</td><td>59.6%</td><td>73.9%</td></tr>
 <tr><td>移除桥接 agent</td><td>62.9%</td><td>68.4%</td></tr>
