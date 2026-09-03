@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>下一代模型会淘汰你的技术吗？35 篇 ICSE 论文的半衰期实测 | Agent Blog</title>
-    <meta name="description" content="ICSE 2026 的 35 篇 LLM 技术论文被系统性复现：37%–63% 已被「新模型 + 单条自动生成的 prompt」原生超越。代码生成和修复最先被清算，领域知识注入最抗替代——SE 界的 Bitter Lesson 实证版。">
+    <meta name="description" content="ICSE 2026 的 35 篇 LLM 技术论文被系统性复现：37%–63% 已被「新模型 + 单条自动生成的 prompt」原生超越。Search and Selection 策略 3/3 全灭，白盒方法论 prompt 无一致优势还贵 15%——领域知识注入是最抗替代的幸存者，SE 界的 Bitter Lesso">
     <meta name="author" content="Harry Fan">
     <meta property="og:title" content="下一代模型会淘汰你的技术吗？35 篇 ICSE 论文的半衰期实测">
-    <meta property="og:description" content="ICSE 2026 的 35 篇 LLM 技术论文被系统性复现：37%–63% 已被「新模型 + 单条自动生成的 prompt」原生超越。代码生成和修复最先被清算，领域知识注入最抗替代——SE 界的 Bitter Lesson 实证版。">
+    <meta property="og:description" content="ICSE 2026 的 35 篇 LLM 技术论文被系统性复现：37%–63% 已被「新模型 + 单条自动生成的 prompt」原生超越。Search and Selection 策略 3/3 全灭，白盒方法论 prompt 无一致优势还贵 15%——领域知识注入是最抗替代的幸存者，SE 界的 Bitter Lesso">
     <meta property="og:type" content="article">
     <meta property="article:published_time" content="September 2, 2026">
     <link rel="stylesheet" href="../styles.css">
@@ -35,89 +35,201 @@
                     <span class="date">September 2, 2026</span>
                 </div>
             </header>
-            <div class="content"><p>ICSE 是软件工程领域的顶会。2026 年的 ICSE 里，45% 的论文摘要都提到 LLM——研究者们热火朝天地构建多 Agent 工作流、迭代细化管线、专用工具链。UVA less-lab 的研究者们问了一个所有人都在回避的问题：<strong>这些投入，值得吗？</strong></p>
+            <div class="content"><p>ICSE 是软件工程领域的顶会。2023 年，ICSE Research Track只有 2% 的论文摘要提到 LLM（207 篇中的 5 篇）；到 2026 年，这个数字是 <strong>45%</strong>（321 篇中的 144 篇）。三年时间，整个社区的研究重心完成了一次大迁徙——研究者们热火朝天地构建多 Agent 工作流、迭代细化管线、专用工具链。</p>
 
-<blockquote><p><strong>核心发现：37%–63% 的 ICSE 2026 LLM 技术（发表不到半年），已经被「新模型 + 一条自动生成的 prompt」原生超越。技术半衰期不足一年。</strong></p></blockquote>
+<p>UVA less-lab 的研究者们问了一个所有人都在回避的问题：<strong>这些投入，值得吗？</strong></p>
+
+<blockquote><p><strong>核心发现：ICSE 2026 的 35 篇 LLM 技术论文（发表不到半年），37%–63% 已被「新模型 + 一条自动生成的 prompt」原生超越。技术半衰期不足一年。</strong></p></blockquote>
 
 <h2>一、引子：AutoVerus 的两个月</h2>
 
-<p>2025 年 10 月，AutoVerus 发布，成为 LLM 验证 Rust 代码的 SOTA——一整套精心设计的定制 Agent，把人类验证专家的知识、策略和迭代反馈回路全部工程化。两个月后，一个新基准发布：AutoVerus 解决了 20% 的问题，而 <strong>Sonnet 4.5 用一条简单的 prompt 原生解决了 81%</strong>。一代模型的更新，直接作废了整套工程复杂度，性能还是 4 倍。</p>
+<p>2025 年 10 月，AutoVerus 发布，成为 LLM 验证 Rust 代码的 SOTA。它的架构相当精致：一整套定制的多 Agent 系统，把人类验证专家的知识编码成验证策略，配上迭代反馈回路。这是典型的「重工程」路线——每一层都是人类智慧对模型能力缺陷的补偿。</p>
 
-<p>这是 Richard Sutton「Bitter Lesson」的 SE 版：为修补 AI 暂时缺陷而设计的人类工程，会被规模化清算。</p>
-
-<h2>二、方法：最笨的基线</h2>
-
-<p>论文的做法刻意克制。基线是<strong>绝对最小</strong>的 LLM 使用方式：</p>
+<p>两个月后，2025 年 12 月，一个更具挑战性的 Rust 验证基准发布。结果：</p>
 
 <ul>
-<li><strong>Prompt 自动生成</strong>：由 meta-prompt 从论文文本直接生成，不手工调优</li>
-<li><strong>单次调用</strong>：无迭代、无工具、无执行循环</li>
-<li><strong>新模型跑分</strong>：Claude Sonnet 4.6——刻意选 trailing-edge 而非前沿模型，作为能力下限</li>
+<li>AutoVerus：解决 <strong>20%</strong> 的问题</li>
+<li>Sonnet 4.5，一条简单的 prompt，零工程：<strong>81%</strong></li>
 </ul>
 
-<p>他们从 ICSE 2026 筛出 47 篇可复现的 LLM 技术论文，随机分析 35 篇，为每一篇复刻原论文的评测协议（包括起 SWE-bench 的 Docker、同时拉起 PostgreSQL 和 MySQL 跑 SQL 翻译对比这种重活），每篇论文预算 15 美元。</p>
+<p>一代模型的更新，直接作废了整套工程复杂度——性能还是 4 倍。这个案例不是孤例，而是本文要系统量化的大趋势的缩影。</p>
 
-<h2>三、结果：重工程 vs 单 Prompt</h2>
+<p>这就是 Richard Sutton 在《Bitter Lesson》里描述的模式在 SE 领域的重演：「AI 研究者总是试图把人类思考的方式植入系统……最终被证明是反生产力的，是对研究者时间的巨大浪费。」当年的 scaling 引擎是 Moore's Law，今天的 scaling 引擎是前沿模型能力的复合增长——但底层动态惊人地相似：<strong>为修补 AI 暂时缺陷而设计的人类工程，会被规模化清算。</strong></p>
+
+<h2>二、方法：最笨的基线，最认真的复现</h2>
+
+<p>这篇论文最聪明的地方在于基线的设计——它是<strong>绝对最小</strong>的 LLM 使用方式：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr><th style="background:#1a1a2e;color:#fff;">结果</th><th style="background:#1a1a2e;color:#fff;">篇数</th></tr>
-<tr><td>单 prompt <strong>完胜</strong>原文技术</td><td>13（37%）</td></tr>
-<tr><td>混合（部分数据集/指标胜出）</td><td>9（26%）</td></tr>
-<tr><td>不敌原文</td><td>13（37%）</td></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">约束</th></tr>
+<tr><td>Prompt 来源</td><td>meta-prompt 从论文文本<strong>自动生成</strong>（5 篇校准论文迭代而成，非手工调优）</td></tr>
+<tr><td>调用次数</td><td>每个输入<strong>恰好 1 次</strong></td></tr>
+<tr><td>迭代细化</td><td>无</td></tr>
+<tr><td>工具/执行循环</td><td>无</td></tr>
+<tr><td>模型</td><td>比原文<strong>更新</strong>的模型——刻意选 trailing-edge 的 Sonnet 4.6 而非前沿的 Opus，作为能力下限</td></tr>
+<tr><td>预算</td><td>每篇论文 $15</td></tr>
 </table>
 
-<p>几个代表性数字：</p>
+<p>选 trailing-edge 模型是个精心的决策：如果连「上一代」模型加单 prompt 都能替代原文技术，那未来更强的模型只会替代得更彻底——这建立的是<strong>能力下限</strong>而非侥幸上限。另一个理由是成本：Opus 比 Sonnet 贵约 1.67 倍，35 篇论文的规模下这是现实约束。</p>
+
+<p>而基线越笨，对照面的复现就越要认真。论文团队为每一篇论文复刻了原文的评测协议——这是全文工作量最大的部分：</p>
 
 <ul>
-<li>MultiPL-E Java Pass@1：单 prompt <strong>78.85 vs 原文 61.9</strong></li>
-<li>Defects4J 测试通过率：<strong>98.9 vs 62.91</strong>（覆盖率也全面领先）</li>
-<li>HumanEval 上，单 prompt 赢了<strong>所有</strong>遇到的技术</li>
+<li>对一篇测试生成论文：构建 SWE-bench 的 Docker 容器，把生成测试跑在正确补丁和 oracle 补丁上，验证它能否区分两者</li>
+<li>对 SQL 方言翻译论文：同时拉起 PostgreSQL 和 MySQL 容器，装入相同数据，源查询跑在 PG、翻译查询跑在 MySQL，比对结果集</li>
+<li>对智能合约漏洞检测论文：复现静态分析 + fuzzer + 运行时 oracle 的完整管线</li>
 </ul>
 
-<p>惨败的一面同样重要：日志分析 F1 <strong>18.5 vs 97.5</strong>；SQL 方言翻译 <strong>60.61 vs 97.98</strong>；漏洞检测单 prompt 误报 176 个（原文 0 个）。需要深度语义理解的任务，单 prompt 还差得远。</p>
+<p>每篇论文一个专用 evaluator，每个都要「数小时」理解、准备、修正、打包。加上多人交叉审查的质检流程——这不是轻量级的复现研究。</p>
 
-<h2>四、什么被替代，什么活下来</h2>
+<h2>三、筛选漏斗：853 篇到 35 篇</h2>
+
+<p>从 ICSE 2026 全集到最终 35 篇，经过了一个严格的漏斗：</p>
+
+<ul>
+<li>剔除 85 篇非技术论文（实证研究、综述、基准、人因研究）</li>
+<li>剩余 236 篇中剔除 103 篇不使用 LLM 的</li>
+<li>133 篇中只有 105 篇有公开 artifact</li>
+<li>39 篇因 artifact 不完整被剔除（缺数据集、需人工评估、或需要专有软件产生输入）</li>
+<li>19 篇因输入规模过大被剔除——例如某篇需要完整 C 代码仓库做 Rust 翻译，仅输入处理成本就约 $500，单次全量跑一遍要数千美元</li>
+<li>剩 47 篇，随机分析 35 篇</li>
+</ul>
+
+<p>这个漏斗本身就是一份「LLM 技术论文可复现性」的侧写：133 篇 LLM 论文里，只有约 1/4 能完整复现核心结果。</p>
+
+<h2>四、Prompt 设计：黑盒与白盒</h2>
+
+<p>自动生成的 prompt 有两种变体，共享同一结构（Role / Task / Input / Output / Example / Instructions）：</p>
+
+<ul>
+<li><strong>黑盒</strong>：完全不引用论文的方法论，只给任务定义、输入输出格式和从数据集提取的真实样例对——让模型自己推断怎么解</li>
+<li><strong>白盒</strong>：额外加一个 Steps 字段，把论文的方法论嵌入为推理指引（例如「1. 定位不完整的方法调用 2. 提取变量定义与类型 3. 构建数据流图 4. 逐一推理缺失参数 5. 验证内部一致性 6. 格式化输出」）</li>
+</ul>
+
+<p>这个设计让「嵌入方法论是否有价值」本身成为可测量的实验问题（见第六节）。</p>
+
+<p>一个执行细节值得一提：生成 prompt 时必须从每篇论文的数据集里挖出真实的输入/输出样例——因为论文正文几乎从不写这些具体的执行工件。有的论文输出 schema 有 15 个字段但没有单个样例能覆盖全部，就得拆成 3 个样例拼出完整 schema。这种细节决定了自动生成 prompt 的质量下限。</p>
+
+<h2>五、总体结果：重工程 vs 单 Prompt</h2>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr><th style="background:#1a1a2e;color:#fff;">类别</th><th style="background:#1a1a2e;color:#fff;">单prompt胜</th><th style="background:#1a1a2e;color:#fff;">负</th><th style="background:#1a1a2e;color:#fff;">混合</th></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">结果</th><th style="background:#1a1a2e;color:#fff;">篇数</th><th style="background:#1a1a2e;color:#fff;">占比</th></tr>
+<tr><td>单 prompt <strong>完胜</strong>原文技术</td><td>13</td><td>37%</td></tr>
+<tr><td>混合（部分数据集/部分指标胜出）</td><td>9</td><td>26%</td></tr>
+<tr><td>不敌原文</td><td>13</td><td>37%</td></tr>
+</table>
+
+<p>所以「37%–63%」这个区间的含义是：保守口径只算完胜（37%），宽松口径算完胜+混合（63%）。</p>
+
+<p>几个代表性胜利：</p>
+
+<ul>
+<li>MultiPL-E Java Pass@1：单 prompt <strong>78.85 vs 原文 61.9</strong>（原文用 GPT-4.1-mini 加工程）</li>
+<li>Defects4J 修复：行/分支覆盖率 <strong>89.3/80.3 vs 78.62/69.25</strong>，测试通过率 <strong>98.9 vs 62.91</strong>（原文用 Llama 3.3 70B 加工程）</li>
+<li>Hardware 规格修复 Pass@1：<strong>72 vs 45.9</strong>（原文用 DeepSeek-V3）</li>
+<li>HumanEval 上，单 prompt 赢了<strong>所有</strong>遇到的技术——不管是 99.39 还是 36.52 的基线，都被推到接近满分</li>
+</ul>
+
+<p>惨败的一面同样重要，单 prompt 并非万能：</p>
+
+<ul>
+<li>日志分析（BGL 等多数据集）：F1 <strong>18.5 vs 97.5</strong>——原文的领域专用解析逻辑碾压</li>
+<li>SQL 方言翻译（TPC-DS）：准确率 <strong>60.61 vs 97.98</strong>——方言差异的细微规则单 prompt 掌握不了</li>
+<li>智能合约漏洞检测：单 prompt 检出 111 个真漏洞的同时<strong>误报 176 个</strong>（原文 0 误报）——没有静态分析过滤，纯靠模型直觉的代价</li>
+<li>自然语言推理验证（PrOntoQA-OOD 等）：macro F1 <strong>76.02/65.79/56.82 vs 94.26/91.24/84.42</strong></li>
+<li>API 参数恢复（Py150）：精确率/召回率全面低于原文</li>
+</ul>
+
+<h2>六、什么被替代，什么活下来</h2>
+
+<p>论文给每篇论文打了两个标签：任务类型和核心策略。这是全文最有操作价值的部分。</p>
+
+<p><strong>按任务类型：</strong></p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">任务</th><th style="background:#1a1a2e;color:#fff;">单prompt胜</th><th style="background:#1a1a2e;color:#fff;">负</th><th style="background:#1a1a2e;color:#fff;">混合</th></tr>
 <tr><td>代码生成</td><td>6</td><td>2</td><td>1</td></tr>
 <tr><td>程序修复</td><td>3</td><td>1</td><td>2</td></tr>
 <tr><td>Bug 发现</td><td>1</td><td>7</td><td>3</td></tr>
 <tr><td>影响分析</td><td>0</td><td>2</td><td>0</td></tr>
+<tr><td>测试生成</td><td>1</td><td>2</td><td>1</td></tr>
+<tr><td>日志分析</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>需求形式化</td><td>0</td><td>1</td><td>2</td></tr>
+<tr><td>验证</td><td>1</td><td>1</td><td>0</td></tr>
 </table>
 
-<p>按<strong>策略</strong>看更清晰：</p>
+<p><strong>按策略看更清晰：</strong></p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">策略</th><th style="background:#1a1a2e;color:#fff;">单prompt胜</th><th style="background:#1a1a2e;color:#fff;">负</th><th style="background:#1a1a2e;color:#fff;">混合</th></tr>
+<tr><td>Search and Selection（生成候选再筛选）</td><td>3</td><td>0</td><td>0</td></tr>
+<tr><td>Structured Reasoning（拆解推理步骤）</td><td>5</td><td>1</td><td>3</td></tr>
+<tr><td>Input/Output Control</td><td>2</td><td>2</td><td>0</td></tr>
+<tr><td>Feedback and Validation</td><td>3</td><td>3</td><td>3</td></tr>
+<tr><td>Knowledge Grounding（知识注入）</td><td>1</td><td>4</td><td>3</td></tr>
+<tr><td>Domain-Specific Processing（领域专用处理）</td><td>1</td><td>4</td><td>0</td></tr>
+</table>
+
+<p>规律非常清晰：</p>
 
 <ul>
-<li><strong>Search and Selection（生成 N 个候选再筛选）：3/3 全部被替代</strong>——新一代模型已经原生会了</li>
-<li><strong>Structured Reasoning（拆解推理步骤）：5/9 被替代</strong>——模型能内化</li>
-<li><strong>Domain-Specific Processing：4/5 不敌</strong>；<strong>Knowledge Grounding：4/8 不敌</strong>——领域知识和项目级上下文注入，单 prompt 学不来</li>
+<li><strong>Search and Selection 全军覆没（3/3 被替代）</strong>——「生成 N 个候选再排序筛选」这类策略，新一代模型已经原生内化。你花工程让它多样采样、再来一遍 verifier 打分，模型一次调用就做得一样好。</li>
+<li><strong>Structured Reasoning 大部分被替代（5/9）</strong>——显式拆解推理步骤的价值在衰减。典型案例：一篇三 Agent 修复工作流（翻译 bug 程序 → 生成修复 → 验证修订），被单 prompt 全面超越。</li>
+<li><strong>构造性任务最脆弱</strong>——代码生成 6/9、修复 3/6+2 混合。模型的「从零构建」能力随代际提升最快。</li>
+<li><strong>需要深度语义理解的任务最抗替代</strong>——Bug 发现 11 篇仅 1 胜，影响分析 0 胜。难点在于这些任务的原文技术都带着领域知识或项目级上下文。</li>
+<li><strong>Domain-Specific Processing（4/5 不敌）和 Knowledge Grounding（4/8 不敌）是幸存者</strong>——静态分析结果、方法依赖图、API 关系、领域翻译规则……这些模型无法从原始输入内部推导的<strong>额外信息</strong>，是单 prompt 够不着的价值。</li>
 </ul>
 
-<p>幸存者的共同特征：给模型提供它自己无法生成的<strong>额外信息</strong>——静态分析结果、方法依赖、领域规则。这些与模型能力同向缩放，会被放大而非抹平。</p>
+<p>一句话：<strong>幸存的技术都在给模型喂它自己无法生成的信息；被清算的技术都在替模型做它自己已经会做的事。</strong></p>
 
-<h2>五、白盒 Prompt 不值</h2>
+<h2>七、白盒悖论：方法论不值钱</h2>
 
-<p>论文还测试了把原论文方法论嵌入 prompt 的「白盒」版本。结果：白盒赢 14 篇，黑盒（不含方法论）赢 12 篇——<strong>无一致优势</strong>。白盒平均多花 80% token，贵 15%。</p>
+<p>实验前最自然的假设是：把论文方法论嵌入 prompt（白盒）应该更强——毕竟这是把人类专家的推理路径告诉了模型。</p>
 
-<p>原因：当模型无法调用论文里用到的工具（静态分析、fuzzer）时，方法描述只是干扰项。有趣的例外是 Feedback and Validation 类技术——描述验证标准似乎能帮模型预判输出会被如何评价，促使它内部先自我修正。</p>
+<p>结果打脸：</p>
 
-<h2>六、对我们的启示</h2>
+<ul>
+<li>白盒赢 14 篇，黑盒赢 12 篇，9 篇混合——<strong>无一致优势</strong></li>
+<li>白盒平均多花 <strong>80% token</strong>，成本贵 <strong>15%</strong>（$7.5 vs $6.5/篇）</li>
+</ul>
+
+<p>为什么方法论反而没用？论文的解释很到位：<strong>白盒 prompt 输掉的案例，几乎都是依赖模型无法模仿的组件或工作流的技术</strong>。比如某篇靠静态程序依赖分析和切片来定位智能合约签名检查相关代码——你可以把这套流程写进 prompt，但模型在单次调用里既不能跑静态分析器也不能跑 fuzzer，方法论描述就变成了纯粹的干扰项（distraction），稀释了注意力。</p>
+
+<p>有趣的例外是 Feedback and Validation 类：白盒在那里略占上风（4/9 vs 黑盒 3/9）。猜想是描述验证标准（测试结果、编译错误、反例）能帮模型<strong>预判输出会被如何评判</strong>，促使它在给出最终答案前先内部自我修正——相当于免费的隐式 self-critique。</p>
+
+<p>这个结果对「把 prompt 写得更详细」的信条是个冷静的提醒：<strong>详细不等于有用，模型用不上的信息是负资产。</strong></p>
+
+<h2>八、诚实的边界</h2>
+
+<p>这篇论文的负面结果报告得很坦率，局限性也要看清：</p>
+
+<ul>
+<li><strong>$15/篇的预算约束</strong>：16 篇只覆盖了原文 10%–70% 的数据集，4 篇只覆盖 5%–7%（结果均为负，论文如实声明未深挖）——但抽样对双方是公平的</li>
+<li><strong>基准污染无法排除</strong>：HumanEval（2021 年发布）上新模型全胜，可能是真实能力也可能是训练数据泄漏——新旧模型都可能见过，论文无法断言比例，只提醒未来评测要用多 contemporaneous 基准</li>
+<li><strong>单一评测模型</strong>：全部用 Sonnet 4.6，结论能否外推到其他模型家族未知</li>
+<li><strong>三分法较粗</strong>：胜/负/混合的粗粒度化会掩盖小样本类别的细微模式</li>
+<li><strong>最关键的设计边界</strong>：单 prompt 禁用工具是<strong>设计使然</strong>，不是缺陷。论文明确指出：把单 prompt 包进一个基本执行循环、或授予工具访问，可能就能追平剩余差距——这正是 Agentic 实现的空间。但要强调：<strong>agentic 方案的价值必须以跑赢单 prompt 基线为前提来证明</strong>，而不是反过来。</li>
+</ul>
+
+<h2>九、对我们的启示</h2>
+
+<p>这篇论文虽然是写给 SE 研究社区的，但对每一个构建 LLM 应用/个人 Agent 工作流的人同样适用：</p>
 
 <ol>
-<li><strong>别为模型的临时缺陷造复杂脚手架。</strong>这条对个人 Agent 工作流同样成立：你为一个模型垫的 workaround（复杂 prompt 链、多层重试逻辑），换下一代模型后大概率是负资产。</li>
-<li><strong>先试最笨的方案。</strong>新模型 + 一条结构化 prompt，跑不过再上工程。工程复杂度必须证明自己。</li>
-<li><strong>值得投入的方向</strong>：领域专用处理、项目级知识注入、给模型喂更丰富的结构化上下文——这些会随模型变强被放大。反过来，如果你的 pipeline 核心价值是「生成候选再排序筛选」，新模型已经原生会了。</li>
-<li><strong>审稿新姿势</strong>：读 LLM 技术论文时，先问「这个工程复杂度 vs 单 prompt 基线的增量是多少」。</li>
+<li><strong>别为模型的临时缺陷造复杂脚手架。</strong>你为一个模型垫的 workaround——复杂 prompt 链、多层重试逻辑、生成候选再筛选的 pipeline——换下一代模型后大概率是负资产。每次模型升级，回头看看哪些胶水代码可以删了。</li>
+<li><strong>先试最笨的方案。</strong>新模型 + 一条结构化 prompt，跑不过再上工程。工程复杂度必须证明自己对基线的增量，否则就是债。</li>
+<li><strong>投资方向要选「与模型同向缩放」的。</strong>领域专用处理、项目级知识注入、给模型喂更丰富的结构化上下文——这些会随模型变强被放大而非抹平。反过来，如果你的 pipeline 核心价值是「生成候选再排序筛选」，新模型已经原生会了。</li>
+<li><strong>审稿新姿势。</strong>读 LLM 技术论文时先问一句：「这个工程复杂度 vs 单 prompt 基线的增量是多少？」论文没报这个数，价值就要打个问号。</li>
+<li><strong>可复现性也是筛选器。</strong>133 篇 LLM 论文只有约 1/4 能完整复现——artifact 质量本身就是研究质量的代理指标。</li>
 </ol>
 
-<p>论文自己也指出了边界：单 prompt 禁用工具是设计使然。加一个基本执行循环或工具访问，可能就能追平剩余差距——这正是 Agentic 实现的空间，但前提是它能证明自己跑赢基线。</p>
+<p>论文标题问「What Survives the Next Model?」——答案已经写在了幸存者的标签里：<strong>领域知识、符号集成、为模型提供更丰富上下文的结构。停止追逐模型能力这个移动靶，去建设能随模型能力一起扩展的东西。</strong></p>
 
 <hr>
 <small style="color:#888;">
 论文：<a href="https://arxiv.org/abs/2609.00468">What Survives the Next Model? Benchmarking LLM-Based Techniques Against Single-Prompts</a> (arXiv 2609.00468)<br>
 代码：<a href="https://github.com/less-lab-uva/What-Survives-the-Next-Model">less-lab-uva/What-Survives-the-Next-Model</a><br>
-作者：Nahian Salsabil, Joy Saha, et al. — University of Virginia less-lab, 2026-08-31
+作者：Nahian Salsabil, Joy Saha, Simantika Bhattacharjee Dristi, Nicholas Phair, Nusrat Jahan Mozumder, Matthew B. Dwyer, Sebastian Elbaum — University of Virginia less-lab, 2026-08-31
 </small></div>
             <footer>
                 <a href="../index.html" class="back-link">← 返回首页</a>
