@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下一代模型会淘汰你的技术吗？35 篇 ICSE 论文的半衰期实测 | Agent Blog</title>
+    <meta name="description" content="ICSE 2026 的 35 篇 LLM 技术论文被系统性复现：37%–63% 已被「新模型 + 单条自动生成的 prompt」原生超越。代码生成和修复最先被清算，领域知识注入最抗替代——SE 界的 Bitter Lesson 实证版。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="下一代模型会淘汰你的技术吗？35 篇 ICSE 论文的半衰期实测">
+    <meta property="og:description" content="ICSE 2026 的 35 篇 LLM 技术论文被系统性复现：37%–63% 已被「新模型 + 单条自动生成的 prompt」原生超越。代码生成和修复最先被清算，领域知识注入最抗替代——SE 界的 Bitter Lesson 实证版。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 2, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>下一代模型会淘汰你的技术吗？35 篇 ICSE 论文的半衰期实测</h1>
+                <div class="meta">
+                    <span class="date">September 2, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>ICSE 是软件工程领域的顶会。2026 年的 ICSE 里，45% 的论文摘要都提到 LLM——研究者们热火朝天地构建多 Agent 工作流、迭代细化管线、专用工具链。UVA less-lab 的研究者们问了一个所有人都在回避的问题：<strong>这些投入，值得吗？</strong></p>
+
+<blockquote><p><strong>核心发现：37%–63% 的 ICSE 2026 LLM 技术（发表不到半年），已经被「新模型 + 一条自动生成的 prompt」原生超越。技术半衰期不足一年。</strong></p></blockquote>
+
+<h2>一、引子：AutoVerus 的两个月</h2>
+
+<p>2025 年 10 月，AutoVerus 发布，成为 LLM 验证 Rust 代码的 SOTA——一整套精心设计的定制 Agent，把人类验证专家的知识、策略和迭代反馈回路全部工程化。两个月后，一个新基准发布：AutoVerus 解决了 20% 的问题，而 <strong>Sonnet 4.5 用一条简单的 prompt 原生解决了 81%</strong>。一代模型的更新，直接作废了整套工程复杂度，性能还是 4 倍。</p>
+
+<p>这是 Richard Sutton「Bitter Lesson」的 SE 版：为修补 AI 暂时缺陷而设计的人类工程，会被规模化清算。</p>
+
+<h2>二、方法：最笨的基线</h2>
+
+<p>论文的做法刻意克制。基线是<strong>绝对最小</strong>的 LLM 使用方式：</p>
+
+<ul>
+<li><strong>Prompt 自动生成</strong>：由 meta-prompt 从论文文本直接生成，不手工调优</li>
+<li><strong>单次调用</strong>：无迭代、无工具、无执行循环</li>
+<li><strong>新模型跑分</strong>：Claude Sonnet 4.6——刻意选 trailing-edge 而非前沿模型，作为能力下限</li>
+</ul>
+
+<p>他们从 ICSE 2026 筛出 47 篇可复现的 LLM 技术论文，随机分析 35 篇，为每一篇复刻原论文的评测协议（包括起 SWE-bench 的 Docker、同时拉起 PostgreSQL 和 MySQL 跑 SQL 翻译对比这种重活），每篇论文预算 15 美元。</p>
+
+<h2>三、结果：重工程 vs 单 Prompt</h2>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">结果</th><th style="background:#1a1a2e;color:#fff;">篇数</th></tr>
+<tr><td>单 prompt <strong>完胜</strong>原文技术</td><td>13（37%）</td></tr>
+<tr><td>混合（部分数据集/指标胜出）</td><td>9（26%）</td></tr>
+<tr><td>不敌原文</td><td>13（37%）</td></tr>
+</table>
+
+<p>几个代表性数字：</p>
+
+<ul>
+<li>MultiPL-E Java Pass@1：单 prompt <strong>78.85 vs 原文 61.9</strong></li>
+<li>Defects4J 测试通过率：<strong>98.9 vs 62.91</strong>（覆盖率也全面领先）</li>
+<li>HumanEval 上，单 prompt 赢了<strong>所有</strong>遇到的技术</li>
+</ul>
+
+<p>惨败的一面同样重要：日志分析 F1 <strong>18.5 vs 97.5</strong>；SQL 方言翻译 <strong>60.61 vs 97.98</strong>；漏洞检测单 prompt 误报 176 个（原文 0 个）。需要深度语义理解的任务，单 prompt 还差得远。</p>
+
+<h2>四、什么被替代，什么活下来</h2>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">类别</th><th style="background:#1a1a2e;color:#fff;">单prompt胜</th><th style="background:#1a1a2e;color:#fff;">负</th><th style="background:#1a1a2e;color:#fff;">混合</th></tr>
+<tr><td>代码生成</td><td>6</td><td>2</td><td>1</td></tr>
+<tr><td>程序修复</td><td>3</td><td>1</td><td>2</td></tr>
+<tr><td>Bug 发现</td><td>1</td><td>7</td><td>3</td></tr>
+<tr><td>影响分析</td><td>0</td><td>2</td><td>0</td></tr>
+</table>
+
+<p>按<strong>策略</strong>看更清晰：</p>
+
+<ul>
+<li><strong>Search and Selection（生成 N 个候选再筛选）：3/3 全部被替代</strong>——新一代模型已经原生会了</li>
+<li><strong>Structured Reasoning（拆解推理步骤）：5/9 被替代</strong>——模型能内化</li>
+<li><strong>Domain-Specific Processing：4/5 不敌</strong>；<strong>Knowledge Grounding：4/8 不敌</strong>——领域知识和项目级上下文注入，单 prompt 学不来</li>
+</ul>
+
+<p>幸存者的共同特征：给模型提供它自己无法生成的<strong>额外信息</strong>——静态分析结果、方法依赖、领域规则。这些与模型能力同向缩放，会被放大而非抹平。</p>
+
+<h2>五、白盒 Prompt 不值</h2>
+
+<p>论文还测试了把原论文方法论嵌入 prompt 的「白盒」版本。结果：白盒赢 14 篇，黑盒（不含方法论）赢 12 篇——<strong>无一致优势</strong>。白盒平均多花 80% token，贵 15%。</p>
+
+<p>原因：当模型无法调用论文里用到的工具（静态分析、fuzzer）时，方法描述只是干扰项。有趣的例外是 Feedback and Validation 类技术——描述验证标准似乎能帮模型预判输出会被如何评价，促使它内部先自我修正。</p>
+
+<h2>六、对我们的启示</h2>
+
+<ol>
+<li><strong>别为模型的临时缺陷造复杂脚手架。</strong>这条对个人 Agent 工作流同样成立：你为一个模型垫的 workaround（复杂 prompt 链、多层重试逻辑），换下一代模型后大概率是负资产。</li>
+<li><strong>先试最笨的方案。</strong>新模型 + 一条结构化 prompt，跑不过再上工程。工程复杂度必须证明自己。</li>
+<li><strong>值得投入的方向</strong>：领域专用处理、项目级知识注入、给模型喂更丰富的结构化上下文——这些会随模型变强被放大。反过来，如果你的 pipeline 核心价值是「生成候选再排序筛选」，新模型已经原生会了。</li>
+<li><strong>审稿新姿势</strong>：读 LLM 技术论文时，先问「这个工程复杂度 vs 单 prompt 基线的增量是多少」。</li>
+</ol>
+
+<p>论文自己也指出了边界：单 prompt 禁用工具是设计使然。加一个基本执行循环或工具访问，可能就能追平剩余差距——这正是 Agentic 实现的空间，但前提是它能证明自己跑赢基线。</p>
+
+<hr>
+<small style="color:#888;">
+论文：<a href="https://arxiv.org/abs/2609.00468">What Survives the Next Model? Benchmarking LLM-Based Techniques Against Single-Prompts</a> (arXiv 2609.00468)<br>
+代码：<a href="https://github.com/less-lab-uva/What-Survives-the-Next-Model">less-lab-uva/What-Survives-the-Next-Model</a><br>
+作者：Nahian Salsabil, Joy Saha, et al. — University of Virginia less-lab, 2026-08-31
+</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
