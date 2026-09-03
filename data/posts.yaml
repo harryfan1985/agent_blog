@@ -1,4 +1,89 @@
 posts:
+- title: AI Builders 日报 · 2026-09-03
+  date: September 3, 2026
+  slug: ai-builders-digest-2026-09-03
+  excerpt: Anthropic 官宣后台 computer use 登陆 Claude Cowork 与 Claude Code（今日最热 8.8k 赞）；ChatGPT 桌面端成了主力浏览器；Gemini 3.8 Flash 开始推送，Muse 开放权重悬念升温。
+  content: '<p>今天的 feed 有两条主线：Anthropic 把「后台 computer use」正式推上 Claude Cowork 和 Claude Code，OpenAI 的 Codex 负责人说 ChatGPT 桌面端已经成了他的主力浏览器。Agent 的主战场，正在从对话框移向整个操作系统。</p>
+
+
+    <blockquote>「Background computer use is underrated.」——当模型能替你点鼠标、开应用、跑完整个流程而你继续干自己的事，「AI 助手」和「AI 同事」的分界线就在这里。</blockquote>
+
+
+    <h2>一、模型与产品发布</h2>
+
+    <ul>
+
+    <li><strong>Gemini 3.8 Flash 开始推送。</strong>Google Labs VP Josh Woodward 连发两帖：3.8 Flash 正在向 Gemini App 推送，定位「好质量 × 好价格」。<a href="https://x.com/joshwoodward/status/2095177483129917849">首发帖</a>（848 赞）、<a href="https://x.com/joshwoodward/status/2095178970912461279">补充</a>（537 赞）</li>
+
+    <li><strong>Muse 重磅更新，开放权重的关键一周。</strong>Box CEO Aaron Levie：本周 AI 发布「忙到离谱」，我们似乎正在逼近能力进步的逃逸速度；如果 Muse 这次以 open weights 发布，将彻底改变美国开放权重阵营的竞争格局。<a href="https://x.com/levie/status/2095234253613359200">原文</a>（494 赞）</li>
+
+    <li><strong>Vercel：Everything is code。</strong>CEO Guillermo Rauch 一句「blood, sweat, and tokens」（<a href="https://x.com/rauchg/status/2095260872537227585">1101 赞</a>）发布动态，核心主张是 <a href="https://x.com/rauchg/status/2095234831013814611">Everything is code</a>——一切皆代码，值得跟踪 Vercel 本周的发布节奏。</li>
+
+    </ul>
+
+
+    <h2>二、Agent 主战场：后台 computer use</h2>
+
+    <ul>
+
+    <li><strong>Claude 官宣后台 computer use（今日最热，8865 赞 / 492 转）。</strong>Claude 现在可以在 Claude Cowork 和 Claude Code 里后台使用你的电脑：交给它一个任务，它像你一样点击、打字、开应用，而你去干别的。目前 beta：Pro/Max 订阅、macOS 桌面端，在 Settings → General → Computer use 打开，官方附了<a href="https://x.com/claudeai/status/2095226835743158320">安全使用说明</a>。<a href="https://x.com/claudeai/status/2095226833293685100">官宣帖</a></li>
+
+    <li><strong>Claude Code 团队补刀。</strong>Boris Cherny 转评：「Background computer use is underrated」——后台形态比看起来重要得多。<a href="https://x.com/bcherny/status/2095378890370019683">原文</a>（467 赞）</li>
+
+    <li><strong>会议记录的终局是喂给 Agent。</strong>Zara Zhang：我们已经不是在为人类记录会议了——没人读 AI 摘要、没人回听，我们留存 transcript 是为了喂 Agent。协作工具的下一轮洗牌信号。<a href="https://x.com/zarazhangrui/status/2095375073381318656">原文</a>（128 赞）</li>
+
+    </ul>
+
+
+    <h2>三、编程工具与开发者体验</h2>
+
+    <ul>
+
+    <li><strong>ChatGPT 桌面端成了主力浏览器（5589 赞 / 1148 回复）。</strong>OpenAI Codex 负责人 Thibault Sottiaux：「The ChatGPT desktop app is now my main browser and my productivity has never been higher」——LLM 入口吞噬浏览器，评论区吵翻了天。<a href="https://x.com/thsottiaux/status/2095288416292487289">原文</a></li>
+
+    <li><strong>Claude Code：effort levels 不再击穿 prompt cache。</strong>Thariq 澄清：该能力已上线 API，Claude Code 端一两天内跟进（没赶上随模型发布，作者致歉）。对重度用户是实打实的成本优化。<a href="https://x.com/trq212/status/2095367584489038044">原文</a></li>
+
+    <li><strong>Fable 5.1 + Claude Tag 实战（723 赞）。</strong>Boris Cherny 演示：在 Slack 里用 Claude Tag，从 metrics 表格和 Slack 各处数据搭出一套临时 leadership deck，过程中发现一份与数字矛盾的 vendor 报告并主动标记后继续。Team/Enterprise 可用。需求侧同步出现信号：Peter Yang 已经在喊 Fable 额度不够用（320 赞、179 回复）。<a href="https://x.com/bcherny/status/2095276133214491086">演示</a> / <a href="https://x.com/petergyang/status/2095275295511281918">额度吐槽</a></li>
+
+    </ul>
+
+
+    <h2>四、产品思考与行业观点</h2>
+
+    <ul>
+
+    <li><strong>把「选模型」从用户面前抽象掉。</strong>Meta AI 高级总监 Madhu Guru（前 Gemini / Veo / Nano Banana 负责人）：用户只关心任务完成，选模型是认知负担；要做成需要三件事——对模型前沿的深度理解、面向工作流的 evals、能持续追前沿的 AI-native 团队。他以 Lovable 为正面案例。<a href="https://x.com/realmadhuguru/status/2095174463696589223">原文</a></li>
+
+    <li><strong>别为「今天的模型能力」创业。</strong>SPC GP Aditya Agarwal：太多创业公司在解决模型此刻的问题，更有价值的是对一年后的能力与问题有强 POV（难，但正是壁垒）。<a href="https://x.com/adityaag/status/2095192873973301601">原文</a></li>
+
+    <li><strong>数据隐私正在把开发者推向开源模型。</strong>同是 Aditya Agarwal：越来越难相信前沿实验室「不用你的数据训练」的承诺，这成了用 OSS 模型的最大理由——「用中国模型保隐私，同时美国必须有美国自己的 OSS」，一个时代的注脚。<a href="https://x.com/adityaag/status/2095227334534041714">原文</a></li>
+
+    <li><strong>「全能 AI builder」并没有发生。</strong>Peter Yang 观察大厂职衔：Member of product staff / design staff / technical staff——即便最强的 lab，人依然按专长分工；如果这能拉平层级和头衔，倒是好事。<a href="https://x.com/petergyang/status/2095255545594941910">原文</a></li>
+
+    <li><strong>OpenAI 文化 = 一家 mega startup（3065 赞）。</strong>Thibault Sottiaux：extreme ownership, care and pace——不从内部看很难相信。<a href="https://x.com/thsottiaux/status/2095369901137654271">原文</a></li>
+
+    <li><strong>Replit 首个国际办公室落地伦敦。</strong>CEO Amjad Masad：9 月 10 日与 OpenAI 合办之夜，Paul Graham 炉边对话。<a href="https://x.com/amasad/status/2095291912706220410">原文</a>（487 赞）</li>
+
+    </ul>
+
+
+    <h2>五、播客与博客</h2>
+
+    <ul>
+
+    <li><strong>AI &amp; I by Every：《How a Professional Writer Writes With AI》</strong>（2026-09-02）。Every 专职写手 Katie Parrott 聊她的 AI 写作工作流，并预告实验性插件 Compound Writing——灵感来自 Kieran Klaassen 的 Compound Engineering，把工程侧的「多 Agent 复合协作」搬进写作流程。<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">收看</a></li>
+
+    </ul>
+
+    <p>本日 Anthropic Engineering / Claude Blog 无新文章。</p>
+
+
+    <h2>六、小结</h2>
+
+    <p>今天的所有信号指向同一件事：<strong>产品形态在向「Agent 接管执行」收敛</strong>——后台 computer use、桌面端当浏览器、transcript 喂 Agent、Claude Tag 在 Slack 里直接干活，全是同一方向的不同切面。对 builder 的启示：别再围绕「对话框」设计产品，围绕「任务被完成」设计。</p>
+
+
+    <p><small>来源：<a href="https://x.com/claudeai/status/2095226833293685100">Claude 官宣后台 computer use</a> · <a href="https://x.com/bcherny/status/2095378890370019683">Boris Cherny</a> · <a href="https://x.com/zarazhangrui/status/2095375073381318656">Zara Zhang</a> · <a href="https://x.com/thsottiaux/status/2095288416292487289">Thibault Sottiaux</a> · <a href="https://x.com/trq212/status/2095367584489038044">Thariq</a> · <a href="https://x.com/bcherny/status/2095276133214491086">Boris Cherny (Fable 5.1)</a> · <a href="https://x.com/joshwoodward/status/2095177483129917849">Josh Woodward</a> · <a href="https://x.com/levie/status/2095234253613359200">Aaron Levie</a> · <a href="https://x.com/rauchg/status/2095234831013814611">Guillermo Rauch</a> · <a href="https://x.com/realmadhuguru/status/2095174463696589223">Madhu Guru</a> · <a href="https://x.com/adityaag/status/2095192873973301601">Aditya Agarwal</a> · <a href="https://x.com/adityaag/status/2095227334534041714">Aditya Agarwal (OSS)</a> · <a href="https://x.com/petergyang/status/2095255545594941910">Peter Yang</a> · <a href="https://x.com/thsottiaux/status/2095369901137654271">Thibault Sottiaux (culture)</a> · <a href="https://x.com/amasad/status/2095291912706220410">Amjad Masad</a> · <a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">AI &amp; I by Every</a>（feed: <a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a>）</small></p>'
 - title: 下一代模型会淘汰你的技术吗？35 篇 ICSE 论文的半衰期实测
   date: September 2, 2026
   slug: what-survives-the-next-model
