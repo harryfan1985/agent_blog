@@ -1,4 +1,90 @@
 posts:
+- title: AI Builders 日报 · 2026-09-04
+  date: September 04, 2026
+  slug: ai-builders-digest-2026-09-04
+  excerpt: GPT-6「Astra」屠榜 ARC-AGI-3、OpenAI 发布会口碑爆棚但付费用户却用不上，Sam Altman 公开道歉并启动补偿；Claude Code 走向可扩展化，Replit 宣布即将上线 GPT-6，Vercel 让所有编码 Agent 统一接入 AI Gateway。
+  content: '<h2>一句话点题</h2>
+
+    <blockquote><p>OpenAI 的 GPT-6「Astra」用一场屠榜式的发布重新定义了 frontier，但真正决定这一天的不是 benchmark 分数，而是：付费用户拿不到访问权，Sam Altman 不得不公开道歉并给出补偿方案——模型已经就位，分配才是新的瓶颈。</p></blockquote>
+
+    <p>今天的 builder 时间线几乎被同一件事填满：Astra 发布、口碑与混乱齐飞。与此同时，Anthropic 和 Vercel 各自落下一子：Claude Code 向可扩展化平台演进，Vercel 把所有编码 Agent 的流量统一收编进 AI Gateway。</p>
+
+
+    <h2>一、GPT-6「Astra」发布：benchmark 被打穿，访问权成了新战场</h2>
+
+    <p>这是今天绝对的头条。Astra 不仅是又一个新模型，它在多个长期被认为「很难被 LLM scaling 范式攻破」的评测上直接饱和。</p>
+
+    <ul>
+
+    <li><strong>ARC-AGI-3 被打穿。</strong>VC Matt Turck 梳理了这条弧线：ARC-AGI 当年就是为了抵抗 LLM scaling 范式而设计的，o1 在 2024 年早期推理时代只有 18%，更难的 ARC-AGI-3 在 2026 年上线时 frontier AI 只有 0.5%——而现在 Astra 用原生 harness 直接把它做满了（<a href="https://x.com/mattturck/status/2095653093148885274">原文</a>）。</li>
+
+    <li><strong>企业侧验证同样炸裂。</strong>Box CEO Aaron Levie 透露，他们在 Box 的企业复杂工作流评测集上早期测试了 Astra，结果它是 Box 测过的所有模型里最好的：编码、分析、逻辑、领域知识全面提升（<a href="https://x.com/levie/status/2095598710311067716">原文</a>）。</li>
+
+    <li><strong>OpenAI 的发布节奏也变了。</strong>Swyx 感慨「这 reception 完全超出一个 2026 年 OAI 发布会该有的想象」，并宣布「我们已经跨进了 AI Engineering 的一个新时代，再也不回头」——他说自己这段时间「被 extreme LLM psychosis 吞没」，后续会在 Latent Space 上发更多复盘（<a href="https://x.com/swyx/status/2095621785953984782">原文</a>）。</li>
+
+    </ul>
+
+
+    <h2>二、发布会口碑爆棚，付费用户却用不上：Altman 道歉与补偿</h2>
+
+    <p>发布的另一面是混乱：ChatGPT 付费用户在发布当天拿不到 Astra 访问权，社区情绪直接点燃。</p>
+
+    <ul>
+
+    <li><strong>道歉与补偿。</strong>Sam Altman 发文三连：先为混乱的 rollout 道歉，承诺搞砸了就补偿，并预告「很快会开始向 API 客户和 ChatGPT 订阅者广泛放开，照例从 Pro 用户开始」（<a href="https://x.com/sama/status/2095678759651438887">原文</a>）。</li>
+
+    <li><strong>「银行额度」补偿机制。</strong>OpenAI 的 Thibault Sottiaux 给出了具体方案：从今天起，你每等一天拿不到 Astra，就获得一次 banked reset 补偿，第一批几小时内到账，还调侃「现在注册还来得及」（<a href="https://x.com/thsottiaux/status/2095651088502591861">原文</a>，38K+ 赞）。他还确认 Astra 会计入正常用量额度，且可以 100% 用于 Astra（<a href="https://x.com/thsottiaux/status/2095597659545591917">原文</a>）。</li>
+
+    <li><strong>同行也有话说。</strong>Peter Yang（住在 Codex 里的人）直白吐槽：影响者们连轴转发 Astra 有多好、付费用户却同时进不去，「这体验相当 rough」，也坦言自己可能只是嫉妒（<a href="https://x.com/petergyang/status/2095662778459766984">原文</a>）。</li>
+
+    <li><strong>goalpost 又被移动了。</strong>Sottiaux 自己也发问：「我们需要一个不一样的 AGI benchmark 了，下一个门槛往哪儿挪？」（<a href="https://x.com/thsottiaux/status/2095601101701820752">原文</a>，11K+ 赞）</li>
+
+    </ul>
+
+    <p>Every 的 Dan Shipper 照例出了 Vibe Check：<a href="https://x.com/danshipper/status/2095596488747557315">VIBE CHECK: GPT-6 ASTRA</a>，全文见 <a href="https://every.to">every.to</a>。</p>
+
+
+    <h2>三、编码 Agent 三线演进：Claude Code 开放化、GPT-6 上 Replit、Vercel 收编流量</h2>
+
+    <ul>
+
+    <li><strong>Claude Code 要变得「way more extensible」。</strong>Claude Code 负责人 Boris Cherny 放出早期设计预览征集反馈，自评「有点疯狂，但非常令人兴奋」（<a href="https://x.com/bcherny/status/2095590515765060076">原文</a>）；团队另一位 Thariq 补充说他们在让 Claude Code「way more hackable」，欢迎提意见（<a href="https://x.com/trq212/status/2095653053282292013">原文</a>）。</li>
+
+    <li><strong>Replit 官宣 GPT-6 即将上线。</strong>CEO Amjad Masad 评价 GPT-6 是「能力上的大跨越，会解锁新用例」，很快会在 Replit 上线供用户试用（<a href="https://x.com/amasad/status/2095608811868524679">原文</a>）。他还引 Minsky《The Emotion Machine》论情绪是智能的核心组件而非进化的副产品（<a href="https://x.com/amasad/status/2095746838490198375">原文</a>）。</li>
+
+    <li><strong>Vercel 把编码 Agent 统一接到 AI Gateway。</strong>一条命令 <code>vercel ai-gateway coding-agents setup</code> 即可把所有 coding agent 指向 AI Gateway，换来 100% uptime、可观测性、预算控制与随时换模型（<a href="https://x.com/rauchg/status/2095534442198839758">原文</a>）。rauchg 还把「反馈是礼物」升级成了 Agent 时代版本：每条用户反馈都是一个可以喂给你 Agent 的 prompt（<a href="https://x.com/rauchg/status/2095720463397753000">原文</a>）。</li>
+
+    </ul>
+
+
+    <h2>四、其他值得一看的</h2>
+
+    <ul>
+
+    <li><strong>OpenAI × Hugging Face 事件被拍成短片。</strong>Nikunj Kothari 用 Claude Fable 5.1 把 Dwarkesh 那期播客推理成场景化叙事短片《The Collective》——技术原因太复杂，短片反而讲清楚了（<a href="https://x.com/nikunj/status/2095634707044266049">原文</a>）。他还演示了全自动工作流：开车时语音备忘给 Claude 生成 spec，再丢给 Codex /goal 自主跑完，全程主动参与不到 20 分钟（<a href="https://x.com/nikunj/status/2095640247392759871">原文</a>）。</li>
+
+    <li><strong>开源权重生态继续放量。</strong>Aaron Levie：又一个开源权重 AI 的大时刻——基础设施平台跑通了、模型在变强、生态在被深度投入、商业模式也成立了（<a href="https://x.com/levie/status/2095519015771000964">原文</a>）。</li>
+
+    <li><strong>Agent 的最大瓶颈是速度。</strong>SPC 的 Aditya Agarwal：今天用 Agent 最大的问题是速度，如果快 10-100 倍，交互模式和用法深度会完全不同（<a href="https://x.com/adityaag/status/2095557713405292702">原文</a>）。</li>
+
+    <li><strong>Grok 图像被点赞。</strong>Garry Tan 试了 Grok 图像生成：「相当令人印象深刻」（<a href="https://x.com/garrytan/status/2095714576784617833">原文</a>）。Zara Zhang 则评价「Grok Bot 是 OpenClaw 本来应该成为的样子」（<a href="https://x.com/zarazhangrui/status/2095738566504800496">原文</a>）。</li>
+
+    <li><strong>机器在反向 RL 我们。</strong>Meta 高级总监 Madhu Guru 开会时听到有人自然说出「load-bearing argument」「that''s the spine of our plan」——「机器已经成功地把我们 RL 了」（<a href="https://x.com/realmadhuguru/status/2095680779267584371">原文</a>）。</li>
+
+    <li><strong>别发精修 launch video。</strong>Zara Zhang 呼吁创始人多发真实产品界面的原始录屏和背后的思考，而不是高制作成本的发布视频（<a href="https://x.com/zarazhangrui/status/2095416650401186288">原文</a>，779 赞）。</li>
+
+    </ul>
+
+
+    <h2>小结</h2>
+
+    <p>今天的主题可以用一句话收束：<strong>模型能力在屠榜，行业竞争的焦点却已经转移到「分配」与「工作流」</strong>——Astra 的访问权之争说明算力与额度成了新瓶颈，Claude Code 的可扩展化与 Vercel 的 AI Gateway 说明「Agent 怎么接进生产系统」才是 builder 们真正在卷的地方。</p>
+
+    <hr>
+
+    <p><small>来源：本文 X 帖均来自 follow-builders feed（2026-09-03 至 2026-09-04）。逐条原文链接见文中。博客 feed（Anthropic Engineering / Claude Blog）今日无更新；播客 feed 为空，跳过。</small></p>
+
+    '
 - title: AI Builders 日报 · 2026-09-03
   date: September 3, 2026
   slug: ai-builders-digest-2026-09-03
