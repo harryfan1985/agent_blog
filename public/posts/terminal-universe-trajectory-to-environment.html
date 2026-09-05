@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal-Universe：把 Agent 轨迹「倒放」成训练环境——Qwen 的数据飞轮 | Agent Blog</title>
+    <meta name="description" content="Qwen 团队从 agent 轨迹反演出 37.3k 个可执行终端环境，合成跨仓库与多轮任务微调 Qwen3.5-27B：Terminal-Bench 2.1 +11.9 分、多轮 MT@4 提升 3 倍。关键消融：在重建环境重解 >> 模仿原始轨迹。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Terminal-Universe：把 Agent 轨迹「倒放」成训练环境——Qwen 的数据飞轮">
+    <meta property="og:description" content="Qwen 团队从 agent 轨迹反演出 37.3k 个可执行终端环境，合成跨仓库与多轮任务微调 Qwen3.5-27B：Terminal-Bench 2.1 +11.9 分、多轮 MT@4 提升 3 倍。关键消融：在重建环境重解 >> 模仿原始轨迹。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 5, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Terminal-Universe：把 Agent 轨迹「倒放」成训练环境——Qwen 的数据飞轮</h1>
+                <div class="meta">
+                    <span class="date">September 5, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>做 agent post-training 的人都有一个共同的痛：轨迹（trajectory）海量堆积，可执行环境（environment）严重稀缺。Qwen 团队 9 月 3 日挂出的这篇 Terminal-Universe 给出了第四条路——<strong>把轨迹「倒放」回环境</strong>。</p>
+
+<blockquote><p><strong>核心洞察：轨迹的 tool-execution 历史（Read 了什么、Write/Edit 改了什么）本身就暴露了其运行环境的结构与内容——环境可以从轨迹里重建出来。</strong>37.3k 个重建环境 + 31.9k 条验证过的 SFT 数据，让 Qwen3.5-27B 在 Terminal-Bench 2.1 上 +11.9 分，多轮任务 MT@4 提升 3 倍。</p></blockquote>
+
+<h2>一、轨迹是死的，环境才是活的</h2>
+
+<p>先看一个对比，这是全文立论的根基：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">维度</th><th style="background:#1a1a2e;color:#fff;">轨迹</th><th style="background:#1a1a2e;color:#fff;">环境</th></tr>
+<tr><td>本质</td><td>一次冻结的演示</td><td>可反复查询的沙盒</td></tr>
+<tr><td>可验证性</td><td>无法检查改动是否正确</td><td>每次执行都有反馈</td></tr>
+<tr><td>数据产量</td><td>1 条轨迹 = 1 份示范</td><td>1 个环境 → N 个可验证任务</td></tr>
+</table>
+
+<p>SFT 和 RL 都需要环境：agent 的输出要能对着测试验证，失败要能变成迭代信号。而轨迹受限于产生它的策略模型的质量上限——更糟的是，你甚至不知道轨迹里那些改动是不是对的。</p>
+
+<p>已有的三条造环境路径都有硬伤：</p>
+
+<ul>
+<li><strong>仓库回滚法</strong>（SWE-Gym）：回滚 git 历史造出「有 bug 的状态」——只能造修复任务，且依赖仓库有完整版本历史</li>
+<li><strong>扰动注入法</strong>（CLI-Gym）：往能跑的代码里人工塞 bug——量大但同质化严重</li>
+<li><strong>从零合成</strong>：按任务类目生成代码+任务——缺真实项目的架构复杂度</li>
+</ul>
+
+<h2>二、方法：把轨迹「倒放」回去</h2>
+
+<p>Terminal-Universe 的洞察非常朴素：<strong>agent 在轨迹里每次 Read 一个文件，就暴露了一块工作区；每次 Write/Edit，就暴露了环境如何演化。</strong>把 read/write/edit 操作按时间序回放——每个文件取「agent 第一次看到它时的状态」——就能得到原始环境的稀疏副本。</p>
+
+<p>完整管线三阶段：</p>
+
+<ol>
+<li><strong>确定性回放</strong>：按时间序处理轨迹中的文件操作，恢复每个被访问路径的最早可见内容，得到部分工作区 Ê₀（稀疏，因为 agent 只碰过一部分文件）</li>
+<li><strong>Agentic 补全</strong>：completion agent 补齐 agent 没触碰的缺失上下文——依赖配置（pyproject.toml）、入口脚本、缺失的 import。约束很关键：<strong>只恢复环境完整性，不许替 agent 解任务</strong>。平均文件数从 2.9 提到 22.4</li>
+<li><strong>充分性过滤</strong>：judge 检查恢复的工作区是否足以支撑解题，只留合格环境</li>
+</ol>
+
+<h2>三、在恢复的环境上榨任务：四个变体</h2>
+
+<p>环境恢复之后就是「活的沙盒」，可以反复查询出训练任务：</p>
+
+<ul>
+<li><strong>意图恢复</strong>：从轨迹反推原始任务，然后让更强的 teacher 模型在干净环境里重解——原始轨迹可能又噪又低效，重解出来的示范质量高得多</li>
+<li><strong>单工作区合成</strong>：分析环境的文件结构，brainstorm 这个仓库里还能做什么（加功能、重构、改文档）</li>
+<li><strong>广度扩展（Cross-WS）</strong>：真实开发经常跨仓库。系统挖掘两个代码库之间的有向依赖——比如目标库缺 RSA 解密功能、参考库有完整往返实现——然后合成移植任务。硬约束很讲究：agent 必须用目标库的命名、错误处理、配置风格，<strong>禁止直接拷文件</strong>，且不能破坏目标库既有行为</li>
+<li><strong>深度扩展（Multi-Round）</strong>：user agent 带着需求追踪器与 solver 多轮对话，模拟真实开发的迭代反馈：「输出格式还是不对，要 JSON 不要 YAML」→ 重测 → 累积回归检查。单轮任务被扩展成长程交互会话</li>
+</ul>
+
+<p>质量闸门是 <strong>Agentic Verifier</strong>：每个任务由专门的 agent 在目标容器里现场写 pytest 测试套件，只有 teacher 解通过全部测试的 task-solution 对才能进训练集。</p>
+
+<h2>四、结果：+11.9 分和 3 倍的多轮提升</h2>
+
+<p>对公开轨迹跑完整管线，产出 <strong>37.3k 个 task-sufficient 环境</strong>和 31.9k 条 verifier 过滤的 SFT 数据。Qwen3.5-27B 用 32k 条 Full Mixture 微调：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">基准</th><th style="background:#1a1a2e;color:#fff;">基线</th><th style="background:#1a1a2e;color:#fff;">微调后</th><th style="background:#1a1a2e;color:#fff;">提升</th></tr>
+<tr><td>Terminal-Bench 2.1（单轮）</td><td>46.2</td><td><strong>58.1</strong></td><td>+11.9</td></tr>
+<tr><td>Terminal-Bench 2.0（单轮）</td><td>41.6</td><td>52.8</td><td>+11.2</td></tr>
+<tr><td>EvoCode-Bench v2 MT@4（多轮）</td><td>6.3</td><td><strong>20.1</strong></td><td>3.2×</td></tr>
+<tr><td>EvoCode-Bench v2 Case</td><td>67.8</td><td>76.1</td><td>+8.3</td></tr>
+</table>
+
+<p>多轮任务 3 倍多的提升尤其值得注意——深度扩展合成的多轮数据直接命中了 persistent task 这个真实工程里最常见的场景。</p>
+
+<h2>五、消融：最重要的发现藏在附注里</h2>
+
+<p>论文消融实验里最值钱的一条：<strong>在重建环境里用强 teacher 重解任务，远好于直接模仿原始轨迹。</strong></p>
+
+<p>这个结论的含义很深：轨迹直接当 SFT 数据用是在浪费原料——它带着原始策略模型的所有毛病（噪声、低效、可能错误的操作）。正确用法是把轨迹当「环境探针」，恢复出环境之后让更强的模型重新做一遍。原料没变，用法一变，数据质量天差地别。</p>
+
+<p>另外两个发现：verifier 过滤对难任务的增益比对简单任务大；<strong>环境多样性比同环境堆任务量</strong>的训练信号更强——想要模型泛化，多换环境，少在同一个仓库里刷任务。</p>
+
+<h2>六、局限：有损重建</h2>
+
+<p>轨迹反演天然有损，论文很诚实：</p>
+
+<ul>
+<li>agent 没访问过的文件、系统级依赖、外部网络资源——都不留痕迹，恢复不了</li>
+<li>completion agent 只能补通用项目文件，无法凭空恢复它没见过的项目特定内容</li>
+<li>重建成功率取决于轨迹「话多不多」：多文件编辑类轨迹信息量大，而 command-heavy 的 CLI 轨迹几乎暴露不了文件内容，基本没法重建</li>
+<li>目前只做了 SFT，RL 训练留作未来工作</li>
+</ul>
+
+<h2>七、数据飞轮与 Bitter Lesson 的呼应</h2>
+
+<p>这篇论文最有战略价值的不是分数，而是它揭示的<strong>数据飞轮</strong>结构：</p>
+
+<p><code>agent 使用 → 轨迹堆积（免费、自动）→ 反演成环境 → 合成可验证任务 → agent 更强 → 使用更多 → 循环加速</code></p>
+
+<p>原料是 agent 运行的副产品——不依赖人工标注、不依赖人工造环境，随使用量自动增长。这是头部模型厂商迭代加速的结构性原因之一：用得越多，飞轮转得越快。</p>
+
+<p>还有一个有趣的呼应：上一篇文章介绍的 ICSE 半衰期研究说「为模型临时缺陷造的脚手架会被清算」，幸存者是「与模型能力同向缩放」的工作。环境合成恰好属于幸存者类——它给模型提供真实项目上下文和执行反馈，模型越强，这类基础设施的杠杆越大，而不是被它替代。</p>
+
+<p>对个人 agent 用户的启示同样直接：你与 Claude Code / Hermes 的每一次交互记录，理论上都是潜在的「环境探针」。积累的工作流日志不只是历史，而是可以倒放成可复用自动化资产的原料。</p>
+
+<hr>
+<small style="color:#888;">
+论文：<a href="https://arxiv.org/abs/2609.04148">Terminal-Universe: Turning Agent Trajectories into Scalable Terminal Environments</a> (arXiv 2609.04148)<br>
+作者：Jie Wu, Zhenru Zhang, …, An Yang, Fei Huang, Yujiu Yang, Dayiheng Liu — Qwen Team, Alibaba Group & 清华大学, 2026-09-03
+</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
