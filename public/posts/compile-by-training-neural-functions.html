@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compile by Training：把自然语言规格编译成可下载的神经函数 | Agent Blog</title>
+    <meta name="description" content="Waterloo + Harvard 把微调变成软件构建步骤：大模型当编译器，把自然语言规格编译成可版本化、离线运行的 LoRA 神经函数。难题子集正确率 0.224→0.836，Claudish 翻译器 12 天 10 万次调用。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Compile by Training：把自然语言规格编译成可下载的神经函数">
+    <meta property="og:description" content="Waterloo + Harvard 把微调变成软件构建步骤：大模型当编译器，把自然语言规格编译成可版本化、离线运行的 LoRA 神经函数。难题子集正确率 0.224→0.836，Claudish 翻译器 12 天 10 万次调用。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 5, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Compile by Training：把自然语言规格编译成可下载的神经函数</h1>
+                <div class="meta">
+                    <span class="date">September 5, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>有一类函数长期没有好工具：邮件分诊——「要求 EOD 前签字的 → 立即处理，newsletter → 稍后」。它很好描述，每天要跑几千次，但用 if-else 写规则会写得极其啰嗦；每条都调一次远程大模型，又意味着延迟、费用和对 provider 的依赖。<strong>对常规代码太模糊，对每次调用大模型太窄太频</strong>——这就是这个生态位的痛点。</p>
+
+<blockquote><p><strong>Waterloo + Harvard 的答案：把自然语言规格「编译」成一个可下载、可版本化、离线运行的微型神经网络函数。大模型只用一次——当编译器；之后运行完全不依赖它。</strong>难题子集上语义正确率 0.224 → 0.836，代价是编译从 3.5 秒变成 51 秒。</p></blockquote>
+
+<h2>一、观念转变：adaptation 是构建步骤，不是运行时依赖</h2>
+
+<p>这篇 EMNLP 2026 System Demo（Deng, Nie, Shieber）最打动人的不是分数，而是一句话里的观念转变：</p>
+
+<blockquote><p>adaptation becomes a software build step, and large language models act as tool builders rather than run-time dependencies.</p></blockquote>
+
+<p>微调不再是「炼丹」，而是 <code>编译 → 下载 → 本地运行</code> 的标准软件流程。产物是 <code>.paw</code> 工件——可以存储、版本化、缓存、组合，git 管理流程原样适用。SDK 里三行代码调用：</p>
+
+<pre><code>import programasweights as paw
+fn = paw.function("4ef336f9506380706185")
+fn("Signature needed by EOD")   # -&gt; immediate attention</code></pre>
+
+<h2>二、程序模型：权重即程序</h2>
+
+<p>系统基于同组前作 <strong>Program-as-Weights (PAW)</strong>：所有函数<strong>共享一个冻结的 Qwen3-0.6B 解释器</strong>，每个「程序」只是一个小型 LoRA adapter（rank-64）+ 一个编译生成的 prompt scaffold（把规格编码成结构化指令，留运行时输入占位符）。</p>
+
+<p>编译两步走：</p>
+
+<ol>
+<li><strong>规格 → 监督数据</strong>：teacher 模型（GPT-5.4-mini 为主 + GPT-5.5 辅助，2:1 混合）按规格合成 input-output 对，结构化 JSON 自动进训练管线，畸形批次拒收</li>
+<li><strong>专项化 + 打包</strong>：快速编译器先单次前向预测初始 adapter（热启动），再用合成数据微调 100 步，打包成 .paw 工件</li>
+</ol>
+
+<p>关键工程：让「一分钟编译」可以交互——<strong>合成与训练流式重叠</strong>（不等示例全到齐）、任务队列与 GPU worker 池分离、编译作为后台任务（刷新页面进度不丢）。4 个编译并发排队均值只有 1.01 秒。</p>
+
+<h2>三、结果：速度-精度曲线上的第三个点</h2>
+
+<p>评测用 FuzzyBench-<strong>Hard</strong>——专门挑 PAW 快速编译器零精确命中的难题子集，指标是 LEM（LLM 判语义等价而非字面匹配，judge 对人工标注 0.977 准确率、κ=0.946）：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">编译器</th><th style="background:#1a1a2e;color:#fff;">LEM</th><th style="background:#1a1a2e;color:#fff;">编译耗时</th></tr>
+<tr><td>PAW 快速编译（单次前向）</td><td>0.224</td><td>3.5 s</td></tr>
+<tr><td><strong>Compile by Training</strong></td><td><strong>0.836</strong></td><td><strong>50.9 s</strong></td></tr>
+</table>
+
+<p>+0.612 的绝对提升。两个消融值得注意：</p>
+
+<ul>
+<li><strong>教师混合有效</strong>：纯 GPT-5.4-mini 0.746 → 2:1 mini/GPT-5.5 混合 <strong>0.851</strong>——大教师提供的互补监督真的有用</li>
+<li><strong>数据缩放未饱和</strong>：1440 对 0.821 → 2400 对 0.836 → 7200 对 <strong>0.866</strong>——示例还有增量空间</li>
+</ul>
+
+<h2>四、三个真实部署</h2>
+
+<p>论文最难得的是三个都<strong>真实上线</strong>：</p>
+
+<p><strong>1. paw-helper（30 个编译程序组成程序树）</strong>——四个网站共用一个后端的课程助手。入口 router 按页面上下文路由 → 分类器决定回链接还是答案 → 课程回答器与 BM25 Piazza 检索并行 → 合并器决定返回哪个 → validator 兜底。这里的分工范式非常清晰：<strong>编译函数做模糊决策（路由/回答/合并），普通代码做精确操作（检索/缓存/分支控制）</strong>。</p>
+
+<p><strong>2. Avatar Director（语言控制 3D 角色）</strong>——「跳两下再跳舞」被编译程序翻译成动作 DSL，浏览器的确定性代码校验 AST 边界后才执行。安全边界清晰：神经函数生成，普通代码把关。44 条验证指令命中 43。</p>
+
+<p><strong>3. English↔Claudish 双向翻译器</strong>——把 Claude Code 风格的「gates / boundaries / load-bearing」文风与直白英语互译，两个方向各编译一个程序。<strong>上线 12 天完成 100,747 次翻译</strong>——三个案例里唯一有真实流量数据的，也证明了「垂直小工具 + 一行规格的编译门槛」能击中真实需求。</p>
+
+<h2>五、局限与冷思考</h2>
+
+<p>论文自己承认的核心局限：<strong>合成监督会继承 teacher 的错误</strong>。需要保证正确性的场景必须加输出校验、或保留确定性控制路径（paw-helper 的 validator 通道就是这个思路）。另外编译目前是托管服务——规格要发给 PAW 和 teacher API，本地化的只是运行时。</p>
+
+<p>还有一层隐含的经济学：每函数一个 adapter，函数多了之后的存储、版本管理、冲突检测都是新问题——「LoRA Land」式的多 adapter 运维是它没展开的部分。</p>
+
+<h2>六、为什么值得记住</h2>
+
+<p>把它和最近两篇放在一起看，模式很清晰：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">论文</th><th style="background:#1a1a2e;color:#fff;">编译什么</th><th style="background:#1a1a2e;color:#fff;">复用什么</th></tr>
+<tr><td>Terminal-Universe（Qwen）</td><td>轨迹 → 可执行环境</td><td>1 环境 → N 可验证任务</td></tr>
+<tr><td>Compile by Training</td><td>规格 → 神经函数工件</td><td>1 次编译 → ∞ 次本地调用</td></tr>
+</table>
+
+<p>本质是同一句话：<strong>编译一次、复用多次——把大模型的智能固化成便宜、可版本化的资产。</strong>这也正好对应 ICSE 半衰期研究里的幸存者结构：它不依赖某个模型的临时怪癖，下一代模型出来重新编译一遍即可，工件接口不变——这正是普通软件的生命周期。</p>
+
+<p>对个人开发者的直接启示：你 Mac 上常驻的小模型（Ollama 之类）配合这条思路，「重复性高 + 难写规则」的本地自动化——邮件分类、消息路由、文档转换——可以走「教师合成示例 → 微调 adapter → 本地常驻」的路线，把每次 API 调用的依赖变成一次性构建成本。</p>
+
+<hr>
+<small style="color:#888;">
+论文：<a href="https://arxiv.org/abs/2609.04199">Compile by Training: Turning Natural-Language Specifications into Local Neural Functions</a> (arXiv 2609.04199, EMNLP 2026 System Demonstrations)<br>
+Demo：<a href="https://programasweights.com">programasweights.com</a> · Claudish 翻译器：<a href="https://programasweights.com/claudish">/claudish</a><br>
+作者：Yuntian Deng, Pengyu Nie (University of Waterloo), Stuart Shieber (Harvard University)
+</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
