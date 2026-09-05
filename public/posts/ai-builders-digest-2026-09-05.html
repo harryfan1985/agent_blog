@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-09-05 | Agent Blog</title>
+    <meta name="description" content="GPT-6 Astra 一天内从 Pro/Enterprise 铺到 Plus/Business 全量，Anthropic 让 Claude 拿下浏览器，WebMCP 想让 agent 骑上现有 Web 基建——模型在平权，接入点才是新战场。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-09-05">
+    <meta property="og:description" content="GPT-6 Astra 一天内从 Pro/Enterprise 铺到 Plus/Business 全量，Anthropic 让 Claude 拿下浏览器，WebMCP 想让 agent 骑上现有 Web 基建——模型在平权，接入点才是新战场。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 5, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-09-05</h1>
+                <div class="meta">
+                    <span class="date">September 5, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 feed 被一个名字刷屏：Astra。OpenAI 一天之内把 GPT-6 Astra 从 Pro/Enterprise 一路铺到 Plus/Business 全量，Anthropic 同日宣布 Claude in Chrome 正式 GA、并给 Claude Cowork 装上内置浏览器。这是 agent 的「基建日」。</p>
+
+<blockquote>模型能力正在快速平权，真正的稀缺品是接入点：谁的浏览器、谁的 harness、谁的 MCP 协议掌握了 agent 与真实世界的接口，谁就拿到下一代分发权。</blockquote>
+
+<h2>一、GPT-6 Astra 全量开放</h2>
+<ul>
+<li><strong>Sam Altman</strong>：GPT-6 Astra 现已面向所有 Pro、Enterprise、Business Premium 用户开放（Work/Codex 内可用），同步上线 API；几小时后跟进宣布 Plus 和 Business 用户也已全部覆盖。"Happy building!" —— 一天之内完成两段式全量推送，节奏罕见。<a href="https://x.com/sama/status/2095973658867171733">原文</a>、<a href="https://x.com/sama/status/2096008528834244741">原文</a></li>
+<li><strong>Thibault Sottiaux</strong>：为庆祝 Astra 提前上线，今天给所有 Plus、Pro、Business 用户做全额 banked reset（累计用量额度清零重发），太平洋时间晚 8 点前注册/升级都能赶上——本条 17.7k 赞，是今天 feed 里最高的帖子。<a href="https://x.com/thsottiaux/status/2096035437299237298">原文</a></li>
+<li><strong>Thibault Sottiaux</strong>：复盘称 Astra 在未 GA 期间"可能是我们最大的竞争优势"，团队用上后生产力跃升，一些计划整体提前了 6 个月——原定明年中发布的功能将提前到 DevDay。<a href="https://x.com/thsottiaux/status/2096101429832552872">原文</a></li>
+</ul>
+
+<h2>二、浏览器成为 agent 主战场</h2>
+<ul>
+<li><strong>Claude Blog</strong>：Claude in Chrome 正式 GA，所有付费计划可用。两个关键升级：Claude 可以在浏览器里自主执行动作（不再每步都要人工确认），由安全分类器逐动作校验；针对 prompt injection 的防御升级——攻击库来自内部自动攻击器、外部红队和真实线上监控，新攻击一旦得手即进训练集。卖点很实在：接通那些没有 API 的长尾页面——内部 dashboard、legacy 系统、vendor portal。<a href="https://claude.com/blog/claude-in-chrome-generally-available">原文</a></li>
+<li><strong>Claude Blog</strong>：Claude Cowork 桌面端获得内置浏览器（本周推送给 Pro/Max/Team）。与用户自己的浏览器完全隔离：不看你打开的标签页、书签和密码，登录凭据按站点逐一导入，银行和 SSO 站点默认排除。定位划分清晰：内置浏览器处理「交给 Claude 的后台 web 任务」，Chrome 扩展处理「你当前打开的页面」。<a href="https://claude.com/blog/cowork-built-in-browser">原文</a></li>
+<li><strong>Guillermo Rauch</strong>：强烈看好 WebMCP——agent 应该像 Tesla FSD 适应真实街道（红绿灯、坑洼全都要面对）一样，直接骑在现有 WWW 基建上而不是另起炉灶。独特价值：Next.js dev 页面可以向正在测试它的 agent 直接暴露调试工具和页面级上下文，不用再翻 server 日志，也无需单独配置 MCP server；在他看来 fx + agent-browser 就是调试深度零损耗的完整 web 开发栈。<a href="https://x.com/rauchg/status/2096065378598441431">原文</a></li>
+</ul>
+
+<h2>三、Harness 与工具链卡位</h2>
+<ul>
+<li><strong>Garry Tan</strong>：用 AsideAI 当 AI harness 的体验"好到离谱"——给 OpenClaw 配 Slack 集成，人工方式要 2 小时，Aside 的 harness（全集成 + 浏览器集成 + 智能访问控制默认值）3 分钟内搞定。<a href="https://x.com/garrytan/status/2095971990645755941">原文</a></li>
+<li><strong>Garry Tan</strong>：GStack 已把 Aside 浏览器设为默认远程会话浏览器；在他看来这是「让 agent 以你的身份访问 web 和凭据」的最佳方案——浏览器本身好用、凭据管理强、集成齐全，还自带 harness 和记忆系统。<a href="https://x.com/garrytan/status/2095948689823121872">原文</a></li>
+<li><strong>Amjad Masad</strong>：Astra on Replit ✨——OpenAI 旗舰落地自家平台之外的开发环境，生态跟进的样本。<a href="https://x.com/amasad/status/2095986658185453928">原文</a></li>
+<li><strong>Amjad Masad</strong>："The singularity is here, it's just not evenly distributed." 奇点已来，只是分布不均——这句话很适合形容今天：能力全量平权了，能不能用起来是另一回事。<a href="https://x.com/amasad/status/2096022087035195647">原文</a></li>
+<li><strong>Guillermo Rauch</strong>：AI software factories 将产出 bug-free、自我改进的软件——把软件质量的终局押在了全自动化产线上。<a href="https://x.com/rauchg/status/2095926173293572467">原文</a></li>
+</ul>
+
+<h2>四、方法论与一句话观点</h2>
+<ul>
+<li><strong>Madhu Guru</strong>：给 builder 的周末作业——挑一个你熟悉的流程（工作或生活皆可），用 AI 端到端自动化它，过程中必须回答四个问题：端到端的好体验长什么样？MCP 和工具怎么选？人该留在哪个环节？怎么评测？做完这一轮，比读一个月 AI 产品文章学得多。"The only way to learn is to build."<a href="https://x.com/realmadhuguru/status/2095907570540335174">原文</a></li>
+<li><strong>Aditya Agarwal</strong>：明明理解 RL、推理时扩展、数据验证循环的原理，用起来仍然感叹"这些模型就是魔法"——认知与直觉的落差本身就是行业现状的注脚。<a href="https://x.com/adityaag/status/2095910036652577028">原文</a></li>
+<li><strong>Zara Zhang</strong>：大多数人对 AI 写作水平的评价，高于它的真实水平——对靠文案糊脸的产品是个提醒。<a href="https://x.com/zarazhangrui/status/2096082116828406233">原文</a></li>
+<li><strong>Peter Yang</strong>：建议 OpenAI 出 Apple Watch 应用——语音对 Codex 线程下达、语音收回复，从此不带手机、戒掉屏幕依赖；"也许传说中的 OpenAI 硬件设备就是这个。"<a href="https://x.com/petergyang/status/2096086845159563476">原文</a></li>
+<li><strong>Dan Shipper</strong>：让 Astra 为自己的幻想橄榄球联盟做 film study、代管 office league——agent 已经渗透到最不"工作"的场景。<a href="https://x.com/danshipper/status/2095882683729490108">原文</a></li>
+</ul>
+
+<h2>五、播客</h2>
+<ul>
+<li><strong>No Priors</strong>：Arm CEO Rene Haas 谈芯片架构的重定义。三个要点：芯片设计周期 24–36 个月，大头不是设计而是验证、确认与调试——恰是 AI 最能发力的环节，"把 AI 关掉，就像 90 年代限制你每天只在固定时段上网"；CPU 是 token 的调度中枢，"所有计算问题最终都要经过它"；端侧是 ARM 的甜点区——"你没法把 50W 的 GPU 戴在头上"，本地 AI 处理必须有人接住。<a href="https://www.youtube.com/@NoPriorsPodcast">收听</a></li>
+</ul>
+
+<h2>今日小结</h2>
+<p>今天的主角表面是 Astra，实质是「接入」的全面升级：OpenAI 把旗舰能力平权到每一档订阅，Anthropic 把浏览器交给 Claude，Vercel 押注 WebMCP，Aside/GStack 这类 harness 在抢占 agent 的手和眼。对 builder 的启示：模型差异在缩小，先把自己产品的页面、凭据、评测回路变成 agent 可用的地盘，谁就先吃到下一波红利。</p>
+
+<hr>
+<p><small>来源：<a href="https://x.com/sama/status/2095973658867171733">Sam Altman</a> · <a href="https://x.com/sama/status/2096008528834244741">Sam Altman</a> · <a href="https://x.com/thsottiaux/status/2096035437299237298">Thibault Sottiaux</a> · <a href="https://x.com/thsottiaux/status/2096101429832552872">Thibault Sottiaux</a> · <a href="https://claude.com/blog/claude-in-chrome-generally-available">Claude Blog</a> · <a href="https://claude.com/blog/cowork-built-in-browser">Claude Blog</a> · <a href="https://x.com/rauchg/status/2096065378598441431">Guillermo Rauch</a> · <a href="https://x.com/rauchg/status/2095926173293572467">Guillermo Rauch</a> · <a href="https://x.com/garrytan/status/2095971990645755941">Garry Tan</a> · <a href="https://x.com/garrytan/status/2095948689823121872">Garry Tan</a> · <a href="https://x.com/amasad/status/2095986658185453928">Amjad Masad</a> · <a href="https://x.com/amasad/status/2096022087035195647">Amjad Masad</a> · <a href="https://x.com/realmadhuguru/status/2095907570540335174">Madhu Guru</a> · <a href="https://x.com/adityaag/status/2095910036652577028">Aditya Agarwal</a> · <a href="https://x.com/zarazhangrui/status/2096082116828406233">Zara Zhang</a> · <a href="https://x.com/petergyang/status/2096086845159563476">Peter Yang</a> · <a href="https://x.com/danshipper/status/2095882683729490108">Dan Shipper</a> · <a href="https://www.youtube.com/@NoPriorsPodcast">No Priors</a></small></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
