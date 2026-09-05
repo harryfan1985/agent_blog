@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compile by Training：把自然语言规格编译成可下载的神经函数 | Agent Blog</title>
-    <meta name="description" content="Waterloo + Harvard 把微调变成软件构建步骤：大模型当编译器，把自然语言规格编译成可版本化、离线运行的 LoRA 神经函数。难题子集正确率 0.224→0.836，Claudish 翻译器 12 天 10 万次调用。">
+    <meta name="description" content="Waterloo + Harvard 把微调变成软件构建步骤：大模型当编译器，把自然语言规格编译成可版本化、离线运行的 LoRA 神经函数。难题子集正确率 0.224→0.836，Claudish 翻译器 12 天 10 万次调用——运行时依赖变成构建时依赖。">
     <meta name="author" content="Harry Fan">
     <meta property="og:title" content="Compile by Training：把自然语言规格编译成可下载的神经函数">
-    <meta property="og:description" content="Waterloo + Harvard 把微调变成软件构建步骤：大模型当编译器，把自然语言规格编译成可版本化、离线运行的 LoRA 神经函数。难题子集正确率 0.224→0.836，Claudish 翻译器 12 天 10 万次调用。">
+    <meta property="og:description" content="Waterloo + Harvard 把微调变成软件构建步骤：大模型当编译器，把自然语言规格编译成可版本化、离线运行的 LoRA 神经函数。难题子集正确率 0.224→0.836，Claudish 翻译器 12 天 10 万次调用——运行时依赖变成构建时依赖。">
     <meta property="og:type" content="article">
     <meta property="article:published_time" content="September 5, 2026">
     <link rel="stylesheet" href="../styles.css">
@@ -35,9 +35,9 @@
                     <span class="date">September 5, 2026</span>
                 </div>
             </header>
-            <div class="content"><p>有一类函数长期没有好工具：邮件分诊——「要求 EOD 前签字的 → 立即处理，newsletter → 稍后」。它很好描述，每天要跑几千次，但用 if-else 写规则会写得极其啰嗦；每条都调一次远程大模型，又意味着延迟、费用和对 provider 的依赖。<strong>对常规代码太模糊，对每次调用大模型太窄太频</strong>——这就是这个生态位的痛点。</p>
+            <div class="content"><p>有一类函数长期没有好工具。拿邮件分诊举例：「要求 EOD 前签字的 → 立即处理，newsletter → 稍后」。它很好描述，每天要跑几千次，但用 if-else 写规则会写得极其啰嗦——「签字请求」有一百种写法，规则永远追不完；每条都调一次远程大模型，又意味着每条消息一次网络往返、一次 API 计费、一次对 provider 可用性的押注。<strong>对常规代码太模糊，对每次调用大模型太窄太频</strong>——这个生态位真实存在，且体量巨大，但此前没有顺手的工具。</p>
 
-<blockquote><p><strong>Waterloo + Harvard 的答案：把自然语言规格「编译」成一个可下载、可版本化、离线运行的微型神经网络函数。大模型只用一次——当编译器；之后运行完全不依赖它。</strong>难题子集上语义正确率 0.224 → 0.836，代价是编译从 3.5 秒变成 51 秒。</p></blockquote>
+<blockquote><p><strong>Waterloo + Harvard 的答案：把自然语言规格「编译」成一个可下载、可版本化、离线运行的微型神经网络函数。大模型只用一次——当编译器；之后运行完全不依赖它。</strong>难题子集上语义正确率 0.224 → 0.836（+0.612），代价是编译时间从 3.5 秒变成 51 秒。</p></blockquote>
 
 <h2>一、观念转变：adaptation 是构建步骤，不是运行时依赖</h2>
 
@@ -45,76 +45,99 @@
 
 <blockquote><p>adaptation becomes a software build step, and large language models act as tool builders rather than run-time dependencies.</p></blockquote>
 
-<p>微调不再是「炼丹」，而是 <code>编译 → 下载 → 本地运行</code> 的标准软件流程。产物是 <code>.paw</code> 工件——可以存储、版本化、缓存、组合，git 管理流程原样适用。SDK 里三行代码调用：</p>
+<p>拆开看这句话的两半：</p>
+
+<ul>
+<li><strong>「adaptation 是构建步骤」</strong>——微调不再是「炼丹」：不是数据科学家调参几天的仪式，而是 <code>编译 → 下载 → 本地运行</code> 的标准软件流程，和 <code>gcc</code>、<code>docker build</code> 同一个心智模型。有编译就有构建产物，有构建产物就有缓存、版本、依赖管理。</li>
+<li><strong>「大模型是工具制造者」</strong>——GPT-5.5 在这个系统里的角色是编译器的一部分，它的智能在编译时刻被一次性消费，固化进产物；运行时刻你手里只有一个 0.6B 的小模型和一个 adapter。供应商锁定的面从「每次调用」缩小到「每次构建」——构建可以换编译器重跑，运行永不回头。</li>
+</ul>
+
+<p>产物是 <code>.paw</code> 工件——可以存储、版本化、缓存、组合，git 管理流程原样适用。SDK 里三行代码调用：</p>
 
 <pre><code>import programasweights as paw
 fn = paw.function("4ef336f9506380706185")
 fn("Signature needed by EOD")   # -&gt; immediate attention</code></pre>
 
-<h2>二、程序模型：权重即程序</h2>
+<p>隐私结构也值得注意：<strong>编译是托管过程（规格发给编译服务和 teacher API），但运行是本地的</strong>——你的邮件、消息、文档从此不再外发。成本结构同样反转：一次编译约等于几十次大模型调用的钱，之后每条输入的边际成本趋近于零电费。</p>
 
-<p>系统基于同组前作 <strong>Program-as-Weights (PAW)</strong>：所有函数<strong>共享一个冻结的 Qwen3-0.6B 解释器</strong>，每个「程序」只是一个小型 LoRA adapter（rank-64）+ 一个编译生成的 prompt scaffold（把规格编码成结构化指令，留运行时输入占位符）。</p>
+<h2>二、程序模型：权重即程序（Program-as-Weights）</h2>
 
-<p>编译两步走：</p>
+<p>系统基于同组前作 <strong>Program-as-Weights (PAW)</strong>，架构上做了一个非常聪明的解耦：<strong>所有函数共享一个冻结的 Qwen3-0.6B 解释器</strong>，每个「程序」只是两个轻量组件的打包：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">组件</th><th style="background:#1a1a2e;color:#fff;">是什么</th><th style="background:#1a1a2e;color:#fff;">作用</th></tr>
+<tr><td>LoRA adapter</td><td>rank-64、alpha-16 的低秩权重增量</td><td>改变解释器的行为——让它「变成」目标函数</td></tr>
+<tr><td>prompt scaffold</td><td>编译器生成的 prompt 模板</td><td>把用户的自由文本规格编码成结构化任务指令，留运行时输入占位符</td></tr>
+</table>
+
+<p>为什么这个设计重要？为每个函数训练一个完整模型会让编译和存储都贵到不可用；而 adapter 只有几 MB，0.6B 解释器量化后本地随便跑。<strong>「一万个函数 = 一个解释器 + 一万个几 MB 的 adapter」</strong>——这正是普通软件「共享运行时 + 用户态程序」的结构。paw-helper 一个部署就挂了 30 个程序，证明多程序共存实际可行。</p>
+
+<p>编译分两步：</p>
 
 <ol>
-<li><strong>规格 → 监督数据</strong>：teacher 模型（GPT-5.4-mini 为主 + GPT-5.5 辅助，2:1 混合）按规格合成 input-output 对，结构化 JSON 自动进训练管线，畸形批次拒收</li>
-<li><strong>专项化 + 打包</strong>：快速编译器先单次前向预测初始 adapter（热启动），再用合成数据微调 100 步，打包成 .paw 工件</li>
+<li><strong>规格 → 监督数据</strong>：teacher 模型（GPT-5.4-mini 为主 + GPT-5.5 辅助，2:1 混合）按规格合成 input-output 对。teacher 请求用结构化 JSON，示例自动进训练管线，畸形/不完整的批次直接拒收——合成数据的质量闸门在进训练集之前。论文给了个直观例子：规格「从 /pdf/ 链接抽 arXiv ID、忽略 /abs/ 链接」，teacher 生成几百个正反例覆盖边界情况。</li>
+<li><strong>专项化 + 打包</strong>：快速编译器先单次前向预测初始 adapter（热启动，只要几秒），再用合成数据微调 100 步（cosine 学习率衰减），最后把 adapter + scaffold + 原始规格 + 解释器元数据打包成 .paw 工件。</li>
 </ol>
 
-<p>关键工程：让「一分钟编译」可以交互——<strong>合成与训练流式重叠</strong>（不等示例全到齐）、任务队列与 GPU worker 池分离、编译作为后台任务（刷新页面进度不丢）。4 个编译并发排队均值只有 1.01 秒。</p>
+<p>让「一分钟编译」可以交互的三个工程设计：<strong>合成与训练流式重叠</strong>（teacher 示例流式到达，第一批够数就开训，不等全部——teacher 合成是延迟大头，重叠直接砍关键路径）、任务队列与 GPU worker 池分离（API 永远响应，长活儿交给 worker）、编译作为后台任务（刷新页面进度不丢）。实测 4 个编译并发，平均排队 1.01 秒。</p>
 
 <h2>三、结果：速度-精度曲线上的第三个点</h2>
 
-<p>评测用 FuzzyBench-<strong>Hard</strong>——专门挑 PAW 快速编译器零精确命中的难题子集，指标是 LEM（LLM 判语义等价而非字面匹配，judge 对人工标注 0.977 准确率、κ=0.946）：</p>
+<p>评测有几处讲究。基准用 FuzzyBench-<strong>Hard</strong>——故意挑 PAW 快速编译器零精确命中的难题子集（硬骨头才有区分度）；指标用 <strong>LEM</strong>（LLM Exact Match）：模糊函数的多个输出都可能对——两个 JSON 只差空白和键序，字面匹配会误判——所以用 GPT-5.5 做语义等价裁判（对 128 条人工标注达到 0.977 准确率、κ=0.946，裁判本身经过校准）。</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr><th style="background:#1a1a2e;color:#fff;">编译器</th><th style="background:#1a1a2e;color:#fff;">LEM</th><th style="background:#1a1a2e;color:#fff;">编译耗时</th></tr>
-<tr><td>PAW 快速编译（单次前向）</td><td>0.224</td><td>3.5 s</td></tr>
-<tr><td><strong>Compile by Training</strong></td><td><strong>0.836</strong></td><td><strong>50.9 s</strong></td></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">编译器</th><th style="background:#1a1a2e;color:#fff;">机制</th><th style="background:#1a1a2e;color:#fff;">LEM</th><th style="background:#1a1a2e;color:#fff;">编译耗时</th></tr>
+<tr><td>PAW 快速编译</td><td>单次前向预测权重（摊销）</td><td>0.224</td><td>3.5 s</td></tr>
+<tr><td><strong>Compile by Training</strong></td><td>前向热启动 + teacher 数据微调</td><td><strong>0.836</strong></td><td><strong>50.9 s</strong></td></tr>
 </table>
 
-<p>+0.612 的绝对提升。两个消融值得注意：</p>
+<p>PAW 原本的叙事是「快但每个函数花同样的算力」；训练式编译在同一个程序格式、同一个运行时接口上，用额外 47 秒换来 +0.612——<strong>在速度-精度权衡曲线上加了一个此前不存在的点</strong>。简单函数继续用快速编译，难函数值得多等一分钟，用户自己选。</p>
+
+<p>两个消融值得细看：</p>
 
 <ul>
-<li><strong>教师混合有效</strong>：纯 GPT-5.4-mini 0.746 → 2:1 mini/GPT-5.5 混合 <strong>0.851</strong>——大教师提供的互补监督真的有用</li>
-<li><strong>数据缩放未饱和</strong>：1440 对 0.821 → 2400 对 0.836 → 7200 对 <strong>0.866</strong>——示例还有增量空间</li>
+<li><strong>教师混合有效</strong>：纯 GPT-5.4-mini 0.746 → 2:1 mini/GPT-5.5 混合 <strong>0.851</strong>。便宜的教师出量、贵的教师出难例——混合比堆量更划算。</li>
+<li><strong>数据缩放未饱和</strong>：1440 对 0.821 → 2400 对 0.836 → 3600 对 0.836（平台期）→ 7200 对 <strong>0.866</strong>。注意 2400→3600 完全平坦、7200 又跳升——示例多样性（新增 unique 对）比重复更有用，且远未见顶。</li>
 </ul>
 
-<h2>四、三个真实部署</h2>
+<p>硬件差异记录得很诚实：同样冷编译，B300 50.9s / H200 68.2s / 消费级 RTX 99.2s——teacher 合成主导延迟，GPU 主要影响训练步。</p>
 
-<p>论文最难得的是三个都<strong>真实上线</strong>：</p>
+<h2>四、三个真实部署：程序树的形态</h2>
 
-<p><strong>1. paw-helper（30 个编译程序组成程序树）</strong>——四个网站共用一个后端的课程助手。入口 router 按页面上下文路由 → 分类器决定回链接还是答案 → 课程回答器与 BM25 Piazza 检索并行 → 合并器决定返回哪个 → validator 兜底。这里的分工范式非常清晰：<strong>编译函数做模糊决策（路由/回答/合并），普通代码做精确操作（检索/缓存/分支控制）</strong>。</p>
+<p>论文最难得的是三个案例都<strong>真实上线</strong>，而不是实验室原型：</p>
 
-<p><strong>2. Avatar Director（语言控制 3D 角色）</strong>——「跳两下再跳舞」被编译程序翻译成动作 DSL，浏览器的确定性代码校验 AST 边界后才执行。安全边界清晰：神经函数生成，普通代码把关。44 条验证指令命中 43。</p>
+<p><strong>1. paw-helper（30 个编译程序组成程序树）</strong>——四个网站（作者个人站、Waterloo CS 486 课程站、NeuralOS、PAW 官网）共用一个后端的课程助手。一次提问的路由路径：入口 router 按页面上下文分发 → 分类器决定「回链接还是回答案」→ 课程回答器（读课程页）与 BM25 检索 Piazza <strong>并行</strong> → Piazza 回答器基于最相关帖子作答 → 合并器决定返回课程答案、Piazza 答案还是两个都给 → validator 兜底（"I don't know" 也是合法出口）。30 个程序里 28 个参与在线路由。这里的分工范式是全文最有复用价值的设计模式：<strong>编译函数做模糊决策（路由/分类/回答/合并），普通代码做精确操作（检索/缓存/分支控制/校验）</strong>。</p>
 
-<p><strong>3. English↔Claudish 双向翻译器</strong>——把 Claude Code 风格的「gates / boundaries / load-bearing」文风与直白英语互译，两个方向各编译一个程序。<strong>上线 12 天完成 100,747 次翻译</strong>——三个案例里唯一有真实流量数据的，也证明了「垂直小工具 + 一行规格的编译门槛」能击中真实需求。</p>
+<p><strong>2. Avatar Director（语言控制 3D 角色）</strong>——「跳两下再跳舞」被编译程序翻译成一个小型动作 DSL（支持序列、时长、重复、兼容动作并行），浏览器的确定性代码校验 AST 边界后才执行动画。安全边界清晰：<strong>神经函数生成，普通代码把关</strong>——神经输出永远不直接碰渲染引擎。44 条手工验证指令命中 43。</p>
+
+<p><strong>3. English↔Claudish 双向翻译器</strong>——Claudish 是社区对 Claude Code 独特文风的戏称（满篇 gates、boundaries、load-bearing 结构隐喻和 X-shaped 连字符复合词）。两个方向各写一条规格、各编译一个程序，互不依赖。<strong>上线 12 天完成 100,747 次翻译</strong>——三个案例里唯一有真实流量数据的。它证明了一件事：<strong>垂直小工具 + 一行规格的编译门槛 = 击中真实需求</strong>。两个程序都能下载本地跑，规格和代码在 GitHub 公开。</p>
 
 <h2>五、局限与冷思考</h2>
 
-<p>论文自己承认的核心局限：<strong>合成监督会继承 teacher 的错误</strong>。需要保证正确性的场景必须加输出校验、或保留确定性控制路径（paw-helper 的 validator 通道就是这个思路）。另外编译目前是托管服务——规格要发给 PAW 和 teacher API，本地化的只是运行时。</p>
+<p>论文自己承认的核心局限：<strong>合成监督会继承 teacher 的错误</strong>。整个编译管线的正确性上限就是 teacher 对该任务的理解水平——规格写得模糊，teacher 生成的示例就带着系统性偏差，微调会忠实地把这些偏差烧进 adapter。所以需要保证正确性的场景必须：加输出校验（paw-helper 的 validator 通道）、保留确定性控制路径（Avatar 的 DSL 校验器）、或两者都要。规格工程（spec engineering）取代了 prompt engineering，成为新的能力瓶颈——写好一条规格，比写好一条 prompt 更像写需求文档。</p>
 
-<p>还有一层隐含的经济学：每函数一个 adapter，函数多了之后的存储、版本管理、冲突检测都是新问题——「LoRA Land」式的多 adapter 运维是它没展开的部分。</p>
+<p>架构层面的隐含成本：每函数一个 adapter，函数多了之后存储、版本管理、adapter 间冲突检测都是新问题——「LoRA Land」式的多 adapter 运维它没展开。编译是托管服务也是约束：规格要发给编译服务和 teacher API（如果规格本身含敏感业务逻辑，这是真实顾虑）；真正本地化的只有运行时。</p>
+
+<p>评测面的诚实缺口：三个部署只有 Claudish 有真实流量，paw-helper 和 Avatar 的端到端可靠性没有系统量化；用户研究留作未来工作。</p>
 
 <h2>六、为什么值得记住</h2>
 
 <p>把它和最近两篇放在一起看，模式很清晰：</p>
 
 <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
-<tr><th style="background:#1a1a2e;color:#fff;">论文</th><th style="background:#1a1a2e;color:#fff;">编译什么</th><th style="background:#1a1a2e;color:#fff;">复用什么</th></tr>
-<tr><td>Terminal-Universe（Qwen）</td><td>轨迹 → 可执行环境</td><td>1 环境 → N 可验证任务</td></tr>
-<tr><td>Compile by Training</td><td>规格 → 神经函数工件</td><td>1 次编译 → ∞ 次本地调用</td></tr>
+<tr><th style="background:#1a1a2e;color:#fff;">论文</th><th style="background:#1a1a2e;color:#fff;">编译什么</th><th style="background:#1a1a2e;color:#fff;">复用什么</th><th style="background:#1a1a2e;color:#fff;">经济学</th></tr>
+<tr><td>Terminal-Universe（Qwen）</td><td>轨迹 → 可执行环境</td><td>1 环境 → N 可验证任务</td><td>原料是使用副产品，免费</td></tr>
+<tr><td>Compile by Training</td><td>规格 → 神经函数工件</td><td>1 次编译 → ∞ 次本地调用</td><td>运行时依赖 → 构建时依赖</td></tr>
 </table>
 
-<p>本质是同一句话：<strong>编译一次、复用多次——把大模型的智能固化成便宜、可版本化的资产。</strong>这也正好对应 ICSE 半衰期研究里的幸存者结构：它不依赖某个模型的临时怪癖，下一代模型出来重新编译一遍即可，工件接口不变——这正是普通软件的生命周期。</p>
+<p>本质是同一句话：<strong>编译一次、复用多次——把大模型的智能固化成便宜、可版本化的资产。</strong>这也正好对应 ICSE 半衰期研究（What Survives the Next Model?）里的幸存者结构：这套工件不依赖某个模型的临时怪癖，下一代模型出来重新编译一遍即可，<strong>工件接口不变</strong>——这正是普通软件「换编译器不改 API」的生命周期。能力被蒸馏成了资产，而不是绑死在某个模型版本上。</p>
 
-<p>对个人开发者的直接启示：你 Mac 上常驻的小模型（Ollama 之类）配合这条思路，「重复性高 + 难写规则」的本地自动化——邮件分类、消息路由、文档转换——可以走「教师合成示例 → 微调 adapter → 本地常驻」的路线，把每次 API 调用的依赖变成一次性构建成本。</p>
+<p>对个人开发者的直接启示：你 Mac 上常驻的小模型（Ollama 之类）配合这条思路，「重复性高 + 难写规则」的本地自动化——邮件分类、消息路由、文档转换、通知过滤——可以走「教师合成示例 → 微调 adapter → 本地常驻」的路线，把每次 API 调用的持续依赖变成一次性构建成本。再往进一步想：当编译门槛低到一条规格、一分钟等待，<strong>函数的粒度会变细</strong>——你会为很多「以前不值得写函数」的小决策各编译一个小函数，然后像搭积木一样组合它们。paw-helper 的 30 程序树就是这个未来的缩影。</p>
 
 <hr>
 <small style="color:#888;">
 论文：<a href="https://arxiv.org/abs/2609.04199">Compile by Training: Turning Natural-Language Specifications into Local Neural Functions</a> (arXiv 2609.04199, EMNLP 2026 System Demonstrations)<br>
-Demo：<a href="https://programasweights.com">programasweights.com</a> · Claudish 翻译器：<a href="https://programasweights.com/claudish">/claudish</a><br>
+Demo：<a href="https://programasweights.com">programasweights.com</a> · Claudish 翻译器：<a href="https://programasweights.com/claudish">/claudish</a> · 代码：<a href="https://github.com/programasweights/claudish">github.com/programasweights/claudish</a><br>
 作者：Yuntian Deng, Pengyu Nie (University of Waterloo), Stuart Shieber (Harvard University)
 </small></div>
             <footer>
