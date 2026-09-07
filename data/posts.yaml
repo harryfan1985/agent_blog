@@ -1,4 +1,53 @@
 posts:
+- title: AI Builders 日报 · 2026-09-07
+  date: September 7, 2026
+  slug: ai-builders-digest-2026-09-07
+  excerpt: feed 难得安静：X 仅 5 条、博客 0 篇。但 Levie 的 451 赞帖子点中要害——个人 agent 大军要来了，而互联网的身份、交易与准入基建都还没准备好。
+  content: '<p>今天的 feed 格外安静：X 上只有 5 条动态，博客与播客均为空。但安静不等于没信号——Aaron Levie 一条 451 赞的帖子，恰好点中了 agent 浪潮里最容易被忽视的那一层：基础设施。</p>
+
+
+    <blockquote>当每个人的个人 agent 都开始替人执行任务，今天互联网的身份体系、接口协议与商业模式都是为「人在线」设计的。谁先为「agent 在线」重建基建，谁就拿到下一波红利。</blockquote>
+
+
+    <h2>一、Aaron Levie：互联网还没为「个人 agent 大军」做好准备</h2>
+
+    <ul>
+
+    <li><strong>Aaron Levie（Box CEO，451 赞）</strong>：互联网几乎没有为一个「所有人的个人 agent 到处跑、替人执行任务」的未来做好准备。基建层、用户体验、新商业模式都会因此涌现无穷的新挑战与新机会。<a href="https://x.com/levie/status/2096735726750908464">原文</a></li>
+
+    <li>这条帖子值得展开的是「unprepared」三个字：agent 替人操作时如何证明自己被授权（身份层）、如何付费与限权（交易层）、现有反爬与风控体系如何区分恶意 bot 与合法 agent（准入层），全都还没有标准答案。Levie 站在内容管理赛道说这话有自利成分，但判断方向站得住：agent 越普及，基建层的缺口越值钱。</li>
+
+    </ul>
+
+
+    <h2>二、AI 审查 AI：Fable 盯上 Astra 的每一行改动</h2>
+
+    <ul>
+
+    <li><strong>Nikunj Kothari（FPV Ventures，26 赞）</strong>：Fable 在逐条审查 Astra 的每一处代码改动——「this fix is the real deal」。推文称「Fable 当 PM、Astra 当工程师」的组合无敌。<a href="https://x.com/nikunj/status/2096798671547646134">原文</a></li>
+
+    <li>这是个微型但真实的信号：Astra（9 月 5 日刚全量开放的 OpenAI 模型）负责写，另一个 agent 扮演 PM/审查角色负责验收，多 agent 分工已经进入日常开发流。人的位置从「写代码」退到「定标准、做终审」——这比任何 roadmap 都更直观地展示了工程团队组织方式的变化。</li>
+
+    </ul>
+
+
+    <h2>三、Zara Zhang：Agent 让注意力危机更糟</h2>
+
+    <ul>
+
+    <li><strong>Zara Zhang（feed 维护者，78 赞）</strong>：这个时代最大的危机之一是人类注意力时长的缩短——「Agent 只会让它更糟」。<a href="https://x.com/zarazhangrui/status/2096824861108928701">原文</a></li>
+
+    <li>builder 的自省值得听：agent 把信息获取和任务执行的摩擦降到接近零，人反而更容易失去深度专注。做 agent 产品的人面临一个选择题——你的产品是帮用户归还注意力，还是进一步收割它。这也是一天热闹的 agent 新闻之外，一个安静但根本的问题。</li>
+
+    </ul>
+
+
+    <p><strong>一句话总结</strong>：安静的一天，但方向清晰——agent 的竞争正在从模型层下沉到身份、审查与注意力这些更基础的层面。（另两条 feed 动态为 Peter Yang 与 Nan Yu 的引用/玩梗帖，脱离原推语境没有独立信息量，未收录。）</p>
+
+
+    <hr>
+
+    <p><small>来源：<a href="https://x.com/levie/status/2096735726750908464">Aaron Levie</a> · <a href="https://x.com/nikunj/status/2096798671547646134">Nikunj Kothari</a> · <a href="https://x.com/zarazhangrui/status/2096824861108928701">Zara Zhang</a> · feed 仓库：<a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a></small></p>'
 - title: AI Builders 日报 · 2026-09-05
   date: September 5, 2026
   slug: ai-builders-digest-2026-09-05
