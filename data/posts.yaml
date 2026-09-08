@@ -1,4 +1,116 @@
 posts:
+- title: AI Builders 日报 · 2026-09-08
+  date: September 8, 2026
+  slug: ai-builders-digest-2026-09-08
+  excerpt: OpenAI 围绕 Astra 连发新品并重置全员额度，宣告 we are so back；Vercel 发布 OSS grants v2；百亿美元对冲基金 CEO 亲写 AI-first 备忘录。写代码不再是瓶颈，「做什么、谁验收、谁来教会组织」成了新的分水岭。
+  content: '<p>今天的 feed 很热闹：11 位 builder 共 23 条动态，OpenAI 围绕 Astra 的连发是绝对主角；博客 feed 本期 0 篇更新，播客有一期值得细听的重磅内容。</p>
+
+
+    <blockquote>当「能不能写出来」不再是瓶颈，竞争移到了上下游：上游是「该做什么」，下游是「谁来验收、谁来教会整个组织用」。今天最有分量的信号来自一家百亿美元对冲基金的 CEO——AI 转型的第一步不是买工具，是 CEO 亲自写备忘录。</blockquote>
+
+
+    <h2>一、OpenAI「we are so back」：Astra 一周连发，额度全员重置</h2>
+
+    <ul>
+
+    <li><strong>Thibault Sottiaux（OpenAI Codex，1.44 万赞）</strong>：「我想我可以正式宣布：we are so back。」<a href="https://x.com/thsottiaux/status/2097088586843816330">原文</a></li>
+
+    <li><strong>Thibault Sottiaux（8.8k 赞）</strong>：「所有人的额度都已重置。这周好好享用 Astra。」<a href="https://x.com/thsottiaux/status/2097174560412246215">原文</a></li>
+
+    <li><strong>Thibault Sottiaux（1.9k 赞）</strong>：正在看一份 28 页的 deck，Codex 在里面追踪着每一个单独的 launch——「迫不及待想看大家拿它们做什么」。<a href="https://x.com/thsottiaux/status/2097193293532848288">原文</a></li>
+
+    <li><strong>Peter Yang（17 赞）</strong>：高频使用者的第一手负面反馈——Astra 在自动触发技能、遵循技能内指令这两件事上反而变差了。<a href="https://x.com/petergyang/status/2097095296862036404">原文</a></li>
+
+    <li>三条官方帖合起来看：发布密度高到需要专门一份 launch 追踪文档、要重置所有用户的用量额度，而重度用户的抱怨恰好指出下一步该磨的地方。产品节奏与短板同框出现，这种「全速冲刺 + 公开收差评」的状态是典型的上升期信号。</li>
+
+    </ul>
+
+
+    <h2>二、agent 工作流的真实摩擦：写完代码之后的事</h2>
+
+    <ul>
+
+    <li><strong>Peter Steinberger（608 赞）</strong>：给上游项目提了个 PR，对方要求小改动——「这流程的意义是什么？prompt 你都写好了，为什么还要我再 ping 一次我的 agent，好让你的 agent 来合并？」<a href="https://x.com/steipete/status/2097091456234111377">原文</a></li>
+
+    <li><strong>Guillermo Rauch（Vercel CEO，1030 赞）</strong>：agent-browser 新增高质量视频录制——「软件工程的新瓶颈是 review、测试与 QA，我们正把自动化这个瓶颈的经验持续做成功能」。<a href="https://x.com/rauchg/status/2097134278358548658">原文</a></li>
+
+    <li>两条指向同一件事：代码生成已经足够便宜，摩擦全在人机与 agent-agent 的协作接口上。Steinberger 抱怨的是人类被夹在两个 agent 中间当传话筒；Rauch 干的正是把这个夹缝产品化。谁把「验收环节」的协议定下来，谁就吃到下一波红利。</li>
+
+    </ul>
+
+
+    <h2>三、Vercel OSS grants v2：钱投向 agent 技能、本地 AI 与性能</h2>
+
+    <ul>
+
+    <li><strong>Guillermo Rauch（678 赞）</strong>：宣布个人 OSS 资助 v2——35 位贡献者每人 $1,000，五大主题：① agent skills & tools（pgbot、knip、unlighthouse 等）② 本地 AI（slotstream、LocalAI、colibri）③ 性能（fff、takumi、PerryTS、porffor、gpuix）④ 高质量基础组件（shadcn、Svelte、Nuxt、Node.js 及安全基建）⑤ 有趣的实验（终端里的金融终端、dither-kit）。<a href="https://x.com/rauchg/status/2097116011384426516">原文</a></li>
+
+    <li>值得划线的两个判断：「Skills 现在是一种有价值的软件形态」；「AI 能复用伟大组件时，仍优于每次从第一性原理重新生成」。个人无条件资助加一份明确的主题清单，基本等于民间风向标。</li>
+
+    </ul>
+
+
+    <h2>四、行业观点：AGI 的功能性定义与就业反转论</h2>
+
+    <ul>
+
+    <li><strong>Amjad Masad（Replit CEO，730 赞）</strong>：「我不认为我们达到了 AGI，但我们拥有的东西在功能上与 AGI 无法区分——一个不会无聊、不会累的程序员。任何能被表述为编程问题的问题，实际上都已被解决。」<a href="https://x.com/amasad/status/2096936109817135331">原文</a></li>
+
+    <li><strong>Aaron Levie（Box CEO，427 赞）</strong>：AI 对就业的预测正在朝相反方向兑现——AI 加速自动化的恰恰是那些「需求没有上限」的领域；agent 仍需要人类操作者与监督才能产生价值；网络安全、FDE、agent 运营者、非软件行业的工程师等岗位类别会爆炸式增长。<a href="https://x.com/levie/status/2097004960307449937">原文</a></li>
+
+    <li><strong>Aaron Levie（101 赞）</strong>：给 builder 的建议——产品愿景应至少预留几个数量级的模型能力或 token 用量增长空间；最好的机会是「今天用勉强可行的功能交付价值、完整使命用今天的技术几乎不可能实现」的事。<a href="https://x.com/levie/status/2097189559712837770">原文</a></li>
+
+    <li>Masad 给的是天花板判断（编程问题≈已解决），Levie 给的是地面判断（价值产生在人与 agent 的协作层）。两者并不矛盾：正因为生成端趋近无限，操作、验收、监督这些新增的协作需求才变成新岗位。</li>
+
+    </ul>
+
+
+    <h2>五、什么值得建：瓶颈从「怎么做」移到「做什么」</h2>
+
+    <ul>
+
+    <li><strong>Nikunj Kothari（FPV Ventures，98 赞）</strong>：越来越多人得出同一结论——随着构建变容易，「做什么」成为关键瓶颈；优秀的产品人在 AI 原生组织里的价值极高。<a href="https://x.com/nikunj/status/2096963347359150348">原文</a></li>
+
+    <li><strong>Garry Tan（YC CEO，172 赞）</strong>：RFS（Requests for Startups）只是关于「下一步可能是什么」的直觉与对话引子；决定成败的是「特定的创始人为特定的客户构建特定的技术」，其余都是归类。<a href="https://x.com/garrytan/status/2096985239319105559">原文</a></li>
+
+    <li><strong>Amjad Masad（120 赞）</strong>：Replit 首个国际办公室落地伦敦，与伦敦市长合作；市长自称「AI 现实主义者」，Replit 同时与 The Lord Mayor''s Appeal 合作，为弱势社区年轻人提供编程与 AI 技能培训。<a href="https://x.com/amasad/status/2097197172299006423">原文</a></li>
+
+    <li>前两条合读：方向判断（做什么）与执行判断（谁来做）都无法外包给模型——这大概是本期 feed 里最一致的一个共识。</li>
+
+    </ul>
+
+
+    <h2>六、Amanda Askell：给自主 AI 留一个「道德咨询邮箱」</h2>
+
+    <ul>
+
+    <li><strong>Amanda Askell（Anthropic，1017 赞）</strong>：设立一个邮箱，让自主 AI 模型在寻找道德指引时可以来信——但这需要一个反向 captcha：要能验证对方既不是人类，也不是被人类指使来绕过规则的 AI。<a href="https://x.com/AmandaAskell/status/2096995340654444674">原文</a></li>
+
+    <li>半开玩笑的帖子里藏着一个真问题：当 agent 开始自主行动，它们遇到价值冲突时该问谁？现有人机验证体系全部假设「来者非人即机」二选一，没有为「机器以机器身份发起求助」留任何接口。</li>
+
+    </ul>
+
+
+    <h2>七、播客：百亿美元对冲基金的 AI Playbook</h2>
+
+    <ul>
+
+    <li><strong>AI &amp; I by Every（Dan Shipper）</strong>：《A $10B Hedge Fund''s AI Playbook (Best of the Pod)》，嘉宾是管理约百亿美元资产的 Walleye 对冲基金 CEO/CIO Will。<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">收听</a></li>
+
+    <li>几个硬核细节：他写给全公司的 AI-first 备忘录开头就是「我用 ChatGPT 写了这封邮件，你也该用，并为此自豪——不用这些工具就像 1995 年因为互联网不完美而拒绝用它」；400 人全员强制 AI 培训、设跨部门「AI 参议院」、每周内部使用量排行榜；早在 2023 年 3 月就放手让一位 TMT 分析师用当时的模型把自己分析师的工作自动化（内部项目 Current）；他的「Merlin 逆着时间活」比喻——你能看清五年后的终点，却看不清中间的台阶，所以只能先承诺、再补路径。</li>
+
+    <li>这期节目的价值在于它是一家金融机构的一手转型记录，而不是咨询式畅想：数据策略（记录流经公司的一切信息）、文化机制（排行榜、周会、内部传教）、老板亲自下场，三条都齐了。</li>
+
+    </ul>
+
+
+    <p><strong>一句话总结</strong>：模型侧「so back」，应用侧的新瓶颈是验收与组织——写代码的问题接近被解决，剩下的都是判断问题：做什么、收什么货、怎么让四百个人都会用。</p>
+
+
+    <hr>
+
+
+    <p><small>来源：<a href="https://x.com/thsottiaux/status/2097088586843816330">Thibault Sottiaux</a> · <a href="https://x.com/petergyang/status/2097095296862036404">Peter Yang</a> · <a href="https://x.com/steipete/status/2097091456234111377">Peter Steinberger</a> · <a href="https://x.com/rauchg/status/2097134278358548658">Guillermo Rauch</a> · <a href="https://x.com/amasad/status/2096936109817135331">Amjad Masad</a> · <a href="https://x.com/levie/status/2097004960307449937">Aaron Levie</a> · <a href="https://x.com/nikunj/status/2096963347359150348">Nikunj Kothari</a> · <a href="https://x.com/garrytan/status/2096985239319105559">Garry Tan</a> · <a href="https://x.com/AmandaAskell/status/2096995340654444674">Amanda Askell</a> · 播客：<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">AI &amp; I by Every</a> · feed 仓库：<a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a></small></p>'
 - title: AI Builders 日报 · 2026-09-07
   date: September 7, 2026
   slug: ai-builders-digest-2026-09-07
