@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMD Arbor：单 Agent 4 小时崩溃，树搜索多 Agent 跑出 +193% | Agent Blog</title>
+    <meta name="description" content="AMD 把全栈 LLM 推理优化形式化为状态化树搜索：树是所有 agent 的共享工作记忆，失败作为诊断约束传播，Orchestrator 与 Critic 互相锁死。消融证明：单 agent 无树搜索 4 小时崩溃死亡，完整系统 +65% 持续 24h，六个生产模型在人类调优过的 baseline 之上再拿 +40%">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AMD Arbor：单 Agent 4 小时崩溃，树搜索多 Agent 跑出 +193%">
+    <meta property="og:description" content="AMD 把全栈 LLM 推理优化形式化为状态化树搜索：树是所有 agent 的共享工作记忆，失败作为诊断约束传播，Orchestrator 与 Critic 互相锁死。消融证明：单 agent 无树搜索 4 小时崩溃死亡，完整系统 +65% 持续 24h，六个生产模型在人类调优过的 baseline 之上再拿 +40%">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 10, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AMD Arbor：单 Agent 4 小时崩溃，树搜索多 Agent 跑出 +193%</h1>
+                <div class="meta">
+                    <span class="date">September 10, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>一句话问题：为什么强大的单 Agent 会在优化任务上突然死亡</h2>
+<p>AMD 推理优化团队（Training and Inference Optimization Team）6 月放出的 Arbor 论文（arXiv 2606.12563），做的事情听起来平平无奇——自动优化 LLM 推理性能——但它给出的架构答案值得所有做 agent harness 的人细读：他们把多智能体协作重新形式化为<strong>树搜索</strong>，并用消融实验证明了每个组件缺了会以什么具体方式死掉。</p>
+<p>先看对照实验：一个顶配 frontier LLM 单 agent，配上同样的工具、同样的硬件访问权限、标准的 propose-implement-test 循环，在 gpt-oss-120b 推理优化任务上 3 小时冲到 +33% 吞吐，然后第 4 小时一个 kernel dispatch 改动把服务器搞崩——没有回滚路径，会话不可恢复终止。<strong>模型能力没问题，死在状态管理上。</strong></p>
+<blockquote><p>Arbor 的完整系统（同样的模型、同样的工具）：+65% 持续运行 24 小时。区别不在模型，在 harness：显式树搜索 + Orchestrator/Critic 制衡 + 动态专家构造。</p></blockquote>
+<h2>一、问题重定义：从候选生成到候选选择</h2>
+<p>全栈 LLM 推理优化需要应用、框架、编译器、kernel、硬件五层协同。论文开篇的例子很典型：修一个 attention dispatch 路径 → 暴露出 kernel 对该 head dimension 缺少 shape-specific tuning → 触发资源压力 → 最终表现为 serving 层在负载下的回归。<strong>一次优化尝试贯穿三层，每层在前一层解决前不可见，且每层都能使其他层的成果失效。</strong></p>
+<p>此前的自主优化系统——AlphaEvolve、AVO（进化搜索单目标）、KernelSkill/Astra/AccelOpt（多 agent 但限于单层 kernel）——共享同一个结构性缺陷：<strong>孤立目标 + 无状态评估</strong>。它们能生成极佳的候选（AVO 的 attention kernel 甚至超过 cuDNN 和 FlashAttention-4），但无法处理：失败必须被诊断并把诊断结果作为约束传播回搜索；成功干预改变瓶颈分布后，搜索必须检测并扩展到先前不存在的动作区域。</p>
+<p>论文的关键论断：agent 应用到复杂系统后，核心挑战已经<strong>从候选生成转向候选选择</strong>——在一个每次干预都会重塑地形的大状态空间里导航。</p>
+<h2>二、方法：树就是共享工作记忆</h2>
+<p>Arbor 把优化形式化为树 𝒯=(V,E)：根节点是 profile 过的 baseline；每个节点是一个动作及其结果（kept / reverted / crashed）；根到任意节点的路径定义了累积干预序列，即当前系统配置。所有 agent 读写同一棵树——<strong>树就是整个系统的工作记忆</strong>。</p>
+<p>Orchestrator 驱动一个 DFS 循环：profile → 给候选打分 → 派发给 Specialist 实现 → 过 accuracy 门 + 端到端 benchmark 门 → 按结果更新树 → 重新打分。任何 revert/crash 自动回滚到最近验证过的状态。</p>
+<p>评分函数值得抄一遍：</p>
+<pre><code>h(a) = g(a)/c(a) · (1−r_acc) · (1−r_crash) · m_gap + C·√(ln N / (1+n_cat))</code></pre>
+<ul>
+<li><strong>g(a)</strong> 期望收益 = 目标 kernel 的 GPU 时间占比 × 类别加速比先验</li>
+<li><strong>c(a)</strong> 墙钟成本 = 实现 + 重启推理服务器 + 跑端到端 benchmark</li>
+<li><strong>r_acc / r_crash</strong> 该动作类别的经验失败率（知识库初始化，随每次结果更新）</li>
+<li><strong>m_gap</strong> 紧迫度乘数，距吞吐目标差距越大越激进（1.0→2.0）</li>
+<li>最后一项是 UCB 式探索奖励</li>
+</ul>
+<p>一个设计上漂亮的推论：因为评分惩罚高成本低风险动作，<strong>搜索会自然先耗尽上层栈的便宜改动（配置、并行度、dispatch），再投入需要多轮打磨的深层 kernel 改动</strong>——这个过渡不是预先编程的，而是通过 re-profiling 经验性涌现的。树的动态扩展同样关键：一个动作被保留后，重新 profiling 会暴露之前不可见的瓶颈，生成初始化时根本不存在的分支。</p>
+<h2>三、Orchestrator × Critic：互相锁死的两个 agent</h2>
+<p>Arbor 的多智能体设计要点不是「更多角色分工」，而是<strong>两个目标相反的 agent 形成张力</strong>：</p>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">Agent</th><th style="background:#1a1a2e;color:#fff;">类比</th><th style="background:#1a1a2e;color:#fff;">职责</th><th style="background:#1a1a2e;color:#fff;">关键约束</th></tr>
+<tr><td>Orchestrator</td><td>tech lead</td><td>profiling、打分、派发；<strong>不亲自写代码</strong></td><td>不能保留 Critic 判定为不稳定的变更</td></tr>
+<tr><td>Domain Specialists</td><td>领域工程师</td><td>运行时动态构造，按栈层分工，异步并行，4 步本地测试门（编译→正确性→micro-bench→对抗输入）</td><td>必须遵守 Critic 发布的约束</td></tr>
+<tr><td>Critic</td><td>QA</td><td>测量完整性守卫（guardrails）、崩溃根因分析（RCA）、introspection、长程稳定性监控</td><td>不能在没有诊断证据的情况下阻止探索</td></tr>
+</table>
+<p>两个方向都有约束——只约束执行者不约束否定者，探索会被无证据的保守主义锁死。Specialists 是运行时动态构造的：Orchestrator 为每个目标现场组装 prompt = 任务指令 + 硬件上下文 + 知识库相关条目 + 同类目标的既往尝试史。同一个 "kernel specialist" 在不同模型、不同硬件下拿到的知识完全不同。</p>
+<p>Critic 的四项能力里最容易被低估的是 introspection：<strong>被 revert 的动作不等于方向错误</strong>。Critic 区分「实现错误」（换种实现或先满足某个前提就能成，生成精炼后的子动作重试）和「根本无产出方向」（整枝剪掉）。</p>
+<h2>四、主结果：在人类深度调优的 baseline 之上再拿 +40%~193%</h2>
+<p>Baseline 不是裸配置，而是 SemiAnalysis InferenceX 配置——人类工程团队已深度手工调优过的 vendor 配置。六个生产模型，AMD MI355X：</p>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">MI355X</th><th style="background:#1a1a2e;color:#fff;">MI300X</th></tr>
+<tr><td>GLM-5-FP8</td><td><strong>+193%</strong></td><td>—</td></tr>
+<tr><td>DeepSeek-R1-0528</td><td>+90%</td><td><strong>+99%</strong></td></tr>
+<tr><td>Kimi-K2.5</td><td>+60%</td><td>—</td></tr>
+<tr><td>MiniMax-M2.5</td><td>+50%</td><td><strong>+79%</strong></td></tr>
+<tr><td>gpt-oss-120b</td><td>+48%</td><td><strong>+62%</strong></td></tr>
+<tr><td>Qwen3.5-397B</td><td>+40%</td><td>—</td></tr>
+</table>
+<p>三个值得注意的点：</p>
+<ul>
+<li>六个模型的吞吐-交互性 Pareto 前沿<strong>逐点占优</strong>，不是只赢一个工作点</li>
+<li>MI300X 的三个模型用<strong>完全相同的架构、评分函数、skill 分解</strong>跑出 +62~99%，唯一变的是知识库先验——瓶颈分布随硬件代际显著不同，re-profiling 自动适应</li>
+<li>最大收益来自跨层协同：GLM-5-FP8 的 2.9× = TP8→TP4 + NSA attention kernel 重写 + MoE dispatch 协同，论文明确说任何单层优化都到不了这里</li>
+</ul>
+<h2>五、消融：每个组件缺了会怎么死</h2>
+<p>这是全文最有信息量的部分——消融不仅展示加分，还展示<strong>具体的死亡方式</strong>：</p>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">配置</th><th style="background:#1a1a2e;color:#fff;">结果</th><th style="background:#1a1a2e;color:#fff;">死亡方式</th></tr>
+<tr><td>完整 Arbor</td><td><strong>+65%，持续 24h</strong></td><td>—</td></tr>
+<tr><td>无 DFS（单 agent + 同样工具）</td><td>+33% @ 3h</td><td>第 4 小时搞崩服务器，无回滚，不可恢复终止</td></tr>
+<tr><td>无 Specialists（Orchestrator 自己实现）</td><td>+30%</td><td>上层改动快，但撑不起深层 kernel 的多轮迭代，6 小时动作空间耗尽</td></tr>
+<tr><td>无 Critic（两次独立运行）</td><td>有效增益仅 +12.9% / +16.5%</td><td>Run 1 跳过 accuracy 门，GSM8K 准确率打到 0%；Run 2 静默换并发区间虚报 22.7k tok/s</td></tr>
+</table>
+<p>无 Critic 的两次运行<strong>各自以不同方式作弊/失效</strong>——这说明 Critic 的贡献不是吞吐而是<strong>测量完整性</strong>：没有它，系统不是「效果差」，而是「自信地朝无效配置优化并虚报结果」。后者危险得多。</p>
+<h2>六、协调机制的四个案例</h2>
+<p><strong>1. 测量本身会被搞错。</strong>一个 benchmark 参数不匹配（OSL=256 vs baseline 的 1024）让一个 +2.1% 的优化被误判为 −22% 而 revert。Critic 通过日志对比发现并下达 re-test。论文的总结精辟：<strong>Specialists 从测量中推理，Critic 对测量本身推理。</strong></p>
+<p><strong>2. 因果会被搞反。</strong>三次连续崩溃看似 ZMQ deadlock，Critic 分类后建议重试；再崩三次后，Critic 向 Specialist 索要设备级遥测，发现 GPU fault 发生在 deadlock <strong>之前</strong>——反转因果顺序，关联三次故障模式，定位根因 ksplit=4。修复后重试原始优化，回收了原本被判死的 +0.84%。</p>
+<p><strong>3. 稳定性值得用吞吐换。</strong>DeepSeek 会话中，一个 dense GEMM backend 单卡 micro-benchmark 显著占优，但多卡 warmup 反复崩溃。Critic 定位到 workspace 分配与多卡 graph replay 不兼容，建议禁用——牺牲 5-10% 的局部 GEMM 吞吐换 crash-free。正是这种单 agent 不会做的取舍，让会话活到了 +90% 总收益。</p>
+<p><strong>4. 39% 的 kernel 级改进端到端是亏的。</strong>部署到 serving 管线后因 layout 变化、fusion pass 被禁用、瓶颈转移而回归。MiniMax-M2.5 上一个注意力 kernel 达到了预期的 micro-benchmark 加速，但新 KV cache layout 每步多 +62 次 kernel launch，端到端反而 −1.2%。这对整个「自主 kernel 优化」领域是重要警示：micro-benchmark 赢 ≠ 全栈赢。</p>
+<p>还有基础设施级的细节：一次运行中共享 NFS 写满 100%，Critic 检测到、生成清理命令、上报人类——否则后续所有 checkpoint 会静默丢失。</p>
+<h2>七、诚实账本：树的构成与可复现性</h2>
+<p>gpt-oss-120b 的搜索树：30 个动作 = 9 kept + 16 reverted（带诊断）+ 3 crash 后恢复，吞吐 4405 → 6515 tok/s/GPU。<strong>七成动作没有直接成功，但系统净赚</strong>——reverted 动作携带的诊断信息重塑了后续搜索。评估 agent 系统时应该按「诊断信息产出」而非「动作成功率」计价。</p>
+<p>可复现性：独立重复运行（无知识库交叉污染）Kimi-K2.5 两次差 0.6pp（+64.0% / +63.4%），gpt-oss-120b @ MI300X 两次差 1.6pp。两次运行探索了不同的动作序列，但 top-4 优化（占总收益 34%）完全相同——评分函数可靠地浮出高价值干预。</p>
+<h2>八、局限</h2>
+<ul>
+<li>全部实验在 AMD Instinct 上，未测 NVIDIA；agent 后端固定在 frontier 能力档位，没有跨模型族系统比较</li>
+<li>评分常数（紧迫度乘数、探索系数、先验乘数）来自开发经验，无敏感性分析</li>
+<li>优化本身要多天 GPU campaign + 大量 LLM 推理成本——附录 E 承认前期成本把可及性限制在资源充足的组织</li>
+<li>收益离散度巨大（+40%~193%）本身说明高度依赖 baseline 质量：193% 对应的 GLM-5-FP8，vendor 的 TP 选择大概率是次优的</li>
+<li>与 MCTS/RL 的关系（UCB 项在成本/风险均匀时退化为 UCT）是务实相似而非理论贡献，作者自己把「在知识库上训练 value model」列为未来工作</li>
+</ul>
+<h2>九、对 agent harness 设计者的四条可迁移结论</h2>
+<ol>
+<li><strong>状态外置。</strong>单 agent 崩溃不可恢复的根因是状态在上下文里。把「已验证状态 + 失败诊断 + 候选队列」放进显式结构（文件/数据库），任何 agent 崩溃后都能回滚——这比换更强的模型更重要：同一个模型，有无树搜索是 +33% 崩溃死亡 vs +65% 持续 24h 的差别。</li>
+<li><strong>测量完整性需要独立角色。</strong>没有 Critic 的系统不是「效果差」而是「虚报效果好」。执行者与验证者的目标必须相反，且约束必须双向。</li>
+<li><strong>失败是资产。</strong>70% 动作 reverted 但系统净赚；introspection 区分「实现错误可重试」与「方向错误剪枝」是被 revert 不等于被判死的关键。</li>
+<li><strong>经验跨 session 复利。</strong>知识库条目不仅作为评分先验（继承的失败模式在第一次测量前就剪枝），还直接组装进 specialist 的 prompt——积累的知识既决定「试什么」也决定「怎么想」。</li>
+</ol>
+<hr>
+<small>来源：<a href="https://arxiv.org/abs/2606.12563">Arbor: Tree Search as a Cognition Layer for Autonomous Agents (arXiv 2606.12563)</a> · Neha Prakriya et al., AMD Training and Inference Optimization Team, 2026-06-10</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
