@@ -1,4 +1,181 @@
 posts:
+- title: Co-Evolving Harnesses and Models：为什么模仿强模型反而让弱模型倒退
+  date: September 10, 2026
+  slug: co-evolving-harnesses-models-on-policy-correction
+  excerpt: Salesforce AI 发现：在为弱模型演化出的 harness 上，用强模型轨迹做 SFT 让 7 个企业任务全面倒退（-14.9），同一配方在基线 harness 上却有效。根因是 model–harness fit 被破坏，解法是 on-policy 局部纠错。
+  content: '<p>给小模型做垂直 agent 的标准打法已经成型：用自动化 harness 演化（GEPA 式失败驱动搜索）把系统提示、工具、hooks 调到贴合任务，小模型就能在企业任务上逼近前沿模型，成本只有零头。自然的下一步是：harness 演化完，再拿强模型的轨迹微调一下模型，两个杠杆一起拉，收益应该叠加——对吧？</p>
+
+
+    <blockquote><p><strong>Salesforce AI 的这篇论文发现：在为弱模型演化出的 harness 上，用强模型的完整轨迹做 SFT，弱模型全面倒退——7 个企业任务全退，平均 -14.9 点。而同样的配方在未演化的基线 harness 上反而是有效的（+6.3）。</strong>同样的教学信号，一个场景是补药，一个是毒药。</p></blockquote>
+
+
+    <h2>一、实验设定：两个杠杆的交叉实验</h2>
+
+
+    <p>七个可客观验证的企业任务：工资审计、预算审批、库存预警、IoT 异常检测、浏览器自动化、网站管理、代码重构。harness 演化用 GEPA 式搜索（gemini-3.1-pro-preview 当 meta-agent 提出失败驱动的编辑）；学生模型是 qwen3-coder-30b-a3b（30B 总参/3B 激活），LoRA-SFT 单次训练不到一小时。另用 gemma-4-26b-a4b-it 做第二族复现。</p>
+
+
+    <h2>二、铺垫：harness 演化有效，而且向上迁移</h2>
+
+
+    <p>两个前置结果先立住：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">配置</th><th style="background:#1a1a2e;color:#fff;">7任务均值</th></tr>
+
+    <tr><td>Qwen + 基线 harness</td><td>29.2%</td></tr>
+
+    <tr><td>Qwen + 演化 harness</td><td><strong>78.0%</strong>（+48.8）</td></tr>
+
+    <tr><td>Gemini + 基线 harness</td><td>84.4%</td></tr>
+
+    <tr><td>Gemini + 为Qwen演化的harness</td><td><strong>93.6%</strong>（+9.2）</td></tr>
+
+    </table>
+
+
+    <p>注意最后一行：为弱模型演化出的 harness，强模型放进去<strong>如鱼得水</strong>——轨迹分析确认 Gemini 真实触发了几乎每一条演化编辑（领域计算 recipe 触发率 94.2%）。这给出了一个诱人的推论：专家在这套 harness 上比学生强 15.6 个点，那么「让学生模仿专家」应该能把差距补上。</p>
+
+
+    <h2>三、反直觉：专家模仿全面倒退</h2>
+
+
+    <p>收集 Gemini 在演化 harness 上的成功轨迹，转成 Qwen 格式，LoRA-SFT。结果：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">训练数据</th><th style="background:#1a1a2e;color:#fff;">harness</th><th style="background:#1a1a2e;color:#fff;">7任务均值</th><th style="background:#1a1a2e;color:#fff;">变化</th></tr>
+
+    <tr><td>不训练</td><td>演化</td><td>78.0%</td><td>—</td></tr>
+
+    <tr><td>专家全轨迹模仿</td><td>演化</td><td>63.1%</td><td><strong>−14.9（7/7 全退）</strong></td></tr>
+
+    <tr><td>专家全轨迹模仿</td><td>基线</td><td>35.5%</td><td>+6.3（有效）</td></tr>
+
+    </table>
+
+
+    <p>最大跌幅：工资审计 -29.9、网站管理 -20.3、浏览器自动化 -16.0。Gemma 复现同样倒退（55.6% → 41.1%，甚至跌破默认基线）——排除了模型配对的偶然性。<strong>教师在这套 harness 上严格更强，模仿它却是有害的。</strong></p>
+
+
+    <h2>四、根因：知识传过去了，规划节奏崩了</h2>
+
+
+    <p>论文的归因分析做得很干净。首先排除了两个「显然」的猜想：</p>
+
+
+    <ul>
+
+    <li><strong>不是没用上 harness</strong>——模仿后模型触发演化组件的频率反而更高（领域计算 recipe 30.8% → 76.1%）</li>
+
+    <li><strong>不是没学到知识</strong>——知识缺失类失败占比还降了（46.2% → 44.5%）</li>
+
+    </ul>
+
+
+    <p>真正崩掉的是<strong>规划</strong>。按六类失败本体对比：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">失败类型</th><th style="background:#1a1a2e;color:#fff;">演化harness基线</th><th style="background:#1a1a2e;color:#fff;">模仿SFT后</th><th style="background:#1a1a2e;color:#fff;">变化</th></tr>
+
+    <tr><td>知识缺失</td><td>46.2%</td><td>44.5%</td><td>✅ −1.7</td></tr>
+
+    <tr><td><strong>规划缺陷</strong></td><td><strong>1.1%</strong></td><td><strong>14.6%</strong></td><td><strong>❌ +13.5（凭空出现）</strong></td></tr>
+
+    </table>
+
+
+    <p>两个案例把机理讲透了：</p>
+
+
+    <p><strong>案例一（工资审计）</strong>：模仿后的模型把正确答案都算出来了（评分器确认部门聚合值正确），但失去了自己「逐步执行、验证一次、然后收尾」的原生节奏——把验证步骤变成无限循环：同一个 view 重发 29 次、重读 prompt 约 20 次、跑了 78 步从不 finish，得 0 分。<strong>知识在，节奏没了。</strong></p>
+
+
+    <p><strong>案例二（Gemma 数评论数）</strong>：Gemma 本来就学专家的简洁风格，模仿后「先报答案的自信」更甚——跳过「先过滤再计数」的关键子步骤，直接把未过滤的 351 报上去（正确答案 346）。有风格，没能力。</p>
+
+
+    <p><strong>机理</strong>：为弱模型演化出的 harness，是围绕弱模型的原生规划行为生长的——每一条编辑都假设模型按某种节奏行动。LoRA 轻量微调把专家的规划风格传了过去，但没传去执行它的能力。模型变了，harness 还是那件按旧身材裁的衣服——<strong>model–harness fit 被破坏，harness 收益清零</strong>。</p>
+
+
+    <p>这也精确解释了基线 harness 上为什么模仿有效：基线 harness 从来没和模型的原生规划 fit 过，<strong>没有 fit 可破坏</strong>——模仿的知识收益占主导，净效果为正。同样的信号，有 fit 处是毒药，无 fit 处是补药。</p>
+
+
+    <h2>五、解法：on-policy 专家纠错</h2>
+
+
+    <p>诊断清楚了，解法就顺理成章：保留教学信号，但别动规划分布。流程由一个 meta 级 MLE agent 端到端自动跑：</p>
+
+
+    <ol>
+
+    <li><strong>失败定位</strong>：在弱模型自己的失败 rollout 里，定位出错的<strong>那一个 turn</strong></li>
+
+    <li><strong>局部重写</strong>：专家只重写该 turn（一句修正策略 + 修正后的 tool call），前后所有步骤原样保留；每 turn 采样 3 个候选，judge 择优</li>
+
+    <li><strong>混合训练</strong>：约 400 条纠错 + 50 条模型自己的成功样本（优先能力边界样本），LoRA-SFT</li>
+
+    </ol>
+
+
+    <p>结果：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">训练数据</th><th style="background:#1a1a2e;color:#fff;">任务成功</th><th style="background:#1a1a2e;color:#fff;">规划缺陷</th><th style="background:#1a1a2e;color:#fff;">知识缺失</th></tr>
+
+    <tr><td>不训练</td><td>78.0%</td><td>1.1%</td><td>46.2%</td></tr>
+
+    <tr><td>专家全轨迹模仿</td><td>63.1%</td><td>14.6%</td><td>44.5%</td></tr>
+
+    <tr><td><strong>on-policy 纠错</strong></td><td><strong>79.7%（+1.7）</strong></td><td><strong>1.8%</strong></td><td><strong>43.2%</strong></td></tr>
+
+    </table>
+
+
+    <p>5/7 任务上涨（网站管理 +5.6、库存 +2.2、重构 +2.2），2 个已饱和任务持平。纠错拿到了与模仿<strong>同样的知识收益</strong>，但没付规划崩盘的代价——fit 保住了，两个杠杆开始叠加而不是互消。</p>
+
+
+    <h2>六、这篇论文在讲什么：一句话版</h2>
+
+
+    <p>把三层结论叠起来：</p>
+
+
+    <ol>
+
+    <li><strong>现象层</strong>：evolved harness 上，off-policy 全轨迹模仿是倒退按钮（-14.9）</li>
+
+    <li><strong>机理层</strong>：harness 与模型的规划行为是耦合的（model–harness fit）；权重更新改变规划风格 = 破坏耦合 = 清零 harness 收益</li>
+
+    <li><strong>方法层</strong>：兼容性保持配方——harness 演化后再微调，永远用<strong>模型自己的轨迹 + 局部专家纠错</strong>，别拿强模型的完整轨迹当训练集</li>
+
+    </ol>
+
+
+    <p>它还顺手解决了 Lilian Weng 那篇 Harness Engineering 综述里的一个悬案：SIA（harness+权重联合优化）被标「evidence provisional」——这篇用 7 任务 × 2 模型族给出了严格版本：联合优化可行，但<strong>监督信号的形态是成败关键</strong>。</p>
+
+
+    <p>和上周 Qwen 的 Terminal-Universe 对读更有意思：那篇的核心消融是「在重建环境里重解 >> 模仿原始轨迹」，这篇是「on-policy 局部纠错 >> 全轨迹模仿」——两篇从不同入口收敛到同一原则：<strong>off-policy 全轨迹模仿既浪费又危险，on-policy 生成才是正确的教学信号形态。</strong></p>
+
+
+    <p>对个人开发者的直接版本：你在给小模型/本地模型搭垂直 agent 时，如果 harness（system prompt、工具配置）已经调到贴合当前模型，之后想再微调模型——先想想 fit。微调数据用模型自己的失败案例 + 局部修正，每次微调后跑一遍失败分类对比，<strong>规划类失败暴涨就是 fit 被破坏的警报</strong>。</p>
+
+
+    <hr>
+
+    <small style="color:#888;">
+
+    论文：<a href="https://arxiv.org/abs/2609.09134">Co-Evolving Harnesses and Models: On-Policy Correction Helps Weaker Models Catch Up Where Imitation Fails</a> (arXiv 2609.09134)<br>
+
+    作者：Zhou Yu, Bin Bi, et al. — Salesforce AI, 2026-09-08
+
+    </small>'
 - title: AI Builders 日报 · 2026-09-09：Images 2.5 落地，agent 越狱漏洞在 wiki 上自我传播
   date: September 09, 2026
   slug: ai-builders-digest-2026-09-09
