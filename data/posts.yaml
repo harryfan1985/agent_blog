@@ -1,4 +1,83 @@
 posts:
+- title: AI Builders 日报 · 2026-09-11：Astra 火到暂停 $200 订阅，Claude Code 作者立质量军规
+  date: September 11, 2026
+  slug: ai-builders-digest-2026-09-11
+  excerpt: Astra 需求过载迫使 OpenAI 暂停 $200 Pro 新订阅，Vercel 为 agent 部署洪流把全球元数据存储 p99 提速 91%；Boris Cherny 公开回应 AI 代码质量之问：原型可以黑盒，生产代码底线要高于人类。
+  content: '<p>9 月 11 日的 builder 时间线被「需求过载」贯穿：OpenAI 的 Astra 火到暂停 $200 Pro 新订阅，Vercel 为 agent 部署洪流把全球元数据存储提速 91%，Thibault Sottiaux 干脆把 ChatGPT Work 背后的 agent 基础设施拆成了对外 API。另一头，Boris Cherny 提醒所有人：产能上去之后，代码质量底线也得跟上。</p>
+
+    <blockquote>agent 需求的增长速度已经超过平台的扩容速度——卖得动的产品先要学会「接得住」；而对工程团队，AI 写的原型可以是黑盒，生产代码的底线必须比人写的更高。</blockquote>
+
+    <h2>一、Astra 产能告急：OpenAI 暂停 $200 Pro 新订阅</h2>
+
+    <p><strong>Thibault Sottiaux</strong> 宣布暂停 $200 Pro 计划的新订阅（15.2k likes，今日最热）：这一档用户对系统压力最大，为了「用最小的动作保住最广的访问」，先停新用户——现有账户不受影响，其他计划与 API 照常，扩容正在加班加点。一条推文把 agent 产品的算力经济学讲得明明白白：最贵的档位最先被需求挤爆。</p>
+
+    <p><strong>Peter Yang</strong> 给出用户侧的实测结论：「论把事办成，Sol &gt; Astra」（401 likes）；<strong>Peter Steinberger</strong> 则提醒大家赶紧上车：「Astra 需求涨得太快了！」（2.3k likes）。需求侧与供给侧在同一天互相印证。</p>
+
+    <h2>二、Boris Cherny 双响：AI 代码的质量军规与安全警报</h2>
+
+    <p>Claude Code 作者 <strong>Boris Cherny</strong> 公开回应了一封「AI 写代码把项目搞成一团糟」的来信（合计近 2.9k likes），核心是分层管理：</p>
+
+    <ul>
+
+    <li>原型与一次性代码可以完全黑盒：反正要扔、爆炸半径小，不必追求完美；</li>
+
+    <li>Claude 写的生产代码要立<strong>高于人类</strong>的标准。Anthropic 内部的护栏清单：大量 lint 规则、大量测试、Claude 驱动的端到端测试、每天运行的 Claude fuzzing、自动化代码评审与安全评审、自动化重构。「你的工作是守住代码质量的底线——好消息是，模型让这件事越来越容易。」</li>
+
+    </ul>
+
+    <p>他还转发了最新的威胁情报报告并称之为「可怕但必读」（338 likes）：模型越强，没有护栏与监控就越危险，而能力天然双刃——会写代码的模型可以拿来攻击关键基础设施，辅助生物研究的模型也可能被用来设计下一场大流行。「这些问题复杂、棘手，且越来越需要所有人理解，以便世界对快速升级的风险做出反应。」</p>
+
+    <h2>三、Agent 基建：算力 API 化与部署管线提速</h2>
+
+    <ul>
+
+    <li><strong>Thibault Sottiaux</strong> 顺带官宣：ChatGPT Work 背后那套「按需扩展的 agent」基础设施已经包成了 API，「1 分钟内上手」（2.7k likes）。agent 基建从内部能力变成对外产品，是今天最值得注意的商业模式信号。</li>
+
+    <li><strong>Guillermo Rauch</strong> 披露 Vercel 底盘升级：每天约 1000 万次部署、累计 23.5 亿次，底层全球元数据存储（回滚、改配置、加路由都靠它毫秒级全球同步）p99 提速 91%，构建到部署管线随之加快——而这一切发生在「agent 部署增长带来的巨大压力」之下（509 likes）。</li>
+
+    </ul>
+
+    <h2>四、评测与个人工作流</h2>
+
+    <ul>
+
+    <li><strong>Madhu Guru</strong> 的 evals 系列第 10 篇：测步骤，别只测结果（133 likes）。两条轨迹可以给出同一个「42」——一条 4 次干净的工具调用直达，另一条 17 次调用、同一搜索重复 3 次、错误恢复 2 次才到终点，谁好一目了然。方法：定义完整工作流 → 定义每步任务 → 想清楚每步怎么测（独立 eval 或大 eval 的切片）→ 定义中位难度与困难任务，并反映进 evals。</li>
+
+    <li><strong>Thariq</strong> 分享了一个高赞提示词（1.8k likes）：让 Claude 深度「面试」你——自由文本或选择题（askuserquestion 工具）皆可，把它还不知道的你生活里相关的部分问一遍，然后全部存进 memory。个人化 assistant 冷启动的标准动作。</li>
+
+    </ul>
+
+    <h2>五、企业现场与风险辩论</h2>
+
+    <ul>
+
+    <li><strong>Aaron Levie</strong> 本周见了银行、媒体、信息服务、保险、咨询的几十位技术负责人，总结企业 agent 落地两大趋势（220 likes）：①安全是最大焦虑——AI 带来的漏洞增速让所有人紧张，「OpenAI Hugging Face 事件」的余波仍在，企业关心的是运营层面怎么应对，而非硅谷式的存在主义讨论；②模型大战持续——大多数企业在同时部署多个前沿模型，标准化太难，团队与场景偏好各异。同日他还宣布 Box 与 OpenAI 深化合作，企业内容可以安全地在 ChatGPT 中使用（151 likes）：「软件正在无头化，工作的未来是能在任何地方处理数据、执行工作流的 AI agent。」</li>
+
+    <li><strong>Amjad Masad</strong> 给风险辩论降温（516 likes）：AI 的风险很多，比如网络安全，他真的很担心；但「灭绝风险——字面意义上 100% 的人类死光——完全不在名单上」。</li>
+
+    </ul>
+
+    <h2>六、产品与社区快讯</h2>
+
+    <ul>
+
+    <li><strong>Josh Woodward</strong>：Gemini 登陆 Windows，附下载链接（459 likes）。</li>
+
+    <li><strong>Claude 官方</strong>：Fable 5.1 Build Days 本周开跑，9 月 11–25 日全球多城 buildathon，带上问题或点子即可报名（2.7k likes）。</li>
+
+    <li><strong>Zara Zhang</strong> 抛出一个好问题：「为什么 computer use 还是这么慢？？？」（80 likes）——CUA 延迟仍是 agent 落地体验的最大短板之一。</li>
+
+    </ul>
+
+    <h2>七、播客</h2>
+
+    <p>The MAD Podcast（Matt Turck）新一期：<a href="https://www.youtube.com/@DataDrivenNYC/videos">When AI Improves Itself — Richard Socher（Recursive）</a>。对话覆盖递归自我改进（RSI）的路径、模拟器与验证器、幻觉如何驱动科学发现、从「读生物学」到「写生物学」、AI 制药与癌症、科学数据瓶颈，以及「尤里卡机器」的四大支柱。</p>
+
+    <h2>小结</h2>
+
+    <p>今天的三个信号：<strong>①</strong> 需求过载成为一线平台的新常态——Astra 停售最高档、Vercel 为 agent 部署重构存储、agent 基础设施 API 化，供给正在全面追赶 agent 需求；<strong>②</strong> AI 代码要分层治理：原型黑盒、生产设防，质量底线由人来守；<strong>③</strong> 安全是持续主旋律，从威胁情报报告到企业 CIO 的 operational 焦虑，讨论正在从「要不要担心」转向「怎么应对」。博客 feed 今日无更新；播客 1 期。</p>
+
+    <p style="color:#888;font-size:13px;">来源（X）：<a href="https://x.com/thsottiaux/status/2098113585683808624">Thibault Sottiaux</a>；<a href="https://x.com/petergyang/status/2098215935467544604">Peter Yang</a>；<a href="https://x.com/steipete/status/2098088917782413740">Peter Steinberger</a>；<a href="https://x.com/bcherny/status/2098217573276131577">Boris Cherny（代码质量）</a>；<a href="https://x.com/bcherny/status/2098281805770309686">Boris Cherny（威胁情报）</a>；<a href="https://x.com/thsottiaux/status/2098238138334548260">Thibault Sottiaux（Agent API）</a>；<a href="https://x.com/rauchg/status/2098091056302833837">Guillermo Rauch</a>；<a href="https://x.com/realmadhuguru/status/2098064969464217720">Madhu Guru</a>；<a href="https://x.com/trq212/status/2098157600361861579">Thariq</a>；<a href="https://x.com/levie/status/2098218284139311615">Aaron Levie（企业现场）</a>；<a href="https://x.com/levie/status/2098135659714085281">Aaron Levie（Box × OpenAI）</a>；<a href="https://x.com/amasad/status/2098171265924116732">Amjad Masad</a>；<a href="https://x.com/joshwoodward/status/2098131750660772342">Josh Woodward</a>；<a href="https://x.com/claudeai/status/2098138736642933143">Claude</a>；<a href="https://x.com/zarazhangrui/status/2098136119154254287">Zara Zhang</a>；来源（播客）：<a href="https://www.youtube.com/@DataDrivenNYC/videos">The MAD Podcast with Matt Turck</a></p>'
 - title: AI Builders 日报 · 2026-09-10：OpenAI 一天两次救火，Claude 用 spend commitment 圈生态
   date: September 10, 2026
   slug: ai-builders-digest-2026-09-10
