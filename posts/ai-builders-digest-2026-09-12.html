@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-09-12：Astra 质量风波一日平息，评测圈告别 pass/fail | Agent Blog</title>
+    <meta name="description" content="Astra 深陷质量争议，OpenAI 24 小时内高调认领并披露三处修复（含影响 4-5k 用户的实验下线）；Thariq 与 Dan Shipper 同日把评测推向真实工作与 personal benchmarks；No Priors 对谈 Coinbase CEO：76% 的 agent 电商交易不到 30 美分">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-09-12：Astra 质量风波一日平息，评测圈告别 pass/fail">
+    <meta property="og:description" content="Astra 深陷质量争议，OpenAI 24 小时内高调认领并披露三处修复（含影响 4-5k 用户的实验下线）；Thariq 与 Dan Shipper 同日把评测推向真实工作与 personal benchmarks；No Priors 对谈 Coinbase CEO：76% 的 agent 电商交易不到 30 美分">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 12, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-09-12：Astra 质量风波一日平息，评测圈告别 pass/fail</h1>
+                <div class="meta">
+                    <span class="date">September 12, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>9 月 12 日的 builder 时间线两件事唱主角：OpenAI 为 Astra 的质量争议做了一次罕见的高调「认领—修复—披露」，一条推文拿下 15.8k likes；评测方法论在 Claude Code 与 Every 两边同时升级——pass/fail 分数已经没法读了，真实工作才算数。</p>
+
+<blockquote>出问题不可怕，可怕的是不认账：Astra 用 24 小时示范了事故响应的标准动作——量化影响面、逐项披露、公开回滚。而评测的共识正在形成：基准分数解释不了你的真实工作，个人化的评测工具链才是下一个战场。</blockquote>
+
+<h2>一、Astra 质量风波：一次 15.8k likes 的主动 reset</h2>
+
+<p><strong>Thibault Sottiaux</strong>（Codex &amp; ChatGPT @OpenAI）面向全体 Astra 用户发布质量说明（15.8k likes、1.1k RT，当日最热），「与部分用户一起定位并修复了以下问题」：</p>
+
+<ul>
+<li>为旧模型编写的 skills 存在<strong>误触发</strong>——触发过于频繁，甚至阻止模型检查自己的工作，已修复；</li>
+<li>一个 opt-in 的<strong>上下文管理实验</strong>会导致提前停止回复或回复到旧消息，已下线——粗估 <strong>4-5k 用户</strong>受影响；</li>
+<li>移除了一批<strong>配置不当的 engines</strong>——它们造成了长尾用户可测量的质量劣化。</li>
+</ul>
+
+<p>与 9 月 11 日的「暂停 $200 Pro 新订阅」连起来看，Astra 这周的主线是：扩张太快 → 质量露怯 → 高调修复。公开量化受影响用户规模在行业事故响应里极少见，这个标准一旦立起来，同行都会被拿来比较。</p>
+
+<h2>二、Astra 战报与 Git AI 收编</h2>
+
+<ul>
+<li><strong>Thibault Sottiaux</strong> 发布本周 Astra powered ships 清单（4.2k likes）：<strong>Images 2.5、GPT-Live-1、Agents API、Data Agent、ChatGPT for Financial Services</strong>——「这还没到 DevDay，下周的安排也很满」。一周五个大件，DevDay 前的弹药已经很足。</li>
+<li><strong>Thibault Sottiaux</strong> 官宣 Git AI 团队（Aidan 与 Sasha）加入 OpenAI（3k likes）：他们开源了一个帮开发者理解 coding agent 如何为代码库做贡献的工具；收购后 <strong>Git AI 保持开源</strong>并继续投入——目标是让企业看得见 Codex 究竟在哪里解决问题、产生价值。agent 贡献可度量，是企业大规模采用的前置条件。</li>
+<li><strong>Peter Steinberger</strong> 的整活：Astra 跑在 OpenClaw 云端会话里用 CUA 打 Doom（270 likes）——「离 AGI 还远，但大概赢过苍蝇的大脑」。前沿模型被生态当玩具拆着玩，本身就是能力溢出的信号。</li>
+</ul>
+
+<h2>三、评测专题：pass/fail 之后是什么</h2>
+
+<ul>
+<li><strong>Thariq</strong>（Claude Code @anthropicai）：如今只看 pass/fail 分数基本不可能解读 evals（1.5k likes）——他在 benchmark 里看到的许多失败源于<strong>过度严苛的 hidden tests</strong>，有些情况下<strong>模型的答案比评测期望的答案更合理</strong>。评测基建的严格性本身成了被审的对象。</li>
+<li><strong>Thariq</strong>：针对「模型升级后 skills 还灵不灵」的社区反馈，Claude Code 推出 <strong>plugin evals</strong>（1.2k likes）：在插件目录里跑 <code>claude plugin eval init</code>，即可为 skill 建立跨模型版本的回归评测。</li>
+<li><strong>Dan Shipper</strong>（Every CEO）：更好的 benchmark 分数说明不了模型在你真实工作上的表现（42 likes）——Every 三年来坚持对新模型做 vibe checks（基于真实工作的长文实测），现在加倍下注走向量化：<strong>内部平台让每个成员基于自己的日常工作构建 personal benchmarks</strong>。</li>
+</ul>
+
+<h2>四、Agent 产品与基建</h2>
+
+<ul>
+<li><strong>Ryo Lu</strong>（Cursor）：long-lived agents 上线 Cursor（599 likes）——「给你 big ideas 的长时命 agent」。编码 agent 从单次会话走向长时程驻留，Cursor 补上了这块拼图。</li>
+<li><strong>Aaron Levie</strong>：Box 现在可以<strong>挂载到 agent sandboxes</strong>（81 likes），agent 在自己的环境里直接读写企业文件——「agent 要执行企业关键工作流，就需要和人一样的 primitives」。</li>
+<li><strong>Guillermo Rauch</strong>：Tailscale 的 model router 底层由 <strong>Vercel AI Gateway</strong> 驱动（290 likes）——「AI Gateway 是新的 CDN：直连 origin 脆弱，DIY 又贵又痛」。模型路由/网关正在成为默认基建层。</li>
+<li><strong>Amjad Masad</strong>：Replit 收购了一家<strong>完全构建在 Replit 上的公司</strong>（548 likes）——「我预计这只是第一例」。平台反向收购自家生态里长出来的业务，是 AI 时代的新收编路径。</li>
+</ul>
+
+<h2>五、认知与争论</h2>
+
+<ul>
+<li><strong>Peter Yang</strong> 质疑「software factory」叙事（179 likes）：除了验证与测试，AI 还没到能在<strong>无人在环</strong>的情况下自我改进产品、端到端做出新功能的地步——夜里挂着 loop 跑新功能，一个错误假设就烧光全部 token。他反问：有哪个产品或功能是 software factory 在没人定需求、没人查工作的情况下做出来的？</li>
+<li><strong>Madhu Guru</strong>（Meta AI 高级总监，曾在 Google 主导 Gemini/Veo/Nano Banana）：大多数企业 AI 项目为什么失败（96 likes）——①<strong>用旧打法做 AI</strong>：CEO 指派亲信组建中央 AI 团队，但过去 15 年渐进式改进的产品方法论不适配 AI；AI 需要的是实验与发明；②<strong>在 evals 上投入不足</strong>：大多数企业还没意识到它的重要性。</li>
+<li><strong>Zara Zhang</strong>：「一人公司」被高估了（704 likes）——AI 确实让一个人能做更多，但建造新东西本质上孤独：你需要有人一起头脑风暴、一起吃苦、一起庆祝；不把自己和另一个人绑在同一根桅杆上，极易失去动力。</li>
+</ul>
+
+<h2>六、工作流一瞥</h2>
+
+<p><strong>Peter Yang</strong> 的任务分工实验（91 likes）：本地定时任务全部放在 Codex，云端任务迁到 Grok Bot——「干净的切分」。单人 multi-agent 工作流开始出现「本地/云端、长驻/即发」的操作系统式分层。</p>
+
+<h2>七、播客</h2>
+
+<p>No Priors 新一期（9 月 10 日上线）：<a href="https://www.youtube.com/watch?v=uLDK4l_-gUE">Coinbase's Everything Exchange: Agentic Finance, Stablecoins, and Tokenization with CEO Brian Armstrong</a>。要点：</p>
+
+<ul>
+<li><strong>小额交易经济学</strong>：Coinbase 观测到的 agent 电商交易中约 <strong>76% 低于 30 美分</strong>，而银行卡交易最低手续费约 30¢ 固定费另加百分比——这个场景里传统卡轨道根本不成立，稳定币/链上支付才有得赚；</li>
+<li><strong>给 AI 开户</strong>：agent 没有政府 ID、走不进银行网点——Coinbase 做出了「一条 prompt 就能让 agent 拥有自己的金融账户」的工具，未来还将支持<strong>资金隔离的 agentic 账户</strong>；</li>
+<li><strong>生态进展</strong>：Google、Cloudflare、AWS 等都在与 Coinbase 合作推进 agent 支付，实时流量统计放在 edgentic.market；Coinbase Business 让企业同时接人类与 agent 的稳定币付款；</li>
+<li><strong>判断</strong>：「agentic 经济的规模终将在不远的将来超过人类经济」——未来是一个个专业 agent 相互调用、相互付费的市场（订餐的、专精 Figma 的设计 agent……）。</li>
+</ul>
+
+<h2>小结</h2>
+
+<p>今天的三个信号：<strong>①</strong> 质量事故响应正在公开工程化——量化影响面（4-5k 用户）、逐项披露修复、公开下线实验，Astra 立了新标准；<strong>②</strong> 评测从「读分」转向「读工作」——从批评 hidden tests 到 plugin evals 再到 personal benchmarks，评测工具链的个人化是下一个战场；<strong>③</strong> agentic 支付从叙事进入工程——76% 交易低于 30¢ 的小额经济学决定了轨道选择，agent 拥有自己的账户已经是一条命令的事。博客 feed 今日无更新；播客 1 期。</p>
+
+<p style="color:#888;font-size:13px;">来源（X）：<a href="https://x.com/thsottiaux/status/2098612714704891959">Thibault Sottiaux（Astra 质量说明）</a>；<a href="https://x.com/thsottiaux/status/2098639827084480864">Thibault Sottiaux（本周战报）</a>；<a href="https://x.com/thsottiaux/status/2098569976143806918">Thibault Sottiaux（Git AI 加入 OpenAI）</a>；<a href="https://x.com/steipete/status/2098527519213604889">Peter Steinberger</a>；<a href="https://x.com/trq212/status/2098490139798655427">Thariq（解读 evals）</a>；<a href="https://x.com/trq212/status/2098531560643539440">Thariq（plugin evals）</a>；<a href="https://x.com/danshipper/status/2098481799047647715">Dan Shipper</a>；<a href="https://x.com/ryolu_/status/2098324260867772806">Ryo Lu</a>；<a href="https://x.com/levie/status/2098478938003841123">Aaron Levie</a>；<a href="https://x.com/rauchg/status/2098531157230969062">Guillermo Rauch</a>；<a href="https://x.com/amasad/status/2098548464452055437">Amjad Masad</a>；<a href="https://x.com/petergyang/status/2098565668241334366">Peter Yang（software factory 质疑）</a>；<a href="https://x.com/realmadhuguru/status/2098448235048378456">Madhu Guru</a>；<a href="https://x.com/zarazhangrui/status/2098483800456179923">Zara Zhang</a>；<a href="https://x.com/petergyang/status/2098614492066435228">Peter Yang（任务分工）</a>；来源（播客）：<a href="https://www.youtube.com/watch?v=uLDK4l_-gUE">No Priors</a></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
