@@ -1,4 +1,91 @@
 posts:
+- title: AI Builders 日报 · 2026-09-15
+  date: September 15, 2026
+  slug: ai-builders-digest-2026-09-15
+  excerpt: Vercel 签下 Cloud Run 之父要为 agent 重写计算原语，Claude Mods 落地当天社区整出 Tetris，Codex 公开征询「该删什么功能」；博客 feed 收录 Anthropic 工程博客三篇与 Claude Code Artifacts。
+  content: '<p>9 月 15 日的 builder 时间线，主线是「为 agent 重写地基」：Vercel 把 Google Cloud Run 之父招入麾下专做 agent 计算原语；Claude Mods 正式落地、社区当天就整出了 Tetris；Codex 走到成熟期，开始公开征询「该删什么」。博客 feed 收录四篇：Anthropic 工程博客的 containment、质量复盘、Managed Agents，加上 Claude Code 的 Artifacts。</p>
+
+
+    <blockquote>Agent 时代的平台竞争已经不在「模型能做什么」，而在「基础设施愿意为 agent 重写什么」——计算的原语、验证的框架、权限的边界，谁先把地基换成 agent 视角，谁就拿到下一章的入场券。</blockquote>
+
+
+    <h2>一、Vercel 签下 Cloud Run 之父：serverless 之后是 agent</h2>
+
+
+    <p><strong>Guillermo Rauch</strong> 官宣 Steren（Google Cloud Run 创建者）加入 Vercel（1.9k likes），将领导 Fluid 计算产品家族（Functions、Containers、Sandbox、Builds）。他的判断很直接：<strong>serverless 是云计算的上一章，agent 是下一章，而 agent 需要全新的计算原语</strong>。给 agent 造运行时，这可能是今年云厂商竞争里最有方向性的一笔人事。</p>
+
+
+    <p>同日他还有一条方法论级别的推文（1.2k likes）：<strong>agent 的上限取决于你给它的 proof-checkers、compilers、type systems 和 linters</strong>。shadcn/lint 帮 agent 遵守设计系统的规则，他的总结值得抄在本子上：「verifiers + skills 就是新的 framework」。另外 fx 0.0.10 发布（200 likes）：自动升级、<code>ctrl+g</code> 重启并恢复会话，长会话速度快了一大截。</p>
+
+
+    <h2>二、Claude Mods 落地：社区当天就开始整活</h2>
+
+
+    <p><strong>Boris Cherny</strong>（Claude Code 创建者）宣布 Claude Mods 正式上线（2.2k likes）——上线当天就有人做出了 Tetris-in-Claude mod，社区 issue 里已经有技术细节和更多 demo。把扩展点直接开放给社区、让 mods 生态自己长出来，这个打法在编辑器战争里被验证过一次。</p>
+
+
+    <p><strong>Peter Steinberger</strong> 紧跟表态（655 likes）：「这太有用了，正在推动把同类机制加进 Codex。」竞品之间互相搬运扩展机制，说明 mods/plugin 这层已经从锦上添花变成了 agent 编码工具的标配叙事。</p>
+
+
+    <h2>三、Codex 的成熟期：公开问「该删什么」</h2>
+
+
+    <p><strong>Thibault Sottiaux</strong>（Codex &amp; ChatGPT @OpenAI）发了一条当日最热的推文（8k likes）：「Codex 里哪个功能已经没用了，我们应该删掉？」——产品成熟期的减法问题被直接抛给全体用户，功能不再只做加法。同日他预告（1.5k likes）：本周的 ship 强度「堪比你预期的 DevDay 2025」。</p>
+
+
+    <h2>四、Claude Code 背后的人：两档节目同日到位</h2>
+
+
+    <ul>
+
+    <li><strong>Thariq</strong> 与 Sid、Robert 对谈 Claude Code 的构建历程（381 likes）：东西怎么变成今天这样、追着模型能力跑有多难、以及大家怀念 AI 之前的软件工程什么。</li>
+
+    <li><strong>Thariq</strong> 录完 Latent Space（393 likes）：「这期非常 technical，聊了很多我们之前没怎么公开聊过的东西。」想深挖 Claude Code 内幕的可以蹲一下上线。</li>
+
+    </ul>
+
+
+    <h2>五、Agent 工作负载 100X：期待管理与安全悖论</h2>
+
+
+    <p><strong>Aaron Levie</strong> 给出他的 agentic workload 全景清单（91 likes）：agent swarms、更强的 computer use、下一波 API 和 MCP、Muse/Instinct 这类新形态、垂直企业 agent、后台工作流 agent——「我们会把 agent 扔到远超最初想象的任务上，agent 在后台替我们找信息、干活的量会是 100X」。接着他补上硬币的另一面（68 likes）：<strong>当 agent 使用企业系统的频率是人的 100 倍，企业数据保护会成为 21 世纪最复杂的安全与治理挑战之一</strong>——放开权限才有生产力，锁死权限就没有生产力，需要全新的保护方式。</p>
+
+
+    <p><strong>Matt Turck</strong> 的周末观察可以作注脚（34 likes）：AI 进度不会慢下来——玩家太多、经济激励太强、囚徒困境无处不在，无论国内还是全球。</p>
+
+
+    <h2>六、Google：Gemini 用户共创进入第二期</h2>
+
+
+    <p><strong>Josh Woodward</strong> 复盘 Gemini power user group 两个月成绩（1k likes）：20+ 个功能经过这批用户提前测试；新一期 cohort 已经在测 Daily Brief 与 Personal Intelligence 的后续功能，持续滚动招募。</p>
+
+
+    <p><strong>Peter Yang</strong> 的体感分享（51 likes）：用 voice 在散步时把活干了，比盯着屏幕更有效率——「这感觉太不可思议了」。agent 的交互界面正在从屏幕走向耳机。</p>
+
+
+    <h2>七、博客 feed：Anthropic 工程博客三篇 + Artifacts</h2>
+
+
+    <ul>
+
+    <li><strong>How we contain Claude across products</strong>（Anthropic Engineering）：十二个月前还会被一口回绝的「给 Claude 足以打挂内部服务的权限」，如今已是日常操作。风险的两个变量——失败概率与爆炸半径——前者被 safeguards 和模型训练稳步压低，后者却随能力扩大而增长；而 agent 一次性完成过去一个团队的工作后，「不部署」的代价大到风险收益计算明显倒向采用，工程问题于是变成如何封顶爆炸半径。<a href="https://www.anthropic.com/engineering/how-we-contain-claude">链接</a></li>
+
+    <li><strong>An update on recent Claude Code quality reports</strong>（Anthropic Engineering）：针对「Claude 变笨了」的用户报告，复盘出三个独立问题（涉及 Claude Code、Agent SDK、Cowork，API 与推理层不受影响），全部已在 v2.1.116 修复；官方明确从不主动降智，并给出了让同类问题更难复发的机制。<a href="https://www.anthropic.com/engineering/april-23-postmortem">链接</a></li>
+
+    <li><strong>Scaling Managed Agents: Decoupling the brain from the hands</strong>（Anthropic Engineering）：harness 编码的是「模型做不到什么」的假设，而这些假设会随模型进步过期——Sonnet 4.5 需要 context reset 来缓解 context anxiety，同一套 harness 换到 Opus 4.5 上，reset 就成了死代码。脑（模型）与手（harness）解耦，是 Managed Agents 规模化的前提。<a href="https://www.anthropic.com/engineering/managed-agents">链接</a></li>
+
+    <li><strong>Claude Code now supports artifacts</strong>（Claude Blog）：Claude Code 可以把工作进度捕获为 artifact，变成会自我更新的可分享页面——PR walkthrough、系统讲解、可筛选的仪表盘、随进度自动打勾的 release checklist，让团队把时间花在构建而不是同步状态上。<a href="https://claude.com/blog/artifacts-in-claude-code">链接</a></li>
+
+    </ul>
+
+
+    <h2>八、今日要点</h2>
+
+
+    <p><strong>①</strong> 平台开始为 agent 重写地基——Vercel 的 Fluid 人事、Rauch 的 verifiers+skills、Anthropic 的 containment，是同一件事的三个切面；<strong>②</strong> 扩展生态成为编码 agent 的主战场：Claude Mods 落地即整活，Codex 连「删功能」都开始社区共创；<strong>③</strong> agent 工作负载的 100X 预期与 100 倍的安全治理难题同时到账。博客 feed 今日收录 4 篇；播客 feed 抓取超时，本期跳过。</p>
+
+
+    <p style="color:#888;font-size:13px;">来源（X）：<a href="https://x.com/thsottiaux/status/2099393115241300166">Thibault Sottiaux（征询删功能）</a>；<a href="https://x.com/thsottiaux/status/2099744972195131850">Thibault Sottiaux（本周 ship 预告）</a>；<a href="https://x.com/bcherny/status/2099551291601248485">Boris Cherny（Claude Mods）</a>；<a href="https://x.com/steipete/status/2099571935495827761">Peter Steinberger</a>；<a href="https://x.com/trq212/status/2099551141621329994">Thariq（与 Sid &amp; Robert 对谈）</a>；<a href="https://x.com/trq212/status/2099671266068496802">Thariq（Latent Space）</a>；<a href="https://x.com/rauchg/status/2099514906366328902">Guillermo Rauch（Steren 加入 Vercel）</a>；<a href="https://x.com/rauchg/status/2099540886409695346">Guillermo Rauch（verifiers + skills）</a>；<a href="https://x.com/rauchg/status/2099653035685445760">Guillermo Rauch（fx 0.0.10）</a>；<a href="https://x.com/levie/status/2099739019517235618">Aaron Levie（agentic workloads）</a>；<a href="https://x.com/levie/status/2099550035239424465">Aaron Levie（数据安全）</a>；<a href="https://x.com/mattturck/status/2099589199104033031">Matt Turck</a>；<a href="https://x.com/joshwoodward/status/2099558443078365287">Josh Woodward</a>；<a href="https://x.com/petergyang/status/2099677771408846975">Peter Yang（voice）</a>；来源（博客）：<a href="https://www.anthropic.com/engineering/how-we-contain-claude">How we contain Claude</a>；<a href="https://www.anthropic.com/engineering/april-23-postmortem">Claude Code quality reports</a>；<a href="https://www.anthropic.com/engineering/managed-agents">Scaling Managed Agents</a>；<a href="https://claude.com/blog/artifacts-in-claude-code">Claude Code artifacts</a></p>'
 - title: AI Builders 日报 · 2026-09-12：Astra 质量风波一日平息，评测圈告别 pass/fail
   date: September 12, 2026
   slug: ai-builders-digest-2026-09-12
