@@ -1,4 +1,163 @@
 posts:
+- title: RSIAgent：开源模型如何不训练就反超 GPT-6
+  date: September 15, 2026
+  slug: rsiagent-autonomous-exploration-rsi
+  excerpt: 三角色 harness（actor 独占记忆写权、verifier 不看执行者推理、curriculum 只拿副本）+ broad-then-deep 自主探索，GLM-5.3+Kimi-K3 在 OSWorld 2.0 上从 71.97 提到 78.98，超过 GPT-6 Astra 的 72.60。消融显示跳过广度直接深练会低于无记忆基线——坏记忆的级联固化是最危险的部分。
+  content: '<h2>一句话：开源模型 + 自主探索记忆，反超 GPT-6</h2>
+
+    <p>9 月 14 日挂出的 RSIAgent 论文（arXiv 2609.15364）给出了一个大胆的实证：不训练任何参数，只用 GLM-5.3 当执行者、Kimi-K3 当验证者和课程规划者，通过在 OSWorld 2.0 里自主探索并把经验沉淀为记忆，partial 分数从 71.97 提到 <strong>78.98</strong>——超过 GPT-6 Astra 的 72.60（+6.38）和 Claude Opus 5 的 70.19。开源模型第一次在这类基准上系统性地反超前沿闭源模型。</p>
+
+    <blockquote><p>有效的 agent 适应不只是经验积累，而是因果发现：通过主动尝试动作并观察后果，推断「什么条件下、做什么、会出什么错、怎么验证」。记忆里存的应该是这个，不是某次成功的轨迹。</p></blockquote>
+
+    <h2>一、问题：新环境里，模型权重帮不上忙</h2>
+
+    <p>数字 agent 越来越多地被扔进预训练知识没覆盖的环境——私有应用、陌生界面、未文档化的失败模式。继续收集数据做训练又贵又慢，对私有和快速变化的环境根本不可行；单纯把成功轨迹存起来复用，环境一变就失效。</p>
+
+    <p>论文的核心设计因此围绕一个转变：把「存轨迹」换成「存因果」——主动测试动作×环境条件×结果的关系（论文称之为 agentic causal discovery），沉淀为带条件限定的可复用知识。例子：不是「我用过这个导出功能」，而是「GUI 导出设置 ≠ 引擎的 no-override 默认值，要检查实际消费端的设置和输出流」。</p>
+
+    <h2>二、三角色 harness：谁看到什么、谁能动什么</h2>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">Agent</th><th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">看到什么</th><th style="background:#1a1a2e;color:#fff;">权力边界</th></tr>
+
+    <tr><td>Actor</td><td>GLM-5.3</td><td>任务、环境、执行反馈、持久记忆</td><td>生成可执行 Python/Bash（code-as-policy）；<strong>独占记忆写权</strong></td></tr>
+
+    <tr><td>Verifier</td><td>Kimi-K3（独立上下文）</td><td>任务要求 + 候选环境；actor 的推理/记忆/日志<strong>全部隐藏</strong></td><td>PASS/FAIL/UNVERIFIED；不能写记忆；探测用 checkpoint 保护</td></tr>
+
+    <tr><td>Curriculum</td><td>Kimi-K3（独立上下文）</td><td>目标、已完成结果、actor 学习诊断、记忆的一次性副本</td><td>出练习题 + 停止决策；<strong>不能打分、不能改记忆</strong></td></tr>
+
+    </table>
+
+    <p>三个隔离设计值得单独划线：</p>
+
+    <ul>
+
+    <li><strong>验证者不看执行者的推理</strong>——防止相关错误：执行者的错误假设不能成为验证者的评估依据</li>
+
+    <li><strong>课程规划者只拿一次性记忆副本</strong>——canonical 记忆只有 actor 一条写路径，不存在并发写冲突或多头编辑</li>
+
+    <li><strong>UNVERIFIED 不算学习样本</strong>——未解决的验证结果既不算成功也不算失败，不进入记忆</li>
+
+    </ul>
+
+    <h2>三、broad-then-deep：两阶段探索</h2>
+
+    <p><strong>Stage 1：BRS（并行广度）。</strong>课程规划者出 8 个左右的探索项目，最多 4 个并发。每个项目从<strong>同一个不可变的 pre-wave 记忆快照</strong>出发、在隔离环境里跑、看不到兄弟项目的工作；全部验证完成后，按指定顺序<strong>串行</strong>合并——每次合并都基于包含前面更新的最新记忆，避免并行写互相覆盖。</p>
+
+    <p><strong>Stage 2：DRS（串行深度）。</strong>先用广度记忆直接试目标任务 → 验证 → 学习 → 课程规划者复盘（可以出针对性练习，也可以对<strong>已经成功的</strong>流程出对比/压力测试题）→ 每个练习验证合并后才出下一题 → 再试目标。<strong>成功不自动终止</strong>：是否继续练由课程规划者判断「继续练有没有期望价值」。</p>
+
+    <p><strong>测试期</strong>：记忆冻结（记录 file-tree hash）、环境重置、课程规划者关闭、记忆写回关闭，官方评估器（GPT-5.4）在所有 agent 上下文之外打分。这个设计让 RSI 的增益可以被归因于<strong>可复用知识</strong>，而不是同一轮运行里的在线帮助——这是多数经验记忆论文缺失的对照。</p>
+
+    <h2>四、结果</h2>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">系统</th><th style="background:#1a1a2e;color:#fff;">OSWorld Partial</th><th style="background:#1a1a2e;color:#fff;">OSWorld Binary</th><th style="background:#1a1a2e;color:#fff;">ALE Partial</th><th style="background:#1a1a2e;color:#fff;">ALE Binary</th></tr>
+
+    <tr><td>Kimi-K3 裸模型</td><td>58.30</td><td>—</td><td>71.60</td><td>40.30</td></tr>
+
+    <tr><td>GPT-5.6 Sol</td><td>64.13</td><td>28.10</td><td>78.82</td><td>47.76</td></tr>
+
+    <tr><td>Claude Opus 5</td><td>70.19</td><td>34.72</td><td>79.54</td><td>46.27</td></tr>
+
+    <tr><td>GPT-6 Astra</td><td>72.60</td><td>—</td><td>82.26</td><td><strong>52.24</strong></td></tr>
+
+    <tr><td>RSIAgent w/o RSI（空记忆）</td><td>71.97</td><td>37.80</td><td>83.75</td><td>49.25</td></tr>
+
+    <tr><td><strong>RSIAgent 完整</strong></td><td><strong>78.98</strong></td><td><strong>42.68</strong></td><td><strong>84.82</strong></td><td>50.75</td></tr>
+
+    </table>
+
+    <p>需要分开读的两层收益：</p>
+
+    <ul>
+
+    <li><strong>Harness 层</strong>：w/o RSI 的 71.97/83.75 就已经追平或超过多数前沿模型——这是 code-as-policy + 独立验证循环的功劳，与记忆无关</li>
+
+    <li><strong>记忆层</strong>：RSI 再加 +7.01（OSWorld partial）/ +4.88（binary）——这是自主探索沉淀的知识的功劳</li>
+
+    </ul>
+
+    <p>论文在附录里保留了几个诚实的脚注：ALE binary 上 RSIAgent 50.75 <strong>输给</strong> GPT-6 的 52.24，partial 优势没有延伸到每个指标；跨系统对比是从各家 leaderboard 抄分，<strong>不是 matched protocol</strong>（预算、harness、评分配置都不同）；RSI 行包含重试分数和回退分数。</p>
+
+    <h2>五、消融：广度是深度有效的前提</h2>
+
+    <p>四个任务（WPS 表格修复 / REAPER 音频 / 浏览器演示修复 / 3D Slicer 肝分割）的阶段消融：</p>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">配置</th><th style="background:#1a1a2e;color:#fff;">4 任务均值</th></tr>
+
+    <tr><td><strong>Full RSI（BRS + DRS）</strong></td><td><strong>74.54%</strong></td></tr>
+
+    <tr><td>仅 BRS（w/o DRS）</td><td>65.52%（每个任务都改善）</td></tr>
+
+    <tr><td>仅 DRS（w/o BRS，空记忆硬练）</td><td>56.50%，且在 T085/T089 <strong>低于无记忆基线</strong></td></tr>
+
+    </table>
+
+    <p>最扎眼的数字是最后一行：没有广度打底、直接对着目标硬练，<strong>会过拟合出错误的程序并反噬执行</strong>。broad-then-deep 不是修辞偏好，是必要结构。这与同一周的 SoL-Pi 结论形成跨论文呼应：SoL-Pi 的 auto-research 里 DFS 单线打磨 5-10 轮就陷局部盆地，BFS 才能让稀有候选可被发现——一个在搜索阶段，一个在探索课程，同向结论：广度是深度有效的前提。</p>
+
+    <h2>六、失败模式：坏记忆是怎么炼成的</h2>
+
+    <p>论文的失败模式分析（§4.6）比正面结果更有参考价值。三个机制，且<strong>会级联耦合</strong>：</p>
+
+    <ol>
+
+    <li><strong>探索不瞄准</strong>：课程规划者练了文档处理、信息冲突、提交持久化，但「获取不可用的用户信息」从未被测——问题规则因此留在记忆里。练习的多样性 ≠ 练习的有效性。</li>
+
+    <li><strong>验证不完整</strong>：本地验证器给了 PASS，但官方评分标准下字段值无依据——<strong>产出对 ≠ 解释对</strong>。被接受的错误成为后续记忆更新和探索决策的基础。</li>
+
+    <li><strong>记忆固化不可靠</strong>：表单任务里执行者把「缺失数据标记当有效答案」「不可用信息当否定回答」存成规则，后续运行直接复用、不重新取证。</li>
+
+    </ol>
+
+    <p>级联链条：一个不确定的操作 → 验证不完整的 PASS → 固化进记忆 → 后续探索依赖它 → 错误复利。论文给出的对策写进了 prompt 设计：记忆必须<strong>保留条件与不确定性</strong>（「在 X 条件下有效」，不是「X 有效」）；FAIL 也可以贡献证据但不得记成 verified success。</p>
+
+    <h2>七、记忆复用的两个精确案例</h2>
+
+    <p><strong>T049（演示文稿修复，0.40 → 0.80）</strong>：带记忆的执行者第 2 轮就先 MD5 验证文件身份、读取之前的失败/成功记录和 connector 构建手册。无记忆版的唯一剩余错误：slide 3 的 connector 69 起点偏移 121,104 EMU（横）/ 145,345 EMU（纵），而评分容差是 100,000——记忆版误差为 0。附带收益：迭代次数 35→19，墙钟时间 5,105.5s→2,697.0s，<strong>更快</strong>。</p>
+
+    <p><strong>T044（视频编辑，0.40 → 1.00）</strong>：任务要求去水印 + 对称 padding + 分辨率不变。基线用通用 ffmpeg 滤镜剪 100px（视觉上没问题），但评分器只认 Shotcut 原生 crop 滤镜且在 75-85px 区间——记忆版读取笔记后用原生 <code>mlt_service=crop, top=76, center=0</code>，四项检查全过。但迭代次数 26→42，<strong>更慢</strong>——记忆的收益在完成质量，不在速度，论文没有回避这个反差。</p>
+
+    <p>记忆的规模与卫生：三个案例任务冻结后 141–317 kB / 12–17 个文件；记忆既累积也重组（有任务在一次合并中从 13,243 压到 11,510 字节）；39 个 journal 快照，评测记录与冻结记忆的 tree hash 一致。</p>
+
+    <h2>八、局限</h2>
+
+    <ul>
+
+    <li><strong>成本未量化</strong>：参考配置下 target 执行者 500 迭代 / 10 小时 watchdog，练习任务 2,000 迭代 / 24 小时——单任务 lineage 是小时到天级的投入，论文承认 "substantial computation cost" 但没有给出任何「多少 GPU 小时换几分」的换算</li>
+
+    <li>跨系统对比非 matched protocol，领先 6.38 分要打折读</li>
+
+    <li>验证器本身是模型（Kimi-K3），错误判断会传播进记忆——失败模式一节自己演示了这条链</li>
+
+    <li>OSWorld 只用了 82/108 任务子集；RSI 分数只覆盖 41/82 任务，其余保留基线分</li>
+
+    <li>记忆是自由文本文件、无 schema：跨环境迁移、规模扩展、坏记忆的自动检测都未处理</li>
+
+    </ul>
+
+    <h2>九、可迁移的设计原则</h2>
+
+    <ol>
+
+    <li><strong>记忆存因果三元组，不存轨迹</strong>：(条件、动作、后果、验证方法、pitfalls)。值得注意的是，同一周的三篇论文从不同方向收敛到同一形态——RSIAgent 的因果记忆、Procedural Graphs 的 condition/guidance/pitfalls 边属性、Arbor 的 reverted 动作诊断约束。</li>
+
+    <li><strong>记忆治理三原则</strong>：单一写权（只有经验产出者经验证后可写）；并行采集 + 串行合并（每次合并基于含前序更新的最新记忆）；冻结校验（评测前 hash、评测后核对）。</li>
+
+    <li><strong>验证者与执行者信息隔离</strong>：执行者的推理对验证者隐藏，checkpoint 保护探测——评估的独立性不只是「不同模型」，更是「不同信息视野」。</li>
+
+    <li><strong>先广度后深度是硬约束</strong>：给 agent 配自动学习循环时，跳过广度直接深挖会被自己的过拟合反噬。</li>
+
+    <li><strong>警惕坏记忆的复利</strong>：任何「经验固化为规则」的系统（包括知识库、技能库、memory 系统）都需要条件限定、不确定性保留和可修订性——错误因果比无记忆更糟。</li>
+
+    </ol>
+
+    <hr>
+
+    <small>来源：<a href="https://arxiv.org/abs/2609.15364">RSIAgent: Autonomous Exploration for Recursive Self-improvement in New Environments (arXiv 2609.15364)</a> · Sibo Zhu, Shicheng Fan, Xinyue Wang, Wenyi Wu, Kun Zhou, Biwei Huang · 2026-09-14</small>'
 - title: AI Builders 日报 · 2026-09-15
   date: September 15, 2026
   slug: ai-builders-digest-2026-09-15
