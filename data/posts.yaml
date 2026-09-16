@@ -1,4 +1,85 @@
 posts:
+- title: AI Builders 日报 · 2026-09-16
+  date: September 16, 2026
+  slug: ai-builders-digest-2026-09-16
+  excerpt: Sam Altman 预告本周大发布与 DevDay 六连发,Salesforce 进驻 Claude;「只吐概率」的新模型形态被实测,MCP 无状态化后已优于 CLI;Aaron Levie 把模型与企业工作流之间的应用层万亿鸿沟讲透。
+  content: '<p>2026-09-16,周三。今天是 ship 季的味道:Sam Altman 预告本周与 DevDay 连环发,Salesforce 进驻 Claude,NotebookLM、Vercel Labs 同日上新;技术侧,「不吐文本、只吐概率」的新模型形态开始被认真评测,MCP 与 CLI 的优劣也第一次被掰开了说。</p>
+
+
+    <blockquote>模型层继续内卷,但真正的机会在模型与企业工作流之间那道鸿沟——Aaron Levie 把账算得很清楚:连接智能与流程、重造流程、领域 eval、安全治理,这一层会在每个行业重演,万亿规模的 applied AI 层正在成形。</blockquote>
+
+
+    <h2>一、产品发布:ship 季来了</h2>
+
+    <ul>
+
+    <li><strong>Sam Altman 预告 shipping 周</strong>:「big 🚢 this week」,DevDay 还要连发六发。具体是什么尚未揭晓,本周见分晓。<a href="https://x.com/sama/status/2099872600977760451">原文</a></li>
+
+    <li><strong>Salesforce 进驻 Claude(beta)</strong>:账户、商机、pipeline 全部接入 Claude,附带 37 个预置销售 skills——准备客户通话、复盘 deal、拉 pipeline 看板、报 forecast 都可以在对话里完成。<a href="https://x.com/claudeai/status/2099876514330206578">原文</a></li>
+
+    <li><strong>NotebookLM 学生功能更新</strong>(Josh Woodward):对课堂材料做 100+ 语言的实时语音问答;讲座录音与随手笔记自动存入选定 notebook;大学生在 140+ 国家仍可领免费 Google AI Plan。<a href="https://x.com/joshwoodward/status/2099921866014306633">原文</a></li>
+
+    <li><strong>Vercel Labs 正式亮相</strong>(Guillermo Rauch):Vercel 的公开研究与实验分支,ai-sdk 2.47 亿次下载之后,连「没跑通的实验」也一并公开。<a href="https://x.com/rauchg/status/2099911447598059812">原文</a></li>
+
+    <li><strong>Garry Tan 押注 Muse</strong>:「I think Muse is going to win tbh」。此前 Peter Yang 也试过让 Muse 去跟 Xfinity 谈 cable 账单(以失败告终,但个人 AI 助理赛道的声量正在快速聚拢)。<a href="https://x.com/garrytan/status/2099980972641124629">原文一</a>、<a href="https://x.com/petergyang/status/2099978848255533280">原文二</a>。<strong>另</strong>:Garry Tan 用 capydotai + GStack/GBrain 跑 issue/PR 修复波次,同样的前沿模型,一天的活半天干完。<a href="https://x.com/garrytan/status/2099964487667454097">原文</a></li>
+
+    </ul>
+
+
+    <h2>二、模型与推理:不吐文本的新形态</h2>
+
+    <ul>
+
+    <li><strong>Dan Shipper 实测一周的「概率模型」</strong>:几乎从不测新基础模型的 Every,这次测了一个不输出文字、直接输出概率的模型——可在需要 Fable 级模型的场景里当 judge/评估器,实测快 25 倍、便宜 600 倍。他的判断:这类东西会在 6-12 个月后变成「显然不可或缺」。<a href="https://x.com/danshipper/status/2099947471518474522">原文</a></li>
+
+    <li><strong>Amjad Masad 顺势追问</strong>:既然输出域已知,为什么不干脆训练一个直接对 enum 输出 logprobs 的模型?——分类任务的最优形态可能根本不该走「生成再解析」这条路。<a href="https://x.com/amasad/status/2100056178705514703">原文</a></li>
+
+    <li><strong>Thariq:MCP 已优于 CLI</strong>:模型 tool calling 大幅变强、可延迟加载 tools、MCP 无状态化之后,大多数集成场景 MCP 已经比 CLI 更好用;需要组合/过滤数据时,给 MCP 工具加 query 参数即可。<a href="https://x.com/trq212/status/2099958388230873165">原文</a></li>
+
+    </ul>
+
+
+    <h2>三、行业:应用层的万亿鸿沟</h2>
+
+    <ul>
+
+    <li><strong>Aaron Levie:applied AI 层的机会</strong>:模型能力与企业真正想自动化的工作流之间存在巨大鸿沟——连接智能与流程、重造业务流程、聚合上下文、设计 human-in-the-loop、做领域 eval、管安全治理,这一层会在每个行业、每个职能里重新长出来。<a href="https://x.com/levie/status/2099976021311398230">原文</a>(他在 Training Data 播客里把这题讲得更透,见下)</li>
+
+    <li><strong>Profound 估值 $1.8B</strong>(Aditya Agarwal):Fortune 100 三分之一的公司在用,最快的 AI marketing 平台;两位创始人在 SPC 相识——「不是我们找到了公司,是我们看着它长出来的」。<a href="https://x.com/adityaag/status/2099939685657141257">原文</a></li>
+
+    <li><strong>Nikunj Kothari 给创始人的提醒</strong>:资本是加速武器而非护城河;先找到保证公司活下去的默认业务路径,再去推演融资充裕/枯竭的情景。<a href="https://x.com/nikunj/status/2100008917980102863">原文</a></li>
+
+    <li><strong>Rauchg:未来是多模型的</strong>:把模型选择藏起来,既让用户错过这场最激烈市场竞争的红利,也让他们掌握不了每个任务的最佳工具。<a href="https://x.com/rauchg/status/2099905740505055680">原文</a></li>
+
+    </ul>
+
+
+    <h2>四、Web 平台:JSPI 落地 Safari</h2>
+
+    <ul>
+
+    <li><strong>Safari 27 支持 JSPI</strong>(Rauchg):WebAssembly 的同步原生代码可以挂起在异步 Promise 上了;fxAI 用浏览器内置 fetch 栈发 API 请求。原生代码占比越高,WASM 在 web 未来里的戏份越重。<a href="https://x.com/rauchg/status/2099974859023683975">原文</a></li>
+
+    </ul>
+
+
+    <h2>博客与播客</h2>
+
+    <ul>
+
+    <li><strong>Claude Blog|Claude for Small Business 大更新</strong>:新增 43 个 workflow、27 个集成(Shopify、Salesforce、TikTok、Atlassian、Zoom、Xero、Gusto、Square、Stripe、Zapier 等),5 月上线以来安装 90 万次;今秋在 10 个美国城市开免费工作坊。从管后台到拉增长,Claude 在 SMB 场景的渗透速度很惊人。<a href="https://claude.com/blog/claude-for-small-business-launches-new-workflows-integrations-and-training-programs">原文</a></li>
+
+    <li><strong>Training Data 播客 × Box CEO Aaron Levie</strong>:核心观点——「应用公司就是最热的 neo-lab」,模型与企业工作流之间那座桥需要重造流程、领域知识、change management,万亿资本押在「这座桥有多宽」上;token 补贴是暂时现象,长期价值流向应用层;5 年内企业 90% 的 token 将由用户从未手动启动的后台 agent 消耗;编码之外的知识工作扩散会慢得多——因为知识工作没有「give us your GitHub」。<a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">原文(YouTube)</a></li>
+
+    </ul>
+
+
+    <h2>小结</h2>
+
+    <p>今天的关键词是「桥」:Sam Altman 的 ship 周是一座即将揭幕的桥,Salesforce、NotebookLM、Vercel Labs 是各自场景里的桥,Levie 的播客则把「为什么这座桥值万亿」讲得最清楚。对开发者,今天最值得动手的有两件:一是按「无状态 MCP + query 参数」的思路重审你的集成方式;二是想清楚你的任务里哪些环节其实只需要 logprobs,不需要生成全文。</p>
+
+
+    <p><small>来源:<a href="https://x.com/sama/status/2099872600977760451">Sam Altman</a> · <a href="https://x.com/claudeai/status/2099876514330206578">Claude</a> · <a href="https://x.com/joshwoodward/status/2099921866014306633">Josh Woodward</a> · <a href="https://x.com/rauchg/status/2099911447598059812">Rauchg ×3</a> · <a href="https://x.com/garrytan/status/2099980972641124629">Garry Tan ×2</a> · <a href="https://x.com/petergyang/status/2099978848255533280">Peter Yang</a> · <a href="https://x.com/danshipper/status/2099947471518474522">Dan Shipper</a> · <a href="https://x.com/amasad/status/2100056178705514703">Amjad Masad</a> · <a href="https://x.com/trq212/status/2099958388230873165">Thariq</a> · <a href="https://x.com/levie/status/2099976021311398230">Aaron Levie</a> · <a href="https://x.com/adityaag/status/2099939685657141257">Aditya Agarwal</a> · <a href="https://x.com/nikunj/status/2100008917980102863">Nikunj Kothari</a> · <a href="https://claude.com/blog/claude-for-small-business-launches-new-workflows-integrations-and-training-programs">Claude Blog</a> · <a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">Training Data</a></small></p>'
 - title: RSIAgent：开源模型如何不训练就反超 GPT-6
   date: September 15, 2026
   slug: rsiagent-autonomous-exploration-rsi
