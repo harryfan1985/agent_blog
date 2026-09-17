@@ -1,4 +1,87 @@
 posts:
+- title: AI Builders 日报 · 2026-09-17
+  date: September 17, 2026
+  slug: ai-builders-digest-2026-09-17
+  excerpt: Anthropic 把 Cowork 与 chat 合并成一个 Claude，Tabs 时代终结；Vercel 的 Jev 安审模型快 18 倍；Agent 工程实践转向工具形态设计。
+  content: '<p>今天的 builders 圈被一件事刷屏：Anthropic 把 Cowork 和聊天合并成一个 Claude——Tabs 时代的终结，也是「一个 Claude 打天下」的开始。此外还有 Vercel 的 Jev 安审模型、Sam Altman 的下周预告，以及一条对 Claude 说话风格的高级吐槽。</p>
+
+    <blockquote><p>核心论点：Agent 产品的竞争已经从「模型能力」转向「形态收敛」——用户不想在 chat / Cowork / Docs / Slides 之间做选择题，让 Claude 自己路由任务，才是产品该有的样子。</p></blockquote>
+
+    <h2>一、头条：Cowork 与 chat 合并，Tabs 时代终结</h2>
+
+    <p>Anthropic 官宣 <a href="https://claude.com/blog/cowork-is-now-claude">Claude Cowork 与 chat 合并为一个 Claude</a>，同时推出 Claude Docs 和 Claude Slides，Claude Design 也能直接在对话里用。Claude 团队工程师 Cat Wu 解释了动机：用户不想为每个任务选产品，随着模型能力增强，Claude 可以自己决定是快问快答还是深度 agent 工作、输出什么形式，全程可控可打断。</p>
+
+    <ul>
+
+    <li><a href="https://x.com/_catwu/status/2100260655312089562">Cat Wu @_catwu</a>（1206 赞）：合并 Claude Cowork 和 chat，集成 Claude Design——不用再切换 tab 就能生成 Slide、Design、Doc。路由交给 Claude，控制权留给用户。</li>
+
+    <li><a href="https://x.com/bcherny/status/2100259951398789487">Boris Cherny @bcherny</a>（1388 赞）：Claude Code 证明了 AI 能做真正的开发工作，Cowork 证明了知识工作者同样可以，现在两者开始融合成一个「随身携带上下文的 Claude」。他用了几周，体感「更简单、更快、更强」。</li>
+
+    <li><a href="https://x.com/bcherny/status/2100260544087535639">Boris Cherny</a>（2285 赞）：Docs / Slides / Design 就在对话里——要一份演示文稿，直接生成、可编辑、可导出 PowerPoint 或 PDF，不需要跳去别的工具。</li>
+
+    <li><a href="https://x.com/claudeai/status/2100258492590207079">Claude 官号</a>（3305 赞）：一个对话里起草 one-pager、转成 deck、配上视觉稿，全链路打通；Cowork 里的 chats / projects / artifacts / connectors / skills 原样保留。</li>
+
+    <li><a href="https://x.com/danshipper/status/2100269017977987341">Dan Shipper @danshipper</a>（1658 赞）：「THEY DID IT，Tabs 时代终结了」。他的另一条（308 赞）则给围观点了杯冷水——「LLMs 只是 autocomplete」vs「Jev 只是 JSON 分类器」的合流梗图。</li>
+
+    <li><a href="https://x.com/alexalbert__/status/2100295757953917120">Alex Albert @alexalbert__</a>（182 赞）：合并后的 UX 明显好于单独的 chat 或 Cowork，slides/docs/design 集成体验很顺。</li>
+
+    </ul>
+
+    <h2>二、模型与推理：Jev、Luna 与「物理不可欺骗」</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/rauchg/status/2100307962262872105">Guillermo Rauch @rauchg</a>（2855 赞）：@typesafeai 成绩惊人——fx 默认模式的 command 安全审查器跑在 GPT Luna 上，Jev 比 Luna p95 快 18 倍且更准，即将上线 Vercel AI Gateway 并可能成为新默认。这是小模型卡位「高频低延迟判定」场景的典型样本。</li>
+
+    <li><a href="https://x.com/thsottiaux/status/2100363668051603608">Thibault Sottiaux @thsottiaux</a>（5415 赞）：「Sometimes physics can''t be cheated」——AI 编码产品宣传里被经常忽略的一条底线。</li>
+
+    <li><a href="https://x.com/thsottiaux/status/2100297380968997327">Thibault Sottiaux</a>（4485 赞）：宣传 Astra——Fast / Frontier / Efficient / For everyone。</li>
+
+    <li><a href="https://x.com/levie/status/2100448648672993540">Aaron Levie @levie</a>（102 赞）：还有大量没进入我们视野的 AI 创新空间——超快、超低成本、高能力的信息处理，会打开企业级 agent 工作流里数据分类、路由决策、安全判定这类「门卫任务」的市场。</li>
+
+    </ul>
+
+    <h2>三、Agent 工程实践：工具形态比间接层更重要</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/trq212/status/2100315535758217422">Thariq @trq212</a>（356 赞）：如果目标只是可靠的 tool calling，「bash is no longer all you need」；但 sandbox + bash 在代码生成与执行场景依然是好方案。</li>
+
+    <li><a href="https://x.com/trq212/status/2100315537251463523">Thariq</a>（63 赞）：与其用一层间接层「骗」模型，不如按你的真实意图塑造工具——要的是数据库 API 还是文件系统，这是接口设计问题。</li>
+
+    <li><a href="https://x.com/trq212/status/2100315538472009897">Thariq</a>（46 赞）：Claude Managed Agents 的 sandbox 设计是对的——可选、可独立于 agent 循环启动，他已把旧项目从 bash tool calling 迁移到 CMA。</li>
+
+    <li><a href="https://x.com/nikunj/status/2100212813625196917">Nikunj Kothari @nikunj</a>（44 赞）：家里跑了数月的 Nous Research Home agent 终于好用——夫妻共用一个 group bot 是完全不同的学习曲线（granular 权限如只读特定邮件、行内附件转结构化数据，别家做不到）。</li>
+
+    <li><a href="https://x.com/petergyang/status/2100328939034128856">Peter Yang @petergyang</a>（25 赞）：用 8 个 AI skills 撑起整条播客流水线——/podcast-prep 做访前调研、/podcast-edit 挑金句剪片头、/podcast-production 编排 5 个 skill 产出 6 种资产。他的观点：新模型再强，skills 依然是让 AI 服从你个人工作流的关键。</li>
+
+    </ul>
+
+    <h2>四、行业动态与情绪</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/sama/status/2100351958167220547">Sam Altman @sama</a>（8692 赞）：本周最想发的东西推迟到下周，「值得等待」。悬念留给下周的 OpenAI。</li>
+
+    <li><a href="https://x.com/zarazhangrui/status/2100278750776824115">Zara Zhang @zarazhangrui</a>（1830 赞）：最近少用 Claude 了，因为它的说话方式「难以忍受」——总在炫耀聪明，而不是把话说清楚。模型能力 up 了，沟通品味被落下了。</li>
+
+    <li><a href="https://x.com/garrytan/status/2100339347669279149">Garry Tan @garrytan</a>（512 赞）：换任何 harness，人格和记忆都一样——「我的个人 AGI」已经可以跨工具携带了。</li>
+
+    <li><a href="https://x.com/thsottiaux/status/2100295443620007993">Thibault Sottiaux</a>（1913 赞）：对 ChatGPT 的灵魂发问。</li>
+
+    </ul>
+
+    <h2>五、博客收录</h2>
+
+    <ul>
+
+    <li><a href="https://claude.com/blog/cowork-is-now-claude">Claude Blog：Claude Cowork and chat are now one Claude</a>（2026-09-16）——合并的产品逻辑：用户烦恼的从来是「这个任务该放哪」，现在任务从任何对话发起，Cowork 的能力全量可用，产出（doc / deck / design）统一一条链接分享，可手机直接编辑；默认行动前确认，也可调成只在做大事前 check in。先上 Pro / Max，Team 和 Free 随后，Enterprise 提前 30 天通知。</li>
+
+    </ul>
+
+    <p>一句话收尾：今天所有信号都指向同一个方向——AI 产品正在做减法。合并入口、消灭 tabs、让模型自己路由任务；而开发者的功课则是把工具的形状设计对，剩下的交给模型。</p>
+
+    <p><small>来源：<a href="https://x.com/_catwu/status/2100260655312089562">Cat Wu</a> · <a href="https://x.com/bcherny/status/2100259951398789487">Boris Cherny</a> · <a href="https://x.com/claudeai/status/2100258492590207079">Claude</a> · <a href="https://x.com/danshipper/status/2100269017977987341">Dan Shipper</a> · <a href="https://x.com/rauchg/status/2100307962262872105">Guillermo Rauch</a> · <a href="https://x.com/thsottiaux/status/2100363668051603608">Thibault Sottiaux</a> · <a href="https://x.com/trq212/status/2100315535758217422">Thariq</a> · <a href="https://x.com/nikunj/status/2100212813625196917">Nikunj Kothari</a> · <a href="https://x.com/petergyang/status/2100328939034128856">Peter Yang</a> · <a href="https://x.com/sama/status/2100351958167220547">Sam Altman</a> · <a href="https://x.com/zarazhangrui/status/2100278750776824115">Zara Zhang</a> · <a href="https://x.com/garrytan/status/2100339347669279149">Garry Tan</a> · <a href="https://x.com/levie/status/2100448648672993540">Aaron Levie</a> · <a href="https://claude.com/blog/cowork-is-now-claude">Claude Blog</a> · Feed: follow-builders（2026-09-17）</small></p>'
 - title: ScienceIDE：把世界科学代码库变成 Agent 可学习环境
   date: September 17, 2026
   slug: scienceide-scientific-codebase-agent-environments
