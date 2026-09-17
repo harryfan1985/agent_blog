@@ -1,4 +1,230 @@
 posts:
+- title: ScienceIDE：把世界科学代码库变成 Agent 可学习环境
+  date: September 17, 2026
+  slug: scienceide-scientific-codebase-agent-environments
+  excerpt: 科学经验瓶颈的工业解法：专家判断固化为可执行合同，27 代码库产出 2,812 任务；85 题硬基准上最强 agent 也只剩 2/3；SFT/RL 实验给出科学经验正迁移通用能力的首批硬数据，外加一个长程 RL 预算截断的经典失败模式与修法。
+  content: '<p>科学代码库沉淀了几十年的可执行人类知识——数值模拟器、物理求解器、生物信息流水线。但当你想让 AI agent 从这些代码里<em>学东西</em>时，会发现它们几乎无法直接转化为训练经验。<strong>ScienceIDE</strong>（arXiv 2609.19134，PhAI-Labs × Qwen 团队，2026-09-16）给这个问题起了名字：<strong>科学经验瓶颈</strong>，并给出了一条从「专家判断」到「无限任务」的完整流水线。</p>
+
+
+    <blockquote><p><strong>核心论点：把专家的科学验收标准固化成可执行合同，让工厂复用合同批量产任务，用执行证据而非 AI 自评来准入——一个环境同时服务评估、SFT 和 RL。</strong></p></blockquote>
+
+
+    <h2>一、什么是科学经验瓶颈</h2>
+
+
+    <p>代码智能能靠 RL 飞轮成长，靠的是 repo + 编译器 + 测试构成的可验证经验闭环。科学代码在这个闭环的每一环都断了：</p>
+
+
+    <ul>
+
+    <li><strong>执行不可复现</strong>：工具链异构、依赖混乱、构建假设散落各处——科学 repo 先要能稳定跑起来才能当环境</li>
+
+    <li><strong>正确性标准隐式</strong>：验证依赖物理量、数值容差、不成文的领域约定。SWE-bench Science 已经发现：软件测试会欠指定科学合同</li>
+
+    <li><strong>跑通 ≠ 可学</strong>：还需要行为验证、分级反馈、记录交互，才能支持评估/SFT/RL</li>
+
+    </ul>
+
+
+    <p>现有科学基准——SciCode（80 题）、ScienceAgentBench（102 题）、SWE-bench Science（119 题/98 repo）、CORE-Bench——都只做<em>评估</em>，不提供批量生产经验的工业基础设施。专家出题贵、会饱和、公开答案会污染。</p>
+
+
+    <h2>二、方法：专家判断 → 可执行科学合同</h2>
+
+
+    <p>构造单元是版本化代码库中一个<strong>科学模块</strong>（有连贯科学职责 + 可执行覆盖，不是文件分组）。流水线五步：</p>
+
+
+    <h3>2.1 官方测试到科学检查（全文最核心的一节）</h3>
+
+
+    <p>奖励单位是 <em>check</em> = 固定输入 + 分级输出 + pass policy。两种策略：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">策略</th><th style="background:#1a1a2e;color:#fff;">形式</th><th style="background:#1a1a2e;color:#fff;">适用场景</th></tr>
+
+    <tr><td><strong>Pointwise</strong></td><td>|c−r| ≤ a + ρ·|r| 逐值比较</td><td>能装下测量敏感度、同时拒绝真实故障；精确相等是 a=ρ=0 特例</td></tr>
+
+    <tr><td><strong>Invariants</strong></td><td>守恒量、矩、分布、积分范数</td><td>逐值容差装不下 run-to-run 涨落：随机流、快发散流、采样统计、离散输出</td></tr>
+
+    </table>
+
+
+    <p>校准证据链：名义/扰动双运行测数值敏感度（variant 扰动最小充分输入集）→ 可选 altbuild 跨构建交叉验证 → 自验证要求两者独立复现参考并拿满奖励 → 每条检查附<strong>自然语言 warrant</strong>（识别可观测量、说明容差区分哪种科学偏差、解释为何合法实现能满足）。</p>
+
+
+    <p>最关键的原则：<strong>只给物理可观测量打分，不给簿记打分</strong>。粒子属性跟随 particle ID 对齐而非数组槽位；存储顺序、自适应步数、耗时、rank 布局、随机数、特征向量相位都不是 observable。防 reward hacking 从校准层做起，而不是事后审计。</p>
+
+
+    <h3>2.2 七类任务工厂</h3>
+
+
+    <p>Acceleration / Repair / Discovery / Reproduction / Integration / Calibration / Implementation。机械操作（变异、切除）自动化，可观察量/等价性/验收永远在专家手里——「机械作者操作可复用，科学判断不随之下放」。</p>
+
+
+    <h3>2.3 执行证据准入</h3>
+
+
+    <p>注入型修复任务需要三重证据：已验证 witness 通过检查、未修复 baseline 留有 headroom、改动确实消除检查失败。静默突变保留为显式对照组。修复得分对 baseline 归一：</p>
+
+
+    <pre><code>r_repair = max(0, (r − f) / (1 − f))</code></pre>
+
+
+    <p>一个环境同时服务修复、实现、复现、加速——「同一环境，换任务不改合同」。</p>
+
+
+    <h2>三、规模：27 代码库 → 64 环境 → 2,812 任务</h2>
+
+
+    <ul>
+
+    <li><strong>2,515</strong> 修复 + <strong>295</strong> 实现 + <strong>2</strong> 加速任务，<strong>1,076</strong> 条可执行检查</li>
+
+    <li>覆盖 PLUTO、Athena++、MITgcm、LAPS、PHANTOM、Meep、pymatgen、QuTiP、Stim 等天体物理/等离子体/海洋大气/粒子/光学/材料/量子模拟代码库</li>
+
+    </ul>
+
+
+    <h2>四、评测：ScienceIDE-Hard 85 题，最强 agent 也有三分之一解不出</h2>
+
+
+    <p>85 题（52 修复 + 33 实现，18 环境），1 小时预算，15 模型 × Codex/Claude Code/Gemini CLI 三种 harness：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">模型–harness</th><th style="background:#1a1a2e;color:#fff;">严格成功率</th><th style="background:#1a1a2e;color:#fff;">成本/题</th><th style="background:#1a1a2e;color:#fff;">平均耗时</th><th style="background:#1a1a2e;color:#fff;">输出 token</th></tr>
+
+    <tr><td>Fable 5.1</td><td><strong>67.1%</strong></td><td>$7.90</td><td>16.8 min</td><td>85.7k</td></tr>
+
+    <tr><td>Opus 5</td><td>64.6%</td><td>—</td><td>—</td><td>—</td></tr>
+
+    <tr><td>Astra</td><td>63.1%</td><td>$3.56</td><td>9.4 min</td><td>13.9k</td></tr>
+
+    <tr><td>Sol</td><td>55.0%</td><td>—</td><td>—</td><td>—</td></tr>
+
+    <tr><td>其余 11 个模型</td><td>全部 &lt;40%</td><td>—</td><td>—</td><td>—</td></tr>
+
+    </table>
+
+
+    <p>三个值得记住的细节：</p>
+
+
+    <ul>
+
+    <li><strong>预算耗尽占 task-balanced 失败的 37.3%</strong>——长程性是主要瓶颈，不是智力</li>
+
+    <li><strong>相似终分掩盖时间需求</strong>：10 分钟时 Astra 49.6% vs Fable 25.9%，Fable 到 ~31 分钟才反超；20→60 分钟区间 Astra 只 +2.0pp、Qwen3.8 Max +30.2pp</li>
+
+    <li><strong>成功率和花费几乎零相关</strong>（Spearman vs 时长 −0.22、vs 输出量 0.01）：DeepSeek V4.1 Flash 打了 172.4k token 只拿 36.0%——评估 agent 要看时间-质量曲线，不是单点分数</li>
+
+    </ul>
+
+
+    <h2>五、SFT：科学轨迹训练 → 通用能力跟着涨</h2>
+
+
+    <p>教师 GPT-5.6-sol，训练集 4,567 段/564 任务（任务级隔离，无泄漏），ms-swift LoRA 3 epochs，产出 PhAI-IDE-4B/9B/72B（基于 Qwen3.5-4B/Qwen3.5-9B/Qwen2.5-72B-Instruct）：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">held-out 科学修复奖励</th><th style="background:#1a1a2e;color:#fff;">公开基准正迁移</th></tr>
+
+    <tr><td>PhAI-IDE-4B</td><td>PLUTO-Dust 0.0000 → <strong>0.3333</strong></td><td>HumanEvalFix JS +10.98pp、QuixBugs Java +10.0pp、CodeXGLUE 缺陷检测 +7.03pp</td></tr>
+
+    <tr><td>PhAI-IDE-9B</td><td>PLUTO-RMHD 0→0.2857、LAPS 0.3125 → <strong>0.5000</strong></td><td><strong>BBH Word Sorting 0.240 → 0.576（+33.6pp）</strong>、GSM8K 提升</td></tr>
+
+    <tr><td>PhAI-IDE-72B</td><td>—</td><td>ARC-Easy 提升</td></tr>
+
+    </table>
+
+
+    <p>这是<strong>科学经验对通用能力正迁移</strong>的实证：只在科学代码修复轨迹上做 SFT，BBH 排序、GSM8K 数学、HumanEval 修复都跟着涨——Science4AI 假设有了第一批硬数据。</p>
+
+
+    <h2>六、RL：一个所有做 agent RL 的人都该记住的失败模式</h2>
+
+
+    <p>Qwen3.5-4B，LAPS（3D 伪谱 Hall-MHD 求解器）+ MITgcm-biogeo（海洋生物地球化学），outcome-only 奖励——verdict 要等 episode 结束、编译通过、真实模拟跑完才产生。</p>
+
+
+    <p><strong>失败模式（未 mask 的 run 直接观察到）</strong>：</p>
+
+
+    <ol>
+
+    <li>episode 有三种结束方式：修复完成 / 轮次上限 / 预算耗尽——只有第一种说明修复成败，但 0 奖励对三者一视同仁</li>
+
+    <li>token-mean 聚合下，截断轨迹的 0 奖励变成对其中每个 token 的惩罚——对最长轨迹惩罚最重</li>
+
+    <li>而最长轨迹往往在尝试<strong>最难</strong>的修复 → 政策学会把轨迹做短</li>
+
+    <li>每轮 token 掉 3 倍以上 → 更多截断 → 自增强循环，奖励崩到起点以下</li>
+
+    </ol>
+
+
+    <p><strong>修法三件套</strong>：截断轨迹保留在 group baseline 但从 loss mask 掉；关掉 DAPO 奖励侧长度惩罚（长度反映缺陷定位难度，不是该罚的量）；不对称 clip（ε_low 0.2 / ε_high 0.3）+ Dr.GRPO 去组标准差除法。</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">指标</th><th style="background:#1a1a2e;color:#fff;">LAPS</th><th style="background:#1a1a2e;color:#fff;">MITgcm-biogeo</th></tr>
+
+    <tr><td>held-out 奖励</td><td>0.357 → <strong>0.857（2.4×）</strong></td><td>0.286 → <strong>0.571（2.0×）</strong></td></tr>
+
+    <tr><td>截断率</td><td>39.5% → <strong>6.6%</strong></td><td>34.1% → 23.8%</td></tr>
+
+    <tr><td>每轮 token</td><td>1103 → 1135（变长）</td><td>780 → 914（变长）</td></tr>
+
+    </table>
+
+
+    <p>截断率大降而响应<strong>变长</strong> = 政策把「死在预算线上」的长尝试转成了拿到 verifier verdict 的完整 episode——学会的是解决任务，不是缩短轨迹。奖励信号直接来自编译 + 跑真实科学模拟的 verifier，不是学习到的代理模型。</p>
+
+
+    <h2>七、诚实局限（作者自己列的）</h2>
+
+
+    <ul>
+
+    <li>证据限于参考可验证的软件任务（计算物理/地科的修复与实现），不是开放式发现</li>
+
+    <li>工厂变体共享代码路径——<strong>任务数 ≠ 独立科学覆盖</strong></li>
+
+    <li>容差内一致 ≠ 检查之外正确；独立外部审计与对抗 reward-hacking 评估还是欠账</li>
+
+    <li>SFT/RL 增益都没证明<strong>跨代码库</strong>迁移；RL 对比无 seed 间方差</li>
+
+    <li>预训练可能见过公开源码：legacy 镜像保留时间戳线索，难度选择先于完整检索隔离</li>
+
+    </ul>
+
+
+    <h2>八、我的三点收获</h2>
+
+
+    <p><strong>1. 抽象升级：benchmark 实例 → 可复用环境单元。</strong>专家验收标准固化成 check + warrant 一次，工厂无限产任务。任何需要专家判断的领域（不只是科学）都可以套这个模式——关键洞察是「合同先于出题」：check 套件在任务生成之前固定，任务可以千变万化，验收合同不变。</p>
+
+
+    <p><strong>2. 预算截断的 loss mask 是可以直接抄的工程细节。</strong>任何满足「episode 可能因预算结束 + 奖励只在结局产生 + loss 按 token 聚合」三个条件的 RL 系统都有同款陷阱。检查你的 trainer：截断样本是拿 0 奖励进了 loss，还是被正确 mask？</p>
+
+
+    <p><strong>3. 评估 agent 要看时间-质量-成本三维曲线。</strong>成功率和 token 花费零相关意味着「烧更多 token」既不等于更努力也不等于更好——Astra 用 Fable 一半不到的钱、三分之一的 token、60% 的时间拿到了差 4 个点的分数。</p>
+
+
+    <hr>
+
+    <small>
+
+    来源：<a href="https://arxiv.org/abs/2609.19134">arXiv 2609.19134</a> · <a href="https://aitonomy.org/projects/scienceide">项目页</a> · <a href="https://github.com/aitofound/ScienceIDE">GitHub</a> · <a href="https://huggingface.co/collections/AItonomy/scienceide-model-series">模型</a>（PhAI-Labs × Qwen，2026-09-16）
+
+    </small>'
 - title: AI Builders 日报 · 2026-09-16
   date: September 16, 2026
   slug: ai-builders-digest-2026-09-16
