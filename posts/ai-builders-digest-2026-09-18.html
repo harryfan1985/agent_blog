@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-09-18 | Agent Blog</title>
+    <meta name="description" content="Anthropic 发布 Claude Code 全新 Projects 体验：一个项目一个 Agent、云端线程与长期记忆；Vercel 披露十个月新增 14 亿次部署；Aaron Levie 断言 Agent 已占推理量大头。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-09-18">
+    <meta property="og:description" content="Anthropic 发布 Claude Code 全新 Projects 体验：一个项目一个 Agent、云端线程与长期记忆；Vercel 披露十个月新增 14 亿次部署；Aaron Levie 断言 Agent 已占推理量大头。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 18, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-09-18</h1>
+                <div class="meta">
+                    <span class="date">September 18, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 builders 时间线被 Anthropic 刷屏：Claude Code 的全新 Projects 体验开始滚动推送——一个项目一个 Agent，会话不再是你要管理的对象。此外，Google Labs 把 AI Agent 塞进了家庭生活，Vercel 披露了部署量的井喷曲线，而 Aaron Levie 断言：Agent 已经占掉了世界上大部分推理 tokens。</p>
+
+<blockquote><p>本日核心：Agent 产品的形态正在从「会话」走向「项目」——有记忆、有子代理、有调度，24/7 在后台替你干活。软件生产端则在见证历史：明年的新增软件量可能超过计算机史上全部产出的总和。</p></blockquote>
+
+<h2>一、Claude Code 新 Projects：一个项目一个 Agent（今日主菜）</h2>
+<p>Anthropic 公布了 Claude Code 的全新 Projects 体验，几位核心成员今天集体发声：</p>
+<ul>
+<li><strong>Boris Cherny（Claude Code 创造者）</strong>：「Projects 不只改变了我与 Claude 的交互方式，还改变了我写代码的方式。我不再管理会话——想法来了就发出去，Claude 自动把它们拆成线程，项目会记住我的工作习惯。我现在大量的编码都在这里完成。」<a href="https://x.com/bcherny/status/2100669598995816511">原文</a>（2.3k 赞）；另一条里他确认新体验正在滚动推送。<a href="https://x.com/bcherny/status/2100639991244427490">原文</a>（1.9k 赞）</li>
+<li><strong>Cat Wu（Claude Code + Cowork）</strong>：新体验里 Claude 协调你的所有会话——批量派发一组任务后就可以走人，随时能拿到聚合的状态更新；长期记忆会随使用不断进化，让人在一个更高的抽象层级上工作。未来几周滚动推送。<a href="https://x.com/_catwu/status/2100641163120423057">原文</a></li>
+<li><strong>Thariq（Claude Code）</strong>：Projects 把 Claude Tag 的架构带进了 Claude Code——每个项目一个 Agent，负责管理记忆、按任务派生 subagent，还可以要求它主动干活、定时执行。「比一堆散落的会话舒服多了。」<a href="https://x.com/trq212/status/2100638355872706571">原文</a>（1k+ 赞）</li>
+<li><strong>@claudeai 官方补充</strong>：线程跑在云端，电脑离线也在继续干活（暂时无法访问本地文件与内网工具，本地支持「很快」到来）；项目随时间成长——每个线程都读写共享记忆，能记住「发版挪到了周五」「动 billing 服务前先问谁」，library 保存你上传的和 Claude 创建的文件；现有 Pro/Max 项目的用法不变，可加入 waitlist 提前体验。<a href="https://x.com/claudeai/status/2100632687316730327">原文①</a> <a href="https://x.com/claudeai/status/2100632684074549309">原文②</a> <a href="https://x.com/claudeai/status/2100632688625348890">原文③</a></li>
+</ul>
+<p>一句话总结：从「会话」到「项目」，Agent 从你开一次聊一次的工具，变成常驻、有状态、可调度的同事。</p>
+
+<h2>二、OpenAI 这边：让两个 Agent 就「完美 styleguide」达成一致</h2>
+<p>OpenAI Codex 团队的 Thibault Sottiaux 抛出了今日互动量最高的一条（5.5k 赞、1800+ 回复）：有没有人试过让 Astra 和 Fable 就完美 styleguide 达成一致，然后用 Web MCP 把它托管起来？让多个 Agent 在共享规范上互相拉扯再收敛——多 Agent 共识与工程规范的沉淀，社区显然对此很有共鸣。<a href="https://x.com/thsottiaux/status/2100645454245720513">原文</a></p>
+
+<h2>三、Google Labs 发布家庭版 CC：Agent 管家务</h2>
+<p>Google Labs 宣布全新 CC——一个为家庭打造的 AI Agent：最多添加 5 位家庭成员；每天早上发「Your Day Ahead」简报邮件；自动同步共享 Google Calendar 和 Tasks；在 Google Chat 里协调事务（周餐计划、开学采购清单）；在你的指示下代办文书（家长同意书、各类表格）；还能记住哪些信息是「全家通用」（常去的餐厅）、哪些是「个人专属」（饮食限制、时区）。美国区 18+ 可加入 waitlist。<a href="https://x.com/GoogleLabs/status/2100653821907366366">原文</a>（539 赞）</p>
+
+<h2>四、软件生产井喷：Vercel 十个月新增 14 亿次部署</h2>
+<p>Vercel CEO Guillermo Rauch 给出一组惊人数字：Vercel 花了 10 年达到 10 亿次部署，而最近 10 个月又增加了 14 亿次。「明年生产的软件，很可能超过计算机历史上所有软件的总和。」其中很多会是微小、个人化甚至一次性的软件——一个带 JS 的 HTML 文件、一份报告、一个定价计算器、一套幻灯片，直到复杂的应用、Agent 与平台。部署速度是 Vercel 的执念：从部署、上传、分配域名到全球生效，被压到了 1 秒以内（同时不牺牲 CDN、防火墙、不可变部署与回滚）。<a href="https://x.com/rauchg/status/2100698591417499972">原文</a>（508 赞）</p>
+
+<h2>五、行业观察：Agent 正在吃掉全世界的 tokens</h2>
+<ul>
+<li><strong>Aaron Levie（Box CEO）</strong>：Agent 已经构成推理量的大头，未来一两年将趋近全部。世界的 tokens 消耗将主要来自 7×24 小时在后台执行任务的 Agent：审查所有代码变更来保障软件安全、在工作流里处理数据、承担招聘与客户开发中的大部分调研、盯住每一个系统的事件流和日志……他本人过去一周就上了好几个「一个月前技术上还不可能」的新工作流。<a href="https://x.com/levie/status/2100799668573946191">原文</a></li>
+<li><strong>Amjad Masad（Replit CEO）</strong>：在转发基建讨论时表态——「这就是为什么我们需要海量的数据中心（值得）」。算力需求的膨胀不是泡沫，是 Agent 时代的水到渠成。<a href="https://x.com/amasad/status/2100829093923320083">原文</a></li>
+</ul>
+
+<h2>六、自治 Agent 实践两则</h2>
+<ul>
+<li><strong>Nikunj Kothari（FPV Ventures）</strong>：做了一个「自驾公司」（self-driving company）实验 nosugarforkids.com——一个只收录健康儿童零食的目录站。一个 Claude Agent 每天醒来：检查目录新品、清理死掉的商品、找能扩大触达的选题、查 dataforSEO 和 Search Console 表现、写稿改稿、控制质量避免 slop，甚至开始联系媒体要外链。零外链、零社媒起步，自然增长到每天约 6000 次展示、60 次点击。他还给站点配了完整的 MCP / WebMCP，可以直接把自己的 Agent 指向它。<a href="https://x.com/nikunj/status/2100714665571737885">原文</a> <a href="https://x.com/nikunj/status/2100718806004064730">MCP 补充</a></li>
+<li><strong>Garry Tan（YC CEO）</strong>：点赞 Memorable 的思路——用 embeddings 而不是堆更多 tokens 来做记忆优化，「这是一种强大的新记忆路径」。在上下文工程火热的当下，值得记一笔。<a href="https://x.com/garrytan/status/2100668489178456268">原文</a>（477 赞）</li>
+</ul>
+
+<h2>结语</h2>
+<p>今天的关键词是「从会话到项目」：Claude Code 的 Projects、Google Labs 的家庭 CC、Nikunj 的自驾网站，都在把 Agent 从一次性对话工具变成有记忆、有日程、有产出物的常驻系统。如果你的工作流还停留在「开个新会话」的层面，今天值得重新设计一遍——把上下文交给项目，把调度交给 Agent，把注意力留给真正的判断。</p>
+
+<hr>
+<p><small>来源：<a href="https://x.com/bcherny/status/2100669598995816511">Boris Cherny</a> · <a href="https://x.com/bcherny/status/2100639991244427490">Boris Cherny ②</a> · <a href="https://x.com/_catwu/status/2100641163120423057">Cat Wu</a> · <a href="https://x.com/trq212/status/2100638355872706571">Thariq</a> · <a href="https://x.com/claudeai/status/2100632684074549309">@claudeai ①</a> · <a href="https://x.com/claudeai/status/2100632687316730327">@claudeai ②</a> · <a href="https://x.com/claudeai/status/2100632688625348890">@claudeai ③</a> · <a href="https://x.com/thsottiaux/status/2100645454245720513">Thibault Sottiaux</a> · <a href="https://x.com/GoogleLabs/status/2100653821907366366">Google Labs</a> · <a href="https://x.com/rauchg/status/2100698591417499972">Guillermo Rauch</a> · <a href="https://x.com/levie/status/2100799668573946191">Aaron Levie</a> · <a href="https://x.com/amasad/status/2100829093923320083">Amjad Masad</a> · <a href="https://x.com/nikunj/status/2100714665571737885">Nikunj Kothari</a> · <a href="https://x.com/nikunj/status/2100718806004064730">Nikunj Kothari ②</a> · <a href="https://x.com/garrytan/status/2100668489178456268">Garry Tan</a>（X 帖 15 条；本日 feed 无博客文章、无播客）</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
