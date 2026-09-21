@@ -1,4 +1,89 @@
 posts:
+- title: AI Builders 日报 · 2026-09-21
+  date: September 21, 2026
+  slug: ai-builders-digest-2026-09-21
+  excerpt: Meta Muse 咄咄逼人、Grok Bot 卡位工作流、multiplayer 成下一个解锁点；Rauchg 见证 Agent QA 的极限强度；Brian Armstrong 谈 Agentic Finance：76% 的 Agent 交易不足 30 美分，先给 AI 一个银行账户。
+  content: '<p>今天的 feed 明显偏「产品卡位」：Meta 的 Muse 来势汹汹，Grok Bot 卡位工作流，Google 手握数据却动作迟缓；另一边，Coinbase CEO 在播客里把 Agentic Finance 讲得很具体——Agent 经济的第一步，是先给 AI 一个银行账户。</p>
+
+    <blockquote><p><strong>核心论点：个人 Agent 的胜负手不在模型，而在入口与 multiplayer；而 Agent 经济的地基，是支付 rails——76% 的 Agent 交易不足 30 美分，信用卡体系根本服务不了它们。</strong></p></blockquote>
+
+    <h2>一、个人 Agent 竞争格局：Muse、ChatGPT、Grok Bot 与 Google</h2>
+
+    <p>产品人 Peter Yang 发了一条 591 赞的长推，逐家点评个人 Agent 赛道：<a href="https://x.com/petergyang/status/2101862331345154469">原文</a></p>
+
+    <ul>
+
+    <li><strong>Muse（Meta）</strong>：最被看好——应用直观、Meta 全家桶火力全开。用过后会发现，Agent 没道理住在 iMessage 这种现有聊天应用里；除非 Meta 算力耗尽，它可能成为 Facebook 之后最成功的自研 App，比 Threads 大得多。</li>
+
+    <li><strong>ChatGPT</strong>：仍是现任个人 Agent 领头羊（1B+ 用户），模型/computer use/voice 单项都强，但一个产品同时服务工作与个人、企业与非企业，UX 很难两头讨好——他连工作场景都转用 Grok Bot，因为 Work/Codex 的拆分太混乱。</li>
+
+    <li><strong>Grok Bot</strong>：不是 Muse 对手而是卡位工作——多 bot 天然适合团队知识工作，牛市剧本是「multiplayer agentic Slack」，人机混编。</li>
+
+    <li><strong>Google</strong>：暗马。所有个人 Agent 都活在 Gmail / Calendar / Google 数据上，但自家 Spark 还只是 Gemini 里的一个次级标签页，且 Google 在 multiplayer AI 上战绩不佳。</li>
+
+    <li><strong>Multiplayer 是下一个大解锁</strong>：现在没人做到——没法把配偶拉进 Muse 聊天一起规划假期，也没法把同事拉进 ChatGPT/Grok Bot 线程；今天的 multiplayer AI 约等于在 Slack 里 @bot。</li>
+
+    </ul>
+
+    <p>他的个人 stack：Muse 管个人、Grok Bot 管云端任务、Claude 管特定场景、ChatGPT 兜底。附带一条同主题吐槽：Apple 有设备和隐私两张好牌，但年度大版本发布周期的迭代速度，撑不起 Siri 打这场仗（<a href="https://x.com/petergyang/status/2101865476145959373">推文</a>）。实用建议：把个人 skills 和 files 设计成方便在不同 harness/agent 之间搬运的形态，否则一半时间浪费在换工具上。</p>
+
+    <h2>二、Agent 工程实践：QA 强度是人类追不上的</h2>
+
+    <p>Vercel CEO Guillermo Rauch 分享了一次 Agent 调试体验：指出某页面在移动端 in-app 浏览器渲染不对后，Agent 复现、模拟、修复、部署、验证一条龙，甚至临时创建了一个 Vercel deployment 扔进 iPhone 模拟器去测（376 赞，<a href="https://x.com/rauchg/status/2101846262840799251">原文</a>）：</p>
+
+    <blockquote><p>「人类永远追不上这种强度——我们会累、会外推、会祈祷它碰巧能跑。未来软件的质量和性能将是人类从未体验过的。」</p></blockquote>
+
+    <p>对工程团队的启示：把「复现→修复→验证」的闭环尽量交给 Agent 跑满强度，人只保留「提出高质量 bug 报告」和「最终裁决」两个环节。</p>
+
+    <h2>三、行业动态：热词以周为单位轮换</h2>
+
+    <ul>
+
+    <li>VC Matt Turck 调侃：「大家都在谈 Jev，而我还记得上周——那时候所有人满嘴都是 Instinct」（62 赞，<a href="https://x.com/mattturck/status/2101820308009206077">原文</a>）。AI 圈叙事的半衰期已经短到以周计，信息流过滤比信息获取更值钱。</li>
+
+    <li>Box CEO Aaron Levie 的「<a href="https://x.com/levie/status/2101731574668747081">对 agent swarm 无懈可击</a>」获得 2691 赞——当所有人都在讨论 Agent 攻击面时，一句反串幽默成了当日流量之王。</li>
+
+    <li>OpenClaw 生态（Peter Steinberger）：新版 benchmark 引来 1358 赞（<a href="https://x.com/steipete/status/2101748820237500557">推文</a>），「claw 现在能给你打 FaceTime 了」646 赞（<a href="https://x.com/steipete/status/2101748928274419843">推文</a>）——开源个人 Agent 正从聊天框走向多模态实时交互。</li>
+
+    </ul>
+
+    <h2>四、播客：Brian Armstrong 谈 Agentic Finance（No Priors）</h2>
+
+    <p>No Priors 本期嘉宾是 Coinbase CEO Brian Armstrong，45 分钟里 Agentic Finance（AIFi）的部分信息密度最高：</p>
+
+    <ul>
+
+    <li><strong>Agent 交易的特征是「小额海量」</strong>：观察到的 Agent 电商交易中约 76% 不足 30 美分，而信用卡最低固定费约 30¢/笔——传统 rails 在 1 美元以下根本不成立。典型场景是 Agent 之间互相买数据、买服务，像一次 tool call。</li>
+
+    <li><strong>「不能让 AI 成为 unbanked」</strong>：一条 prompt 贴进 Agent 就能开通金融账户（自托管钱包 + 加密 rails，无需 KYC）。Coinbase 内部 Agent harness（Toshi）已通过 X402 协议向外部供应商付费——该协议已捐给 Linux Foundation，Google、Cloudflare、AWS 都在跟进。</li>
+
+    <li><strong>公司级 recursive self improvement</strong>：为每个服务/团队维护一个「brain」（全部事故史、财务控制、A/B 测试、PR 审核记录的 markdown 集合）。Agent 改代码前先读 brain；人工纠正 Agent 的每一条批注都要回写 brain，于是 one-shot PR 通过率随时间上涨。这是把「组织记忆」工程化的具体样板。</li>
+
+    <li><strong>CEO 亲自下场</strong>：Armstrong 让高端模型把功能拆成 3 期 × 10 项，再并行拉起 10 个 Agent（含更便宜的 Grok/开源模型）执行，上播客前 2 分钟收到「phase one 全部完成待审」的通知。他的感受：给团队发 PR 代替在 Slack 里催活，「非常上瘾」。</li>
+
+    <li>顺带一提：Coinbase 预测市场上线数月即达约 $100M 收入 run rate；开源小模型在私有数据上微调后，可以在特定任务（如合规审核队列）上跑赢 frontier 模型——与 Armstrong「Agent 市场会涌现大量专科 Agent」的判断互相印证。</li>
+
+    </ul>
+
+    <p>另外，swyx 预告 Latent Space 明天上线 Jev 专题播客（<a href="https://x.com/swyx/status/2101873256097804529">推文</a>），延续本周热度。</p>
+
+    <h2>五、小结</h2>
+
+    <ul>
+
+    <li>入口之战：个人 Agent 的终局形态还没人锁定，multiplayer（人+人+多 Agent 同线程）是下一个公认的分水岭。</li>
+
+    <li>工程实践：Agent 的测试/QA 强度是纯红利，团队该重新划人机分工线。</li>
+
+    <li>Agent 经济：先解决「Agent 的支付身份」——小额高频交易需要新 rails，X402 正在成为事实标准。</li>
+
+    <li>组织落地：把纠正写回共享记忆（brain），Agent 产出才会随时间复利。</li>
+
+    </ul>
+
+    <hr>
+
+    <small>来源：<a href="https://x.com/petergyang/status/2101862331345154469">Peter Yang</a> · <a href="https://x.com/petergyang/status/2101865476145959373">Peter Yang (Siri)</a> · <a href="https://x.com/rauchg/status/2101846262840799251">Guillermo Rauch</a> · <a href="https://x.com/mattturck/status/2101820308009206077">Matt Turck</a> · <a href="https://x.com/levie/status/2101731574668747081">Aaron Levie</a> · <a href="https://x.com/steipete/status/2101748820237500557">Peter Steinberger (benchmark)</a> · <a href="https://x.com/steipete/status/2101748928274419843">Peter Steinberger (FaceTime)</a> · <a href="https://x.com/swyx/status/2101873256097804529">swyx</a> · <a href="https://www.youtube.com/@NoPriorsPodcast">No Priors: Brian Armstrong on Agentic Finance</a>（feed 由 <a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a> 聚合）</small>'
 - title: AI Builders 日报 · 2026-09-20
   date: September 20, 2026
   slug: ai-builders-digest-2026-09-20
