@@ -1,4 +1,99 @@
 posts:
+- title: AI Builders 日报 · 2026-09-23
+  date: September 23, 2026
+  slug: ai-builders-digest-2026-09-23
+  excerpt: OpenAI 与 Anthropic 同日亮牌：GPT-6 Sol/Luna 发布并永久降价 50%，Opus 5.5 成为 Claude 全线默认；Next.js 实测四强并列，Grok 便宜 2–7 倍；Lean + TLA+ 形式化验证成为找 bug 新玩法。
+  content: '<p>过去 24 小时是罕见的「双发日」：OpenAI 发布 GPT-6 Sol 与 Luna 并把 API 价格永久砍半，Anthropic 把 Opus 5.5 推上 Claude 全线默认——两条时间线在同一天刷屏。</p>
+
+    <blockquote><p>前沿智能的单位成本正以史无前例的速度下降——Opus 5.5 与 GPT-6 同日降价，Agent 能吃下的任务空间再次被撑大。接下来比拼的不是谁更聪明，而是谁把智能用得更准：往上用形式化验证榨可靠性，往下把省下的成本换成更多实验和对用户的理解。</p></blockquote>
+
+    <h2>一、GPT-6 Sol 与 Luna 发布：API 永久降价 50%</h2>
+
+    <p><a href="https://x.com/thsottiaux/status/2102463847714247142">Thibault Sottiaux 的官宣帖</a>（23.3K 赞）：GPT-6 Sol 和 Luna 全面显著提升，写作与那种「上手就知道」的质感也在涨；API 价格永久降低 50%，让两个模型覆盖大量新用例；同时给 Plus / Pro / Business 用户的账户加载了 banked reset（攒下的额度重置）。</p>
+
+    <p><a href="https://x.com/levie/status/2102477253070430322">Aaron Levie 的点评</a>最能概括这一天：Opus 5.5 降价，GPT-6 Sol/Luna 再降 50%，同口径下单位任务成本的下降速度「不像历史上任何一种技术」；而 AI 每次降价，Agent 可部署的用例就大幅增加——这是「Agent 版 Jevons 悖论」。token 成本直接决定这些用例能否规模化铺开。</p>
+
+    <p>彩蛋：<a href="https://x.com/sama/status/2102512794235207758">Sam Altman 纠正</a>之前的预告——发布的是 VOICE 不是 video，「sorry to disappoint」。</p>
+
+    <h2>二、Opus 5.5 成为 Claude 全线默认：更快、更省、额度多 25%</h2>
+
+    <p><a href="https://x.com/_catwu/status/2102437713781944397">Cat Wu 宣布</a>：Opus 5.5 现在是 Claude Code 与 Claude app（含 Cowork）的默认模型（Pro / Max / Team）；全产品默认 effort=medium，智力对标 Fable 5.1 但更快；同样的 rate limits 在 Opus 5.5 上能多跑 25% 的用量。</p>
+
+    <p><a href="https://x.com/bcherny/status/2102439069053747549">Boris Cherny（Claude Code 作者）</a>已经把它当了几天日常主力，并给出硬核对比：让 Opus 5.5 与 Fable 5.1 各自把 HAProxy 从 C 移植到 Rust，两者都几乎通过全部测试，但 Opus 5.5 只用了 9.5 小时（Fable 5.1 是 12 小时），成本还省 51%。</p>
+
+    <h2>三、第三方实测：四强并列，Grok 便宜 2–7 倍</h2>
+
+    <p><a href="https://x.com/rauchg/status/2102519097770885231">Guillermo Rauch 跑了新一轮 Next.js evals</a>：</p>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">模型</th><th style="background:#1a1a2e;color:#fff;">Next.js eval 得分</th><th style="background:#1a1a2e;color:#fff;">备注</th></tr>
+
+    <tr><td>Claude Opus 5.5</td><td>97%</td><td>并列第一</td></tr>
+
+    <tr><td>GPT-6 Sol</td><td>97%</td><td>同日发布，API 永久降价 50%</td></tr>
+
+    <tr><td>Fable 5.1</td><td>97%</td><td>并列第一</td></tr>
+
+    <tr><td>Grok 4.7</td><td>94%</td><td>价格便宜 2–7 倍</td></tr>
+
+    </table>
+
+    <p><a href="https://x.com/levie/status/2102448415775051790">Levie 还给出了 Box 的企业实测</a>：在处理非结构化数据的企业知识工作里，Opus 5.5 相比 Opus 5 少用 63% token、话少 42%、快 30%，且模型本身更便宜。四个场景的任务准确率提升：</p>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">场景</th><th style="background:#1a1a2e;color:#fff;">任务准确率</th><th style="background:#1a1a2e;color:#fff;">token 消耗</th></tr>
+
+    <tr><td>金融尽调（查收购标的定价工具的错账）</td><td>+39%</td><td>-82%</td></tr>
+
+    <tr><td>科技行业云成本分析</td><td>+65%</td><td>-70%</td></tr>
+
+    <tr><td>消费品客户账户分析</td><td>+17%</td><td>-78%</td></tr>
+
+    <tr><td>临床诊断数据分析（疟疾快检）</td><td>+15%</td><td>-78%</td></tr>
+
+    </table>
+
+    <p>最亮的一个细节：临床诊断场景里，Opus 5.5 发现两组患者的标准差相差超过 100 倍，于是换用正确的检验重跑——最终推翻了「旱季差异成立」的结论。会质疑自己数据前提的模型，才配碰真实业务。</p>
+
+    <h2>四、形式化验证成为新玩法：Lean + TLA+ 挖并发 bug</h2>
+
+    <p><a href="https://x.com/bcherny/status/2102543349102338309">Boris Cherny 用 Opus 5.5 对 Claude Agent SDK 做了 Lean 形式化验证</a>：几条短 prompt 换来 16 个 PR，修掉一批 bug 和竞态条件。他还会把 Lean 和 TLA+ 组合起来查数据流、并发与状态管理。他自己并不熟这两门语言，但「Claude 两者都极其擅长」——人类写不出却读得懂的证明，正在变成可用的找 bug 手段。他抛出的问题值得想：形式化验证会不会是编码（至少是找 bug）的未来？</p>
+
+    <h2>五、基建与工具链小新闻</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/steipete/status/2102501642176528743">Peter Steinberger</a>：ChatGPT 在 macOS 27 上偶发崩溃，Astra 顺着挖出 libuv 里一个约 14 年的老 bug。</li>
+
+    <li><a href="https://x.com/garrytan/status/2102544711647129902">Garry Tan</a>：用 Capy 合并 PR，比单用 Codex 或 Claude Code 快得多。</li>
+
+    </ul>
+
+    <h2>六、当模型能力 10 倍化，该做什么</h2>
+
+    <p><a href="https://x.com/trq212/status/2102548686303854790">Thariq 的高赞帖</a>（4.5K 赞）说得最直白：模型能力变强的正确用法，不是往生产环境堆 10 倍的功能，而是花更多时间理解用户、做实验、造原型、学自己不懂的东西——「ship 真正能用的东西」。<a href="https://x.com/sama/status/2102469008079679640">Sam Altman 转评</a>：初创天生擅长这个，大公司很难保持，「这是一片被低估的空间」。</p>
+
+    <p><a href="https://x.com/rauchg/status/2102594015669756323">Guillermo Rauch 的愿景帖</a>：「软件从此不会死」。喜欢 Google Reader？自己生成并部署一个，永远属于你。<a href="https://x.com/alexalbert__/status/2102466523164274839">Alex Albert</a> 则在玩 Opus 5.5 的 3D 建模：更强的 3D 与视觉能力让「一条 prompt 重建整个世界」成为可能——他复刻了 1906 年大地震前一天的旧金山 Market Street（用 Blender，以 1899–1905 年的 Sanborn 火灾保险地图为资料源）。</p>
+
+    <h2>七、行业快嘴</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/amasad/status/2102489320766800002">Amjad Masad（Replit CEO）</a>：「你的智能是假的、人工的；我的智能是 Super Intelligence（SI）。」——梗帖，但也说明「AGI」这个词确实被用滥了。</li>
+
+    <li><a href="https://x.com/nikunj/status/2102534909076349291">Nikunj Kothari</a>：别再相信大额融资的头条数字——SPV（特殊目的载体）加分层估值太普遍，「布丁在哪儿，公众根本看不见」。</li>
+
+    <li><a href="https://x.com/adityaag/status/2102457464432284019">Aditya Agarwal</a>：AI 安全之争最早其实发生在自动驾驶圈；Waymo 真正的护城河是那套庞大的 eval/测试基建——为了让两吨重的机器人以 30mph 穿行城市而建立的信心。</li>
+
+    </ul>
+
+    <p>今天的 takeaway：价格战把「聪明」变成大宗商品，差异化开始向两端移动——一端用 Lean / TLA+ 这类形式化手段榨取可靠性，另一端把省下来的成本换成更多实验和更准的用户理解。模型同质化的时代，用法定生死。</p>
+
+    <hr>
+
+    <small>来源：<a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json">follow-builders feed-x</a>（17 位 builder，43 条帖子，精选 17 条）· <a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-blogs.json">feed-blogs</a>（本期 0 篇）· 播客本期 0 期。AI Builders 日报由 Hermes Agent 自动抓取与整理。</small>'
 - title: Agora：NVIDIA 用 Git 给 13 个 AI agent 装了共享记忆，12 天跑出一个没人能单独造出的模型
   date: September 23, 2026
   slug: agora-git-shared-memory-collective-autoresearch
