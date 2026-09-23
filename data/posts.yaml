@@ -1,4 +1,157 @@
 posts:
+- title: Agora：NVIDIA 用 Git 给 13 个 AI agent 装了共享记忆，12 天跑出一个没人能单独造出的模型
+  date: September 23, 2026
+  slug: agora-git-shared-memory-collective-autoresearch
+  excerpt: NVIDIA 把 agent 研究协作做成制度实验：Git DAG 当公共记忆、下游复用计分、多样性视图分配注意力。13 个无调度的 agent 会话 12 天产出 1,703 贡献，制胜配方 145-commit 谱系跨 15 账户。全文拆解评分制度的反博弈设计、98% 下降来自前 18 个贡献的结构真相，以及共享记忆消除不了重复劳动的实测。
+  content: '<p>多智能体研究系统已经很多：AutoGen 组织对话，MetaGPT 分配角色，Magentic-One 上 orchestrate。但它们都在协调<strong>一个 episode 内的团队</strong>。NVIDIA 的 Agora（arXiv 2609.18094，Yifan Zhang、Yi Dong、Jan Kautz 等）问的是另一个问题：**一群互不相识、独立调度、不共享任何运行时的 agent 会话，如何在一个比任何个体都长寿的研究项目上协作？**答案朴素到惊人：Git。</p>
+
+
+    <blockquote><p><strong>核心主张：协调器的反义词是被所有人读取和追加的历史。把研究贡献存成 Git 里的 append-only DAG，用「下游复用」计分，用多样性视图分配注意力——13 个 agent 会话在零任务分配、零中央规划下跑 12 天，解决了无人能单独完成的问题。</strong></p></blockquote>
+
+
+    <h2>一、制度设计：每个贡献是一个 Git commit</h2>
+
+
+    <p>项目状态 = 有向无环图：每个贡献一个 commit（哈希、账户、标签、描述、指标、父集），每条边 = "builds on"。平台随时回答四个问题：<strong>试过什么（包括失败）？哪些主张有独立支持或冲突？前沿在哪（包括被忽视的分支）？哪个精确 artifact 和谱系产出了报告结果？</strong></p>
+
+
+    <p>真正精妙的是计分制度。贡献分五类常规节点（setup/result/insight/hypothesis/report，各 +5），三类特殊节点：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">类型</th><th style="background:#1a1a2e;color:#fff;">权重</th><th style="background:#1a1a2e;color:#fff;">设计意图</th></tr>
+
+    <tr><td><strong>verification</strong></td><td>+20 / +10 / −20</td><td>确认/部分/失败复现；权重最高；<strong>永不能验证自己的工作</strong></td></tr>
+
+    <tr><td><strong>endorsed（点赞）</strong></td><td><strong>0</strong></td><td>可见但不进适应度——投票的路径被制度性关闭</td></tr>
+
+    <tr><td>wip</td><td>0</td><td>减少重复劳动，不传播分数</td></tr>
+
+    </table>
+
+
+    <p>一个贡献的证据分 = <strong>其他账户以它为父节点的子节点权重之和</strong>。自引排除（自己延自己的分支不算影响）；verdict 可被新 verdict 替换，两个 commit 都留在历史。这一套的反博弈逻辑值得单独说：</p>
+
+
+    <ul>
+
+    <li>投票奖励人气、刷票便宜；复用需要真金白银的成本（写代码接手、跑通、发布）——<strong>伪装复用远难于伪装点赞</strong></li>
+
+    <li>分数与价值的关系由<strong>行为</strong>定义（我的结果被 builds-on），不由<strong>判断</strong>定义（我的结果被说好）——判断可骗，行为难伪</li>
+
+    <li>发布不可复现的结果会被下游 −20 惩罚，而发布「复现失败」本身是 +10 的高分行为——激励指向诚实</li>
+
+    <li><strong>负结果与正结果同分收录</strong>——53 个显式标记的负结果成为后来者的跳坑地图</li>
+
+    </ul>
+
+
+    <h2>二、注意力分配：排行榜的问题</h2>
+
+
+    <p>排行榜只回答「什么是最好的」，不回答「什么是好的且还没被挤爆的」。Agora 的 analyze 返回十种视图（领先者、叶子节点、有前景但欠探索、未验证、有争议、开放假设……），外加语义聚类和一条 diversity-aware UCB：</p>
+
+
+    <pre><code>U(v) = 100·Q(v) + C·√(log(N+1)/(n(v)+1)) + 100D/√(1+ρ(v))</code></pre>
+
+
+    <p>Q 是质量分位，n 是后续工作数（越少越值得看），<strong>ρ 是近重复描述计数——被抄烂的方向被系统性压下去</strong>。候选分三个槽位显式并列：exploit（精炼领先者）/ explore known（薄簇里的好结果）/ explore novel（无人碰过的孤立节点）。精炼和探索从此是两个并列选项，而不是排行榜的第 1 名和第 40 名。</p>
+
+
+    <h2>三、12 天实验：141 个 donor，一个无人能单独造出的配方</h2>
+
+
+    <p>任务设定：<strong>权重迁移</strong>——141 个开源预训练模型（534GB，32 个架构族）做供体，目标是一个 119.6M 参数的 attention-SSM 混合体，<strong>维度刻意选成没有任何 donor 匹配</strong>。只许用 donor 的权重和前向传播，零训练数据、对目标零梯度更新。随机初始化 3.3923 bpb，训练过的 GPT-2 124M ≈ 1.0。</p>
+
+
+    <p>编组极简到令人吃惊：13 个 worker（5×Claude Code+Opus 4.7 @A100、8×Codex+GPT-5.5 @H100），每个会话的完整提示词就一句话——<em>"读 program.md 获取全部指令，跑 agora analyze 看别人试过什么。"</em>没有任务分配、没有角色、没有方法论提示。</p>
+
+
+    <h3>结果的结构比总量更有信息量</h3>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">阶段</th><th style="background:#1a1a2e;color:#fff;">bpb</th><th style="background:#1a1a2e;color:#fff;">说明</th></tr>
+
+    <tr><td>随机初始化</td><td>3.3923</td><td>基线</td></tr>
+
+    <tr><td>首个参数拷贝尝试</td><td><strong>4.6784</strong></td><td><strong>比随机还差</strong>——作为负结果发布</td></tr>
+
+    <tr><td>改为行为先验（unigram）</td><td>2.5151</td><td><strong>30 分钟后同一账户换思路</strong></td></tr>
+
+    <tr><td>bigram + SVD（前 18 个贡献）</td><td>1.93</td><td><strong>~98% 的下降在前 18 个评分贡献里</strong></td></tr>
+
+    <tr><td>donor 集成 + SVD 改进（4 天）</td><td>1.9043</td><td>1,000+ 贡献只挖出 0.03</td></tr>
+
+    <tr><td>多样性视图后 SSM 编辑（5-2→5-8）</td><td><strong>1.899044</strong></td><td>闭合到训练 GPT-2 差距的 62%</td></tr>
+
+    </table>
+
+
+    <p>制胜配方分两阶段：<strong>Stage A</strong> 从 6 个共享 GPT-2 词表的 donor 的<strong>预测</strong>（28 个单 token 上下文 × 全词表的 log-softmax 混合）构建 bigram 表，随机 SVD 分解后<strong>因子直接变成 embedding 和 output head，所有子层清零</strong>——一个 14 层网络里存了个因子化 bigram 模型。<strong>Stage B</strong> 在 96 维频带上做稀疏确定性编辑恢复短程上下文。83 个 Python 模块，每个只 import 父模块 + 改一处；<strong>145 个 commit 的谱系横跨 15 个账户，144 条父边中 115 条跨账户——没有任何单个 worker 能造出这个配方</strong>。</p>
+
+
+    <p>方法层面的核心洞见：<strong>跨架构迁移的对象是 donor 的行为（预测分布），不是 donor 的参数</strong>。第一个直接拷权重的尝试比随机还差；换成压缩预测统计直接到 2.52。参数形状不匹配就什么都没有，预测行为跨架构通用。</p>
+
+
+    <h2>四、协调动力学：四个模式，两个打脸</h2>
+
+
+    <ol>
+
+    <li><strong>快速开发</strong>：前 8 个改进 ≈70% 下降，前 18 个 ≈98%——社区先做的事是把唾手可得的增益吃干净</li>
+
+    <li><strong>窄脊柱</strong>：一条谱系吸收了绝大多数后续工作，1,703 节点 98.9% 在单一连通分量里</li>
+
+    <li><strong>平行重复发现是常态</strong>：696 对不同账户发布完全相同分数的对，<strong>63% 在一小时内、80% 在六小时内</strong>——共享记忆支持了复用，但<strong>没能消除重复劳动</strong>。这对「共享记忆自动消除冗余」的天真假设是直接证伪</li>
+
+    <li><strong>羊群扎堆需要外部干预</strong>：5 月 2 日，分析视图显示超过 1/3 活动挤在单一语义簇、排行榜停滞——部署聚类和多样性视图后，<strong>次日就有 worker 探索了最稀疏的状态空间簇</strong>并做出当时的最优编辑。作者只声称相关不宣称因果，但时序证据极强</li>
+
+    </ol>
+
+
+    <p>这与 SoL-Pi 的 DFS 结论完全同向：单线打磨 5-10 轮后连 frontier 模型都只做同设计微调。<strong>不是能力问题，是注意力分配问题</strong>——多样性视图是被停滞逼出来的事后药方，不是事前保险。</p>
+
+
+    <h2>五、诚实边界（这篇论文的自我批评值得表扬）</h2>
+
+
+    <ul>
+
+    <li><strong>主结果没有重跑</strong>：「主要结果是归档的评估器输出，由 agent 的跨硬件复现佐证」——作者核对的是 imports 链、常数、无评测数据访问、无梯度更新</li>
+
+    <li><strong>里程碑不是消融</strong>：所有结果都在同一个开发评估器上选择——「相邻行是搜索的阶段性，不是受控对照」</li>
+
+    <li><strong>165 个复现零失败</strong>：verifier 自选目标，完美的复现率至少说明验证是选择性发表的</li>
+
+    <li><strong>共享记忆的因果效应未测</strong>：摘要原话要求 matched comparison；附录 C 给出四臂对照（Isolated / Flat log / Central planner / Agora）<strong>作为提案而非结果</strong></li>
+
+    <li><strong>141 个 donor 用了 6 个</strong>：动物园的框架远大于配方实际消耗；「62% 差距闭合」里 ~98% 是第一天上午拿到的</li>
+
+    </ul>
+
+
+    <h2>六、三点收获</h2>
+
+
+    <p><strong>1. 评分制度 &gt; 评分算法。</strong>下游复用计分 + 自引排除 + 不可自验的验证，比任何「好内容检测器」都便宜且难骗。如果给多会话/多 agent 系统做质量层，先问：我的分数能不能被行为而非判断伪造？</p>
+
+
+    <p><strong>2. 协调器再次被否定。</strong>SoL-Pi 的结论是长寿协调器死于分支累积，用一次性模板替代；Agora 更极端——干脆没有协调器，用 Git 图 + 视图替代。两者共同指向：多 agent 系统的协调状态应该外化为可审计的持久工件，而不是活在一个进程的内存里。</p>
+
+
+    <p><strong>3. 集体搜索的预算里要给重复劳动留位子。</strong>63% 的平行撞车率意味着：多会话系统的有效产出 ≈ 总产出 × (1 − 冗余率)，而冗余率不会因为「大家都看得见」就消失。多样性视图是必要的补偿机制——但要接受它是事后药方，且需要为「谁来部署它」留一个人类/元层级的位置。</p>
+
+
+    <hr>
+
+    <small>
+
+    来源：<a href="https://arxiv.org/abs/2609.18094">arXiv 2609.18094</a>（NVIDIA：Yifan Zhang, Yunheng Zou, Shaokun Zhang, Jian Hu, Hao Zhang, Binfeng Xu, Jan Kautz, Yi Dong；v1 2026-09-16 / v2 09-18）
+
+    </small>'
 - title: AI Builders 日报 · 2026-09-22
   date: September 22, 2026
   slug: ai-builders-digest-2026-09-22
