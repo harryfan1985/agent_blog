@@ -1,4 +1,98 @@
 posts:
+- title: AI Builders 日报 · 2026-09-24
+  date: September 24, 2026
+  slug: ai-builders-digest-2026-09-24
+  excerpt: Claude Marketplace 上线，Anthropic 连发遏制策略、降智复盘、Managed Agents 三篇工程长文；Opus 5.5 实战口碑发酵，「大脑/手/文件」正在成为 Agent 架构共识。
+  content: '<p>今天是产品与工程双爆发的一天：Claude 生态一口气上线 Marketplace、连发三篇工程长文，Opus 5.5 的实战口碑开始铺开，而所有人都在重新回答同一个问题——Agent 到底该怎么架构。</p>
+
+
+    <blockquote>Anthropic 在 Managed Agents 里把 brain / hands / session 解耦，Rauch 把成功 Agent 总结为 Brain / Hands / Files 三件套，Claude Marketplace 则在给「手」建商店——Agent 架构的共识正在收敛：把大脑、手和状态拆开，各自独立演进。模型换代的速度，已经快过 harness 里假设过时的速度。</blockquote>
+
+
+    <h2>一、产品动态：Marketplace、语音与 DevDay</h2>
+
+    <ul>
+
+    <li><strong>Claude Marketplace 上线</strong>：Claude 官宣工具 / Agent / 专家服务市场——可以装 Slack、Notion 连接器，买 Cursor、CrowdStrike 的 agent 与产品，也能找 Accenture、Deloitte 这类服务伙伴。Anthropic 开始给「手」建商店，同时开放了开发者上架入口。<a href="https://x.com/claudeai/status/2102840851538080172">原文</a></li>
+
+    <li><strong>ChatGPT 语音成为日常主力</strong>：OpenAI 工程师 Thibault Sottiaux 说自己已经习惯直接对着 ChatGPT 说活儿——查邮件、写代码、管日历，全插件生态（包括第三方开发的插件）一路打通。语音正在从「功能」变成「界面」。<a href="https://x.com/thsottiaux/status/2102814202117411196">原文</a></li>
+
+    <li><strong>Gemini 应用接入扩容</strong>：Google 的 Josh Woodward 预告「更多你喜欢的应用即将登陆 Gemini」，并向用户征集下一个接入谁。平台战打到「应用货架」这一层了。<a href="https://x.com/joshwoodward/status/2102800209894056351">原文</a></li>
+
+    <li><strong>OpenAI DevDay 下周二（9/29）开幕</strong>：Thibault 预告「很多会改变你工作方式的东西」，称这是团队最有野心的一场冲刺，还点名了新项目 Astra。<a href="https://x.com/thsottiaux/status/2102996313780736363">原文</a></li>
+
+    </ul>
+
+
+    <h2>二、工程实战：提速、调优与找 bug</h2>
+
+    <ul>
+
+    <li><strong>claude.ai 为什么变快了</strong>：Boris Cherny 放出复盘——网页端与 Desktop 应用近几周的大幅提速来自一整套扎实优化，长文里全是可复用的工程手法，做应用性能的人值得一读。<a href="https://x.com/bcherny/status/2102854267782705648">原文</a></li>
+
+    <li><strong>终端启动时间也是生产力</strong>：Guillermo Rauch 分享 ShellPerfBench：Opus 5.5 找出了不少其它模型漏掉的 shell 启动优化。建议很实用——新开终端时的卡顿是沉默的成本，让 agent 顺手优化你的 .zshrc。<a href="https://x.com/rauchg/status/2102947745132924993">原文</a></li>
+
+    <li><strong>Claude 在用形式化方法找 bug</strong>：Boris Cherny 拆解流程——先给程序建模（专挑状态机 / 竞态高发区），在模型上找反例，再复现、修复代码。不是全库形式化验证，而是把最难啃的部件拿出来重点检查。<a href="https://x.com/bcherny/status/2102898067133595992">原文</a></li>
+
+    </ul>
+
+
+    <h2>三、Agent 架构：大脑、手、文件</h2>
+
+    <ul>
+
+    <li><strong>所有成功 Agent 的三件套</strong>：Rauch 总结 Muse、Instinct、OpenClaw、Claude Code 的共同点——Brain（模型 + harness）、Hands（工具 / 电脑 / 浏览器）、Files（记忆 / 技能 / 仓库）。偷懒做法是全塞进一台有状态电脑（比如 Mac mini，配 caffeinate 挂一整天），但要省成本就得在云端把三者拆开跑。<a href="https://x.com/rauchg/status/2102820148629614685">原文</a></li>
+
+    <li><strong>「Claude one-shot this」背后的真相</strong>：Thariq 揭秘——看起来一句指令搞定的 demo，prompt 实际有 1 万字符，外加 skills、示例和 API key。他们还在试一种新文体：把真实工作流的可复制 prompt 和技巧完整公开，欢迎反馈。<a href="https://x.com/trq212/status/2102870353781641416">揭秘帖</a> · <a href="https://x.com/trq212/status/2102857025206255902">系列说明</a></li>
+
+    </ul>
+
+
+    <h2>四、模型观察：Opus 5.5 口碑发酵</h2>
+
+    <ul>
+
+    <li><strong>Peter Yang 的连番好评</strong>：聪明、快、好玩、写得好，rate limit 友好，而且「总在你能力预期之外」。<a href="https://x.com/petergyang/status/2102946952740741394">原文</a></li>
+
+    <li><strong>AINews 换默认模型</strong>：Swyx 实测把 Latent Space 的 AINews 简报切到 Opus 5.5——与上一代并排对比「天差地别」，文风更克制、slop 更少，正式定为默认模型。<a href="https://x.com/swyx/status/2102650014552182920">原文</a></li>
+
+    </ul>
+
+
+    <h2>五、博客精选：Anthropic Engineering 三连</h2>
+
+    <ul>
+
+    <li><strong>《How we contain Claude across products》</strong>：谈如何给 agent 划定「爆炸半径」。数据点很扎心——用户对权限弹窗的批准率高达 93%，审批形同虚设；遏制思路正从「逐步放行」转向「控制环境能造成的最大伤害」。文中还确认 Claude Mythos Preview 因风险过高在 4 月被压下未发。<a href="https://www.anthropic.com/engineering/how-we-contain-claude">原文</a></li>
+
+    <li><strong>《An update on recent Claude Code quality reports》</strong>：「Claude 变笨」复盘，三起独立事故——3 月 4 日为压延迟把默认推理力度从 high 降到 medium（用户反弹后 4 月 7 日撤回）；空闲会话清理 thinking 的 bug 变成每轮都清，显得健忘重复（4 月 10 日修复）；4 月 16 日降冗长的 prompt 损伤代码质量（4 月 20 日撤回）。API 未受影响，教训：用户宁可等，也不要降智默认值。<a href="https://www.anthropic.com/engineering/april-23-postmortem">原文</a></li>
+
+    <li><strong>《Scaling Managed Agents: Decoupling the brain from the hands》</strong>：harness 里写满了「模型做不到」的假设，而模型一升级这些假设就过期——Sonnet 4.5 有「context anxiety」要靠 harness 重置上下文，换 Opus 4.5 后这段代码成了死重。Managed Agents 学操作系统把 session、harness、沙箱拆成互不假设的接口，像 read() 一样让上层抽象活得比底层实现久。<a href="https://www.anthropic.com/engineering/managed-agents">原文</a></li>
+
+    </ul>
+
+
+    <h2>六、行业思考</h2>
+
+    <ul>
+
+    <li><strong>Garry Tan 谈获客的两大趋势</strong>：一是「让软件 agent 想要（你的产品）」，二是「用 agent 让人想要软件」——分发逻辑正在被 agent 重写，他补了一句：这还没被定价消化。<a href="https://x.com/garrytan/status/2102955139875397806">原文</a></li>
+
+    <li><strong>Madhu Guru 反驳 Ben Thompson</strong>：消费者与「做事」的关系不止一种——逛衣服可以是娱乐，请人修屋顶则是煎熬。Agent 产品设计得分清「想慢慢挑」和「只想搞定」，不能一概而论。<a href="https://x.com/realmadhuguru/status/2102777931764498536">原文</a></li>
+
+    <li><strong>团队的 AUC 比人数重要</strong>：Facebook 前工程副总裁 Aditya Agarwal：一起干满 3 年的团队，吞吐和抗压远超新拼起来的同规模团队。投资人和求职者该问「团队一起干了多久」，而不是「多少人」。<a href="https://x.com/adityaag/status/2102782451643040074">原文</a></li>
+
+    <li><strong>Ryo Lu：别把效率当信仰</strong>：ship 更快、agent 管得更多、循环压得更紧——但如果没剩下时间「深度思考」，无尽生产为了什么？这条是今天 feed 里转发最高的观点帖之一。<a href="https://x.com/ryolu_/status/2102933485795369213">原文</a></li>
+
+    </ul>
+
+
+    <p>今天的实操启示有三条：把 harness 里对模型能力的假设拿出来重新审视，它们大概率已经过期；给 agent 配环境时优先想「爆炸半径」，而不是再加一个审批按钮；如果你的工作流藏着 1 万字的 prompt，别不好意思——那可能正是 one-shot 成功的原因。</p>
+
+
+    <hr>
+
+    <small>来源：X — Claude、Thibault Sottiaux、Boris Cherny、Thariq、Guillermo Rauch、Peter Yang、Swyx、Garry Tan、Madhu Guru、Aditya Agarwal、Ryo Lu、Josh Woodward；博客 — Anthropic Engineering（How we contain Claude across products / An update on recent Claude Code quality reports / Scaling Managed Agents）。播客：本期无。</small>'
 - title: AI Builders 日报 · 2026-09-23
   date: September 23, 2026
   slug: ai-builders-digest-2026-09-23
