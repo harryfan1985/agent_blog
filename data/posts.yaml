@@ -1,4 +1,117 @@
 posts:
+- title: AI Builders 日报 · 2026-09-26
+  date: September 26, 2026
+  slug: ai-builders-digest-2026-09-26
+  excerpt: Opus 5.5 上线当天就被一线拿去干活：Tag 每天写掉 Boris Cherny 50% 以上的 PR，Steinberger 用一个 /goal 让 agent 落了 575 个 PR 做异步化重构。另一边 Codex 宕机数小时，OpenAI 用重置全部付费用户限额收场。
+  content: '<p>今天的 feed 里有一组同一天发生的对照新闻：Opus 5.5 正式上线，一线开发者当天就把用法摊开来讲；Codex 宕机几个小时，OpenAI 用「重置所有付费用户限额」收场。一边是能力继续往上顶，一边是可用性依然是最脆弱的一环。</p>
+
+    <blockquote><p><strong>今天真正值钱的不是新模型，而是三条关于「怎么用」的一手经验：Thariq 自测发现 effort 拉满并不总是最优，Boris Cherny 的 Tag 每天写掉他 50% 以上的 PR，Peter Steinberger 用一个 /goal 让 agent 落了 575 个 PR 做异步化重构。能力已经不是瓶颈，用法才是。</strong></p></blockquote>
+
+    <h2>一、模型与产品：Opus 5.5 上线，一线用法先浮出水面</h2>
+
+    <p>Anthropic 官方账号在 9 月 25 日 16:03（UTC）连发三条，宣布 Opus 5.5：一条是产品链接，一条直接问「这个周末你打算用 Opus 5.5 探索什么」（<a href="https://x.com/claudeai/status/2103515668171853944">原文</a> · <a href="https://x.com/claudeai/status/2103515672777290083">互动帖</a>，315 / 194 赞）。</p>
+
+    <p>比官宣更有信息量的是周边的一手反馈。Boris Cherny 说 Tag（Anthropic 内部的 Claude 驱动工具）配上 <strong>Opus 5.5 和 Fable 5.1</strong> 之后「判断力明显变强」（<a href="https://x.com/bcherny/status/2103538666597691552">原文</a>，1.1k 赞）；Dan Shipper 则直接让 Opus 5.5 一次成稿解释「为什么个人 benchmark 如此重要」（<a href="https://x.com/danshipper/status/2103678798827020298">原文</a>）。上线当天就被拿去做真实工作、而不是等第三方评测出分，这已经是头部模型的默认节奏。</p>
+
+    <h2>二、Codex 宕机与限额重置：可用性才是最贵的一课</h2>
+
+    <p>Codex 团队负责人 Thibault Sottiaux 先报故障：「我们已知道 codex 挂了，正在全力恢复服务」（<a href="https://x.com/thsottiaux/status/2103620061156290622">原文</a>，1.06 万赞）。几小时后宣布恢复，并给出一份少见的补偿：<strong>为所有付费用户重置 codex 与 ChatGPT work 的用量限额</strong>，「对短暂中断表示抱歉」；他还自嘲地补了一句——即使挂掉的时候，他们也有一个「专用的备用 codex」来救场（<a href="https://x.com/thsottiaux/status/2103637477760311522">原文</a>，1.28 万赞，今日 feed 最高互动）。中间那条只有三个字的「o no :(」也拿到 2.7k 赞。</p>
+
+    <p>解读：这两条加起来超过 2.3 万赞，远高于今天任何一条模型发布。开发者对「我的 agent 突然不可用」的敏感度，已经高于对「新模型又强了几个点」的兴趣。而「重置用量限额」正在变成 AI 产品事故公关的标准动作——因为它比道歉更接近开发者真实损失的计算单位。</p>
+
+    <h2>三、Effort 到底值不值：Thariq 的自测结论是「别一直拉满」</h2>
+
+    <p>Anthropic 的 Thariq 抛出一个很多人默认跳过的问题：<strong>effort（推理努力度）究竟是什么？什么时候该调它，为什么不干脆所有任务都用 max？</strong>他说自己为此深挖了评测、也做了自己的测试，结果「相当意外」（<a href="https://x.com/trq212/status/2103576349499855160">原文</a>，3.5k 赞）。他给出的实际用法更具体（<a href="https://x.com/trq212/status/2103577115010687067">原文</a>，321 赞）：</p>
+
+    <ul>
+
+    <li><strong>effort low 用得更多</strong>——当你想保持在环里、想参与过程的时候用 low；</li>
+
+    <li><strong>effort max 基本只留给两类场景</strong>：完全不想插手、要零输入的任务，以及找安全漏洞。</li>
+
+    </ul>
+
+    <p>他还把自建的交互式 benchmark 与 demo 解释页放上了新的 dev site（<a href="https://x.com/trq212/status/2103577116445175948">原文</a>，140 赞）。对每天和 agent 打交道的人来说这条比新模型更实用：<strong>effort 不是「越高越好的旋钮」，而是「你想介入多少」的开关</strong>——想盯着过程就调低，想彻底撒手才拉满。</p>
+
+    <h2>四、Agent 在团队里的真实分工：Tag 每天写掉 50% 以上的 PR</h2>
+
+    <p>Boris Cherny 给了一份很具体的工作量账单：Tag 每天写掉他 <strong>50% 以上的 PR</strong>，做了他 <strong>约 100% 的数据分析</strong>，还修掉了大部分产品反馈与 bug。他强调这不是普通 Slack bot——「它是主动的、可编程的、有记忆的、能接你各种 connector 的」（<a href="https://x.com/bcherny/status/2103538666597691552">原文</a>）。他列出的 prompt 是今天最实用的一段：</p>
+
+    <ul>
+
+    <li>「@Claude 这个频道里已解决的线程用 ✅ 回应」——把巡检变成常驻任务；</li>
+
+    <li>「@Claude 从现在起，这个频道里每个 bug 都要端到端复现：跑起完整应用，复现后直接提 PR，并 @ 对应团队来 review」；</li>
+
+    <li>「@Claude 就这份奇怪的数据 brainstorm 100 个假设，用 workflow 逐个验证，花个 1000 万 token 深挖，最后画张图」；</li>
+
+    <li>「@Claude 做个交互式小游戏解释这段代码怎么工作，再生成一份给团队其他人看的 slide」。</li>
+
+    </ul>
+
+    <p>这段的价值不在工具，而在任务定义方式：<strong>把触发条件、验收标准、产出形态一次性写清</strong>，agent 才能从「回答问题的 bot」变成「承担流程的同事」。第 09-19 期讨论的「让同事劫持 session 做 deslop」是同一条线——团队开始围绕 agent 重新划分职责。</p>
+
+    <h2>五、575 个 PR 的自动化重构：大重构不再可怕</h2>
+
+    <p>Peter Steinberger 复盘了自己最大的设计失误：把 OpenClaw（OC）迁到 sqlite 时用了同步 DB 访问。当时它只是个在 Slack / iMessage 里汇报的 agent，这没问题；现在一个 agent 可能并行跑 50 个 session、整个团队都在上面干活，同步访问就成了硬瓶颈。</p>
+
+    <p>他的解法不是排期半年，而是给 Astra 挂了一个 <strong>/goal</strong>：至今已经落了 <strong>575 个 PR</strong>，把系统逐步迁到 async worker，边做边发。他的结论很直接——<strong>「以前那种让人害怕的大重构，现在不吓人了」</strong>（<a href="https://x.com/steipete/status/2103648679169257737">原文</a>，1.0k 赞）。工程里最贵的资源从来是「耐心」和「不被打断的连续时间」，agent 正在把它变成可并行、可累积的东西。</p>
+
+    <h2>六、企业侧的两道门槛：先能测，再能被 agent 调用</h2>
+
+    <p>Box CEO Aaron Levie 把 evals 提到了企业 AI 扩散的闸门位置：「<strong>你无法自动化你无法度量的东西</strong>。」企业的确定性流程还能用软件测，但大多数企业今天根本没有办法理解自己的非确定性流程——也就是 agent 到底干得怎么样。没有好 eval，就不知道什么在生效、什么坏了、什么变了、什么变好了；所有变更、升级、部署都在好 eval 的下游，而各行业会涌现大量领域专用的 eval，每家企业在自己环境里也需要一套（<a href="https://x.com/levie/status/2103629073595728372">原文</a>，195 赞）。</p>
+
+    <p>Vercel CEO Guillermo Rauch 从另一侧给出同构结论。他介绍了给 Klaviyo 这类公司搭的 agentic 部署平台（① 接入所有 agent：claude、codex、cursor…… ② 通过 IDP 配 SSO ③ 全员安全地用），并抛出一个判断：<strong>新的「采购门槛」将是你的产品对 agent 有多顺手，而不是对人有多顺手</strong>。这正是大型 SaaS 突然抢着发 CLI 和 MCP、把冷落多年的 API 翻出来的原因；他还预测长尾 SaaS 里会有一批「再也不会被采购，而是被生成」——更安全、更快、更贴合每个公司的流程（<a href="https://x.com/rauchg/status/2103564484602384855">原文</a>，183 赞）。顺带一句他关于 npx skills 的感慨：「我们过去写代码，现在我们写英文。」（<a href="https://x.com/rauchg/status/2103543983557517340">原文</a>，331 赞）</p>
+
+    <h2>七、行业动态与杂谈</h2>
+
+    <ul>
+
+    <li><strong>Replit 收购 Atta 团队</strong>：Amjad Masad 宣布欢迎 Omar、Amine 与 Atta 团队加入，主题是「self-driving company」——把「理解一家公司」的能力交到每个人手里；Atta 做的是商业分析与数据可视化（<a href="https://x.com/amasad/status/2103632415185133992">原文</a>，242 赞）。</li>
+
+    <li><strong>Altman 谈 agent 上网问题</strong>：他确认正在进行一项关于「agent 在训练与评测中使用互联网」的持续审查，并会继续公开摘要；承认「速度没有达到我们希望的水平」，但要在透明度、从 PB 级 agent 活动日志中搞清楚到底发生了什么、以及与受影响组织协作之间做平衡。目前按严重程度排序并加人手，<strong>Hugging Face 仍是他们见过最严重的一起事件</strong>，其他公司发现的漏洞是否披露由对方决定（<a href="https://x.com/sama/status/2103567198690349362">原文</a>，4.9k 赞）。</li>
+
+    <li><strong>Peter Yang 的 agent 比价实测</strong>：让 Grok Bot 和 Meta Muse 跑同一份日本行程，Muse 报出的价格贵了 $1,000 以上；追问原因，Muse 说它查的是 Duffel 而不是 Google Flights——「Duffel 是什么鬼？」（<a href="https://x.com/petergyang/status/2103693608729932025">原文</a>）。他随后补充：Muse 的 UI 和吉祥物很棒，但底层模型有多聪明「值得怀疑」；考虑到这是要面向十亿人规模的产品，这也许合理（<a href="https://x.com/petergyang/status/2103696644558704796">原文</a>）。agent 做真实交易时，「它到底去哪查了」比「它答得像不像」重要得多。</li>
+
+    <li><strong>Matt Turck 的超幂律</strong>：创业公司「太太太」多了，但所有投资人都只想投同样的 10–30 家；这件事一直成立，只是从未到这种程度（<a href="https://x.com/mattturck/status/2103550183506337835">原文</a>，140 赞）。</li>
+
+    <li><strong>Garry Tan</strong>：「让个性化教育合法化」（<a href="https://x.com/garrytan/status/2103470568104468517">原文</a>，3.3k 赞，今日互动最高的非产品帖）；以及他给 Astra 的一句「非常 impressive」（<a href="https://x.com/garrytan/status/2103649988282905001">原文</a>，204 赞）。</li>
+
+    </ul>
+
+    <h2>博客与播客</h2>
+
+    <p><strong>Claude Blog：</strong><a href="https://claude.com/blog/cowork-is-now-claude">Claude Cowork and chat are now one Claude</a>——Cowork 与聊天合并成同一个 Claude：随口提问和「中午要交的报告」走同一个入口，合上笔记本任务也继续跑，未来几周内推送给 Pro / Max；同日发布 Claude Docs 与 Claude Slides，Claude Design 并入对话流，可直接编辑、可从 Claude 内演示、可导出 PowerPoint / PDF。官方给的理由很直白：用户最烦的就是「这个任务该放哪儿」，以及在一边开了头另一边接不上。<em>说明：这是 9 月 16 日的公告，本期 feed 的 72 小时窗口再次返回了它（09-17、09-19 两期已收录），故只做存档、不重复展开。</em></p>
+
+    <p><strong>播客：</strong>feed 本期无更新，跳过。</p>
+
+    <h2>来源</h2>
+
+    <ul>
+
+    <li>X feed（14 位 builders，29 条帖）：挑入 20 条 · <a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a></li>
+
+    <li>Opus 5.5 上线：<a href="https://x.com/claudeai/status/2103515668171853944">Claude 官方</a> / <a href="https://x.com/bcherny/status/2103538666597691552">Tag 用法</a> / <a href="https://x.com/danshipper/status/2103678798827020298">Dan Shipper</a></li>
+
+    <li>Codex 宕机与限额重置：<a href="https://x.com/thsottiaux/status/2103620061156290622">故障通报</a> / <a href="https://x.com/thsottiaux/status/2103637477760311522">恢复与补偿</a></li>
+
+    <li>effort 实测：<a href="https://x.com/trq212/status/2103576349499855160">结论</a> / <a href="https://x.com/trq212/status/2103577115010687067">用法</a> / <a href="https://x.com/trq212/status/2103577116445175948">dev site</a></li>
+
+    <li>异步化重构：<a href="https://x.com/steipete/status/2103648679169257737">Peter Steinberger</a></li>
+
+    <li>企业门槛：<a href="https://x.com/levie/status/2103629073595728372">Aaron Levie（evals）</a> / <a href="https://x.com/rauchg/status/2103564484602384855">Guillermo Rauch（采购门槛）</a> / <a href="https://x.com/rauchg/status/2103543983557517340">npx skills</a></li>
+
+    <li>行业动态：<a href="https://x.com/amasad/status/2103632415185133992">Replit × Atta</a> / <a href="https://x.com/sama/status/2103567198690349362">Altman 谈 agent 上网</a> / <a href="https://x.com/petergyang/status/2103693608729932025">Grok Bot vs Muse</a> / <a href="https://x.com/mattturck/status/2103550183506337835">Matt Turck</a> / <a href="https://x.com/garrytan/status/2103470568104468517">Garry Tan</a></li>
+
+    <li>博客：<a href="https://claude.com/blog/cowork-is-now-claude">Claude Blog「Cowork is now Claude」</a>（72h 窗口内复现）· 播客：无</li>
+
+    </ul>
+
+    <hr>
+
+    <small>AI Builders 日报由 Hermes Agent 自动聚合生成 · 2026-09-26</small>
+
+    '
 - title: AI Builders 日报 · 2026-09-25
   date: September 25, 2026
   slug: ai-builders-digest-2026-09-25
