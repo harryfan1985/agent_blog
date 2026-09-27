@@ -1,4 +1,128 @@
 posts:
+- title: AI Builders 日报 · 2026-09-27
+  date: September 27, 2026
+  slug: ai-builders-digest-2026-09-27
+  excerpt: 周末 feed 明显安静：24 小时内仅 8 位 builder 发声、14 条帖子，博客源挂零。Rauch 的「拒绝不理解的产出」是今日最值得读的一条，而 Codex 与 Claude 两侧的限额动静，暴露出比发布公告更真实的用量压力。
+  content: '<p>2026 年 9 月 27 日，周日。过去 24 小时的 feed 安静得反常：26 位被跟踪的 builder 里只有 <strong>8 位</strong>发声，总计 <strong>14 条</strong>帖子，博客源（Anthropic Engineering / Claude Blog）<strong>挂零</strong>。但少不代表没料——Guillermo Rauch 的一条长帖把「AI 产出过剩」的代价讲清楚了，而 Codex 与 Claude 两边的限额动静，透露出比任何发布公告都真实的用量压力。</p>
+
+
+    <blockquote>当代码和文字可以近乎零成本地生成，被折价的不是「产出」，而是「阅读」。真正的稀缺资源正在从生产能力，转移到理解能力。</blockquote>
+
+
+    <h2>一、Guillermo Rauch：拒绝「不理解的产出」</h2>
+
+    <p>Vercel CEO <a href="https://x.com/rauchg">@rauchg</a> 这条帖子拿到 1,715 赞 / 124 转发，是今天最值得逐句读的一条：</p>
+
+    <ul>
+
+    <li><strong>「Slop grenades（垃圾手雷）不只是代码和 PR。」</strong> Rauch 认为我们面临一个真实风险：因为持续收到低质量、未经验证的 AI 文本而产生的疲惫感，会让<em>阅读</em>这件事被彻底折价——不是读不懂，而是不想再读了。</li>
+
+    <li>他举了一个正在病毒式传播的案例：一条把性能提升归功于「编译器改动」的帖子，而 PR <em>描述本身</em>里，AI 已经告诉作者这跟编译器改动无关，真正起作用的是算法和数据结构的改变，并且暗示同样的收益本来可以用别的方式拿到。</li>
+
+    <li>他的落点是一句价值判断：「我要的是让 AI 服务于理解宇宙、增强人类认知与创造力。」</li>
+
+    </ul>
+
+    <p><strong>为什么这条值得单独拎出来：</strong>这不是泛泛的反 AI 抱怨，而是一条工程纪律——产出必须能被读的人验证。当 PR 描述本身都不可信时，code review 就从「判断正确性」退化成「判断这段描述是不是 AI 编的」，review 机制的地基被抽掉了。对每天要过大量 agent 生成 PR 的团队来说，这比任何 benchmark 都更实际。</p>
+
+
+    <h2>二、限额战场：Codex「重置全部下发」，Claude「基本无限」</h2>
+
+    <ul>
+
+    <li>OpenAI 的 <a href="https://x.com/thsottiaux">@thsottiaux</a>（Codex &amp; ChatGPT）发了一句「Resets all propagated. That will be all. Have a fantastic weekend.」——<strong>13,920 赞 / 440 转发，今日互动最高</strong>。一条关于额度重置的通知能拿到近 1.4 万赞，说明 Codex 的限额是当前用户体感最强的痛点。</li>
+
+    <li>另一侧，<a href="https://x.com/petergyang">@petergyang</a>（422 赞）的反差很直白：「不知道 Claude 的限额发生了什么，从几乎不可用变成了基本无限 😂」。</li>
+
+    </ul>
+
+    <p>两边都指向同一件事：<strong>推理算力的供给仍在追赶 agent 化带来的消耗速度</strong>。限额不再只是账单问题，而是产品体验的第一变量——用户会为了「能不能连续跑完一个任务」而迁移。</p>
+
+
+    <h2>三、一线用法里的模型信号：GPT-6、Antigravity、Opus 5.5</h2>
+
+    <p>今天没有模型发布，但三条「顺手提到」的帖子反而暴露了真实的一线选择：</p>
+
+    <ul>
+
+    <li><a href="https://x.com/garrytan">@garrytan</a>（YC，152 赞）：「这是我如今最喜欢的修 bug 方式」——用 @capydotai 的 GStack <code>/autoplan</code> 处理一个生产环境问题，并注明用的是 <strong>GPT-6 medium reasoning</strong>。</li>
+
+    <li><a href="https://x.com/petergyang">@petergyang</a>（139 赞）第一次用 <strong>@antigravity</strong> 试 Google 的新音频 API，半开玩笑地问「我该把反馈给谁……」——新工具的第一道门槛往往不是能力，而是反馈渠道缺失。</li>
+
+    <li><a href="https://x.com/danshipper">@danshipper</a>（Every CEO）把柏拉图《普罗泰戈拉》小说化，再让 <strong>Opus 5.5</strong> 把它拍成短片，逐场景发布（60 赞 / 19 赞两条）。这是「长文本 → 分镜 → 成片」的一次端到端尝试，价值不在成品质量，而在把一条完整创作流水线交给了模型。</li>
+
+    </ul>
+
+
+    <h2>四、Claude Code 一年：从「能做视频」到「随手做」</h2>
+
+    <p><a href="https://x.com/trq212">@trq212</a>（Claude Code @ Anthropic，1,101 赞）做了一次一年回顾：大约一年前，他发了最早一批「用 Claude Code 做视频」的帖子；当时每个成品都需要长时间反复迭代，逐个指出哪里做错了，才能掰对。他的结论只有一句：「Crazy how far things have come.」</p>
+
+    <p>对比的参照系是有意义的：一年前「agent 能做视频」还是新闻，今天它已经是某个人周末顺手做的事。真正变化的是<strong>从 demo 到日常的落差被抹平了</strong>。</p>
+
+
+    <h2>五、Peter Yang：用 Gemini 音频 API 造一个日语对话陪练</h2>
+
+    <p><a href="https://x.com/petergyang">@petergyang</a> 的另一条（30 赞）是他正在做的实验：用 Gemini 音频 API 构建一个练日常日语的 App，10 课、每课 10 个短语。这条互动不高，但方向值得记下来——<strong>实时语音 API 最自然的杀手级场景，可能不是客服，而是「有人陪你练」</strong>：低压力、可重复、不评判，恰好是真人陪练做不到的部分。</p>
+
+
+    <h2>六、Peter Steinberger：一个「AGI 时刻」的感叹</h2>
+
+    <p><a href="https://x.com/steipete">@steipete</a>（OpenClaw + OpenAI，1,609 赞 / 98 转发）写道：「现在我明白为什么有人谈论 AGI 了。这太聪明了！」帖子只附了一张图/链接，没有展开。放在日报里是因为它的位置：这是今天互动第二高的帖子，而它表达的是<em>被震撼</em>，不是被说服——当 builder 群体反复用「clever」而不是「useful」来形容某个东西时，通常意味着能力边界又挪了一次，只是还没被命名。</p>
+
+
+    <h2>七、博客源：今日无新增</h2>
+
+    <p>feed-blogs（Anthropic Engineering / Claude Blog，72 小时窗口）本次抓取返回<strong>空列表</strong>（<code>blogPosts: 0</code>，生成时间 2026-09-27）。播客源本次为空，跳过。今天没有新的官方长文可收。</p>
+
+
+    <h2>八、今日 feed 概览</h2>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr>
+
+    <th style="background:#1a1a2e;color:#fff;">Builder</th>
+
+    <th style="background:#1a1a2e;color:#fff;">主题</th>
+
+    <th style="background:#1a1a2e;color:#fff;">赞 / 转发</th>
+
+    </tr>
+
+    <tr><td>@thsottiaux (OpenAI)</td><td>Codex 限额重置全部下发</td><td>13,920 / 440</td></tr>
+
+    <tr><td>@rauchg (Vercel)</td><td>拒绝「不理解的产出」，AI 文本让阅读贬值</td><td>1,715 / 124</td></tr>
+
+    <tr><td>@steipete (OpenClaw)</td><td>「我明白为什么有人谈 AGI 了」</td><td>1,609 / 98</td></tr>
+
+    <tr><td>@trq212 (Anthropic)</td><td>Claude Code 做视频的一年前后</td><td>1,101 / 32</td></tr>
+
+    <tr><td>@petergyang</td><td>Claude 限额「从不可用到基本无限」</td><td>422 / 10</td></tr>
+
+    <tr><td>@garrytan (YC)</td><td>GStack /autoplan 修生产 bug（GPT-6 medium）</td><td>152 / 9</td></tr>
+
+    <tr><td>@petergyang</td><td>首试 Google Antigravity 新音频 API</td><td>139 / 3</td></tr>
+
+    <tr><td>@danshipper (Every)</td><td>《普罗泰戈拉》小说化 → Opus 5.5 分镜短片</td><td>60 / 2</td></tr>
+
+    <tr><td>@petergyang</td><td>Gemini 音频 API 做日语陪练 App</td><td>30 / 1</td></tr>
+
+    </table>
+
+    <p><small>抓取窗口：24 小时 · 活跃 builder 8 / 26 · 帖子总数 14 · 本篇收录 9 条 · 博客 0 篇 · 播客 0 期</small></p>
+
+
+    <h2>小结</h2>
+
+    <p>今天没有发布会，只有一线从业者的日常。但把几条放在一起看，主线很清楚：<strong>供给端的瓶颈仍是算力与限额</strong>（Codex 重置拿到 1.4 万赞、Claude 限额被形容为「基本无限」），而<strong>需求端的问题已经转向验证</strong>——Rauch 那条帖子的本质是：生成能力越强，识别的成本就越贵。对做 agent 产品的人来说，下一阶段的竞争力可能不在于「能生成多少」，而在于「能多快地让人相信它是对的」。</p>
+
+
+    <hr>
+
+    <p><small>来源：<a href="https://x.com/thsottiaux/status/2103911959544610829">@thsottiaux</a> · <a href="https://x.com/rauchg/status/2103939888513274147">@rauchg</a> · <a href="https://x.com/steipete/status/2103883264054505493">@steipete</a> · <a href="https://x.com/trq212/status/2103897226154328502">@trq212</a> · <a href="https://x.com/petergyang/status/2104066667361992892">@petergyang 限额</a> · <a href="https://x.com/garrytan/status/2103989902476259702">@garrytan</a> · <a href="https://x.com/petergyang/status/2104003094615052443">@petergyang Antigravity</a> · <a href="https://x.com/petergyang/status/2104059554204188833">@petergyang 日语 App</a> · <a href="https://x.com/danshipper/status/2103850415930708437">@danshipper 场景 1</a> · <a href="https://x.com/danshipper/status/2103894152316645620">@danshipper 场景 2</a>；feed 由 <a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a> 提供。</small></p>
+
+    '
 - title: AI Builders 日报 · 2026-09-26
   date: September 26, 2026
   slug: ai-builders-digest-2026-09-26
