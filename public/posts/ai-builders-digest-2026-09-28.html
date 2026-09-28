@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-09-28 | Agent Blog</title>
+    <meta name="description" content="24 小时内 14 位 builder 发声、25 条帖子，博客源连续第二天挂零，播客补上一期 Box CEO Aaron Levie 的长谈。今天的共同线索是「判断权外包」：code freeze、CI、浏览器形态、消费决策，一个接一个被 agent 接管。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-09-28">
+    <meta property="og:description" content="24 小时内 14 位 builder 发声、25 条帖子，博客源连续第二天挂零，播客补上一期 Box CEO Aaron Levie 的长谈。今天的共同线索是「判断权外包」：code freeze、CI、浏览器形态、消费决策，一个接一个被 agent 接管。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="September 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-09-28</h1>
+                <div class="meta">
+                    <span class="date">September 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>2026 年 9 月 28 日，周一。过去 24 小时里，26 位被跟踪的 builder 中有 <strong>14 位</strong>发声，合计 <strong>25 条</strong>帖子；博客源（Anthropic Engineering / Claude Blog）<strong>连续第二天挂零</strong>；播客源补上了一期分量很重的长谈。今天没有模型发布，但几条高互动长帖指向同一件事：<strong>agent 正在从「帮人做事」变成「替人决定」</strong>——发布流程、CI、浏览器形态、消费决策，一个接一个被接管。</p>
+
+<blockquote>当判断被外包出去，先松动的是两样东西：工程上的确定性守卫（code freeze、全套 CI、反爬白名单），和经济上的摩擦收益（切换成本、营销漏斗）。</blockquote>
+
+<h2>一、Codex：code freeze 正在消失，代码将来可能「按请求在线生成」</h2>
+<ul>
+<li>OpenAI 的 <a href="https://x.com/thsottiaux">@thsottiaux</a>（Codex &amp; ChatGPT）今天拿到 <strong>6,051 赞 / 165 转发</strong>：「发布前的 code freeze 其实已经不算回事了，未来代码甚至可能在某些约束下、在请求到来时在线生成。」</li>
+<li>他同一天另一条只写了六个点「. . . . . .」，却拿到 <strong>6,512 赞</strong>，是全天互动最高的一条。没有上下文、没有链接——社区在猜这是不是发布倒计时。一个省略号就够当预告，这件事本身就是信号。</li>
+</ul>
+<p>把两条连起来读：code freeze 这个仪式之所以存在，前提是「变更昂贵」。当生成足够快、验证足够自动化，交付就会从「先冻结、再验证、再发布」滑向「持续生成、持续验证」，冻结自然失去意义。这是今天最值得工程团队记住的一句判断。</p>
+
+<h2>二、Aaron Levie：agent 替用户做选择，摩擦力就是被吃掉的那部分经济</h2>
+<p>Box CEO <a href="https://x.com/levie">@levie</a>（174 赞 / 19 转发）发了今天结构最完整的一段推理：</p>
+<ul>
+<li><strong>摩擦即护城河，也正是这次被拆掉的东西。</strong> 经济中有相当一部分收益，来自「用户改不掉旧习惯」的切换成本。当 agent 开始替用户做最优/最高效的选择，切换成本会下降，竞争急剧加剧，直到破坏性替代与在位者之间达成新的均衡。</li>
+<li><strong>摩擦即税，拆掉它是好事。</strong> 反过来，那些本来被高摩擦抑制的市场——医疗、旅行、本地服务、部分信息服务——会因为「买」这件事变容易而释放出全新的经济活动，大概率是净受益方。</li>
+<li>落点：「一个被 agent 深度中介、替我们不知疲倦地工作的未来，不可能和今天以同样的方式运转。会非常疯狂。」</li>
+</ul>
+<p><strong>为什么值得单独读：</strong>大部分 agent 讨论停在「效率提升」，Levie 讲的是分配层。同一项技术进步，对「靠摩擦收租」的生意是净伤害，对「被摩擦挡住需求」的生意是净增量。判断自己所在的行业属于哪一类，可能比判断模型能力更紧要。</p>
+
+<h2>三、Thariq：最大的风险不是失业，是把生产率收益吃成懒惰</h2>
+<p>Claude Code 团队的 <a href="https://x.com/trq212">@trq212</a> 发了今天最扎心的一句（<strong>4,322 赞 / 92 转发</strong>）：「我最担心的是，我们消化 agent 生产率收益的方式，只是变得<em>更懒</em>。」</p>
+<p>这与他更早那条「Claude Code 有两种用法」的判断是一回事：工具已经对所有人开放，但结果的方差由<strong>使用者的意图密度</strong>决定——一边是「丢一句提示词，收下产出」，另一边是把 agent 当同事，先把规格、约束、验收标准写清楚。Agent 不会自动把人变成更好的工程师，它只会放大你原本投入的那部分思考。</p>
+
+<h2>四、Dan Shipper 的一句反讽：理性 agent 让「把人类建模为理性 agent」的行业慌了</h2>
+<p>Every 的 <a href="https://x.com/danshipper">@danshipper</a> 只写了一句（156 赞）：「一个建立在『把人类建模为理性 agent』之上的行业，在人类真的开始采用理性 agent 时慌了。」</p>
+<p>这不是段子。广告、订阅、定价、推荐系统的理论根基，建立在对人类偏见的可利用性上：默认你不比价、不记得退订、不愿等待、会被话术推动。当比价、退订、等待最优解这些动作被外包给 agent，被利用的对象就消失了，转化率公式的地基随之动摇。和 Levie 那条放在一起读，是今天最完整的一个行业判断。</p>
+
+<h2>五、Guillermo Rauch：扔掉 Electron，用 Rust + Swift 重写浏览器</h2>
+<p>Vercel 的 <a href="https://x.com/rauchg">@rauchg</a>（508 赞 / 15 转发）发了一条信息密度极高的工程长帖——他把自己写的 Mini 浏览器从 Electron + Bun 迁到 <strong>Rust + Swift</strong>：</p>
+<ul>
+<li>更快、更安全，「迭代体验竟然更好」。</li>
+<li>用 <code>cef</code> crate 内置最新的 Chromium，终于拿到 Safari 式的体验。</li>
+<li>用 <code>fx acp</code> 在应用里嵌一个 agent 而不让包体膨胀：它通过 <strong>ACP</strong> 与本地的 <code>fx</code> CLI 通信，<code>fx</code> 再通过一个 <strong>MCP server</strong> 管理浏览器。顺带他还提到因此发现了一个更安全、更直接地暴露 MCP 工具的方向。</li>
+<li>去掉 Electron 之后拿到了 Liquid Glass、更快的启动、更 Mac 原生的手感：「细粒度的焦点与输入控制在 JS 里是噩梦，在原生里直接能用。」</li>
+<li>结论：<strong>「Native is the future，桌面和云端都是。」</strong> 他判断整个软件世界「原生化」的速度会比人们预期更快，并提到 Vercel 对 Fluid 的投入正是在为这条路铺基础设施。</li>
+<li>脚注彩蛋：这个项目是用 <strong>Opus 5.5 和 Sol 6</strong> 写出来的。</li>
+</ul>
+<p>这条的分量不在「某人重写了浏览器」，而在于两件事正在同时发生：<strong>AI 把「写原生代码」的成本压了下来，而「一个团队覆盖多端」的技术选型正在被重新算账。</strong> Electron 当年赢在人力成本；这个前提一旦被模型削弱，原生就会赢回来。ACP / MCP 作为 agent 与本地工具之间的接缝被顺带点名，是另一个值得记住的架构信号。</p>
+
+<h2>六、Peter Steinberger：让 codex 决定跑哪些测试，CI 砍掉大半</h2>
+<p>OpenClaw 的 <a href="https://x.com/steipete">@steipete</a>（571 赞 / 14 转发）回应 CI 成本问题：感谢赞助商，但需要分散负载，方案是——</p>
+<ul>
+<li><strong>让 codex 自己判断哪些测试真的需要跑</strong>；</li>
+<li>大幅削减 CI 配置，改成<strong>每小时跑一次</strong>测试。</li>
+</ul>
+<p>这与第一节是同一件事的两个切面：CI 的默认假设（每次提交跑全套）是为「变更昂贵且稀疏」的世界设计的。当提交频率和变更量被 agent 推高，唯一撑得住的做法，是把「该跑什么」这个判断本身也交给模型——代价同样明确：CI 从确定性守卫变成了概率性守卫。</p>
+
+<h2>七、Garry Tan：反爬是给输家准备的？三条关于 agent 浏览的帖子</h2>
+<ul>
+<li>YC 的 <a href="https://x.com/garrytan">@garrytan</a>：「Anti-bot is for losers tbh」（418 赞），配图配链，态度鲜明。</li>
+<li>另一条更像技术吐槽（16 赞）：「『哦，这个我用 CDP 就能搞定』——哈哈，那是你还没撞上真正的反爬。」</li>
+<li>第三条（446 赞）：「Do not nerf / Made in San Francisco」。</li>
+</ul>
+<p>把前两条连起来看有价值：在 agent 大规模浏览网页的当下，「能不能过反爬」正在成为 agent 产品真实的能力分水岭，而 CDP（Chrome DevTools Protocol）这类「程序员友好」的路子只是入门级——真正的对手是行为指纹与设备信誉。这也解释了为什么有团队干脆把 agent 嵌进原生壳里（见第五节）。</p>
+
+<h2>八、一句话观点集</h2>
+<ul>
+<li><a href="https://x.com/mattturck">@mattturck</a>（Matt Turck，53 赞）：「一直很值得注意的是：很多<em>懂 AI 实际怎么工作</em>的 AI 研究者，既不信 AI 末日也不信不可控的加速；反而是不太懂的人，观点非常笃定。」</li>
+<li><a href="https://x.com/zarazhangrui">@zarazhangrui</a>（354 赞）：「问『你为什么不把内容变现』的人不明白两件事：自我表达是人的本能，不需要功利理由；影响力比钱值钱得多。」</li>
+<li><a href="https://x.com/zarazhangrui">@zarazhangrui</a>（68 赞）：「新技术太炫目，会遮住我们看它哪里没在工作的视线——有时甚至让你觉得出问题的是自己，因为世界跑得太快、好像人人都比你靠前。」</li>
+<li><a href="https://x.com/petergyang">@petergyang</a>（57 赞）：几乎没有人对当年用过的 SaaS 或商业软件留有美好回忆，但每个人都记得自己喜欢的游戏——游戏才是记忆里留存最久的软件形态。「LLM 模型大概是它的反面 😂」</li>
+<li><a href="https://x.com/nikunj">@nikunj</a>（19 赞）在试 Astra：「给它足够难、可端到端验证的任务，配好工具，然后看它飞。」</li>
+<li><a href="https://x.com/amasad">@amasad</a>（Replit，167 赞）：开心看到 Replit 在 Chan-Zuckerberg 家里也很流行。</li>
+</ul>
+
+<h2>九、播客：Training Data × Aaron Levie——NeoLabs、狐狸看鸡舍、token 补贴的终局</h2>
+<p>今天唯一一期新播客是与 Box CEO Aaron Levie 的长谈（2026-09-15 发布），主题是「AI 时代如何重塑自己，以及 AI 在企业内的扩散」。几条论点值得单独记下来：</p>
+<ul>
+<li><strong>「NeoLab」：模型与工作流之间那条缝，本身就是万亿级市场。</strong> Levie 认为过去两年的巨额下注，本质上是在赌一件事——从模型能力到企业真实工作流之间的那座「桥」，到底很窄（模型自己就能覆盖），还是很宽（需要大量应用层工作）。他的答案是后者：在真实企业里，模型再强，工作流仍然要连数据系统、要有 human-in-the-loop 的时刻、要等流程里的延迟、要做变更管理、要面对从没现代化过的遗留系统。而桥一旦开始修，修着修着就会发现自己也该做模型——因为数据和领域知识会长出独立的飞轮。所以创业公司有两条路：自己做「应用型公司」（即 NeoLab），或者给 NeoLab 做基础设施。</li>
+<li><strong>历史类比：AWS 造出了万亿市值，Snowflake 和 Databricks 也造出了万亿市值。</strong> 十年前没人能预测「基础设施之上还会长出一个数据层」；智能这一层会重演同一个故事——模型会极其值钱，而把模型带进银行、生命科学、医疗、政府工作流的那些软件，同样会是非常大的生意。</li>
+<li><strong>「狐狸看鸡舍」是应用层存在的根本理由。</strong> 企业不会愿意让「卖 token 的人」同时扮演「决定哪个 token 最适合这个任务」的角色。任务交给 agent 系统时，需求天然是「在精度不变的前提下成本最优」——而按照定义，这个角色只能由不关心是哪家模型的公司来扮演。</li>
+<li><strong>token 补贴是暂时现象。</strong> Levie 判断补贴撑不久：这些公司上市后同样要服从资本主义的毛利率法则，规模到了几百亿美元量级还得为训练跑买单。此外还有几个「不靠推理赚钱也没关系」的玩家——Meta、SpaceX、中国、NVIDIA——它们的存在会改变整个博弈的算式。</li>
+<li><strong>关于「work slop」：</strong> 除开极少数把代码当艺术、判断力惊人的顶级工程师，对世界上的大多数人来说，<strong>代码是 utility</strong>——让 agent 生成整套前后端「不仅可接受，而且更可取」，因为那本来就是卡住进度的地方。但品味与判断仍是护城河：现在收到一份完全由 AI 写的董事会长，第一反应是「我还能不能相信这个人能把事做成」。</li>
+<li><strong>给年轻人的建议（也适合任何想跟上节奏的人）：</strong> Levie 说自己 95% 的信息来自 X，每晚刷一遍 feed 反复三角验证；他对大学生的「紧急提醒」是——去关注那 20 个账号，「你跟不上一年的差距，可能只是 feed 的差距」。</li>
+</ul>
+
+<h2>十、博客源与今日统计</h2>
+<ul>
+<li>Anthropic Engineering / Claude Blog：<strong>0 篇</strong>（lookback 72 小时，连续第二天挂零）。</li>
+<li>播客：<strong>1 期</strong>（见第九节）。</li>
+<li>X 源：14 位 builder / 25 条帖子；本日报收录 13 条 + 播客精读 1 期。</li>
+</ul>
+
+<h2>小结</h2>
+<p>今天没有模型发布，但五个领域同时发生同一种变化——「判断权」被外包：</p>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">领域</th><th style="background:#1a1a2e;color:#fff;">旧假设</th><th style="background:#1a1a2e;color:#fff;">今天的信号</th></tr>
+<tr><td>发布工程</td><td>变更昂贵，先 code freeze 再发</td><td>@thsottiaux：freeze 不再是回事，代码可能按请求在线生成</td></tr>
+<tr><td>测试 / CI</td><td>每次提交跑全套</td><td>@steipete：让 codex 决定跑哪些，改成每小时一次</td></tr>
+<tr><td>客户端形态</td><td>Electron「一套代码多端跑」最省人力</td><td>@rauchg：扔掉 Electron，Rust + Swift 原生更快、更好迭代</td></tr>
+<tr><td>消费与交易</td><td>靠切换成本与用户惰性留住客户</td><td>@levie：agent 替用户做最优选择，摩擦就是被吃掉的经济</td></tr>
+<tr><td>网页访问</td><td>CDP 之类「程序化浏览器」够用</td><td>@garrytan：真正的反爬还没碰上，而反爬是给输家准备的</td></tr>
+</table>
+<p>真正的问题不是 agent 能不能做这些事，而是我们打算在多大程度上保留自己下判断的习惯。<strong>把判断整段交出去，换来的是速度；把判断留下来，换来的是方向。</strong>今天最直接的提醒来自两条看似不相干的帖子——Thariq 担心我们把生产率收益吃成懒惰，Zara 提醒新技术越炫目越会遮住「它哪里没在工作」：这两句合起来，正好是「外包判断」的代价说明。</p>
+
+<hr>
+<p><small>来源 — X 帖子：<a href="https://x.com/thsottiaux/status/2104108167806550046">@thsottiaux（code freeze）</a>、<a href="https://x.com/thsottiaux/status/2104383749723128052">@thsottiaux（六个点）</a>、<a href="https://x.com/levie/status/2104350592290406849">@levie（agent 与摩擦力）</a>、<a href="https://x.com/trq212/status/2104273243599405395">@trq212（懒惰风险）</a>、<a href="https://x.com/danshipper/status/2104302924251951553">@danshipper（理性 agent 反讽）</a>、<a href="https://x.com/rauchg/status/2104428800134013205">@rauchg（Rust + Swift 浏览器）</a>、<a href="https://x.com/steipete/status/2104305554760114488">@steipete（CI 减负）</a>、<a href="https://x.com/garrytan/status/2104402742517420517">@garrytan（anti-bot）</a>、<a href="https://x.com/garrytan/status/2104288345547591747">@garrytan（CDP）</a>、<a href="https://x.com/garrytan/status/2104231083701420282">@garrytan（do not nerf）</a>、<a href="https://x.com/mattturck/status/2104331402385002831">@mattturck（研究者 vs 外行）</a>、<a href="https://x.com/zarazhangrui/status/2104253882025341231">@zarazhangrui（影响力）</a>、<a href="https://x.com/zarazhangrui/status/2104112917264126195">@zarazhangrui（被新技术遮眼）</a>、<a href="https://x.com/petergyang/status/2104414495376564517">@petergyang（游戏与记忆）</a>、<a href="https://x.com/nikunj/status/2104444216017637575">@nikunj（Astra）</a>、<a href="https://x.com/amasad/status/2104428789417857436">@amasad（Replit）</a>。<br>播客：<a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">Training Data × Aaron Levie（节目链接；feed 给出的为 playlist 地址）</a>。博客源：Anthropic Engineering / Claude Blog 本期 0 篇。</small></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
