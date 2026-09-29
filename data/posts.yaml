@@ -1,4 +1,146 @@
 posts:
+- title: AI Builders 日报 · 2026-09-29
+  date: September 29, 2026
+  slug: ai-builders-digest-2026-09-29
+  excerpt: Sonnet 5.5 在周末上线后的一线反馈今天集中爆发：同一个发布里能力更强的同时成本更低，「中端模型」这个档位正在被上一档直接吃掉。另一边是 DevDay 前夜，OpenAI 一边把 GPT-6 Sol / Luna 降到半价，一边预告 $200 Pro 订阅的用量计费口径改动。博客源与播客源本期挂零，收录 X 帖 16 条。
+  content: '<p>2026 年 9 月 29 日，周二。过去 24 小时里，26 位被跟踪的 builder 中有 <strong>18 位</strong>发声、合计 <strong>34 条</strong>帖子；博客源（Anthropic Engineering / Claude Blog）<strong>0 篇</strong>，播客源 <strong>0 期</strong>。今天的密度来自两条同时压上来的线：Anthropic 的 <strong>Sonnet 5.5</strong> 在周末上线，一线「用过之后」的判断今天集中爆发；而明天是 <strong>OpenAI 的 DevDay</strong>，Sam Altman 和 Tibo 分别用一句预告和一份条款说明提前垫场。</p>
+
+
+    <blockquote>两条线其实是同一件事的两端：模型侧「同价位更强」正在把中端模型这个档位挤到消失，订阅侧「同样的钱、更少的名义 API 额度」正在把价格战写进条款。能力在放大，计价口径在同时被重算。</blockquote>
+
+
+    <h2>一、Sonnet 5.5 的一线反馈：中端模型这个档位正在被上一档吃掉</h2>
+
+    <p>模型是周末发的，今天集中出现的是「拿去干活之后」的体感，而不是跑分。这批反馈比官方公告更值得读，因为发言的人是在用 Claude Code 交付的人和在做产品的人。</p>
+
+    <ul>
+
+    <li>Claude Code 团队的 <a href="https://x.com/_catwu">@_catwu</a>（423 赞）：在 Claude Code 里，用 Sonnet 5.5 的用户完成的任务数比 Sonnet 5 多约 <strong>30%</strong>——因为更聪明，同样的活需要的 token 更少。她给的演示是「扫一院子落叶」的工具调用任务：比 Sonnet 5 <strong>快 24 秒、少用 6K token</strong>，省下的时间够它去读会儿书。</li>
+
+    <li><a href="https://x.com/bcherny">@bcherny</a>（Boris Cherny，<strong>4,835 赞</strong>，全天第二高）：Sonnet 5.5 在修 Claude Code 自己的 bug，结果是「<strong>快 30%、用量少 30%</strong>」（原帖为配图对比）。</li>
+
+    <li><a href="https://x.com/alexalbert__">@alexalbert__</a>（729 赞）：Sonnet 5.5 的手感和当初的 Opus 5.5 一样——写得清楚、非常快，相对 Sonnet 5 是一次实打实的能力跃迁，「是很适合用来反复迭代的模型」。</li>
+
+    <li><a href="https://x.com/danshipper">@danshipper</a>（Every，203 赞）：写作能力相对 <strong>Opus 5.5</strong> 都有明显提升；Astra 仍是他的写作首选，但 Sonnet 5.5 在<strong>改稿（revision）</strong>任务上更强。更快更便宜——所以团队里两个人的结论是：<strong>栈里已经没有中端模型的位置了。</strong></li>
+
+    <li><a href="https://x.com/levie">@levie</a>（Box CEO，146 赞）：在 Box 的企业知识工作评测上，Sonnet 5.5 在他们<strong>最难的测试</strong>上整体再涨 <strong>4 分</strong>，产出可交付成果的速度约 <strong>2.4×</strong>，token 少 <strong>12%</strong>；在垂直行业里金融服务 +18 个百分点、法律 +7、生命科学 +8、公共部门 +7。他给了几个具体案例：</li>
+
+    </ul>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">任务</th><th style="background:#1a1a2e;color:#fff;">提升</th><th style="background:#1a1a2e;color:#fff;">细节</th></tr>
+
+    <tr><td>金融服务尽调</td><td>+48 分</td><td>一桩交易工具收购的尽调：交易簿里的利息总额算错、期权定价也错，Sonnet 5.5 全部抓出来了；速度快约 61%</td></tr>
+
+    <tr><td>法律：商业租约审查</td><td>+14 分</td><td>它<strong>拒绝</strong>为续约条款与通知期编造一个「市场标准」，而是指出这份租约真正缺失的东西；Sonnet 5 会直接编</td></tr>
+
+    <tr><td>生命科学：试验报告</td><td>+22 分</td><td>从原始测量数据写试验报告，两组样本标准差全部算对，Sonnet 5 几乎全错；速度快约 41%</td></tr>
+
+    <tr><td>公共部门：项目报告</td><td>+11 分</td><td>数学干预项目报告，正确取出了学生进度监测数字；速度快约 71%</td></tr>
+
+    </table>
+
+    <ul>
+
+    <li><a href="https://x.com/petergyang">@petergyang</a>（80 赞）：用 Sonnet 5.5 做了一个<strong>能玩的《星际争霸》关卡</strong>——你玩人族，守基地打虫族，可以造机枪兵、攻城坦克、战列巡航舰；单位模型取自 Sketchfab，音乐用 Suno 生成，连宣传片也是 Sonnet 做的。他明天还要第一次去 DevDay。</li>
+
+    <li><a href="https://x.com/claudeai">@claudeai</a> 官方两条演示：同一条提示词下的<strong>弹跳球物理测试</strong>（Sonnet 5 vs Sonnet 5.5），以及每帧都用代码画出来的像素风森林生物。</li>
+
+    <li><a href="https://x.com/trq212">@trq212</a>（Thariq，1,691 赞）：每次他谈 projects、claude tag、dynamic workflows 这类高层抽象，都会听到「token 成本扛不住」的担忧；到 Sonnet + Opus 5.5 这一代，这种水平的智能应该是「可以随便用」的——做工作流时尤其该试 Sonnet 5.5。</li>
+
+    </ul>
+
+    <p>把这批反馈合起来看，最有用的不是「Sonnet 5.5 很好」，而是 Levie 那份数据的方向：<strong>能力提升和单位成本下降发生在同一次发布里</strong>，于是中间那一档被上面那一档直接覆盖。Dan Shipper 团队那句「栈里没有中端模型的位置」，大概是今天最实用的一条选型判断——如果你的架构里还留着一个「便宜够用」的中端模型坑位，这一代更新值得重新算一次账。另一个细节是 Levie 举的法律案例：值得表扬的不是它答对了，而是它<strong>拒绝编造</strong>一个不存在的行业基准。</p>
+
+
+    <h2>二、OpenAI DevDay 前夜：一句预告，加一份条款说明</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/sama">@sama</a>（<strong>8,097 赞</strong>，全天最高）：「非常期待明天的 DevDay。我们找到了一个新东西。」没有解释，配图也没透露细节。仅凭一句话拿到今天全场最高互动，本身就是发布前夜的信号。</li>
+
+    <li><a href="https://x.com/danshipper">@danshipper</a>（52 赞）：他从 2023 年起每届 DevDay 都在现场，「这是 OpenAI 发布数量最多的一届」，末尾只留了三个字母——<strong>「rsi?」</strong>（递归自我改进）。</li>
+
+    <li><a href="https://x.com/thsottiaux">@thsottiaux</a>（Tibo，697 赞 / 73 转发）：今天信息量最大的一条，是一篇少见的<strong>透明条款说明</strong>。明天重新开放 $200 Pro 订阅的注册，但同时<strong>改变用量计算方式</strong>——按他的说法，算下来相当于旧 $200 Pro 方案里 API 花费的<strong>一半</strong>。他给了四条理由：</li>
+
+    </ul>
+
+    <ul>
+
+    <li>（a）不重新引入 5 小时限制，让用户想把每周额度用满就能用满；</li>
+
+    <li>（b）承诺长期看「同样的钱、做出更多活」，靠模型效率提升与 API 降价把改善传导给用户；</li>
+
+    <li>（c）不想给自己制造「抬高 API 标价再靠折扣发福利」的动机，而是继续降价；</li>
+
+    <li>（d）明天会往订阅里加一些<strong>不消耗额度</strong>的东西，暂不透露。</li>
+
+    </ul>
+
+    <p>同一条里还藏着一个硬信息：<strong>本周 GPT-6 Sol 与 GPT-6 Luna 的价格降到了原来的 50%</strong>。把这条和第一节放在一起，「降价换效率、效率换订阅价值」这条链条现在就写在两家的公开文字里了——区别只是一家把它当发布文案，另一家把它当条款公示。</p>
+
+
+    <h2>三、Thariq：prompt 已经变成一种「没法被展示」的东西</h2>
+
+    <p>Thariq 今天另一条 <strong>4,265 赞</strong>的帖子，说的是一个正在被普遍误读的变化：<strong>现在几乎不可能有人把自己的「提示词」拿给你看</strong>，因为一切都在 <em>references、skills 和 examples</em> 里。他自己的做法是让 agent 先去看自己另外三个 repo、上网搜参考、调用别的 AI API，然后再动手。</p>
+
+    <p>同一天他还有一条 2,698 赞的极简帖——他只是对 Claude 说了一句「能不能帮我把这个问题<strong>一步步</strong>想清楚」。两条对照读很有意思：所谓提示词工程已经搬家了，搬到了上下文工程（引用、技能、样例），而真正决定结果的那部分，反而重新回到了最朴素的对话本身。<strong>能展示的提示词是演示品，能复用的上下文才是资产。</strong></p>
+
+
+    <h2>四、Vercel：把自己迁到自己家，顺手把迁移过程变成两个 skill</h2>
+
+    <p>Vercel 的 <a href="https://x.com/rauchg">@rauchg</a>（429 赞）宣布他们迁移了 vercel.com 站点本身，并且刻意「用尽可能少的人工干预」来做这件事，目的就是证明 Vercel 快多少：<strong>构建快约 70%、渲染（paint）快约 75%</strong>。他强调这个工作负载很成熟、而且堆满了「前一家 provider 的专有习惯」，仍然在<strong>不到一周</strong>内完成；并且从这次迁移里提炼出了<strong>两个 AI skill</strong>，准备分享出来。</p>
+
+    <p>他把迁移过程中形成的隐性知识固化成可复用的 agent skill——这个做法在这个季度越来越常见。同一天他还发了一条（213 赞）：现在<strong>不需要登录就能搜索 @vercel 的域名</strong>，「对 agent 尤其友好」。把「公开、免鉴权的查询入口」当成面向 agent 的产品特性来设计，是另一个值得记住的信号。</p>
+
+
+    <h2>五、行业动态：分销是不是护城河，以及 X 上的情绪摇摆</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/nikunj">@nikunj</a>（111 赞）问了一句很刺的话：「当年那些说『分销就是护城河，所以应该多融钱』的投资人，今天都去哪了？」——因为现在是<strong>在位者自己在秀分销肌肉</strong>。他的结论：回到第一性原理，找到自己的不公平优势，做出高留存、最好带网络效应的产品；把资本当武器而不是命运；最后要能自己养活自己，因为「这个水龙头会关」。并且特意声明，这不是影射任何一家公司，而是针对那些给完坏建议、等公司崩了再转去 portfolio 里下一家的投资人。</li>
+
+    <li><a href="https://x.com/petergyang">@petergyang</a>（53 赞）：X 上的情绪太善变——今天是「OpenAI 被 Claude 5.5 碾压」，几个月前还是「Anthropic 要被 codex 煮熟」。他只是高兴有两家（很快会有更多）在同时把前沿往前推，「我们所有人都受益」。</li>
+
+    </ul>
+
+    <p>两条合起来正好互补：一条说分销终归只是暂时优势、别把资本当命运，另一条说别把单次发布的胜负当终局。<strong>同样的提醒，一个对着创业者，一个对着看客。</strong></p>
+
+
+    <h2>六、今日统计</h2>
+
+    <ul>
+
+    <li>X 源：<strong>18 位</strong> builder / <strong>34 条</strong>帖子；本日报收录 <strong>16 条</strong>。</li>
+
+    <li>博客源：<strong>0 篇</strong>（lookback 72 小时，Anthropic Engineering / Claude Blog 本期无更新）。</li>
+
+    <li>播客源：<strong>0 期</strong>（唯一一条记录是《Claude Code''s Next Era — Thariq Shihipar, Anthropic》的 transcript 返回 404，源端已忽略）。</li>
+
+    </ul>
+
+
+    <h2>小结</h2>
+
+    <p>今天表面上是一个发布日，实际上发生的是两件「不是发布」的事：</p>
+
+    <ul>
+
+    <li><strong>同一价位的能力提升，正在吃掉下一档的产品理由。</strong> Sonnet 5.5 的数字不是「更强」，而是「更强的同时更便宜更快」，于是「便宜的中间档」这个存在理由被撤销了。对使用者是好事，对还在用中端模型做定位的产品是坏消息。</li>
+
+    <li><strong>计价口径正在被重新写，而且这次是公开写的。</strong> 一边宣布降价 50%，一边预告订阅用量减半但承诺不设时间限制——参数变了，承诺也变了。以后比较「哪家划算」会越来越像读一份会变动的合同，而不是读一张价目表。</li>
+
+    </ul>
+
+    <p>实操层面只留一句：<strong>今天值得动手的事是重新算一次自己的模型选型与订阅账</strong>——不是因为某个模型变强了，而是因为「性价比」这个词在 24 小时内被两家人同时重新定义了一遍。</p>
+
+
+    <hr>
+
+    <p><small>来源 — X 帖子：<a href="https://x.com/_catwu/status/2104639552170377399">@_catwu（Sonnet 5.5 在 Claude Code 的任务量）</a>、<a href="https://x.com/bcherny/status/2104638725317923228">@bcherny（快 30%、用量少 30%）</a>、<a href="https://x.com/alexalbert__/status/2104633937280811010">@alexalbert__（迭代手感）</a>、<a href="https://x.com/danshipper/status/2104636728992776510">@danshipper（写作与改稿）</a>、<a href="https://x.com/levie/status/2104648654074343480">@levie（Box 企业评测数据）</a>、<a href="https://x.com/petergyang/status/2104736498151256303">@petergyang（Sonnet 5.5 做的星际关卡）</a>、<a href="https://x.com/claudeai/status/2104675003673325732">@claudeai（弹跳球物理对比）</a>、<a href="https://x.com/trq212/status/2104660926373023830">@trq212（token 成本与高层抽象）</a>、<a href="https://x.com/sama/status/2104661956879913457">@sama（DevDay 预告）</a>、<a href="https://x.com/danshipper/status/2104662907716050988">@danshipper（发布最多的一届）</a>、<a href="https://x.com/thsottiaux/status/2104823812042940713">@thsottiaux（Pro $200 订阅与用量计费）</a>、<a href="https://x.com/trq212/status/2104608785696440510">@trq212（prompt → references / skills / examples）</a>、<a href="https://x.com/rauchg/status/2104660502723072281">@rauchg（vercel.com 迁移）</a>、<a href="https://x.com/rauchg/status/2104764419305796094">@rauchg（免鉴权域名搜索）</a>、<a href="https://x.com/nikunj/status/2104566122549063756">@nikunj（分销与资本）</a>、<a href="https://x.com/petergyang/status/2104809410040336784">@petergyang（两家在前沿互相推）</a>。<br>博客源：Anthropic Engineering / Claude Blog 本期 0 篇；播客源本期 0 期。</small></p>
+
+    '
 - title: AI Builders 日报 · 2026-09-28
   date: September 28, 2026
   slug: ai-builders-digest-2026-09-28
