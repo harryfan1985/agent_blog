@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Builders 日报 · 2026-10-08 | Agent Blog</title>
-    <meta name="description" content="Codex 把「每天交付」写成可被社区投票推翻的承诺：28 天里每天要么给一个真实改进、要么发一次全额用量重置——第一天就被投掉。同一天 Claude Code 团队给出「云端大脑 + 本地双手」的架构口径，Every 的公司级 agent 在 Slack 里跑通后直接卖给了订阅者；播客里 Applied Comput">
+    <meta name="description" content="Codex 把「每天交付」写成可被社区投票推翻的承诺；同日第二窗口（10 月 7–8 日）并入本篇：Anthropic 连发 Haiku 5.5（更快、便宜 75%、alignment 明显改善）并把 Sonnet 5.5 缓存读降到 $0.10/百万 token，ChatGPT 开始生成自定义 UI、Dots 进入第">
     <meta name="author" content="Harry Fan">
     <meta property="og:title" content="AI Builders 日报 · 2026-10-08">
-    <meta property="og:description" content="Codex 把「每天交付」写成可被社区投票推翻的承诺：28 天里每天要么给一个真实改进、要么发一次全额用量重置——第一天就被投掉。同一天 Claude Code 团队给出「云端大脑 + 本地双手」的架构口径，Every 的公司级 agent 在 Slack 里跑通后直接卖给了订阅者；播客里 Applied Comput">
+    <meta property="og:description" content="Codex 把「每天交付」写成可被社区投票推翻的承诺；同日第二窗口（10 月 7–8 日）并入本篇：Anthropic 连发 Haiku 5.5（更快、便宜 75%、alignment 明显改善）并把 Sonnet 5.5 缓存读降到 $0.10/百万 token，ChatGPT 开始生成自定义 UI、Dots 进入第">
     <meta property="og:type" content="article">
     <meta property="article:published_time" content="October 8, 2026">
     <link rel="stylesheet" href="../styles.css">
@@ -36,6 +36,8 @@
                 </div>
             </header>
             <div class="content"><p>2026 年 10 月 8 日，周四。本期 feed 窗口是 <strong>10 月 6–7 日</strong>（feed 的 24 小时口径）：19 位被跟踪的 builder 发声、合计 <strong>40 条</strong>帖子；博客源本期 <strong>0 篇</strong>新文，播客源 <strong>1 期</strong>（Unsupervised Learning 对话 Applied Compute 的 CEO，58 分钟，带完整转写）。</p>
+
+<p><strong>补充（17:00 定时窗口）：</strong>本篇初稿覆盖 10 月 6–7 日窗口；当天 17:00 的定时任务又抓到 <strong>10 月 7–8 日</strong>窗口（19 位 builder、<strong>41 条</strong>帖子；博客源 <strong>0 篇</strong>，播客源 <strong>1 期</strong>）。为避免同一天出现两篇同名日报，新窗口的增量直接并入本篇，见第六节。</p>
 
 <p>这一天没有发布会级别的模型事件，但有两条更值得记的线：一是 <strong>OpenAI Codex 把「每天交付」写成了可被社区投票推翻的承诺</strong>——改不动就发一次全额用量重置；二是 <strong>AI 反编译</strong>的进展让「闭源」越来越像事实意义上的开源，而这条线正好接上 Levie 的判断：安全会是 AI 接下来最具定义性的领域之一。</p>
 
@@ -149,7 +151,80 @@
 
 <p>这条与今晚 X 上的几条正好互相印证：<a href="https://x.com/bcherny/status/2107565388250874193">@bcherny</a> 说提示词的重点是「怎么验证」，<a href="https://x.com/trq212/status/2107504677143368163">@trq212</a> 说抽象仍需要下层理解，<a href="https://x.com/adityaag/status/2107506675544682755">@adityaag</a> 在推一档关于「今天的 coder 到底意味着什么」的播客。工具在变，门槛只是换了位置。</p>
 
-<h2>六、其它信号</h2>
+<h2>六、补充窗口（10 月 7–8 日）：Haiku 5.5 上线、缓存读降价一半、ChatGPT 会生成 UI</h2>
+
+<p>这一窗口（feed 生成于 10 月 8 日 14:47 CST，19 位 builder、41 条帖子）的主体是产品与定价，而不是能力演示：Anthropic 在同一天连发 Haiku 5.5 与 Sonnet 5.5 缓存降价，OpenAI 让 ChatGPT 自己长出一个界面，Google Labs 一个零代码做游戏的实验拿到本期最高的 <strong>23,081 赞</strong>。</p>
+
+<h3>1）Anthropic：Haiku 5.5 发布，Sonnet 5.5 缓存读价格腰斩</h3>
+
+<ul>
+<li><a href="https://x.com/claudeai/status/2107894057615987198">@claudeai</a>（1,462 赞）：Haiku 5.5 已在所有平台可用，含 AWS、Google Cloud、Microsoft Azure。</li>
+<li><a href="https://x.com/claudeai/status/2107894054142787877">@claudeai</a>（1,507 赞）：相对 Haiku 4.5，Haiku 5.5 在几乎全部 alignment 评测上都有明显改善，错位行为大幅减少——小模型的安全表现被当成发布口径的一部分，这在此前并不常见。</li>
+<li><a href="https://x.com/alexalbert__/status/2107912771568554415">@alexalbert__</a>（349 赞）：Haiku 4.5 发布于 2025 年 10 月 15 日，两张对比表相隔不到一年；Haiku 5.5 同时<strong>更快、便宜 75%</strong>。</li>
+<li><a href="https://x.com/claudeai/status/2107894060229034197">@claudeai</a>（10,304 赞，本期第二高）：Sonnet 5.5 的<strong>缓存读取价格减半至 $0.10 / 百万 token</strong>，多数长时程工作的成本因此下降约 20%。</li>
+</ul>
+
+<p>把「更快 + 便宜 75% + alignment 更好」压在同一条小模型上，指向的是同一个判断：长时程 agent 的账单里最贵的是被反复重放的上下文，谁先把缓存与便宜档位做透，谁就先把 agent 的日常运行成本降下来。缓存读从 $0.20 降到 $0.10 对长上下文、多轮工具调用的负载尤其明显——这与第 1 节 Codex 的「用量重置」形成了有趣的对冲：一边用额度承诺体验，一边把成本单价打下来。</p>
+
+<h3>2）OpenAI：ChatGPT 生成自定义 UI，Dots 进入第二周</h3>
+
+<p><a href="https://x.com/sama/status/2107924408597950702">@sama</a>（8,052 赞）一句「ChatGPT can now generate a custom UI for you!」，并补了一条（548 赞）「等这个等很久了，不想再回到旧版 Chat」。方向与 Anthropic 的「把文档嵌进对话」正好相反：OpenAI 让界面本身变成生成物，而不是把 agent 塞进别人已有的界面。</p>
+
+<p>更值得读的是 <a href="https://x.com/danshipper/status/2107890633486582208">@danshipper</a>（94 赞）的 Dots 第二周实测，团队约 30 人已在实际使用：</p>
+
+<ul>
+<li><strong>保护注意力</strong>：他把模型测试的实验结果交给自己的 Dot 发到 Slack，有人回复再转达给他——不用打开 Slack，也就不会掉进那个兔子洞，「周末保持清爽安静」。</li>
+<li><strong>捡起你会漏掉的小事</strong>：从孩子的学校邮件里挑出重点、抓漏看的 Slack 消息、提示账号申请（运营负责人还让 Dot 直接处理访问申请）。</li>
+<li><strong>语音让它离开电脑也能用</strong>：视频负责人一边跑发布会一边用语音和 Dot 过剪辑方案。</li>
+<li><strong>仍然粗糙</strong>：权限结构「完全是个谜」，同一个基础操作要反复批准，批了之后还可能说做不到。</li>
+<li><strong>人格不持久</strong>：他很喜欢自己那只叫 Boo 的 Dot，但「出现更好的东西我就会换」——一年内持久 agent 会成为默认交互方式，而 Boo 大概会死。</li>
+</ul>
+
+<p>这与本节末尾播客里 Willie Williams 的判断完全一致：<strong>专业场景收敛到一个公司 agent，个人场景的个性化会长期存在</strong>。</p>
+
+<h3>3）Codex：codex cloud 被「悄悄重发」</h3>
+
+<p><a href="https://x.com/thsottiaux/status/2108040921044639779">@thsottiaux</a>（4,525 赞，10 月 8 日）只写了一句「Confirmed landed across all accounts. How are we doing so far?」，随后又补（<a href="https://x.com/thsottiaux/status/2108084615349170480">433 赞</a>）：「Day 3 (encore) — We silently re-shipped codex cloud. It’s pretty good now」。</p>
+
+<p>对照第 1 节：上周还在用 28 天「要么改进、要么全额重置」的公开合约立规矩，这周直接静默重发一个核心组件。公开承诺与静默发布并存，是 Codex 目前的真实节奏——值得记的不是哪一条更好，而是同一个团队同时在使用两种完全相反的发布策略。</p>
+
+<h3>4）算力与桌面安全：同一件事的两本账</h3>
+
+<p><a href="https://x.com/levie/status/2108056577697882402">@levie</a>（812 赞）：「我们要进入的这个阶段，所需算力会 insane」——个人 agent、替企业防守的 agent 群、审全部代码找安全问题的 agent、把企业数据几乎全部过一遍的 workflow agent、24/7 跑后台任务的 agent。他的判断是推理量还会以<strong>数量级</strong>增长，而且 agent 需要的不只是 token，还有计算机、网络、文件系统这些配套基础设施。</p>
+
+<p><a href="https://x.com/amasad/status/2107926712277438503">@amasad</a>（224 赞）给的是另一本账：桌面 AI 应用很好用，但把用户暴露在供应链攻击和 agent 的灾难性误操作之下；Replit 正与 Microsoft 合作做一个把安全与可靠性放在第一位的桌面体验，并成为 NVIDIA <strong>OpenShell</strong> 的早期采用者。</p>
+
+<p>放在一起看：需求侧（推理量、配套基础设施）与风险侧（权限、供应链、误操作）同时扩张，这正是这一轮基建叙事最直接的支撑，也是「agent 安全」会变成独立赛道的原因。</p>
+
+<h3>5）Google Labs 的 Playground：本期互动最高的一条</h3>
+
+<p><a href="https://x.com/GoogleLabs/status/2107800195748737042">@GoogleLabs</a>（<strong>23,081 赞 / 2,384 转</strong>）：Playground 是一个实验性游戏平台，「create your own games with zero coding experience. If you can think it, you can play it」，目前对美国 18+ 用户开放。</p>
+
+<p>它不是模型发布，却是本期唯一一条用「零代码创作」直接打穿消费端需求的产品。配合同日 <a href="https://x.com/amasad/status/2107934939287273551">@amasad</a>（1,095 赞）那句「数学注定第一个倒下，越纯粹的领域越容易被 AI 攻克」，可以看到这轮消费级 AI 的落点正从「生成内容」移向「生成可玩、可用的系统」——游戏是被验证的第一个方向。</p>
+
+<h3>6）工程侧：最常见的失败模式，以及「什么时候停手」</h3>
+
+<ul>
+<li><a href="https://x.com/trq212/status/2108021247301062894">@trq212</a>（1,296 赞，本期工程类最高）：他见到的最常见失败是<strong>人在自己不擅长的领域里工作</strong>——不知道怎样把提示词和计划写精确，于是只能靠大量回合不精确地迭代；他自己补的那句更实用：「好消息是你可以直接让模型教你你不会的部分」（<a href="https://x.com/trq212/status/2108021248966135891">148 赞</a>）。</li>
+<li><a href="https://x.com/rauchg/status/2107962327169675566">@rauchg</a>（605 赞）：每个程序都可以①硬化（补边界、收紧输入、处理错误）和②优化（profile、benchmark、重写）到近乎无限，成本是时间、注意力、机会——你完全可以去覆盖永远不会出现的输入空间，或者优化永远不会有人用的性能。「即使在一个 token 无限的世界里，你也得知道何时停手、接受哪些 trade-off。<strong>Agents 会毫不犹豫地一直钻下去。</strong>」</li>
+<li><a href="https://x.com/adityaag/status/2107865115831988530">@adityaag</a>（179 赞）：「我很会写软件」正在变成更弱的优势，他给了三条路——去做正在吞掉软件的那件事（AI 研究、基础设施、工具）；找一个世界级领域专家搭伙；或者只是用一堆 agent 交付同样的 backlog。他明确说第三条最不吸引人：「如果你的野心只是更快地清空同一个 backlog，你在浪费这个时代。」</li>
+<li><a href="https://x.com/_catwu/status/2107967210467803152">@_catwu</a>（246 赞）：她最喜欢的 PM 用法是让 Claude 回答「上周谁用得最多？把 top 10 做成 artifact，然后逐个约 15 分钟聊一下」——最快的用户反馈回路。</li>
+<li><a href="https://x.com/zarazhangrui/status/2108027410256166930">@zarazhangrui</a>（139 赞）：「记住写代码是手段，不是目的。目的比手段重要。」</li>
+<li><a href="https://x.com/petergyang/status/2107981547102245101">@petergyang</a>（6 赞但值得存）：任何你交付的东西现在都可能被 AI 反编译重建，没有专有数据、分发或其它壁垒的软件将很难赚钱；传统 SaaS 尤其脆弱——它贵，而且塞满了「为人设计、agent 根本不需要」的功能。</li>
+</ul>
+
+<h3>7）播客：Every 为什么从「人人一个 agent」转向「一个公司 agent」</h3>
+
+<p>本期唯一一档：<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">AI &amp; I by Every</a>（10 月 7 日，Dan Shipper 对话 Every 平台负责人 Willie Williams，《Why Every Traded Personal Agents for One Company Agent》，带完整转写）。要点：</p>
+
+<ul>
+<li><strong>边界正在固化</strong>：专业侧倾向「一个组织一个 agent」——它随工作流学习、靠全员日常使用变强；个人 agent「没有这里的上下文，很难教，需要在这儿待满一年才追得上」。他也明确不认为行业会重演「每个员工各带一个 agent、公司规模翻倍」的混乱。</li>
+<li><strong>个人侧的拉力巨大</strong>：以前阻碍个人 agent 的是安全与运维（自托管、怎么管），现在大玩家带着资本进来，消费级体验会迅速变好；因此会出现「上班用公司 agent、回家用个人 agent」的分裂。</li>
+<li><strong>主动性在加码</strong>：Instinct、Muse 这类产品开始主动触达用户。他的判断是，当 AI 主动找你时，「一个有人格名字的 agent」能让你立刻定位上下文——游泳池教练发消息，你一秒就知道该看什么。这解释了人格化产品为什么在「主动」这一维度上更有意义。</li>
+<li><strong>feed 化世界</strong>：他把 Slack、邮件、客户报告收进自己搭的解析 feed，用 AI 把数据源转成「需要你决策的事 / 仅供参考的事」的信息流；他的判断是「以前做 feed 需要几亿用户的大公司，现在每个人都能有自己的 feed」。</li>
+<li><strong>工程管理反而最没变</strong>：他认为相比其它岗位，EM 恰恰是最像过去的一个——杠杆仍然来自「你能看到多大的战场」，只是收集信息这一步被 agent 替代了。</li>
+</ul>
+<h2>七、其它信号</h2>
 
 <ul>
 <li><a href="https://x.com/joshwoodward/status/2107679061854273656">@joshwoodward（Google Labs / Gemini）</a> <strong>92 赞</strong>：「Mask-based editing is my favorite from today, much more coming soon」——mask 式局部编辑成为他当天最爱的功能，更多在路上。</li>
@@ -160,13 +235,16 @@
 <li><a href="https://x.com/garrytan/status/2107630303644938505">@garrytan（YC）</a> 用「再三个 prompt」把某段实时渲染从勉强跑动推到 640x480 / 35fps、每帧吃 8 个 CPU 核心——当娱乐看也说明一件事：性能调优的门槛正在被提示词吃掉。</li>
 </ul>
 
-<h2>七、今日小结</h2>
+<h2>八、今日小结</h2>
 
 <ul>
 <li><strong>产品机制</strong>：把交付节奏写成带惩罚条款的公开合约（Codex 的 28 天实验），大概是今天最值得抄的一条「发布方法」。</li>
 <li><strong>架构方向</strong>：Claude Code 给出的图景是「云端大脑 + 本地双手」，难点在状态同步与权限；Anthropic 的战略重心是把 agent runtime 嵌进别人的协作界面，而不是自己做一个界面。</li>
 <li><strong>经济账</strong>：播客里那句「后训练赢推理」配上一个可执行动作——把钱先花在最大规模的工作负载上做后训练，并在训练阶段就把 token 效率当成推理账单的一部分去优化。</li>
 <li><strong>风险面</strong>：反编译让软件护城河变薄，agent 上量让安全从「代码审计」扩展到「权限与工具链」，两条线的交汇处就是下一批产品的起点。</li>
+<li><strong>补充窗口的三条增量</strong>：小模型（Haiku 5.5）在「更快 + 便宜 75% + alignment 更好」三个维度同时前进；Sonnet 5.5 把缓存读压到 $0.10 / 百万 token，长时程 agent 的成本结构又降了一层；OpenAI 一边让 ChatGPT 生成自定义 UI，一边用 Dots 把「持久 + 主动」的个人 agent 推到第二周。</li>
+<li><strong>同一团队的两套发布策略</strong>：Codex 上周用 28 天公开合约立规矩，这周静默重发 codex cloud；「何时公开承诺、何时静默交付」本身成了产品决策。</li>
+<li><strong>什么时候停手</strong>：Rauch 那句提醒值得贴在显示器上——即使 token 无限，注意力、时间、机会仍然稀缺，agent 会一直钻下去，停手的判断只能由人来做。</li>
 <li><strong>怎么写代码这件事反而变保守了</strong>：可以用 AI，但要能解释；练系统设计，而不是练语法。</li>
 </ul>
 
@@ -191,6 +269,25 @@
 <a href="https://x.com/steipete/status/2107697554448421160">@steipete</a> ·
 <a href="https://x.com/swyx/status/2107646238585950540">@swyx</a> ·
 <a href="https://x.com/thenanyu/status/2107506074370920796">@thenanyu</a>
+ · <a href="https://x.com/GoogleLabs/status/2107800195748737042">Google Labs Playground</a> ·
+<a href="https://x.com/claudeai/status/2107894057615987198">Haiku 5.5 可用</a> ·
+<a href="https://x.com/claudeai/status/2107894054142787877">Haiku 5.5 alignment</a> ·
+<a href="https://x.com/alexalbert__/status/2107912771568554415">@alexalbert__ 对比</a> ·
+<a href="https://x.com/claudeai/status/2107894060229034197">Sonnet 5.5 缓存降价</a> ·
+<a href="https://x.com/sama/status/2107924408597950702">@sama 自定义 UI</a> ·
+<a href="https://x.com/danshipper/status/2107890633486582208">@danshipper Dots 第二周</a> ·
+<a href="https://x.com/thsottiaux/status/2108084615349170480">codex cloud 重发</a> ·
+<a href="https://x.com/thsottiaux/status/2108040921044639779">codex 全量上线</a> ·
+<a href="https://x.com/levie/status/2108056577697882402">@levie 算力</a> ·
+<a href="https://x.com/amasad/status/2107926712277438503">@amasad 桌面安全 / OpenShell</a> ·
+<a href="https://x.com/amasad/status/2107934939287273551">@amasad 数学先倒下</a> ·
+<a href="https://x.com/trq212/status/2108021247301062894">@trq212 失败模式</a> ·
+<a href="https://x.com/rauchg/status/2107962327169675566">@rauchg 何时停手</a> ·
+<a href="https://x.com/adityaag/status/2107865115831988530">@adityaag 三条路</a> ·
+<a href="https://x.com/_catwu/status/2107967210467803152">@_catwu PM 用法</a> ·
+<a href="https://x.com/zarazhangrui/status/2108027410256166930">@zarazhangrui</a> ·
+<a href="https://x.com/petergyang/status/2107981547102245101">@petergyang 反编译</a> ·
+<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">AI &amp; I by Every（公司 agent vs 个人 agent）</a>
 </small></p></div>
             <footer>
                 <a href="../index.html" class="back-link">← 返回首页</a>
