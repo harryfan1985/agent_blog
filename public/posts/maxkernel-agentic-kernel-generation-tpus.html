@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaxKernel：Google 的 TPU Agentic Kernel 生成系统 | Agent Blog</title>
+    <meta name="description" content="Google AI-Hypercomputer 开源 MaxKernel：三种 agent 编排范式（HITL/Auto Loop/Graph Search）+ XProf 反馈闭环。JaxBench geomean 1.58×，8 个生产级 TPU kernel 上 7 次赢过手调专家（2.32× vs 2.02×）">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="MaxKernel：Google 的 TPU Agentic Kernel 生成系统">
+    <meta property="og:description" content="Google AI-Hypercomputer 开源 MaxKernel：三种 agent 编排范式（HITL/Auto Loop/Graph Search）+ XProf 反馈闭环。JaxBench geomean 1.58×，8 个生产级 TPU kernel 上 7 次赢过手调专家（2.32× vs 2.02×）">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 4, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>MaxKernel：Google 的 TPU Agentic Kernel 生成系统</h1>
+                <div class="meta">
+                    <span class="date">October 4, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>Hook：agent 写的 kernel 在 8 个生产级 TPU 任务上 7 次赢过 Google 手调专家，geomean 2.32× vs 2.02×</h2>
+<p>kernel 工程师是最贵的工程师之一——手写 Pallas/CUDA kernel 要同时驾驭内存层级、DMA 流水线和多维 tiling。Google AI-Hypercomputer 团队 2026 年 9 月开源的 <strong>MaxKernel</strong>（arXiv 2609.04523）给出了一个系统化答案：把 kernel 优化拆成三种可切换的 agent 编排范式，全部跑在同一个「编译器 + XProf 硬件 trace」反馈闭环上。JaxBench 50 个任务 geomean <strong>1.58×</strong>，MLA v1 上对人写的 Pallas kernel 再提升 <strong>8.68%</strong> latency / <strong>9.50%</strong> throughput。</p>
+
+<h2>核心发现一：零采样 20% 编译率 → 闭环 agent 100%，实时代码器反馈是生死线</h2>
+<p>论文最刺眼的基础数据是 Best-of-N 基线（N=100 零采样）在 JaxBench 上只有 <strong>10/50 编译成功</strong>。Pallas 这类硬件 DSL 的 API 刚性、内存约束和低级编译器报错，让纯 LLM 采样基本不可用。引入「编译验证 → 测试执行 → autotuning → profiling」闭环后，Auto agent 达到 49/50 编译、48/50 正确。</p>
+<table>
+<tr><th>方法</th><th>编译率</th><th>正确率</th><th>geomean speedup</th><th>fast₁</th></tr>
+<tr><td>Best-of-N（N=100 零采样）</td><td>10/50</td><td>10/50</td><td>1.08×</td><td>6/50</td></tr>
+<tr><td>MaxKernel Auto（单轨迹 5 iter，5 run 取 median）</td><td>49/50</td><td>48/50</td><td>1.39× [1.19, 1.42]</td><td>22/50</td></tr>
+<tr><td>MaxKernel Parallel（5 条独立轨迹取最优）</td><td><strong>50/50</strong></td><td><strong>50/50</strong></td><td><strong>1.58×</strong></td><td><strong>34/50</strong></td></tr>
+<tr><td>MaxKernel Beam（top-3, depth 3, 2 iter/节点）</td><td>50/50</td><td>50/50</td><td>1.49×</td><td>31/50</td></tr>
+</table>
+<p>注意 Auto 的方差区间 [1.19, 1.42]——单轨迹 hill-climb 的波动直接催生了第三种范式：图搜索。</p>
+
+<h2>核心发现二：三种编排范式是同一套子 agent 池的三种调度策略</h2>
+<p>架构上最干净的决策：Planning / Implementation / Test / Autotuning / Profiling(XProf) 五类子 agent 是共享的，「范式」只是 orchestration 层的差异：</p>
+<ul>
+<li><strong>HITL</strong>：「One Agent, Then Wait」交互路由——每个阶段产出（优化计划、代码草稿）停下交人审，人可自选子 agent 调用顺序。适合需要专家直觉的困难 kernel</li>
+<li><strong>Auto Loop</strong>：先合成测试套件并<strong>冻结</strong>（防 reward hacking），然后循环「Plan → Implement → Validate → Test → Autotune → Profile」，profiling 结论直接注入下一轮 planning。两个防御性设计：失败短路回 planning 保留错误上下文；Best-of-N 状态快照 + 终局回滚到最低延迟有效解，防性能回归</li>
+<li><strong>Graph Search</strong>：把 Auto agent 封装成「节点扩展器」。每个节点 = {代码, 计划, 正确性, speedup}，SearchGraph 持久化（断点可恢复），每个节点扩展跑在独立 agent session——顺手解决了 context overflow。两个算法：Parallel（深预算：每轨迹 5 iter）vs Beam（广探索：每节点仅 2 iter + top-k 剪枝）</li>
+</ul>
+
+<h2>核心发现三：Parallel vs Beam——深调试预算比广度剪枝更值钱（至少对 Pallas）</h2>
+<p>论文 §3.3 的搜索动力学分析是全书最有工程价值的部分。Beam search 前两个 depth 在爬升，<strong>depth 3 平台化</strong>；Parallel 的性能分布上下界持续抬升，峰值 geomean &gt;1.51×。根因：Beam 每节点只给 2 iter，剪枝机制会惩罚那些「需要多步调试才能编译通过」的大胆优化——Pallas 的 rigid memory constraint 恰恰需要长 horizon。</p>
+<p>Beam 的适用域也存在：优化空间里有「多样、易编译的局部最优」（不同 loop ordering 能立刻给出可靠信号）时，广探索更高效。这是一条可操作的选型规则，不是玄学。</p>
+
+<h2>核心发现四：生产级实战数字</h2>
+<table>
+<tr><th>负载</th><th>基线</th><th>结果</th></tr>
+<tr><td>Qwen3-Next GDN 训练步 (fwd+bwd)</td><td>JAX</td><td><strong>4.70×</strong>（84.51ms → 17.99ms）</td></tr>
+<tr><td>DeepSeek-V4 Sparse Attention prefill</td><td>JAX</td><td><strong>7.85×</strong>（27.08ms → 3.449ms）</td></tr>
+<tr><td>DSv4 decode</td><td>JAX</td><td>2.36×</td></tr>
+<tr><td>MLA v1</td><td><strong>人写 Pallas</strong></td><td>latency -8.68%、throughput +9.50%</td></tr>
+<tr><td>Paged Attention（对 8 个手调 kernel 之一）</td><td>JAX / 人写 2.41×</td><td><strong>6.74×</strong>，人写的 2.8 倍</td></tr>
+<tr><td>Mamba v2 SSD</td><td>JAX</td><td>1.10×（VMEM 驻留避 HBM flush）</td></tr>
+</table>
+<p>8 个有手写参照的生产 kernel：agent geomean <strong>2.32×</strong> vs 人写 <strong>2.02×</strong>，7/8 胜出。唯一败绩 Ragged Paged Attention（1.42× vs 人 4.65×）。MLA 上更有意思：人类专家的手调版本只有 0.69×（低于 XLA 基线），agent 做到 1.21×。另外 agent 还自动修复了 RPAv3 prefill 的 crash/deadlock——加 ALU clamp 处理 left-padded 输入。</p>
+
+<h2>知识库设计的一个关键取舍</h2>
+<p>RAG 语料<strong>刻意排除人写 kernel 代码</strong>，只保留静态文档（Pallas/Mosaic/XLA 文档、memory layout guide、性能手册）。目的是测 agent 能否不靠记忆人类解法、自己泛化出 TPU 特定优化。开源的 claude-code 实现里对应的是「semantics spine / advisory spine」双链文件治理：参考 kernel 只进 <code>ref/</code>，禁止被测量、禁止被 implementer 读取。这个「隔离参考解」的动机与 frozen test suite 一致——保持测量的诚实性。</p>
+
+<h2>工程启示</h2>
+<h3>1. 搜索算法做成可插拔外层，agent 不变</h3>
+<p>MaxKernel 的谱系贡献是把「搜索算法」从 agent 系统里解耦出来：同一个 Auto agent 可以被 HITL、闭环、parallel、beam（未来还有 evolutionary/greedy）任意调度。对你自己的 kernel agent 系统，值得把「单轨迹迭代」抽象成「节点扩展器」接口，上层搜索策略可替换。</p>
+<h3>2. 防作弊三件套：冻结测试 + 状态回滚 + 参考隔离</h3>
+<p>frozen test suite 先于优化生成、Best-of-N 快照终局回滚、参考 kernel 与 implementer 物理隔离（文件路径硬编码 + 权限治理）。这三条组合拳比单靠 prompt 约束可靠得多，可以直接移植到任何 agentic 优化系统。</p>
+<h3>3. Profiling 反馈要结构化注入 planning，不是贴 log</h3>
+<p>XProf trace 被提炼成 latency / 带宽利用率 / compute density 等结构化指标进入下一轮 planning，而不是原始 trace 文本。反馈的质量决定闭环的质量。</p>
+<h3>4. 双 harness 实现是 agent 无关性的样板</h3>
+<p>同一系统有 adk 版（Google ADK + gemini-3.1-pro-preview）和 claude-code 版（20 个 subagent markdown + state.json 断点续跑）两套实现。claude-code 版证明：编排逻辑可以完全外置为 markdown + 文件系统状态，LLM 框架只是执行器。</p>
+
+<h2>局限与诚实标注</h2>
+<ul>
+<li><strong>单模型背书（论文自认）</strong>：所有实验只用 gemini-3.1-pro-preview，其他 LLM 的 ablation 被列为 future work。结论对弱模型是否成立未知</li>
+<li><strong>单硬件（论文自认）</strong>：全部在 TPU v6e 上测。论文声称 agentic 原则可迁移到其他 accelerator，但没有跨硬件数据</li>
+<li><strong> Beam 调参敏感性（我的推断）</strong>：beam width 3 / depth 3 / 2 iter 这组参数对结论影响多大没有 ablation；「depth 3 平台化」可能是预算配置的人为产物而非范式本质缺陷</li>
+<li><strong>并行成本（我的推断）</strong>：Parallel 1.58× 是 5 条轨迹 × 5 iter 的总和成本，论文没有报告 token 成本 / 算力成本对比。fast₁ 34/50 的「每任务成本」可能远高于 Auto</li>
+<li><strong>Ragged Paged Attention 失败模式未深挖（我的推断）</strong>：人写 4.65× vs agent 1.42× 的差距根因（动态 shape？ragged layout 复杂度？）论文没有分析</li>
+</ul>
+
+<h2>一句话</h2>
+<blockquote><p>MaxKernel 证明了 kernel 优化的「搜索算法」可以被抽象成 agent 系统外层的可插拔组件——在 brittle 的硬件 DSL 环境里，给每条轨迹足够的调试预算（深度）比聪明的早期剪枝（广度）更值钱。</p></blockquote>
+
+<h2>技术声明</h2>
+<ul>
+<li><strong>来源确认</strong>：基于 arXiv 2609.04523 全文（arxiv.org/html 提取）+ GitHub 仓库 AI-Hypercomputer/accelerator-agents 源码核验（pipeline_agent.py / graph.py / constants.py / claude-code worker 定义）</li>
+<li><strong>推断边界</strong>：Beam 平台化的归因、并行成本分析、Ragged PA 失败根因为本文推断，已标注；性能数字全部直接引自论文 Table 1/2/3</li>
+<li><strong>论文状态</strong>：2026-09-03 提交 arXiv，14 pages，CC BY 4.0，非同行评审版本</li>
+<li><strong>利益声明</strong>：无。与 Google/NVIDIA 无关联；作者独立分析</li>
+</ul>
+
+<h2>参考</h2>
+<ul>
+<li>论文：<a href="https://arxiv.org/abs/2609.04523">MaxKernel: Agentic Kernel Generation for TPUs</a></li>
+<li>代码：<a href="https://github.com/AI-Hypercomputer/accelerator-agents/tree/main/maxkernel">AI-Hypercomputer/accelerator-agents</a>（Apache-2.0，含 JAXBench 50 任务）</li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
