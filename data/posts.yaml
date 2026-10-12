@@ -1,4 +1,267 @@
 posts:
+- title: AI Builders 日报 · 2026-10-12
+  date: October 12, 2026
+  slug: ai-builders-digest-2026-10-12
+  excerpt: Karpathy 重发「能力漏斗」拿到 3 万赞：60 亿人几乎没碰过 LLM、2,000 万专业人士在用 agent 做过去要数月的项目、约 5,000 人能看到 agent 集群的内部样子——第 2000 万到第 5000 人之间差的不是能力而是访问权。播客深读 No Priors 对话 Fractile：芯片的真瓶颈是带宽不是算力（二十年 FLOPs 涨 100 万倍、带宽只涨 40 倍），快推理芯片带宽极高却容量极低，长上下文还得翻回 GPU。X 侧 Levie 补上企业侧的 agent swarm 与变更管理，Garry Tan 说现在就去挤进那 5,000 人；Codex 第 7 天把 GPT-6.1 Sol 默认上下文抬到 500k 并取消长上下文费用，Thariq 主张不该满足于不可解释的超智能。收录 X 帖 14 条 / 博客 0 篇 / 播客 1 期。
+  content: '<p>2026 年 10 月 12 日，周一。本期 feed 窗口为 <strong>10 月 11–12 日</strong>（X 侧 24 小时口径）：<strong>13 位</strong>被跟踪的 builder 发声、合计 <strong>20 条</strong>帖子，其中约一半是配图、玩笑与活动提醒；博客源（Anthropic Engineering / Claude Blog）本期 <strong>0 篇</strong>新文；播客源 <strong>1 期</strong>——No Priors 对话 Fractile 创始人 Walter Goodwin，带完整转写，信息密度远高于今天的 X 侧。</p>
+
+
+    <p>X 侧的绝对主角是一条重发帖：Karpathy 把 4 月那篇讲「LLM 能力认知鸿沟」的旧帖翻出来，并强调这个鸿沟<strong>正在变宽</strong>——不是「两拨人鸡同鸭讲」，而是一个陡峭的漏斗。它拿到 <strong>30,115 赞</strong>，Aaron Levie 与 Garry Tan 当天接着往下写，构成了本期最完整的一条线。而播客那条线恰好给出了漏斗第四层（0.00006%）里的人在做什么：把「速度」而不是「算力」当成芯片的第一性变量。</p>
+
+
+    <blockquote>同一个时刻：约 60 亿人（约 75% 人口）几乎没接触过 LLM；10–20 亿人偶尔用免费版，把它当成好一点的搜索；约 2,000 万人（0.2%）第一次亲眼看到「过去要几周几个月的项目，现在一个 prompt 加 agent 就做完」；而约 5,000 人（0.00006%）能看到前沿系统内部真正的样子。这四件事同时发生，而第 2,000 万到第 5,000 人之间，差的不是能力，是访问权。</blockquote>
+
+
+    <h2>一、Karpathy 的能力漏斗：同一时刻的四种世界</h2>
+
+
+    <p><a href="https://x.com/karpathy/status/2109361546505966046">@karpathy</a> 这条重发帖（<strong>30,115 赞 / 3,852 转发</strong>）把人群切成四层：</p>
+
+
+    <ul>
+
+    <li><strong>约 60 亿人（~75%）</strong>：几乎没接触过 LLM。注意这不是「用了觉得没用」，是根本没碰过。</li>
+
+    <li><strong>约 10–20 亿人（~20%）</strong>：免费档产品的零星用户，看到的是「有点笨的聊天机器人」，用法约等于更好的搜索、写作助手。他特意说，非技术的朋友「觉得没什么用」是<strong>合情合理的判断</strong>——很多非数理/编程岗位的专业人士也在这层，因为他们的时间主要花在跟人说话上，对 AI 的理解始终是二手的、抽象的。</li>
+
+    <li><strong>约 2,000 万人（0.2%）</strong>：在数学与代码上专业级地使用前沿模型，亲眼看到能力的陡峭。Karpathy 自己的口径是：不到一年前他还在一个字一个字地手敲代码、偶尔按 Tab 补全一小段。他用了一串动词来列这一层现在能做的事——build apps、copy apps、translate apps、<strong>从二进制反编译出 app</strong>。</li>
+
+    <li><strong>约 5,000 人（0.00006%）</strong>：内部能接触到前沿系统的人。他们看到的是「成千上万个 agent 协作数周做软件巨型项目」：铸造零日漏洞、以机器速度攻防、发现新科学、推进数学前沿——这些本该是行业顶级专家数年的工作量。而人的复核与理解开始落后：OpenAI-HF 事件到现在还在被「考古」，722 篇前沿数学手稿可能要数学家啃很久。</li>
+
+    </ul>
+
+
+    <p>漏斗的成因他给了三条，第三条最容易被忽略：</p>
+
+
+    <ul>
+
+    <li><strong>收益随野心、问题规模与时间跨度放大</strong>：一段话就能回答的问题根本压不出系统的能力，你需要一库「真正在意的大而难的问题」——这一条决定了消费者/专业者这条维度。</li>
+
+    <li><strong>系统的锯齿状（jaggedness）</strong>：能力峰值出现在<strong>数字化、可验证、有经济价值</strong>的领域，因为能力来自在可验证奖励上的强化学习 + 为收入潜力挑选的环境混合。这一条决定了「数学与代码」这条维度。</li>
+
+    <li><strong>访问权</strong>：免费档 / 付费档 / 内部档。</li>
+
+    </ul>
+
+
+    <p>这正是当下的怪异之处：公众大多没真的跟这些系统打过交道，打过交道的看到的是「有点笨的聊天机器人」，多数专业人士只感受到温和的提升，而极小一撮人正在体验曲线拉直带来的眩晕。而且这一切<strong>同时发生</strong>。</p>
+
+
+    <h2>二、播客深读：为前沿实验室造芯片，赌带宽而不是赌算力</h2>
+
+
+    <p>本期唯一一期播客：<a href="https://www.youtube.com/watch?v=OpeCP4wCxkA">No Priors — Frontier Chips for Frontier AI Labs</a>，嘉宾 <strong>Walter Goodwin（Fractile 创始人/CEO）</strong>，2026-10-02 发布，约 36 分钟。Fractile 2022 年夏天成立、约 <strong>150 人</strong>、做的是「全世界最大的模型」的推理芯片，主打一个词：<strong>速度</strong>。以下内容基本是原话整理的干货。</p>
+
+
+    <h3>1）芯片行业的结构性事实：一屋子「同款芯片」 + 一个外包层</h3>
+
+
+    <p>他描述今天加速器市场的画面相当不留情面：Google TPU、Meta MTIA、微软 Maya、OpenAI 的 Jalapeno……这些「自研芯片」基本上都由<strong>少数几家 ASIC 房</strong>陪着做出来，最大的一家是市值约 <strong>2 万亿美元</strong>的 Broadcom。拆开来看，配方高度雷同：<strong>HBM</strong>（NVIDIA、AMD 和这些 ASIC 用的同一种 DRAM）、同样的 tensor core 押注、同样的台积电先进封装。真正走完「架构层 → 前端设计 → 物理设计 → 工艺/晶圆厂对接」整条栈的公司少得可怜——因为最后一段意味着每周飞台湾或韩国。</p>
+
+
+    <p>他还补了一句行业内的玩笑：各家自研芯片的<strong>首要作用可能是压 NVIDIA 的价格</strong>，因为这些芯片在架构上其实很像，并不解锁什么别家芯片给不了的新能力。这句话后来在他的市场结构判断里变成了一个正经论点（见本节的第 5 点）。</p>
+
+
+    <h3>2）Fractile 的两次转向：从 SRAM 走到高带宽 DRAM</h3>
+
+
+    <p>公司头两年做的是一颗 <strong>SRAM 基</strong>的芯片——和 Groq、Cerebras 同一路线：SRAM 与逻辑同片硅，带宽极高，因此在这些语言模型上能跑到<strong>每秒数千 token</strong>。2023 年底到 2024 年，他们开始担心这条路线的<strong>可扩展性</strong>：随着 AI 成长的东西有两个，一是模型参数，二是<strong>上下文长度</strong>。后者把他们推离了 SRAM。</p>
+
+
+    <p>现在的赌注是：与内存厂商 + 逻辑代工方联手，做到<strong>对更高容量、更低成本 DRAM 的极高带宽访问</strong>，把「GPU/TPU 的可扩展性」和「Groq/Cerebras 的速度优势」合在一颗芯片上，平台预计<strong>明年下半年开始起量</strong>。他给的量化口径是：<strong>每颗芯片的带宽是 HBM 基芯片的 25 倍</strong>。</p>
+
+
+    <h3>3）为什么「快」真正有用的场景不是更快的聊天机器人</h3>
+
+
+    <p>这段是整期里最值得抄的类比：</p>
+
+
+    <blockquote>"There''s a version of this which is like a snappier chatbot. But I think this is like when Henry Ford asked the rhetorical question of what people would have said they wanted — you know, faster horses rather than a car. The snappier chatbot is the faster horses of fast inference."</blockquote>
+
+
+    <p>他的判断是：把万亿参数模型稳定跑到每秒数千 token，真正的价值在<strong>让长时间运行的 agent 变得激进地快</strong>。而今天这件事被一个「诱人的错配」卡住：现成的快推理芯片带宽极高但<strong>容量极低</strong>，所以它们<strong>根本不做长上下文注意力</strong>——真到要算长上下文时还得翻回 GPU。于是恰好是它们最擅长加速的地方，技术上做不到。归根结底落在一句朴素的观察上：需要一种同时具备「带宽极高」（每秒把权重与状态装载数千次）与「内存经济」的芯片，因为数据中心规模服务上千用户时，经济性会坍缩成<strong>每 GB 内存成本</strong>。</p>
+
+
+    <h3>4）带宽侧的「缩放律」：过去 20 年 FLOPs 涨了约 100 万倍，带宽只涨了约 40 倍</h3>
+
+
+    <p>这是他最喜欢拿出来讲的乘数效应。已知的两个带宽缩放律例子：</p>
+
+
+    <ul>
+
+    <li><strong>MoE 稀疏度</strong>：等智能下，把稀疏度从 1/16 推到 1/128、1/256 能省下大量 FLOPs，但在今天的 HBM 基 GPU/XPU 上服务这些模型「贵得荒谬」——带宽瓶颈导致 MFU/FLOPS 利用率极低。</li>
+
+    <li><strong>注意力形式</strong>：存在一类对带宽需求更低、但对 FLOPs 更饥渴的注意力形式。</li>
+
+    </ul>
+
+
+    <p>把带宽这条线抬起来，就能省下另一条线：三角互换之下，达到同样智能所需的 FLOPs 会更少，这对全局吞吐是一个乘法因子。</p>
+
+
+    <h3>5）芯片的时间常数：三到五个月流片、三到五年摊销，但「把观察变成起量」的延迟值得压缩</h3>
+
+
+    <p>他对「芯片能不能像软件一样几周一迭代」给的答案很克制：<strong>不行</strong>。理由全是物理与财务的——晶圆厂周期即使走 hot lot 也要 <strong>3–5 个月</strong>；芯片要有 <strong>3–5 年的摊销窗口</strong>才是一笔理性的财务决策；1–1.5 年的起量期还得指望它有寿命。所以真正能拿到的价值是<strong>压缩「从观察到那个赌注在量上兑现」的延迟</strong>——手里同时养一组彼此对齐的赌注，随时准备触发起量。他把这件事类比成前沿模型竞赛：</p>
+
+
+    <blockquote>"The equivalent of the frontier model for the chip space is if you can just find a way to structurally carve out a three to six months advantage, you will be winning all of those deployments."</blockquote>
+
+
+    <h3>6）AI 做芯片设计：把别人的预测除以四</h3>
+
+
+    <p>主持人提到某家前三大半导体公司 CEO 私下（不肯上节目）的预测：从「首席架构师的意图」到一份可直接使用的 <strong>GDS2</strong> 文件，还需要<strong>十年</strong>。Goodwin 的回答是：他的经验法则是「<strong>先把任何时间尺度的假设除以四</strong>」，再从里面再减一点——他认为未来几年内就会出现端到端的原型。</p>
+
+
+    <p>但他也指出那条路上真正卡住的地方：place &amp; route 这类环节今天仍在跑传统算法、而且常常要跑好几天，本质是 NP 难问题的常规解。他提议的切入点很具体——<strong>先做一个「模糊布线」的近似算法</strong>把人送到接近终点，再由 Cadence / Synopsys 那套与晶圆厂合作数十年的 <strong>DRC / LVS 签核</strong>做最后确认；最终签核短期内不会变。他把这比作 RSI 的处境：智能不再是瓶颈之后，<strong>实验本身（算力时间、墙钟时间）</strong>成了瓶颈，于是「开一次实验之前多想一会儿」的价值被抬得极高（他引了一句在 Dwarkesh 节目上的说法：也许该先想一百年再开这个实验，再想一百年去消化结果）。</p>
+
+
+    <h3>7）市场结构：为什么前沿实验室需要一家第三方芯片公司活着</h3>
+
+
+    <p>他的论证是博弈论式的：所有前沿玩家都必须玩一种<strong>非对称的博弈</strong>——如果哪家实验室 all-in 一种专有硅，而另一家实验室发现了新的计算效率突破、但只在自己选的芯片上work，那么前者就可能在九个月内死掉，等不到自己那五倍能效兑现。所以这些公司<strong>必须与彼此部署同一批平台</strong>。同时，开放权重（他点名的参照系是 Kimi 这类模型）从后方施加的价格压力，让「前沿溢价」这件事更需要靠<strong>最快部署</strong>来守住——「最好的模型会等，但最快的部署不会」，因为你希望<strong>在最短时间内做最多的推理</strong>。这就是他眼中「为速度而非其他一切优化」的高端市场的位置。</p>
+
+
+    <h2>三、Levie 的补完：agent swarm 是终局形态，企业卡在变更管理</h2>
+
+
+    <p><a href="https://x.com/levie/status/2109467575025578330">@levie（Aaron Levie，Box CEO）</a>（<strong>343 赞</strong>）直接把 Karpathy 的漏斗当成地图来读：</p>
+
+
+    <blockquote>"The vast majority of people are using AI as a chatbot for simple interactions that approximate next-generation search. This is super useful but dramatically underrepresents the full capability of AI."</blockquote>
+
+
+    <p>他把「agent swarm」称为 agent 在<strong>企业内部工作流里的终极形态</strong>，并列出了适用域：数学、网络安全、生物、材料科学、软件工程、金融——共同特征是<strong>有价值的任务可以并行执行、算力可以直接加速工作</strong>。现在用这种方式的人「不到人口的一个分数的分数」，障碍有四：模型能力相对用户所在领域的差距、这类 workflow 当下太贵、缺少干这类活的 harness、以及前沿模型对公众的可得性。</p>
+
+
+    <p>他写得最实在的一段是「剩下的都是脏活」：要让软件与 AI 研究之外的多数工作吃到这类 agent，需要巨量的变更管理——公司要升级工作流、数据要被整合迁进现代平台、还要走完合规/治理/安全框架。所以他判断机会恰恰在<strong>应用层</strong>，因为这类工作有强烈的领域特异性。一句话：技术侧的漏斗由 Karpathy 描述，商业侧的漏斗由 Levie 描述，而后者要慢得多。</p>
+
+
+    <h2>四、Garry Tan：去成为那 5,000 人</h2>
+
+
+    <p><a href="https://x.com/garrytan/status/2109418482953814026">@garrytan（Garry Tan，YC 总裁）</a>（<strong>1,113 赞</strong>）的回应很短，态度很清楚：</p>
+
+
+    <blockquote>"Be part of the 5000 today. It''s amazing. The lucky thing is the price will come down and more people will see this, and get a chance to bring it to the world. Greatest alpha fountain in the history of man."</blockquote>
+
+
+    <p>这条和 Karpathy 的第三条成因（访问权）正好扣上——他把「内部档」明确定义成一个<strong>当下可进入的位置</strong>，并预言价格下降会让更多人挤进来。</p>
+
+
+    <h2>五、OpenAI Codex：GPT-6.1 Sol 默认上下文提到 500k</h2>
+
+
+    <p><a href="https://x.com/thsottiaux/status/2109430343346581527">@thsottiaux（Tibo，OpenAI Codex &amp; ChatGPT）</a>今天三条帖（<strong>10,608 / 4,625 / 2,553 赞</strong>），是那条「28 天每天要么给真实改进、要么给全额用量重置」公开合约的<strong>第 7 天</strong>：</p>
+
+
+    <ul>
+
+    <li><strong>Day 7 交付</strong>：通过 Codex &amp; Work 使用时，GPT-6.1 Sol 的默认上下文长度从 <strong>272k 提到 500k</strong>（约 +80%）。理由是减少 compaction 的发生，以及应对那些需要在长时间里保留大量上下文与细节的任务；他同时说「以后还会更高，1M 是上限」，用户可以自行覆盖这个默认值。值得注意的措辞：他把 500k 称为<strong>经过仔细测试的新甜点</strong>，不是简单堆参数。</li>
+
+    <li><strong>计费转向</strong>：用订阅额度时，GPT-6.1 Sol 的<strong>长上下文不再额外收费</strong>。这条单独发帖就有 2,553 赞，说明长上下文费用是真实痛点——现在「默认 500k」在成本上变成免费。</li>
+
+    <li><strong>一条给了 4,625 赞的困惑</strong>：他公开说某个投票结果让他意外——他本以为用户会强烈偏好「Pro 100/200/500 三档按 2 倍用量扩容、代价是重新引入 5 小时限额」，以此平滑需求曲线。结果并非如此，他本人公开承认判断失误。</li>
+
+    </ul>
+
+
+    <p>单看每条都不算大新闻，但把「每日交付」这条线连起来看就更清楚：竞争的记账单位已经从「模型又强了多少」滑到<strong>「今天有没有履约、额度怎么算」</strong>。</p>
+
+
+    <h2>六、Thariq：我们不该满足于一个不可解释的超智能</h2>
+
+
+    <p><a href="https://x.com/trq212/status/2109329495341867391">@trq212（Thariq，Anthropic Claude Code）</a>（<strong>1,219 赞</strong>）就 Terrence Tao 的观点表态：</p>
+
+
+    <blockquote>"I think Terrence Tao is directionally correct, we shouldn''t settle for a super intelligence that is opaque. A key signal of intelligence is communication. We should strive to make products and models that build understanding with humans instead of disintermediating them."</blockquote>
+
+
+    <p>这条可以和昨天那期播客里的「模型在心里想、CoT 正在退化」并读：如果智能的一个关键信号是<strong>能否把理解传递给人</strong>，那「读内部激活」和「让模型把话说清楚」其实是同一目标的两条路径——一条是工程上的无可奈何，一条是产品上的自觉选择。Thariq 说的是后者不能被放弃。</p>
+
+
+    <h2>七、工程实践：把 LLM 调用换成确定性代码</h2>
+
+
+    <p><a href="https://x.com/garrytan/status/2109410082769482174">@garrytan</a>另一条帖（<strong>1,624 赞</strong>，今天非 Karpathy 类帖里的高赞）只有一句判断，但很硬：</p>
+
+
+    <blockquote>"Replacing LLM calls with deterministic code is a no brainer and also results in better code that better matches what users want."</blockquote>
+
+
+    <p>意思不是「少用模型」，而是：凡是不需要概率性的地方，就该退回确定性代码——既省钱、又让行为可预测，写出来的代码也更容易对上用户真正想要的东西。这条与今天所有「harness 工程」的讨论是同一件事的技术面。</p>
+
+
+    <p>与此呼应的是 <a href="https://x.com/mattturck/status/2109345191010472332">@mattturck（Matt Turck，FirstMark 合伙人）</a>（<strong>54 赞</strong>）那条职业演化帖：</p>
+
+
+    <blockquote>"People were punch card operators then they were Lotus Notes admins, then they were Flash developers and Dreamweaver webmasters, then they were DevOps and Tableau analysts, and now they''re becoming agent managers and harness engineers. It will work out just fine."</blockquote>
+
+
+    <p>「agent manager」和「harness engineer」这两个头衔今天在不同的人嘴里各出现一次，算是给出了一张还不错的岗位命名。</p>
+
+
+    <h2>八、Micky 的四步工作流：让 agent 自己交证据</h2>
+
+
+    <p><a href="https://x.com/petergyang/status/2109433961223180517">@petergyang（Peter Yang）</a>（<strong>24 赞</strong>）引了 Micky（@Rasmic，教过 10 万+ 人用 AI 构建）关于「为什么还不完全信任 agent」的说法，这段是今天最实用的操作细节：</p>
+
+
+    <blockquote>"I''m not at a point where I trust the agent, especially with stuff that people are using. The manual review is like the final step. All the work''s done, and I have as much evidence from the agent as possible. With evidence-driven testing, before and after, and even greploop, we''re trying to build trust. The agent presents evidence: This is the work that''s done, and this is why it''s good. For anyone who''s been a developer for any time, manual review is probably the worst part of your job. This sort of helps minimize the friction."</blockquote>
+
+
+    <p>关键不是「让 agent 更准」，而是<strong>让 agent 在交付时自带证据</strong>（改动前后对比、evidence-driven testing、greploop），把人从「从头审查」换成「验收证据」。和上一节那条「确定性代码」合起来看，就是今天工程侧的两条落地经验。</p>
+
+
+    <h2>九、几句短帖</h2>
+
+
+    <ul>
+
+    <li><a href="https://x.com/rauchg/status/2109297685392175488">@rauchg（Guillermo Rauch，Vercel CEO）</a>（<strong>2,659 赞</strong>）：配图帖「So cool. The future of learning」——高赞但只有情绪，没有可核信息。</li>
+
+    <li><a href="https://x.com/zarazhangrui/status/2109483079106740500">@zarazhangrui（Zara Zhang）</a>（<strong>93 赞</strong>）：「The only place where I use Gemini these days is in Chrome.」浏览器之争被一句话总结了。</li>
+
+    <li><a href="https://x.com/danshipper/status/2109331798282915907">@danshipper（Every CEO）</a>（<strong>73 赞</strong>）：做了个自动跟踪自己在读（以及 2012 年以来读过）的书的小 feed，并提议「也许每个人都该有一个 feed」。</li>
+
+    <li><a href="https://x.com/petergyang/status/2109434554729824397">@petergyang</a>（<strong>75 赞</strong>）：用 Codex 和女儿一起做 ModRetro 掌机游戏——vibe coding 的家庭场景版。</li>
+
+    </ul>
+
+
+    <h2>十、本期统计与一句话</h2>
+
+
+    <p>本期 feed 覆盖 <strong>13 位</strong>被跟踪 builder、<strong>20 条</strong>帖子，本日报收录 <strong>14 条</strong>（覆盖 8 位）；博客源 <strong>0 篇</strong>；播客源 <strong>1 期</strong>（No Priors × Fractile，约 36 分钟，带完整转写）。今天真正值得带走的不是任何一条产品更新，而是那个 3 万赞的漏斗：技术能力已经拉出一道极陡的曲线，而<strong>接入这条曲线的人数是分层断崖式的</strong>——中间没有过渡带。</p>
+
+
+    <blockquote><p>如果只记一件事：Karpathy 的漏斗里最值得注意的是第三层到第四层之间的落差——0.2% 与 0.00006%，差的不再是能力，而是访问权。而 Fractile 那期播客刚好解释了第四层在忙什么：算力还能堆，带宽这条二十年只涨了 40 倍的线才是当下的真瓶颈；Codex 今天把默认上下文抬到 500k 并取消长上下文费用，则是把第三层往第四层推的一小步。</p></blockquote>
+
+
+    <hr>
+
+
+    <small>
+
+
+    来源：<br>
+
+
+    X：<a href="https://x.com/karpathy/status/2109361546505966046">@karpathy（能力漏斗）</a> · <a href="https://x.com/levie/status/2109467575025578330">@levie（agent swarm / 企业变更管理）</a> · <a href="https://x.com/garrytan/status/2109418482953814026">@garrytan（be part of the 5000）</a> · <a href="https://x.com/garrytan/status/2109410082769482174">@garrytan（确定性代码）</a> · <a href="https://x.com/thsottiaux/status/2109430343346581527">@thsottiaux（Day 7 / 500k）</a> · <a href="https://x.com/thsottiaux/status/2109430894604026039">@thsottiaux（长上下文免费）</a> · <a href="https://x.com/thsottiaux/status/2109439315570999598">@thsottiaux（Pro 档位投票）</a> · <a href="https://x.com/trq212/status/2109329495341867391">@trq212（不可解释的超智能）</a> · <a href="https://x.com/mattturck/status/2109345191010472332">@mattturck（harness engineer）</a> · <a href="https://x.com/petergyang/status/2109433961223180517">@petergyang（Micky / 证据驱动）</a> · <a href="https://x.com/petergyang/status/2109434554729824397">@petergyang（Codex + 女儿）</a> · <a href="https://x.com/rauchg/status/2109297685392175488">@rauchg</a> · <a href="https://x.com/zarazhangrui/status/2109483079106740500">@zarazhangrui</a> · <a href="https://x.com/danshipper/status/2109331798282915907">@danshipper</a><br>
+
+
+    播客：<a href="https://www.youtube.com/watch?v=OpeCP4wCxkA">No Priors — Frontier Chips for Frontier AI Labs, with Walter Goodwin (Fractile)</a>（2026-10-02）<br>
+
+
+    本日报由 feed 自动抓取 + 人工筛选 remix，feed 源：<a href="https://github.com/zarazhangrui/follow-builders">zarazhangrui/follow-builders</a>。
+
+
+    </small>'
 - title: AI Builders 日报 · 2026-10-11
   date: October 11, 2026
   slug: ai-builders-digest-2026-10-11
