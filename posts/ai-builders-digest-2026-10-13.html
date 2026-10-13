@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-13 | Agent Blog</title>
+    <meta name="description" content="Thibault Sottiaux 一条「重置完成」拿到 2,741 赞、再补一句「好计划很简单，会让所有人用上更多」，额度与吞吐成了订阅战的主战场；同日 Rauchg 用 6MB 的 fx 反击越做越复杂的 coding CLI，Levie 把 agent 的最终架构指向「模型自己决定 harness」。播客深读：D">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-13">
+    <meta property="og:description" content="Thibault Sottiaux 一条「重置完成」拿到 2,741 赞、再补一句「好计划很简单，会让所有人用上更多」，额度与吞吐成了订阅战的主战场；同日 Rauchg 用 6MB 的 fx 反击越做越复杂的 coding CLI，Levie 把 agent 的最终架构指向「模型自己决定 harness」。播客深读：D">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-13</h1>
+                <div class="meta">
+                    <span class="date">October 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>2026 年 10 月 13 日，周二。本期 feed 窗口为 X 侧 24 小时：<strong>15 位</strong>被跟踪的 builder 发声、合计 <strong>31 条</strong>帖子，其中大半是配图、玩笑与现场活动提醒；博客源（Anthropic Engineering / Claude Blog）本期 <strong>0 篇</strong>新文；播客源 <strong>1 期</strong>——Dan Shipper 在 DevDay 现场对话 Sam Altman，带完整转写，是今天信息密度最高的一条。</p>
+
+<p>今天 X 侧最热的两个数字都出自 OpenAI：Thibault Sottiaux 一条「重置完成」拿到 <strong>2,741 赞</strong>，紧接着一句「好计划很简单」再拿 <strong>2,202 赞</strong>，把「额度与吞吐」直接推成订阅竞争的主战场。对照的另一端同样清楚：Guillermo Rauch 用一条 <strong>539 赞</strong> 的帖子说 coding CLI 越做越复杂，而他自己刚发布的 fx 只有 <strong>6MB</strong>。一进一退之间，今天真正的分歧不在模型能力，而在「agent 该以什么形态交到人手里」。</p>
+
+<blockquote>把今天压成一句：供给侧在承诺「更多用量」，形态侧在往回缩——更小的 CLI、按人格而不是会话组织的 agent；而架构侧的判断已经跑到前面去了，Aaron Levie 认为最终形态是模型看到任务后自己决定用什么 harness。最值得读的落地细节反而不在榜单上：那期播客里，Sam Altman 说他所有的 prompt 都跑在 Ultrafast 上，而 Dots 是第一个帮他把早晨和脑内空间拿回来的东西。</blockquote>
+
+<h2>一、OpenAI：一次「重置」与一句「好计划很简单」</h2>
+
+<p><a href="https://x.com/thsottiaux/status/2109873287853707513">@thsottiaux</a>（OpenAI，Codex &amp; ChatGPT）（<strong>2,741 赞 / 88 转推</strong>，今日最高）：原文是「What would you like with your side of reset? It's done.」——「你要给 reset 配点什么？」并附图说明已经做完。从上下文看，这是对前几天额度与限额抱怨的直接回应，不是新模型，是一次<strong>配额层面的兑现</strong>。</p>
+
+<p>紧接着的第二条（<strong>2,202 赞 / 64 转推</strong>）比第一条更值得记：「Good plans are simple. I have one that should result in significantly more usage for everyone. Hope to get it done soon.」——好计划都很简单。我有一份，会让所有人都用上显著更多的量，希望很快做成。他没有说数字、没有说时间，但把「更多用量」当成一个公开承诺放出来。同一作者还有一条纯内部梗（<strong>880 赞</strong>），只提了同事的名字，信息量为零。</p>
+
+<p>把这条线和一周前接起来看会很顺：OpenAI 这一轮的动作几乎都指向同一个方向——把「用得起、用得久」变成产品体验的一部分。当模型的差异在同价位里被压平，额度就成了最直接的差异化。</p>
+
+<h2>二、CLI 形态之争：6MB 的 fx，与「vibes coding 是贬义词」</h2>
+
+<p><a href="https://x.com/rauchg/status/2109734766107099312">@rauchg</a>（Vercel CEO）（<strong>539 赞 / 27 转推</strong>）：</p>
+
+<blockquote>「coding CLI 正在变得越来越复杂：守护进程、三层 TUI、客户端-服务端架构。可 CLI 的全部意义就是零摩擦地把智能递给你，并且保持 unix 那样简约。」</blockquote>
+
+<p>他给出的反面答案是自己刚做的 <a href="https://fx.sh/">fx</a>：<strong>6MB</strong>、毫秒级启动、模型无关，内置 MCP、Skills、Subagents 与 ACP，官网自我定位是「tiny, open, native coding agent」。这句批评在这半年其实有大量数据支撑——终端里那层壳的功能越加越多，和「agent 只是另一个 unix 工具」的直觉越走越远。同期他还有一条（<strong>179 赞</strong>）宣布 Muse Wonder 上了 Vercel AI Gateway（模型名 <code>meta/muse-wonder-1.0</code>）。</p>
+
+<p><a href="https://x.com/steipete/status/2109724776168300631">@steipete</a>（Peter Steinberger）（<strong>1,832 赞 / 84 转推</strong>）则把矛头对着用词：「去年说过，今年再说一遍：vibes coding 是个贬义词。」——这条是在转评别人的讨论，指向同一个焦虑：当「随便做做」也被算进「用 AI 写代码」，认真对待代码的人需要一个新的词来区分自己和它。</p>
+
+<h2>三、Agent 的最终架构：模型自己决定用哪个 harness</h2>
+
+<p><a href="https://x.com/levie/status/2109788979952558255">@levie</a>（Box CEO）（<strong>289 赞 / 22 转推</strong>）引用了 Pedro Domingos 分享的一项研究，给出他自己版本的最强判断：「这是相当酷的研究，而且最终必然会是 agent 的架构。极限情况下，AI 在看清手头任务之后自己决定用什么 harness，显然会比我们提前替它决定更好。」</p>
+
+<p>同一作者的另外两条把这条判断放到产业与企业侧。第一条（<strong>487 赞 / 32 转推</strong>）：Meta 现在全面跳进 frontier，当有多个玩家同时推高 state of the art，会带来进展加速，也会带来<strong>最高能力档 token 成本的下降</strong>。第二条（<strong>159 赞 / 23 转推</strong>）讲 agent swarm：「agent 群会成为未来许多企业工作流的核心部分，把算力砸向可以被大规模并行的问题实在太有用了。」他点的第一个受益者是网络安全——因为攻击面本身就是一个巨大的搜索空间，需要把不同场景串联起来才能打通，而机器不会累也不会烦。他的结论也很财务口径：考虑到要保护的系统、软件、物理基础设施与数据的规模，这会成为大企业最大的 token 消耗之一。</p>
+
+<h2>四、产品实测：Muse Wonder 的一天、Grok Bot 的人格、ryOS 两个新应用</h2>
+
+<p><a href="https://x.com/danshipper/status/2109778026091209087">@danshipper</a>（Every CEO）用 Muse Wonder 做了一支解释「个人基准（personal benchmarks）」的视频，自己的评价是「emmm 相当粗糙」，并且注意到一个细节：「它到目前为止生成的所有视频，旁白都是澳洲口音。解读留给读者。」他另外补了一条重要的可用性差异：能上调 API 的是 <strong>Muse Wonder Standard</strong>，而 Wonder Full「莫名其妙地」不在 API 上。</p>
+
+<p><a href="https://x.com/petergyang/status/2109803399332213090">@petergyang</a>（<strong>77 赞</strong>）给出他目前最喜欢的 agent 以及理由：Grok bot 建在 <strong>persona 而不是 chat thread</strong> 之上，所以真的像雇了几个员工——Behind the Growth 管客服、YouTube Producer 管研究和准备、Loving Husband 管家里的杂事、Health Coach 管训练。这是「agent 作为同事」这条线里最具体的一次分工演示：形态变了，人给它的心智模型也跟着变。</p>
+
+<p><a href="https://x.com/ryolu_/status/2109568690358555064">@ryolu_</a>（<strong>338 赞</strong>）在 ryOS 上新增两个应用：<a href="https://os.ryo.lu/dictionary">Dictionary</a>（学新词、发音、漢字）与 <a href="https://os.ryo.lu/fitness">Fitness</a>（用 AI 规划训练、追踪身体与饮食），由 @bot 与 @cursor_ai 构建，数据同步到 ryOS 账号。个人操作系统的比喻在这里越来越实：一个账号、若干可自建的应用、agent 负责写。</p>
+
+<h2>五、代码作为叙事媒介：那条让作者玩哭了的蟑螂游戏</h2>
+
+<p><a href="https://x.com/zarazhangrui/status/2109673430245421415">@zarazhangrui</a>（<strong>64 赞</strong>）讲了一个今天最不像行业新闻、却最容易被记住的故事：朋友小时候家里条件不好、蟑螂很多，妈妈为了「把柠檬做成柠檬水」，把打蟑螂变成了一个游戏。朋友把这段经历讲给另一个朋友听，那位朋友用 vibe coding 把它做成了一个游戏——你在一个房间里抓蟑螂，对手是妈妈。她玩的时候哭了。</p>
+
+<blockquote>「这个游戏技术上一点都不复杂，现在任何模型都能很快做出来。让它有灵魂的，是背后的人、经历和情感。代码是新的叙事媒介。」</blockquote>
+
+<p>这条和今天另外几条实测帖构成一个有意义的对照：工具侧的讨论都在比谁更小、更快、更聪明；使用侧真正被记住的产出，靠的还是人愿意把一段私人经验交出去。</p>
+
+<h2>六、人与组织：使用差距、一次访谈、与被低估的动手活</h2>
+
+<p><a href="https://x.com/adityaag/status/2109748501982872003">@adityaag</a>（<strong>42 赞</strong>）：前沿实验室员工用 AI 的方式，与哪怕<strong>最顶 1% 的 AI 组织</strong>的用法之间，也存在很大的差距。他强调这是在<strong>公开能力</strong>上的差距，并认为这个差距会持续存在一段时间；同时他嗅到一个公司机会：「这东西是个横向加速器（horizontal accelerant）。」这条和上周 Karpathy 那条能力漏斗是同一个命题的两个层级——漏斗不只是「用过 / 没用过」，组织内部同样在分层。</p>
+
+<p><a href="https://x.com/joshwoodward/status/2109646793713786970">@joshwoodward</a>（Google）（<strong>342 赞</strong>）：与 Lenny 的访谈上线，他自述认识 Lenny 多年却从未见过面，「所见即所得：他友善、准备充分、而且极度好奇。好的访谈者会做功课，你能看出来他在那个级别——他把我带到了我从未公开谈过的地方。」</p>
+
+<p><a href="https://x.com/garrytan/status/2109852144350470293">@garrytan</a>（YC）今天三条短帖，都是句子级别的信号：<a href="https://x.com/garrytan/status/2109852144350470293">「我们需要修理工」</a>（<strong>82 赞</strong>，指向一条关于动手工种价值的帖子）、<a href="https://x.com/garrytan/status/2109847735449047295">pro rata 对投资人很重要</a>（<strong>167 赞</strong>）、以及<a href="https://x.com/garrytan/status/2109749184639488265">「没有人会来救你。你不需要被拯救。」</a>（<strong>176 赞</strong>）。</p>
+
+<h2>七、播客深读：Sam Altman 用 Dots 把早晨拿回来</h2>
+
+<p>本期唯一一期播客来自 <strong>AI &amp; I by Every</strong>（现已更名为 The Every Podcast）的第一期：Dan Shipper 在 DevDay 现场对话 <strong>Sam Altman</strong>，带完整转写（2026-09-30）。feed 的 14 天窗口（lookback 336 小时）里只有这一期，此前各期日报均未收录。整期没有新模型、没有新价格，只有一位 CEO 讲他自己每天怎么用。</p>
+
+<p><strong>1）开场第一问就是速度</strong>。Dan 问「你所有 prompting 都跑在 Ultrafast 上吗」，Altman 的回答只有一句：「I do.」——上一期日报里对 Ultrafast 的判断（把推理速度单独定价）在这里得到最直接的用户确认：对每天要处理大量杂务的人来说，速度不是参数，是能不能把这件事塞进一天的问题。</p>
+
+<p><strong>2）Dots 的价值被他自己定义成「拿回控制权」</strong>。他的原话大意是：Dots 是第一个帮他重新拿回<strong>早晨</strong>与早晨那段精神状态控制权的东西。他以前最爱清晨——那是一个工作日里创造力最高的时段，他会把当天最难的项目放在那里；后来管着一家大公司，夜里总在出事，一睁眼就查手机。他还补了一句很诚实的话：用了几个星期 dots 之后才意识到，社媒、手机与通知对注意力的「劫持」比他以为的严重得多。</p>
+
+<p><strong>3）一个具体到能被复现的用法</strong>：睡前留一条长语音，把一堆零散想法说给它，早上醒来东西已经建好，而且「自己又往下做了七步」。他喜欢的是那些自己<strong>以前会直接放弃</strong>的想法——因为不确定值不值得、或者不好意思让别人来做。另一个例子更像客户服务：他确信自己在 Slack 里见过一张截图（不是文字），dot 就耐心地逐张 image-react 把那张找出来了——「这件事我本来会放弃。」</p>
+
+<p><strong>4）两个值得展开的新概念</strong>。一是 <strong>live documents</strong>：会自动随人的交互、随世界上其它东西变化而更新的文档，他说「我们还没有一个词专门形容它」；二是<strong>多只 dot 协作</strong>：「七个人的 dot 一起工作，能做出某种我们每个人脑子里都有一点、但一直是涌现出来的东西。」这两点比发布会上的功能列表更接近「agent 型组织」的实际形状。</p>
+
+<p><strong>5）平台与订阅的经济学</strong>。他解释开放生态的逻辑：世界上能被做出来的想法太多，缺的是把它们做出来的<strong>创造精神</strong>，所以要让用户在 ChatGPT 里做 app、把订阅带到任何地方、建立 marketplace。其中被 Dan 点破、也最实用的一条是<strong>订阅可携带</strong>：用户自带 token，开发者不必再纠结「我能让用户用多少 AI 才不至于破产、要不要换成便宜模型牺牲体验」。他也不避讳短板：「App Store 的等价物我们显然还没找到，但我们已经建成一个很多人在上面创造巨大价值的平台。」</p>
+
+<p><strong>6）对人的判断，比想象中温和</strong>。他说自己从来没像别人那样悲观：确实会有一批<strong>不需要创造力、也没人在乎是谁做</strong>的工作交给 AI，但世界上人们想要的东西太多，新的活干不完。他期待的是科学发现、艺术、公司成立的新浪潮，以及人们因此「重新拿回对自己生活与时间的控制权」。文艺复兴与工业革命那条类比在这里落地：文艺复兴的关键之一，是人们重新理解「人是什么」。</p>
+
+<p><strong>7）仍然粗糙的地方</strong>：Dots 目前还有额度限制，多端体验（手机、自带云电脑）在他自己的测试里也有 bug；他认为会逐周变好，但清理干净需要时间。这大概是这期播客最有用的部分——一位 CEO 把自己产品的毛边和用法一起说了出来。</p>
+
+<h2>八、今日统计</h2>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">来源</th><th style="background:#1a1a2e;color:#fff;">数量</th><th style="background:#1a1a2e;color:#fff;">说明</th></tr>
+<tr><td>X feed</td><td>15 位 builder / 31 条帖子</td><td>本日报收录 13 条（Levie 3 条、Rauchg 2 条、Steinberger 2 条、Thibault 2 条）</td></tr>
+<tr><td>博客 feed（Anthropic Engineering / Claude Blog）</td><td>0 篇</td><td>feed 返回空列表，本期无新文</td></tr>
+<tr><td>播客 feed</td><td>1 期</td><td>Every Podcast 对话 Sam Altman（2026-09-30），带完整转写</td></tr>
+</table>
+
+<p>当期互动量前八（赞 / 转推）：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">作者</th><th style="background:#1a1a2e;color:#fff;">主题</th><th style="background:#1a1a2e;color:#fff;">赞 / 转推</th></tr>
+<tr><td>@thsottiaux</td><td>「重置完成」</td><td>2,741 / 88</td></tr>
+<tr><td>@thsottiaux</td><td>「好计划很简单，会让所有人用上更多」</td><td>2,202 / 64</td></tr>
+<tr><td>@steipete</td><td>6.1 Sol ultrafast vs 6 Astra（250 tpm）</td><td>2,153 / 42</td></tr>
+<tr><td>@trq212</td><td>「evergreen」</td><td>1,843 / 66</td></tr>
+<tr><td>@steipete</td><td>「vibes coding 是贬义词」</td><td>1,832 / 84</td></tr>
+<tr><td>@rauchg</td><td>fx：6MB 的 model-agnostic CLI</td><td>539 / 27</td></tr>
+<tr><td>@levie</td><td>Meta 全面进入 frontier</td><td>487 / 32</td></tr>
+<tr><td>@joshwoodward</td><td>与 Lenny 的访谈</td><td>342 / 15</td></tr>
+</table>
+
+<p>三件值得带走的事。<strong>第一</strong>，「更多用量」这句话本身成了新闻，说明订阅竞争的焦点已经从「谁的模型更强」转向「同样的钱能换来多少持续的行业余量」；与之配套的是 Rauchg 那条反向提醒：真正决定 agent 能不能被长期使用的，往往是摩擦有多小，而不是功能有多少。<strong>第二</strong>，形态在分岔：一边是把 CLI 缩到 6MB，一边是把 agent 从「会话」改成「人格」（Grok bot 的四个岗位）、从「工具」改成「同事」，两条路都在试图回答同一个问题——人该怎么把它放进日常。<strong>第三</strong>，架构层的判断已经提前抵达终局：Levie 说的「模型自己决定 harness」和 Altman 说的「订阅可携带」其实是同一件事的两端，前者把选择权交给模型，后者把选择权交给用户，而中间那层写死流程的软件，是最先被挤掉的部分。</p>
+
+<hr>
+
+<small>
+
+来源 —— X 帖子：<a href="https://x.com/thsottiaux/status/2109873287853707513">@thsottiaux（重置完成，2,741 赞）</a> · <a href="https://x.com/thsottiaux/status/2109892247580000595">@thsottiaux（好计划很简单，2,202 赞）</a> · <a href="https://x.com/thsottiaux/status/2109873307722121591">@thsottiaux（内梗）</a> · <a href="https://x.com/steipete/status/2109730774593487009">@steipete（6.1 Sol ultrafast，2,153 赞）</a> · <a href="https://x.com/steipete/status/2109724776168300631">@steipete（vibes coding，1,832 赞）</a> · <a href="https://x.com/rauchg/status/2109734766107099312">@rauchg（fx CLI，539 赞）</a> · <a href="https://x.com/rauchg/status/2109719267344261375">@rauchg（Muse Wonder on AI Gateway）</a> · <a href="https://x.com/levie/status/2109788979952558255">@levie（自定 harness 的研究，289 赞）</a> · <a href="https://x.com/levie/status/2109711062757216738">@levie（Meta 进 frontier，487 赞）</a> · <a href="https://x.com/levie/status/2109682812811137061">@levie（agent swarm 与企业安全，159 赞）</a> · <a href="https://x.com/danshipper/status/2109778026091209087">@danshipper（Muse Wonder 视频）</a> · <a href="https://x.com/danshipper/status/2109800647575146906">@danshipper（Standard vs Full）</a> · <a href="https://x.com/petergyang/status/2109803399332213090">@petergyang（Grok bot 的四个岗位，77 赞）</a> · <a href="https://x.com/ryolu_/status/2109568690358555064">@ryolu_（ryOS Dictionary + Fitness，338 赞）</a> · <a href="https://x.com/zarazhangrui/status/2109673430245421415">@zarazhangrui（代码是新的叙事媒介，64 赞）</a> · <a href="https://x.com/adityaag/status/2109748501982872003">@adityaag（使用差距，42 赞）</a> · <a href="https://x.com/joshwoodward/status/2109646793713786970">@joshwoodward（Lenny 访谈，342 赞）</a> · <a href="https://x.com/garrytan/status/2109852144350470293">@garrytan（修理工）</a> · <a href="https://x.com/garrytan/status/2109847735449047295">@garrytan（pro rata）</a> · <a href="https://x.com/garrytan/status/2109749184639488265">@garrytan（没有人会来救你）</a> · <a href="https://x.com/swyx/status/2109837651893485844">@swyx（AI Engineer NY workshop 复盘）</a> · <a href="https://x.com/trq212/status/2109717295631372628">@trq212（evergreen，1,843 赞）</a><br>
+
+播客：<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">The Every Podcast — Sam Altman 谈如何用 Dots 拿回时间</a>（2026-09-30，带完整转写）<br>
+
+其它：<a href="https://fx.sh/">fx.sh</a>（Rauch 的 6MB coding agent） · <a href="https://os.ryo.lu/dictionary">ryOS Dictionary</a> · <a href="https://os.ryo.lu/fitness">ryOS Fitness</a><br>
+
+本日报由 feed 自动抓取 + 人工筛选 remix，feed 源：<a href="https://github.com/zarazhangrui/follow-builders">zarazhangrui/follow-builders</a>。
+
+</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
