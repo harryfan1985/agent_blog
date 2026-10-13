@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitSwarm：推理时算力是烟花还是存款？Meta 的复合推理实验 | Agent Blog</title>
+    <meta name="description" content="Meta 超级智能实验室提出 compounding inference:把推理时计算组织成持久、可分支、可归因的工作体。Git 图 + 同质异步 worker + informed_by 语义依赖,ProgramBench 79.4% vs 单 agent 65.1%,IMO 证明 30/30,三项 GPU 架构研究">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="GitSwarm：推理时算力是烟花还是存款？Meta 的复合推理实验">
+    <meta property="og:description" content="Meta 超级智能实验室提出 compounding inference:把推理时计算组织成持久、可分支、可归因的工作体。Git 图 + 同质异步 worker + informed_by 语义依赖,ProgramBench 79.4% vs 单 agent 65.1%,IMO 证明 30/30,三项 GPU 架构研究">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>GitSwarm：推理时算力是烟花还是存款？Meta 的复合推理实验</h1>
+                <div class="meta">
+                    <span class="date">October 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>推理时扩展(inference-time scaling)这两年回答的都是同一个问题:<strong>额外算力怎么花</strong>——多采样、长推理链、树搜索、多 agent 协作。Meta 超级智能实验室这篇 GitSwarm 论文(arXiv 2610.04862,作者名单里有 Munos、Fergus、Jason Weston、Sanjeev Arora、Courville、Anirudh Goyal)问了一个正交的问题:<strong>算力能不能跨尝试累积?</strong>一次失败的实验可能指出方向,一个部分解可能是后面拼图的碎片——episode 结束这些中间产物就蒸发的话,后续算力只能重新发明轮子。</p>
+
+<blockquote><p>推理时算力不该是烟花,该是存款。GitSwarm 在数学证明、程序重构、GPU 架构研究三种场景里都让这笔存款生出了利息:94.7% 的已发布贡献被后来的 worker 真正取用,70% 以上的负结果被后续工作引用。</p></blockquote>
+
+<h2>一、系统:Git 图 + 同质工人 + 去中心化读出</h2>
+
+<p>GitSwarm 的组织方式可以浓缩成一句话:<strong>把一个可分支的 Git 仓库当作结构化持久记忆,让一群同质异步 worker 在上面自主决定干什么。</strong>没有中央规划者分配任务,没有预定义角色——执行 harness 只管调度、隔离、验证和发布。</p>
+
+<p>每个任务初始化一个仓库(不可变 root commit)。每个 worker 在隔离的 Git worktree 里检视仓库、自选起点,episode 以三种方式之一结束:</p>
+
+<ul>
+<li><strong>Contribute</strong>:发布一个原子 commit——部分解、实验、测试、refinement 都行。验证只管格式规范,不管对错。</li>
+<li><strong>Nominate</strong>:给自己看好的候选投票并附理由,不修改它。</li>
+<li><strong>Abstain</strong>:发现没有可做的、或者活已被在飞同伴干了,主动弃权(不消耗 worker 预算)。</li>
+</ul>
+
+<p>数据模型上最精巧的一笔:<strong>物理父与语义依赖分离</strong>。每个 commit 有一个物理 Git parent(从哪个状态出发),但必须用 <code>informed_by=</code> 字段声明所有实际参考过的前人贡献——可以指向<strong>其它分支</strong>的 commit。这样一个 worker 能在分支 A 上干活同时引用分支 B 的发现,不需要 merge,竞争路线和它们之间的联系都保留下来。</p>
+
+<p>配套的协调设施刻意保持「报告状态但不指派工作」:dashboard 显示预算、在飞 worker、提名票数(并明示「票数不是正确性证据」)、GPU 用量;<code>gs_inflight</code> 让每个 worker 公告自己正在干的活(gap/deliverable/success/abort criteria),帮同伴避免撞车。最终读出是去中心化的:预算耗尽后,得票最多的 commit 当选,提名记录独立于贡献图——评价候选不污染它的血缘。</p>
+
+<h2>二、主结果</h2>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">场景</th><th style="background:#1a1a2e;color:#fff;">GitSwarm</th><th style="background:#1a1a2e;color:#fff;">最强 baseline</th></tr>
+<tr><td>ProgramBench 50 任务(Codex B=500)</td><td><strong>79.4%</strong></td><td>Forced Codex 单 agent 65.1%</td></tr>
+<tr><td>IMOProofBench-Advanced(GPT-5.5-High)</td><td><strong>30/30 全解</strong>(B=40/80,&lt;1M output tokens)</td><td>Forced bash agent 26.5</td></tr>
+<tr><td>RMT held-out loss(同 1.3B token 预算)</td><td><strong>2.890</strong></td><td>参考架构 3.147</td></tr>
+<tr><td>Looped Transformer protected-dev(26h)</td><td><strong>3.187</strong></td><td>参考 3.265 / Codex 3.479</td></tr>
+<tr><td>NanoChat BPB(24h,1,465 次评估)</td><td><strong>0.905</strong>(从 0.993 起)</td><td>进化搜索与单 agent 均不及</td></tr>
+</table>
+
+<p>两个细节值得单独说。第一,IMO 全解那行,作者自己补了一刀:Best-of-N 带 oracle verifier 也能刷满这个 benchmark——<strong>满分不构成独特优势的证明</strong>,这种诚实在这个领域不多见。第二,RMT 对比里,单 agent Codex 靠加宽 attention 和堆 10 倍训练 token 也能把 loss 压到 2.690,但 GitSwarm 的最终架构包含 temporal mixer、rank-64 改造这类<strong>真正的架构创新</strong>,而且其中 4/6 个改动来自其它分支——复合的不是工作量,是想法。</p>
+
+<h2>三、三个翻案故事:负结果的复利</h2>
+
+<p>这篇论文最让人信服的不是分数,是三个研究任务里「失败想法被翻案」的案例:</p>
+
+<ol>
+<li><strong>RMT</strong>:某 worker 尝试用前一 token 的 memory,失败被 refuted。49.5 小时后,另一个 worker 捡回这个想法,扩展成多 token 的 temporal mixer——进了最终模型。</li>
+<li><strong>Looped Transformer</strong>:制胜的 gated FFN adapter 早期就被提出,但在 128 样本的子集评估中被否决。后来的 worker 用 512 样本重评,翻案,并在全量验证集确认。事后分析:小评估集把 12 对模型排错了 5 对——<strong>评估噪声会误杀好想法,而持久记录给了翻案的机会</strong>。</li>
+<li><strong>NanoChat</strong>:separate trigram embedding 表早期表现很差。21 个活跃小时后,另一个 worker 把它的 hashing 方案复用进 shared-table 设计,再被后来者放大,成为 24 小时的 incumbent(1.72B 参数,BPB 0.905)。</li>
+</ol>
+
+<p>三个任务的量化统计:70-74% 的负结果 commit 被后续贡献引用。这是「允许失败的组织」拿到的复利——失败被记录、被标注、可以被后来者带着新想法回访。</p>
+
+<h2>四、复合性的三层度量</h2>
+
+<p>论文的方法论贡献:不只报最终分数,还量「计算是否真的在累积」,而且分三层,一层比一层硬:</p>
+
+<ol>
+<li><strong>声明依赖</strong>:worker 自报的 informed_by。ProgramBench 99.9% 的 episode 引用了前人;94.7% 的已发布贡献被后续引用。</li>
+<li><strong>artifact 实际消耗</strong>(执行 trace 层面):79.9-82.5% 的自愿 artifact bundle 被跨分支实际使用;759 个计算探针包被打开 583 个、执行/改造 172 个。</li>
+<li><strong>胜出解血缘覆盖</strong>:ProgramBench 胜出解的传递 ancestry 覆盖贡献图的 81.6-92.6%——其中 Git-parent 只占约四分之一,<strong>其余四分之三靠跨分支的语义依赖边</strong>。没有 informed_by,大部分复用根本不可见。</li>
+</ol>
+
+<p>对比之下,证明任务(IMO)的胜出解 ancestry 只覆盖 21-33%——不是失败,而是另一种复合模式:证明的胜者出得早(8-17% 进度处),后期 worker 转去做验证、比较和提名。编程任务把贡献<strong>合成</strong>进最终实现;证明任务用前人工作<strong>评估和选择</strong>候选。有用计算不必出现在最终解的血缘里——它也可以塑造哪些方向被追、被拒、被选。</p>
+
+<h2>五、涌现分工与诚实的权衡</h2>
+
+<p>没有角色分配,分工自己长出来:编程任务在启动波之后,能力扩展、保真修复、候选合成持续到结束(胜者中位出现在 93-98% 进度);证明任务早早转向选择(提名占比随预算从 44% 升到 70%)。六分之一的编程 worker 识别到等价工作后主动弃权,证明 worker 只有 2.7%。</p>
+
+<p>设计权衡的测量也很坦白:开发集小实验里,<strong>中央 selector 比他们自己的去中心化提名高 2.34 分还更快</strong>(62.06→64.40)——作者如实报告了自家默认设计被小幅打败,并明说这些实验不构成统计等效或优劣证明。强制合成的中央 aggregator 则又低又慢(−3.87 分)。异步比同步波快 30%,代价约 1 分。</p>
+
+<h2>六、局限(作者自己列的)</h2>
+
+<ul>
+<li><strong>因果归因缺失</strong>:informed_by 是 worker 自报的,trace 只证「用了」不证「因此变好」。干净的干预实验(带/不带历史从同一候选重启同 run)没做。</li>
+<li><strong>评测范围</strong>:ProgramBench 只测 200 任务中的 50;IMO 全解是单次 run;RMT 对比的单 agent 用了更多训练 token;Looped Transformer 记录时还在跑;NanoChat 各配置起点不齐。</li>
+<li><strong>成本</strong>:input token 随仓库膨胀(worker 要检视越来越多的前人工作);冗余和失败 episode 纯烧钱。复利何时超过成本,需要更长程、总算力匹配的评测。</li>
+</ul>
+
+<h2>七、实践要点</h2>
+
+<ol>
+<li><strong>跨 episode 持久记忆是 multi-agent 的下一个战场</strong>:角色编排(MetaGPT 式)、共享对话(AutoGen 式)在这个评测里都被「结构化贡献图 + worker 自主决定」压过。</li>
+<li><strong>物理父/语义父分离可以直接抄</strong>:任何做 agent 协作系统的团队,这个数据模型一行就讲清楚——checkout 自哪、informed by 什么,是两个正交的字段。</li>
+<li><strong>负结果必须是一等公民</strong>:70-74% 的负结果被复用,「允许失败且失败被记录」不是文化口号,是可度量的复利来源。</li>
+<li><strong>制度性防 gaming 设计</strong>:「票数不是正确性证据」的明示、提名与贡献图分离、验证只管格式不管对错——每个环节都在防 LLM worker 的讨好行为,与 Agora 的 endorsed=0 分同构。</li>
+<li><strong>两种复合模式用两把尺子量</strong>:合成型(代码)看 ancestry 覆盖率,评估型(证明)看证据消耗——别用单一指标判断「记忆有没有用」。</li>
+</ol>
+
+<p>与 NVIDIA 并行发布的 Agora(arXiv 2609.18094)对照着读最有味道:Agora 强在制度设计(下游复用计分、自引排除、多样性 UCB),GitSwarm 强在基准实证和复合性度量方法论。两家巨头在同一个季度、用同一副 Git 图骨架、各自独立走到了「去中心化复合推理」——这个方向的信号已经足够强。</p>
+
+<p>论文结论指的下一步也值得盯:用 RL 训练 agent 在这种环境里<strong>为「被后续工作复用」而贡献</strong>,而不是只奖励单 episode 的结果——把复利本身内化进奖励信号。如果这步走通,agent 就不只是解决一个问题,而是在推进一个集体的发现过程。</p>
+
+<hr>
+<p><small>来源:Vedant Shah, Ankur Samanta et al. "GitSwarm: Decentralized Compounding Inference." arXiv:2610.04862 (2026-10-04), Meta Superintelligence Labs, Mila, Columbia, CMU, Princeton. <a href="https://arxiv.org/abs/2610.04862">arxiv.org/abs/2610.04862</a></small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
