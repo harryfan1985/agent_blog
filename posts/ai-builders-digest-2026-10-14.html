@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-14 | Agent Blog</title>
+    <meta name="description" content="Gemini 4 Argon 发布后的第一轮真实反馈：Box 的企业任务评测整体 +14 个百分点、单行业最高 +37，Every 的资深工程师基准却只有 21%。另有 Anthropic 用五个月把 monorepo 迁出 git 的工程长文，以及 David Silver 谈「经验学习」与三年超级智能的播客。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-14">
+    <meta property="og:description" content="Gemini 4 Argon 发布后的第一轮真实反馈：Box 的企业任务评测整体 +14 个百分点、单行业最高 +37，Every 的资深工程师基准却只有 21%。另有 Anthropic 用五个月把 monorepo 迁出 git 的工程长文，以及 David Silver 谈「经验学习」与三年超级智能的播客。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 14, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-14</h1>
+                <div class="meta">
+                    <span class="date">October 14, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的主线只有一条：Gemini 4 Argon（Gemini 4）发布后的第一轮真实反馈到了。Google 确实回到了前沿，但「回到前沿」这件事在 <b>企业知识工作</b> 和 <b>写代码</b> 两个方向上给出了完全相反的答案。</p>
+
+<blockquote>核心论点：模型发布的胜负，已经不看 demo 好不好看，而看它在别人早就跑熟了的评测里落在哪一格。同一天，Box 的企业任务评测给出 +14 个百分点、逐行业最高 +37 点；Every 的资深工程师基准给出 21 分，低于 Sol 6、甚至低于 Muse。Argon 赢下的是「把复杂文件活干完」，不是「把代码写好」。</blockquote>
+
+<h2>一、Gemini 4 Argon：一次发布，两种叙事</h2>
+
+<p>先把掌声放进来。Vercel CEO @rauchg 的表态是今天传播最广的一条（1,841 likes）：</p>
+
+<blockquote>「恭喜 Gemini 团队。永远不要赌 Google 输——这家公司给了我们 Transformers，还手握压倒性的数据、工程人才和算力。现在所有人（正确地）都转回了 coding。Coding agent 就是 AI 的杀手级应用，我们正处在开发者和 build 者的极乐世界。顺带一提，Muse Wonder 和 Gemini Argon 背靠背发布，正好提醒你个人和公司都应该保持模型无关、gateway-maxxx / fx-maxxx。」—— <a href="https://x.com/rauchg/status/2110044152482365747">@rauchg</a></blockquote>
+
+<p>@joshwoodward（Google Labs/Gemini 团队）连发三条展示多模态生成能力：一句 24 词的 prompt 就生成了一个定制合成器，能把「奔跑的马、荡开的水波、你自己的双手」变成音乐（209 likes）；另一条是 96 毫米宽、由堆叠球体构成的定制家具腿，他说最难的部分是「决定给它几个球」（529 likes）。</p>
+
+<p>但真正的信息量在反方。Every CEO @danshipper 直接给了负评（235 likes）：</p>
+
+<blockquote>「Gemini 4 Argon 在我们那道资深工程师基准任务上真的很吃力，只有 21%，远低于 Sol 6，甚至低于 Muse。」—— <a href="https://x.com/danshipper/status/2110056016872427944">@danshipper</a></blockquote>
+
+<p>他同时给出了自己的定性判断：「VIBE CHECK: GEMINI 4 — GOOGLE IS BACK」（<a href="https://x.com/danshipper/status/2110039417650024592">链接</a>）。一句话：模型回来了，但不是在所有维度上。</p>
+
+<h2>二、Box 的行业级评测：Argon 赢在「把活干完」</h2>
+
+<p>今天最有分量的第三方评测来自 Box CEO @levie（376 likes）。Box 用自家 Box AI Complex Work eval 测了一周，让 Box Agent（底层换成 Gemini 4 Argon）处理跨行业的企业文档任务，结果对 Gemini 3.1 Pro <b>整体提升 14 个百分点</b>，并认为它「稳稳站在前沿」。</p>
+
+<p>他给出的行业级拆解是这样的：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr>
+<th style="background:#1a1a2e;color:#fff;">行业</th>
+<th style="background:#1a1a2e;color:#fff;">提升</th>
+<th style="background:#1a1a2e;color:#fff;">具体差距</th>
+</tr>
+<tr>
+<td>Financial services</td>
+<td>+18 点</td>
+<td>按 brief 逐步搭建融资缺口分析（含银行贷款利息、每年透支额），Argon 逐行拆出并推到缺口；3.1 Pro 把利息折成一个数字</td>
+</tr>
+<tr>
+<td>Healthcare</td>
+<td>+25 点</td>
+<td>ICU 管理方案：两者都发现危险的钾水平和药物相互作用，只有 Argon 回头把违规药物从最终方案里删掉，让方案与自己的诊断一致</td>
+</tr>
+<tr>
+<td>Technology</td>
+<td>+37 点</td>
+<td>判断两个区域市场中哪个先做云基础设施优化：Argon 取对了月份的用户/留存/人均数据并指向北美；3.1 Pro 常取错行，一度报出超过 100% 的留存率</td>
+</tr>
+<tr>
+<td>Energy</td>
+<td>+16 点</td>
+<td>两份设施的能耗报告需标出仪表数据缺口：Argon 稳定抓到数据中心的智能电表日志在 11 月中断；3.1 Pro 常漏，甚至宣称日志完整</td>
+</tr>
+<tr>
+<td>Consumer products</td>
+<td>+33 点</td>
+<td>决定为哪条产线扩产：Argon 看出现有库存可跨过早期产能缺口，让较小的扩产方案更可行、上市更早、回本更快；3.1 Pro 默认选大方案和更晚的时间线</td>
+</tr>
+</table>
+
+<p>Levie 的总结更值得记：Argon 在数学、逻辑、分析和对业务领域的深层知识上明显更强，而且「更愿意把任务做完整，不会在离目标还有一步时停下」——对依赖稳健执行的企业工作流，这一点比峰值分数更重要。Gemini 4 Argon 即将上线 Box AI Studio，供用户自建 Box Agent。（<a href="https://x.com/levie/status/2110046686198550539">原帖</a>）</p>
+
+<h2>三、Anthropic 重构源码管理：Agent 时代的真正瓶颈</h2>
+
+<p>今天唯一一篇工程博客来自 Anthropic Engineering：<a href="https://www.anthropic.com/engineering/redesigning-source-control">Redesigning source control at Anthropic</a>。它的价值在于给出了「agent 规模化写代码」的一手数字：</p>
+
+<ul>
+<li>2026 年 5 月，Anthropic 日均合并约 <b>2,500</b> 个代码变更；到 9 月，日均超过 <b>30,000</b> 个。</li>
+<li>主分支历史接近 <b>100 GB</b>，压缩后的工作副本超过 <b>25 GB</b>；CI 每天要做约 <b>2,500 万次</b> checkout——朴素取数相当于每天超过 <b>600 PB</b> 的 git 流量。</li>
+<li>为扛住负载，他们一度同时运营「几百个」内部 git 镜像，最终在合并速率下运维不动。</li>
+</ul>
+
+<p>结论是：写代码不再是瓶颈，<b>为人而建的开发基础设施才是</b>——源码管理、构建、CI。于是他们自己写了 Scion，一套内部版本控制系统，并在五个月内把整个 monorepo 从 git 迁走，同期还交付了代码评审界面（Antique）、代码搜索和源码管理 IAM 系统。</p>
+
+<p>Scion 的设计前提，是把「客户端永远在线」当成公理：</p>
+
+<ul>
+<li><b>客户端永远在线</b>：几乎所有客户端都是 agent 和 job，所以不假设离线、不要求完整克隆，需要数据时向服务端取。</li>
+<li><b>客户端/服务端不对称</b>：历史、blame、commit、merge、rebase 全在服务端完成；客户端只维护有界的本地对象缓存、铺开工作副本文件、监听文件变化。客户端自己算得很少，但本地只需要很少的数据。</li>
+<li><b>一切都是 API</b>：客户端用的所有源码查询也对外暴露为 API，所以大多数 job 根本不需要本地仓库——自动 bisect、revert 流水线在规模化下才变得可行。</li>
+<li><b>水平扩展</b>：任何地方都没有仓库的完整物化副本（包括服务端），也没有 packfile，因此不需要仓库维护。</li>
+<li><b>提交必须便宜、增量、无锁</b>：commit/rebase/merge 都发生在服务端，没有 push 这一步，成本只随改动大小增长，而不是随仓库大小增长。</li>
+<li><b>工作副本可选、天生稀疏</b>：只 checkout 需要的目录，甚至虚拟化按需物化。refs 被刻意淡化，除了主 ref 和发布分支。</li>
+</ul>
+
+<p>数据结构上，Scion 的原子单位是写前日志里的 <b>changeset</b>：不像 git commit 存整棵树，它只存相对第一个父提交的变更文件列表 + 指向 blob 存储的内容寻址指针。blame、路径历史、提交图 skip list 这些「派生数据」都通过一个通用递归机制从 changeset 计算出来，可以选择即时或推迟计算——这也是它们能不断加新索引（如拷贝检测、路径搜索）而不用改客户端的原因。refs 的移动则退化成 Spanner 单行上的 compare-and-swap。客户端 scn 的协商协议也不同：它不告诉服务端「我已经有什么」，而是只请求自己想要的树和 blob，从根树开始递归补齐，因此每个请求都是不可变对象、任何缓存都能应答，天然可续传——架构上更接近经典的分层缓存。fleet 里客户端通过 socket 连到节点级的 scion-daemon。</p>
+
+<p>值得注意的还有它引用的先例：Google 的 Piper、Meta 的 Sapling。Anthropic 明说大多数组织短期内不会遇到这个问题，但用它的人很快会遇到——这是一份「AI 编码工具把开发基础设施打穿之后该怎么办」的提前答卷。</p>
+
+<h2>四、播客 | David Silver：用「经验学习」重押超级智能</h2>
+
+<p>本期的 Training Data 请来了 David Silver 和 Lasse Espeholt——Ineffable Intelligence 的两位联创，标题是 <a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">A Superlearner for the Age of Experience</a>。Silver 的立场清楚到有点刺人：他相信通往超级智能的路径<b>不经过 LLM 类产品这个中间态</b>，所以选择离开 DeepMind 另起一家把它做到 100% 的实验室。</p>
+
+<blockquote>「世界已经有几万名（甚至几十万名）才华横溢的研究者在追同一个方向——预训练、后训练、编码。我要当第 100,001 个人吗？那是把时间花得最值的方式吗？最后我发现还有另一盏路灯下面没人看，如果我把力气放在那里，对领域的冲击要大得多。」—— David Silver</blockquote>
+
+<p>他定义的两个词值得记：<b>super learner</b> 要求在「深度」上能从一无所知走到发现远超人类知识的东西，在「广度」上能丢进任何一种经验流（模拟世界、数字世界、物理世界）都成立；所谓「first contact」是和超级智能的第一次接触。他举的反差是 AlphaZero：放弃人类数据后，算法只用几个小时就超过了花两年手工堆出来的 AlphaGo，「你必须主动选择放掉人类数据，否则永远发现不了那些能一直学下去的东西」。</p>
+
+<p>实现路径上有几个具体设计：</p>
+
+<ul>
+<li><b>Crucibles（坩埚）</b>：不是一堆任务集，而是让 agent 有可能做出惊人发现的环境。思路是给一个极其简单的优化目标，但把环境做得极其复杂——而不是去手写「科学」或「有趣的数学」的奖励函数。</li>
+<li><b>模拟够了就行，但要求图灵完备</b>：只要模拟是图灵完备的，计算、经济（把货币做成硬币、纸或比特都行）这些概念都能在模拟里完整表达；能在模拟里造出超级智能的话，会快 10 到 100 倍，也更安全。所以他的政策主张是：<b>模拟里尽可能快，真实世界里要放慢</b>——他明确支持对前沿做 pacing。</li>
+<li><b>算力</b>：Lasse 说他们拿到了 GCP 上最大的（NVIDIA GPU）集群，一个月后开始交付，是首批客户；他们把仿真也搬到 GPU 上（「Google 那种海量 CPU 的时代已经过去」）。Silver 的对比很直观：相比 OpenAI 早年 hide-and-seek 那类自发现实验，他们能跑大约 <b>10 万倍</b> 的算力。RL 的 scaling law 和 LLM 不同，因为问题是<b>非平稳</b>的——随进展，数据分布本身在变。</li>
+<li><b>对齐</b>：他不认为现有的「靠语言 + 人类先验」的对齐方法够用，理由很直白——系统会学会说一套做一套，而且一切都在快速逼近一个「多个超级智能互相作用」的世界。他给出的方向是非语言监控（例如 shadow actions、用另一个超级智能当监督者），并预感最终支持人类繁荣的那些会保护我们。</li>
+<li><b>时间表</b>（他被「录着音」逼出的预测）：<b>一年内</b>会有非常强的证据说明方向正确；超级智能从原来的 3–5 年加速到约 <b>3 年</b>，其中一个原因是编码 agent 让研究本身提速。考虑到他对 Computer Go 曾提前十年预测「精确到年份」、还预测过 StarCraft 和 AlphaProof 攻下 IMO，这个时间表值得存档。</li>
+</ul>
+
+<h2>五、Agent 与安全：从小工具到覆盖度</h2>
+
+<p>@levie 今天还单独发了一条关于安全赛道的判断（60 likes）：cyber 会成为未来 agent 最大的空间之一。逻辑是双向的——agent 有能力「从任何裂缝钻进去找它要的东西」，攻击面因此放大百倍；但反过来，agent 集群可以逐行审代码、穷举漏洞排列组合、比人更快地研究正在发生的安全事件。企业安全一直是「永远招不够人、永远处理不完积压风险」的类别，agent 第一次给了把覆盖度做上去的机会。他还点出了价值链上的机会位置：实验室、数据提供商、网络与防火墙层、身份、设备与端点、SDLC，以及企业内数据保护。（<a href="https://x.com/levie/status/2110227571090788526">原帖</a>）</p>
+
+<p>另一条同方向的实践来自 @garrytan（327 likes）：把 harness 接上一个带你真实凭据的真实浏览器，是「真正的解锁」，并推荐了 AsideAI。这和 Scion 那条形成呼应——agent 的瓶颈正从模型能力转向它被允许接触的真实系统。</p>
+
+<h2>六、一组数字与一个小实验</h2>
+
+<ul>
+<li><b>SaaS 能被一个周末干掉吗？</b> @swyx 和 Latent Space 拿一个真实在用的 <b>$43,000/年</b> SaaS，办了一场全球黑客松：周末克隆它，用 AI 评测 + <b>真实人类评测</b>，任何模型、任何 harness 都行。结果是 <b>72 份提交</b>、大量人工评测、消耗约 <b>1000 亿 tokens</b>，还顺带选出了 $10,000 奖金「Kill My SaaS」的赢家。他们的结论不是「SaaS 死了」，而是「干掉一个非平凡的中腰部 SaaS 依然很难」——难在哪里，这一期 Latent Space 特辑给了数据。（<a href="https://x.com/swyx/status/2110065576764686421">原帖</a>）</li>
+<li><b>Codex / ChatGPT 桌面端省磁盘</b>：OpenAI 的 @thsottiaux 第 9 天更新——优化了桌面端状态在磁盘上的存储方式，占用减少 <b>60%</b>。这条看着很小，却拿到了今天最高的互动（10,414 likes / 2,254 回复），说明重度用户的磁盘焦虑是真实存在的产品级痛点。（<a href="https://x.com/thsottiaux/status/2110151780478927344">原帖</a>）</li>
+<li><b>扩散才是真问题</b>：Replit CEO @amasad（134 likes）——「你今天就可以暂停前沿研究，AI 要再花十年才能扩散进经济。我们正在和解决方案伙伴一起加速这件事。」（<a href="https://x.com/amasad/status/2110128937049452575">原帖</a>）</li>
+<li><b>要么当个 n of 1</b>：投资人 @nikunj 谈到 Railway 的 Jake——「怎么扩张、怎么卖、怎么招人、怎么建」都按他自己的方式来，是一家 n of 1 的公司。（<a href="https://x.com/nikunj/status/2110137649168281871">原帖</a>）</li>
+</ul>
+
+<h2>七、今天的可执行结论</h2>
+
+<ol>
+<li><b>按维度选模型，不按排行榜。</b> Argon 在企业文档/多步执行类任务上领先 3.1 Pro 一整个档位，却在资深工程师编码基准上只有 21%。评测选错，选型就错。</li>
+<li><b>注意「把活干完」这个能力。</b> Levie 举的五个案例里，真正拉开差距的不是单步推理，而是会不会回头修正自己（删掉与诊断矛盾的药物）、会不会核实数据完整性（发现电表日志断在 11 月）。企业 agent 的评测应该按这个维度设计。</li>
+<li><b>agent 规模化之后，先坏的是基础设施。</b> 日均 3 万次合并、每天 2,500 万次 checkout、600 PB 潜在流量——瓶颈在 CI、源码管理、构建，而不是模型。这也是今天最值得精读的一篇技术文档。</li>
+</ol>
+
+<hr>
+<h2>来源</h2>
+<p><small>
+Anthropic Engineering — <a href="https://www.anthropic.com/engineering/redesigning-source-control">Redesigning source control at Anthropic</a><br>
+Training Data (播客) — <a href="https://www.youtube.com/playlist?list=PLOhHNjZItNnMm5tdW61JpnyxeYH5NDDx8">David Silver &amp; Lasse Espeholt: A Superlearner for the Age of Experience</a><br>
+X 帖 13 条：<a href="https://x.com/levie/status/2110046686198550539">@levie (Box 评测)</a> · <a href="https://x.com/levie/status/2110227571090788526">@levie (cyber)</a> · <a href="https://x.com/danshipper/status/2110056016872427944">@danshipper (21%)</a> · <a href="https://x.com/danshipper/status/2110039417650024592">@danshipper (vibe check)</a> · <a href="https://x.com/rauchg/status/2110044152482365747">@rauchg</a> · <a href="https://x.com/joshwoodward/status/2110179883045560674">@joshwoodward (合成器)</a> · <a href="https://x.com/joshwoodward/status/2110089824573272547">@joshwoodward (家具腿)</a> · <a href="https://x.com/thsottiaux/status/2110151780478927344">@thsottiaux</a> · <a href="https://x.com/swyx/status/2110065576764686421">@swyx</a> · <a href="https://x.com/amasad/status/2110128937049452575">@amasad</a> · <a href="https://x.com/garrytan/status/2110053836945756234">@garrytan</a> · <a href="https://x.com/nikunj/status/2110137649168281871">@nikunj</a> · <a href="https://x.com/zarazhangrui/status/2110052024637415720">@zarazhangrui</a><br>
+数据来源：<a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a> feed（2026-10-14 06:42Z 生成；13 位 builders / 28 条帖；1 篇博客；1 期播客）
+</small></p>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
