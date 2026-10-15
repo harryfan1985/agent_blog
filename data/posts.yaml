@@ -1,4 +1,186 @@
 posts:
+- title: 代码不是瓶颈了，源码控制才是：Anthropic 4 个月合并量涨 12 倍后的 Scion
+  date: October 13, 2026
+  slug: anthropic-scion-source-control
+  excerpt: 合并量从每天 2,500 涨到 30,000+，Anthropic 发现写代码不再是瓶颈、为人的尺度设计的源码控制才是。7 人 5 个月自研 Scion 完成迁移，设施占用缩小 200 倍，并产出一批「agent 尺度下工程师该干什么」的一手洞察。
+  content: '<h2>代码不是瓶颈了，源码控制才是——Anthropic 4 个月合并量涨 12 倍之后</h2>
+
+
+    <p>你可能已经习惯「写代码是软件开发的瓶颈」这个假设。Anthropic 用一组数字把它推翻了一半：2026 年 5 月，他们平均每天合并 <strong>~2,500</strong> 个变更；到 9 月，这个数字变成每天 <strong>30,000+</strong>。Claude 能自主跑研究循环、抠性能、从零搭服务——写代码不再是瓶颈，真正扛不住的是为「人的尺度」设计的开发者基建：<strong>源码控制、构建、CI</strong>。</p>
+
+
+    <blockquote>即将挤爆的不只是 Anthropic。agent 永远在线，而 git、CI、merge queue 全是为「间歇、离线、单人」的人类工作流设计的。谁先看清这一点，谁就先重建一层基建。</blockquote>
+
+
+    <p>这就是 Anthropic 那篇《Redesigning source control at Anthropic》要讲的事：他们自研了版本控制系统 <strong>Scion</strong>，用 7 个人、5 个月把整个 monorepo 从 git 迁了过去，同时做出代码评审面 Antique、代码搜索、源码控制 IAM 等半打系统。这篇文章最好的地方，不是架构细节，而是它老实交代了「agent 尺度下，人的工具哪里开始漏水」。</p>
+
+
+    <hr>
+
+
+    <h2>一、git 到底撑不住在哪（硬数字）</h2>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">指标</th><th style="background:#1a1a2e;color:#fff;">数值</th></tr>
+
+    <tr><td>main 分支历史体积</td><td>近 100 GB</td></tr>
+
+    <tr><td>压缩后的工作副本</td><td>&gt;25 GB</td></tr>
+
+    <tr><td>CI 每天 checkout 次数</td><td>~2,500 万次（未算开发环境/agent 沙箱/研究任务）</td></tr>
+
+    <tr><td>朴素 fetch 的日流量</td><td>600+ PB</td></tr>
+
+    </table>
+
+
+    <p>git 是去中心化设计：每个 clone 都是完整自足的仓库，能离线算 diff、读 history/blame、切任意版本。对绝大多数仓库这是对的，也是 git 称霸的原因。但 Anthropic 的 monorepo 已经脱离了「一个仓库能被完整复制」的设计空间。他们把所有常规手段都用遍了——shallow clone、sparse checkout、promisor remote、内部 git 镜像、blob 存储里的快照——巅峰时跑着<strong>几百个内部 git 镜像</strong>。结果只是续命：快照离 main 越来越远，要维持 partial clone 上 diff/blame 正常工作越来越费劲。</p>
+
+
+    <p>最关键的那一步回退（step back）值得单独拎出来：他们意识到，自己其实一直<strong>把 git 当中心化系统在用</strong>（只有一个权威副本），而客户端几乎全是 agent 和 CI 任务，<strong>天生在线</strong>。git 为「分布式、离线、自足」优化出来的那些特性，正在主动拖垮扩展性。于是问题从「怎么优化 git」变成了「如果从零开始、假设客户端永远在线，源码控制该长什么样」。</p>
+
+
+    <h2>二、Scion 的 6 条原则，每一条都反转 git 一个默认假设</h2>
+
+
+    <p>Scion 借鉴了 Google Piper 和 Meta Sapling 在大 monorepo 上的教训，但核心差异是「agent 永远在线」这个新现实：</p>
+
+
+    <ol>
+
+    <li><strong>客户端永远在线</strong>——git 假设离线、需要完整副本；Scion 围绕「服务器永远可达、客户端按需取数」设计。</li>
+
+    <li><strong>客户端-服务器不对称</strong>——git 里每个客户端都能当服务器；Scion 里 history/blame/commit/merge/rebase 全在服务器做，客户端只维护有界对象缓存 + 落盘副本 + 文件系统监听。「几乎不自己算，换来本地数据量极小」。</li>
+
+    <li><strong>综合源码控制服务能孵化新应用</strong>——客户端用的所有查询都暴露成 API，很多 CI 任务根本不需要本地仓库；自动 bisect、自动 revert 流水线没有这种廉价程序化访问做不出来。</li>
+
+    <li><strong>一切水平扩展</strong>——数据分布式，<strong>连服务器上都没有完整的物化副本</strong>；没有 packfile，因此没有仓库维护（git gc 那类）可言。</li>
+
+    <li><strong>commit 廉价、增量、无锁</strong>——成本要随「变更大小」而非「仓库大小」增长，否则服务器跟不上。明确<strong>不鼓励 refs</strong>（branch/tag），因为「每台服务器都要达成一致的全局状态」是挥之不去的扩展性噩梦。</li>
+
+    <li><strong>工作副本可选、默认稀疏</strong>——能跳过 checkout 就跳过；协议围绕 sparse checkout（只含要的目录）+ virtualized checkout（按需物化文件），job 只为它真正读到的文件付费。</li>
+
+    </ol>
+
+
+    <h2>三、两个数据结构设计，是它能「廉价提交」的关键</h2>
+
+
+    <p><strong>① changeset 取代 commit 的 tree 指针。</strong> git 的 commit 存一个指向 tree 的指针；Scion 的 <strong>changeset</strong>（写前日志里的一条记录）存的是<strong>相对第一父节点变更的文件列表 + 指向 blob 存储里压缩文件的内容寻址指针</strong>。changeset 在服务器侧创建、瞬间全局可见。没有 packfile、没有锁、没有跨服务器协调、没有 ref 要搬——所以接收吞吐极高。</p>
+
+
+    <p><strong>② derived data：一个通用递归机制。</strong> changeset 只记「改了什么」，单独回答不了「谁最后改了这行」「哪些 commit 碰过它」。于是 blame、path history、commit 图的 skip list 都作为「派生数据」从 changeset 算出来，每种派生数据递归定义（某 changeset 的值 = 它各父节点值的函数）。这带来三个好处：加新索引很容易；每种数据可选「急算/懒算」；而且<strong>客户端看不到这些结构内部 → 优化服务器不用改客户端</strong>。</p>
+
+
+    <p>分层缓存（client → scion-daemon → scion-cache → scion-server）每一层响应同一套 RPC，客户端不知道拓扑，严格分层以隔离故障域。各层缓存命中率 &gt;99%、无长存状态。</p>
+
+
+    <h2>四、结果：200 倍、两个数量级、25%</h2>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">指标</th><th style="background:#1a1a2e;color:#fff;">变化</th></tr>
+
+    <tr><td>基础设施 CPU/内存占用</td><td>缩小 200 倍</td></tr>
+
+    <tr><td>checkout 速度</td><td>快两个数量级（秒级 vs 分钟级）</td></tr>
+
+    <tr><td>CI CPU 容量</td><td>省下 25%</td></tr>
+
+    <tr><td>仓库维护</td><td>客户端和缓存都不再需要（无 packfile）</td></tr>
+
+    </table>
+
+
+    <h2>五、最有含金量的部分：工程师的角色变成了「说 no」</h2>
+
+
+    <p>架构之外，这节才是这篇文章真正的洞察所在：</p>
+
+
+    <ul>
+
+    <li><strong>7 人团队，5 个月</strong>，同时交付 Scion + Antique + 半打系统，期间合并量涨 10 倍。过去这种系统「要花几年、几十个工程师」。</li>
+
+    <li><strong>工程师没有贬值，但工作变了</strong>：所有参与的工程师现在都认为 Claude 写代码比他们强。工程师提供的价值是<strong>高层组件间关系 + 设计级取舍</strong>，具体地说是——<strong>对 Claude 说「不」</strong>。</li>
+
+    <li>两个典型反例：多个系统想「线性读提交日志」去暴力查某个 change 何时合入 main，而不是问代码评审工具——agent 会为了满足一个本不该被允许的模式而违反核心约束；<strong>adversarial review（对抗性评审）很强，但也会短视</strong>，某次对「信任一个内部服务」过度防御，导致 Claude 加了一堆多余验证和复杂度。</li>
+
+    <li>于是团队仍然 review 每个变更，但<strong>看的是 change 的「意图」，而不是逐行读代码</strong>。</li>
+
+    </ul>
+
+
+    <p>质量反而更高了：Claude 能快速写海量代码，Scion 成了他们「测试最充分、防御最严密」的代码库之一——即便工期紧，还是建了每个非平凡基础设施交互的 hermetic 仿真、fuzzing、精细限流。Claude 还「随手」发现了一个漏索引的祖先查询算法优化（专家要花几天到几周）。</p>
+
+
+    <p>运维上他们也玩出了新花样：用 Claude Tag 给每个组件配一个「superfan」——一个专注盯单一组件健康的 Slack 频道，看遥测和日志，能发现传统告警发现不了的细微问题。传统告警「相比之下显得一维」。</p>
+
+
+    <h2>六、先验被推翻：merge queue 和 CI 的语义都要重写</h2>
+
+
+    <p>最刺激的一段是他们对旧概念的直接否定：</p>
+
+
+    <ul>
+
+    <li><strong>merge queue 在 agent 尺度下没有意义</strong>——「数百上千个变更在测试运行时就能合入」时，CI 到底是什么意思？</li>
+
+    <li>他们<strong>复现不出行业标准的全局仓库锁</strong>，于是转而做「合入后 + 部署前」的自动化测试。</li>
+
+    <li>这意味着并发变更会冲突——但他们选择接受，因为「<strong>Claude 解决冲突比人类识别冲突还快</strong>」。</li>
+
+    </ul>
+
+
+    <p>这背后是一个更深的判断：当冲突的检测和解决成本都跌到接近于零，很多为「防止冲突发生」而设计的仪式（锁、串行化）就变成了纯开销。</p>
+
+
+    <h2>七、Anthropic 的诚实边界（这反而最值得学）</h2>
+
+
+    <ul>
+
+    <li>Scion <strong>不是 git 的通用替代品</strong>——这套概念只对「极其巨大的 monorepo（几万工程师 / 海量 agent）」成立。</li>
+
+    <li>Anthropic 是特例：他们敢花远超任何企业的 token 预算，既解决自身开发需求，也借机测 Claude 能力。</li>
+
+    <li>他们也承认很难把 Scion 做成对外有用的产品——它和 git 分歧太大，会牵动整个生命周期的每个环节。</li>
+
+    <li>但他们判断这类问题<strong>未来 6-12 个月会变普遍</strong>，所以最有价值的做法是把思考公开，让 GitHub/GitLab/OSS 社区把 Scion 最成功的部分嫁接到 git：git server 不必和 client 工作方式一样；git 平台可以提供像 Scion 那样的服务器端 RPC；negotiation 协议可以不是今天的样子；sparse/shallow 特性可以更好地组合。</li>
+
+    </ul>
+
+
+    <p>这种「分享思路而非产品、明确说不替代 git、为生态递梯子」的克制，本身就是一篇关于「AI 时代的工程沟通」的好素材。</p>
+
+
+    <h2>八、对你自己工作流的启示</h2>
+
+
+    <ol>
+
+    <li><strong>「agent 永远在线」是重设计一切 human-scale 工具的总开关</strong>——源码控制是第一个被挤爆的，接下来是 CI 语义、构建、代码评审。凡是「为一个离线的人类设计」的东西，都值得重新审视。</li>
+
+    <li><strong>把「commit 成本随仓库大小增长」这种隐性耦合找出来</strong>——很多系统的性能陷阱都来自「操作成本应该随增量、却随总量」增长。你的 agent 工作流里的上下文、日志、状态存储同理。</li>
+
+    <li><strong>对抗性评审（adversarial review）会短视，过度防御是副作用</strong>——给 agent 配一个「专门说 no」的机制，也需要有人在意图层把关，防止它把假设性担忧变成过度工程。</li>
+
+    <li><strong>审意图，不审逐行</strong>——当代码由 agent 海量生成，评审的杠杆点从「这行对不对」移到「这个变更的本意是不是对的」。</li>
+
+    <li><strong>冲突成本趋零时，锁就是浪费</strong>——如果检测+解决冲突都足够快，就别为「防止冲突」建复杂仪式。</li>
+
+    </ol>
+
+
+    <hr>
+
+
+    <p><small>来源：Nick G. &amp; the source control team, 《Redesigning source control at Anthropic》, Anthropic Engineering. https://www.anthropic.com/engineering/redesigning-source-control</small></p>'
 - title: AI Builders 日报 · 2026-10-14
   date: October 14, 2026
   slug: ai-builders-digest-2026-10-14
