@@ -1,4 +1,53 @@
 posts:
+- title: AI Builders 日报 · 2026-10-16
+  date: October 16, 2026
+  slug: ai-builders-digest-2026-10-16
+  excerpt: Meta 放出 Muse 开源权重；Levie 预言后台 agent 让 token 消耗涨 100–1000 倍；Anthropic 联合 Gray Swan 办 prompt injection 竞赛；Jev 满月复盘。
+  content: '<p>今天的 Builder 圈，关键词是「开源权重」与「后台 Agent」：Meta 把 Muse 放出开源权重，Box CEO 预言 agent 从聊天走向 swarm 会让 token 消耗涨 100–1000 倍，Anthropic 联合 Gray Swan 办起 prompt injection 安全竞赛，而 TypeSafe 的 Jev 迎来上线满月复盘。</p>
+
+
+    <blockquote>模型更强、更便宜之后，瓶颈不再是「能不能」，而是「谁来部署这一批批在后台干活的 agent」——这需要足够多的算力，也需要足够硬的安全与可解释性。</blockquote>
+
+
+    <h2>一、开源模型：Meta 把 Muse 放出开源权重</h2>
+
+    <p>今天最热的一条来自 Box CEO <strong>Aaron Levie</strong>：<em>"They did it. They made a Muse open weights model."</em> 他把 Meta 放出 Muse 开源权重称为美国开源生态的一大步——企业可以混搭前沿性能做编排和高难度任务，同时用低成本、定制化的 post-trained 模型处理可重复工作流，整体会显著推高 token 消耗与全栈负载。</p>
+
+    <p>YC 的 <strong>Garry Tan</strong> 也发了张图，配文只有一句：<em>"Open weight models rising"</em>——开源权重正在崛起。</p>
+
+
+    <h2>二、Agent 算力：从聊天到后台 swarm</h2>
+
+    <p>Levie 另一条长文更值得细读。他认为从「和 agent 来回聊天」到「在后台起一批 agent 替你干活」，token 消耗将是今天的 <strong>100–1000 倍</strong>。知识工作本质上被信息处理环节限速——在系统间搬数据、审文档、翻代码找安全问题、过日志找模式；AI 先把这些单点任务加速（这就是过去三年多的 chatbot 现象），但人仍然卡在自己的带宽和上下文里。</p>
+
+    <p>下一步完全不同：把更硬的问题交给 agent，再让几个 agent 并行拆任务，直至「把任意数量的 agent 丢给一个问题，搞定再回来」。这些 swarm 会由人、工作流、触发器、以及其他 agent 来部署，而且大多是净新增的工作量。到这里，瓶颈只剩一个：<strong>算力</strong>。</p>
+
+
+    <h2>三、Prompt Injection：Anthropic 联合 Gray Swan 办竞赛</h2>
+
+    <p><strong>Boris Cherny</strong>（Anthropic）宣布过去几年 Claude 在 prompt injection 防御上取得显著进展，而随着 agent 承担越来越多真实工作，跨行业解决注入问题愈发紧迫；Anthropic 将与 Gray Swan 合作举办一场 prompt injection 竞赛，公开征集攻击手段。</p>
+
+
+    <h2>四、可解释性：Goodfire，与一句泼冷水</h2>
+
+    <p><strong>Aditya Agarwal</strong> 直言 Goodfire 可能是 SPC 孵化出的最重要公司之一——因为它把可解释性与对齐当成<strong>工程问题</strong>来做。</p>
+
+    <p>另一边，<strong>Dan Shipper</strong> 用一段 Good Will Hunting 式的独白泼了盆冷水：刚读完 polysemanticity 就以为 interpretability 等于拆 superposition，找到一颗对埃菲尔铁塔亮起的神经元，就幻想能凭此对齐超智能——可知道它认得出埃菲尔铁塔，并不等于知道它到底在盘算什么。</p>
+
+
+    <h2>五、Jev 决策型 AI：满月复盘 + 播客</h2>
+
+    <p><strong>Matt Turck</strong> 在 Jev 上线满月之际，与 TypeSafe CEO <strong>Diogo Almeida</strong> 做了一期深度对谈，拆解 Jev 是什么、它如何修补 AI 的毛病、以及 fast-followers 究竟漏掉了哪些硬骨头。要点：机器原生 AI（machine-native）而非聊天模型；System 1 vs System 2；RLHF 带来的谄媚与拒绝代价；RLVR 为什么 benchmark 涨不等于可靠自动化；RLCD 优化机器原生智能；用 open-weight 模型构建 Jev；以及「Build prod, not God」。</p>
+
+    <p>完整节目见 <a href="https://www.youtube.com/@DataDrivenNYC/videos" target="_blank" rel="noopener">The MAD Podcast（YouTube）</a>。</p>
+
+
+    <p>另有一条短评可读：<strong>Nan Yu</strong> 谈「品味」——<em>"品味不等于审美，那是它最肤浅的定义"</em>。</p>
+
+
+    <hr>
+
+    <small>来源：<a href="https://x.com/levie/status/2110787013809222141" target="_blank" rel="noopener">@levie on Muse open weights</a> · <a href="https://x.com/garrytan/status/2110838867213668587" target="_blank" rel="noopener">@garrytan</a> · <a href="https://x.com/levie/status/2110622982762803449" target="_blank" rel="noopener">@levie on background agents</a> · <a href="https://x.com/bcherny/status/2110791698611855624" target="_blank" rel="noopener">@bcherny on prompt injection</a> · <a href="https://x.com/adityaag/status/2110779602453066224" target="_blank" rel="noopener">@adityaag on Goodfire</a> · <a href="https://x.com/danshipper/status/2110831666587713810" target="_blank" rel="noopener">@danshipper on interpretability</a> · <a href="https://x.com/mattturck/status/2110799882952831302" target="_blank" rel="noopener">@mattturck on Jev</a> · <a href="https://x.com/thenanyu/status/2110730151222980849" target="_blank" rel="noopener">@thenanyu on taste</a> · <a href="https://www.youtube.com/@DataDrivenNYC/videos" target="_blank" rel="noopener">The MAD Podcast: Jev</a></small>'
 - title: AI Builders 日报 · 2026-10-15：沙箱边界被 agent 捅穿的那一天
   date: October 15, 2026
   slug: ai-builders-digest-2026-10-15
