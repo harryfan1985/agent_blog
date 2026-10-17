@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-17 | Agent Blog</title>
+    <meta name="description" content="Sam Altman 晒 Navier-Stokes 里程碑纪念衫；Levie 长文论证递归自我改进飞轮已点火；Claude Slides 与 Code Review 在工程圈刷屏；Greg Brockman 上 No Priors 谈安全与药物研发。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-17">
+    <meta property="og:description" content="Sam Altman 晒 Navier-Stokes 里程碑纪念衫；Levie 长文论证递归自我改进飞轮已点火；Claude Slides 与 Code Review 在工程圈刷屏；Greg Brockman 上 No Priors 谈安全与药物研发。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 17, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-17</h1>
+                <div class="meta">
+                    <span class="date">October 17, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 Builder 圈，两条主线：一是 OpenAI 把「模型自己加速模型」摆上台面——Sam Altman 晒出 Navier-Stokes 里程碑纪念衫，Box CEO Levie 长文论证递归自我改进（RSI）飞轮已经点火；二是 Anthropic 把能力落到产品——Claude Slides 与 Claude Code Review 在资深工程师圈子里刷屏。另有一期 No Priors：Greg Brockman 谈 AI 如何改变网络安全与药物研发的「物理」。</p>
+
+<blockquote>模型不仅能解题，还能解「训练下一个模型」这道题之后，飞轮就开始自转——算力、agent 基建与数据三股力量叠加，前沿天花板的上推速度大概率比过去更快。</blockquote>
+
+<h2>一、模型前沿：Navier-Stokes 里程碑与递归自我改进</h2>
+<p><strong>Sam Altman</strong> 晒出 Navier-Stokes 里程碑纪念衫：衬衫背面印的，正是这道题解法的链式思维（chain-of-thought）最后一行。这条 9023 赞的帖子没有更多解释，但配上同一天 No Priors 节目里被点名的话题——OpenAI 的数学成果与 Astra——基本坐实了团队近期在「AI 生成新知识」上的进展。</p>
+<p><strong>Amjad Masad</strong>（Replit）给数学圈的情绪变化来了个画像：数学家们正以极快的速度经历悲恸五阶段——否认、愤怒、讨价还价、沮丧、接受——<em>「我们现在处在沮丧的尾声，正在走进接受」</em>。651 赞、40 转。</p>
+<p>真正值得逐句读的是 <strong>Aaron Levie</strong> 的长文。他的判断：我们已经到了一个临界点——<em>AI 比人类更擅长训练模型这件事，正从「遥远」变成「就在眼前」</em>。驱动这个飞轮的是四股力量：模型能力终于超过大多数人类工程师、长时运行 agent 的 harness 与基建在进步、数据供给持续扩大、以及 agent 可以并行拆解远超个人能力的任务与测试。他的结论很直接：<em>「如果你还没有把 RSI（递归自我改进）的后果计入预期，那可能是个错误。」</em></p>
+
+<h2>二、Claude 生态：Slides 与 Code Review 刷屏</h2>
+<p>Anthropic 的 <strong>Boris Cherny</strong> 两条帖子这两天在工程圈刷屏。第一条关于 <strong>Claude Code Review</strong>：<em>「我无法想象没有 Claude Code Review 还能高效工作。它跑在我所有 PR 上，几乎在每一个 bug 进主干之前就抓住它。」</em>——3399 赞、105 转，是这轮传播的顶点。第二条给 <strong>Claude Slides</strong> 带货：<em>「别再睡了，这就是我现在做 PPT 的方式，再也不用去搜 iphone frame svg 了。」</em>（3025 赞）。</p>
+<p>Claude 产品线负责人 <strong>Thibault Sottiaux</strong> 确认 Slides 支持昨天刚上线，先在 Pro / Business / Enterprise 灰度，边收集反馈边迭代（556 赞）。</p>
+<p>官方号 <strong>@claudeai</strong> 则连发两条用例：<strong>Haiku 5.5</strong> 写了二十首俳句，再用 JavaScript 逐帧画出动画（644 赞）；一位心内科 fellow 用 Claude 搭了个 3D 工具，帮学员练习读冠状动脉造影（1506 赞、67 转）——后者是「专业人士用 AI 做垂直教学工具」的典型样本。</p>
+
+<h2>三、产品与工具：更快的 TypeScript，和「数据不出门」的 Replit</h2>
+<p><strong>Guillermo Rauch</strong>（Vercel）玩了个梗：<em>「TypeScript 是新的 TypeScript」</em>——经过 scriptc 编译后，性能比 tsgo 快 2–4 倍（341 赞）。工具链的性能竞赛还在继续。</p>
+<p><strong>Amjad Masad</strong> 宣布 Replit 支持部署到客户自己的云：<em>「数据永远不出门」</em>，面向政府、金融、医疗这类高合规场景（144 赞）。</p>
+<p><strong>Garry Tan</strong>（YC）分享自己的新项目起步姿势：capydotai 配 AsideAI，让 agent 同时搞定第一版代码和 DevOps 搭建，一次到位（187 赞）。</p>
+
+<h2>四、观点：生成已足够便宜，下一步拼编辑与监督</h2>
+<p><strong>Dan Shipper</strong> 一句话点破当下瓶颈：<em>「生成已经又便宜又高质量；我们缺的那块能力，现在是编辑与监督（editing and oversight）。」</em>——这和 Levie 的飞轮论互为印证：产出不是问题，谁在环里把关、怎么把关，才是下一步。</p>
+
+<h2>五、播客：Greg Brockman 谈安全与药物研发的「物理」</h2>
+<p>本期 <strong>No Priors</strong> 请到 OpenAI 联合创始人兼总裁 <strong>Greg Brockman</strong>（发布于 10 月 15 日）。话题横跨：OpenAI 最新的数学成果与 Astra、为什么 Greg 认为 AI 现在能生成<strong>真正的新知识</strong>、药物发现，以及一个相当大胆的论断——<em>「当软件变得如此便宜，你想要的不是软件，而是可靠、安全、可信任的软件；安全支出最终应当远超软件支出。」</em></p>
+<p>完整节目见 <a href="https://www.youtube.com/@NoPriorsPodcast" target="_blank" rel="noopener">No Priors（YouTube）</a>。</p>
+
+<hr>
+<small>来源：<a href="https://x.com/sama/status/2111139227761266699" target="_blank" rel="noopener">@sama on Navier-Stokes</a> · <a href="https://x.com/levie/status/2111312141609586862" target="_blank" rel="noopener">@levie on RSI</a> · <a href="https://x.com/amasad/status/2111206044416500159" target="_blank" rel="noopener">@amasad on mathematicians</a> · <a href="https://x.com/bcherny/status/2111158313463525518" target="_blank" rel="noopener">@bcherny on Code Review</a> · <a href="https://x.com/bcherny/status/2111158659971699136" target="_blank" rel="noopener">@bcherny on Slides</a> · <a href="https://x.com/thsottiaux/status/2111249810502353152" target="_blank" rel="noopener">@thsottiaux on slides support</a> · <a href="https://x.com/claudeai/status/2111177845846495646" target="_blank" rel="noopener">@claudeai on Haiku 5.5</a> · <a href="https://x.com/claudeai/status/2111177843413807120" target="_blank" rel="noopener">@claudeai on cardiology</a> · <a href="https://x.com/rauchg/status/2111274408706965898" target="_blank" rel="noopener">@rauchg on TypeScript</a> · <a href="https://x.com/amasad/status/2111267314012496121" target="_blank" rel="noopener">@amasad on Replit</a> · <a href="https://x.com/garrytan/status/2111235500568969451" target="_blank" rel="noopener">@garrytan on capydotai</a> · <a href="https://x.com/danshipper/status/2111174407637139668" target="_blank" rel="noopener">@danshipper on editing</a> · <a href="https://www.youtube.com/@NoPriorsPodcast" target="_blank" rel="noopener">No Priors: Greg Brockman</a></small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
