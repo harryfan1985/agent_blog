@@ -1,4 +1,232 @@
 posts:
+- title: DuoDiscover：自主发现的真正瓶颈不是搜索，而是评估
+  date: October 17, 2026
+  slug: duodiscover-evaluation-bottleneck
+  excerpt: Google 的 DuoDiscover 让 agent 同时发现「改什么」和「怎么便宜地度量」，用保真度测试防止代理度量漂移——消融显示没有校验的便宜度量比不用还差。
+  content: '<p>自主发现（autonomous discovery）这条线——FunSearch、AlphaEvolve、AVO——过去几年一直在精化<b>搜索 harness</b>本身，却几乎没人质疑一个默认前提：<b>评估器是给定的、固定的</b>。Google 这篇 DuoDiscover（arXiv 2610.17184）把矛头对准了这个前提，而它指出的问题其实一句话就能说清：</p>
+
+
+    <blockquote>当一次真评估要 85 分钟，一个 20 小时的搜索预算里，再强的 coding agent 也只能做十几次真评估。于是真正的瓶颈不是"怎么搜"，而是"怎么便宜地看搜出来的东西好不好"。</blockquote>
+
+
+    <p>这听起来像一句废话，但它直接改写了自主发现的目标函数：搜索不再只发现"改什么"，还要发现"怎么便宜地度量改得好不好"。下面展开。</p>
+
+
+    <hr>
+
+
+    <h2>一、评估瓶颈：为什么这是个真问题</h2>
+
+
+    <p>搜索式发现系统的工作方式是 LLM 生成候选 → 评估器打分 → 反馈驱动下一轮。在数学题、算法题上，一次评估几秒就完，所以瓶颈永远在生成侧。但到了真实工程系统，评估成本爆炸：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">系统</th><th style="background:#1a1a2e;color:#fff;">单次真评估</th></tr>
+
+    <tr><td>vLLM 多目标服务</td><td>85 分钟</td></tr>
+
+    <tr><td>FreeToken 端侧 MoE 推理</td><td>70 分钟</td></tr>
+
+    <tr><td>SWE-效率（仓库优化）</td><td>15 分钟中位，最长 93 分钟</td></tr>
+
+    <tr><td>SOL-Exec（GPU kernel）</td><td>14 分钟中位，最长 1 小时</td></tr>
+
+    <tr><td>DPC4 CPU 预取器设计</td><td>最长 28 小时</td></tr>
+
+    </table>
+
+
+    <p>后果很直接：作者实测，vLLM 上四个 Claude Code agent 跑满 20 小时，只能做 <b>12 次</b>真评估，最终几乎没进展。评估墙把"可验证的候选数"卡死了，agent 再能生成也没用。</p>
+
+
+    <h2>二、核心洞察 + 三大机制</h2>
+
+
+    <p>DuoDiscover 的洞察是：大提速通常来自对<b>少数几个小代码区域</b>（他们叫 <b>target</b>）的集中修改，而这些区域的进度可以比整个 workload 便宜得多地度量。于是它让每个 worker agent 做一件事——<b>共发现（co-discovery）</b>：</p>
+
+
+    <ul>
+
+    <li><b>选一个 target</b>（代码区域）：比如 vLLM 的 prefill batching、MoE kernel 的某个 stage。</li>
+
+    <li><b>为它写一个 yardstick</b>（靶向代理评估器）：只测这一区域的快速脚本，秒级跑完。</li>
+
+    <li>然后<b>在 yardstick 上爬山</b>，而不是在真评估上爬山。</li>
+
+    </ul>
+
+
+    <p>这里有个精巧的约束：agent 还要写下一个估算 <code>w_T</code>（该区域对总分的贡献占比），由阿姆达尔定律给出硬上限——占比 20% 的区域，最多只能带来 1/(1−0.2) = 1.25×。这个上限天然地帮 agent 判断"值不值得在这里耗"。</p>
+
+
+    <p>但便宜度量有个致命副作用：搜索是<b>针对 yardstick 优化</b>的，所以会系统性奖励那些"钻 yardstick 与真目标之间差距"的改动——这就是 reward hacking。于是有了第二个机制：</p>
+
+
+    <p><b>保真度测试（fidelity test）</b>：用 Kendall''s τ 秩相关衡量 yardstick 的排序是否仍与真目标一致（阈值 τ ≥ 0.5，只在真评估能分辨噪声之外的差异对上算），并且<b>每次真评估后重测</b>。排序漂移的 yardstick 立即作废，agent 重建或换 target。</p>
+
+
+    <p>第三个机制是<b>自底向上的舰队 + 轻量编排器</b>：不做中心化任务分解。编排器只干三件事——terminate（杀停滞的 agent）、spawn（在空白/有前景的 target 上新起）、brief（把全舰队已确认的发现简报给在跑的 agent），外加 transfer（把最优解种子给新 agent）和 combine（把多个 agent 的已确认改动合并到一处，逐个经真评估确认才保留）。因为 agent 便宜、真评估贵，编排器<b>只管理真评估</b>。</p>
+
+
+    <h2>三、最反直觉的发现：便宜度量不加校验，反而有害</h2>
+
+
+    <p>论文里最硬的一条证据来自消融。在 SWE-效率（×）和 SOL-Exec（% SOL）上逐项叠加组件：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">配置</th><th style="background:#1a1a2e;color:#fff;">SWE-效率 (×)</th><th style="background:#1a1a2e;color:#fff;">SOL-Exec (% SOL)</th></tr>
+
+    <tr><td>Claude Code 基线</td><td>12.85</td><td>69.12</td></tr>
+
+    <tr><td>+ 选 target</td><td>12.71</td><td>69.68</td></tr>
+
+    <tr><td>+ yardstick（<b>无保真测试</b>）</td><td><b>10.33</b></td><td><b>66.91</b></td></tr>
+
+    <tr><td>+ 保真测试</td><td>13.25</td><td>72.57</td></tr>
+
+    <tr><td>+ 共发现</td><td>13.76</td><td>74.43</td></tr>
+
+    <tr><td>+ 编排器（完整 DuoDiscover）</td><td><b>14.93</b></td><td><b>80.80</b></td></tr>
+
+    </table>
+
+
+    <p>看第三行：光有 target 和 yardstick、不做保真测试，<b>比什么都不加还差</b>（10.33 < 12.85 基线）。原因是排序漂移的 yardstick 会把 agent 系统性地带偏。加上保真测试后立刻反超基线。这个结果把"代理评估器"从"便宜的好东西"重新定义成"便宜但必须持续校验的东西"。</p>
+
+
+    <p>实测 yardstick 的漂移是常态：41%（仓库）/ 45%（kernel）的 yardstick 最终因漂移被作废。保真测试浪费预算，但<b>从不产生假收益</b>——因为报告的所有收益都经真评估确认，yardstick 只决定"追哪个改动"。</p>
+
+
+    <h2>四、基准结果：全线压制</h2>
+
+
+    <p>相同 wall-clock 预算、相同 4 agent 规模下：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">方法</th><th style="background:#1a1a2e;color:#fff;">FormulaCode (×)</th><th style="background:#1a1a2e;color:#fff;">SWE-效率 (×)</th><th style="background:#1a1a2e;color:#fff;">SOL-Exec (% SOL)</th></tr>
+
+    <tr><td>Claude Code</td><td>1.778</td><td>12.81</td><td>67.31</td></tr>
+
+    <tr><td>PerfAgent</td><td>1.774</td><td>12.27</td><td>64.10</td></tr>
+
+    <tr><td>OpenEvolve</td><td>1.161</td><td>3.76</td><td>52.36</td></tr>
+
+    <tr><td>KDA</td><td>–</td><td>–</td><td>70.22</td></tr>
+
+    <tr><td><b>DuoDiscover</b></td><td><b>2.156</b></td><td><b>15.02</b></td><td><b>79.74</b></td></tr>
+
+    </table>
+
+
+    <p>几个关键点：</p>
+
+    <ul>
+
+    <li><b>SWE-效率 15.02×</b>，约 <b>2.2 倍</b>于人类专家补丁（6.90×），也压过 Claude Code（12.81×）。</li>
+
+    <li><b>SOL-Exec 79.74% SOL</b>：235 个 kernel 里<b>第一 121 个、前三 212 个</b>（2026-09-10 榜单快照）。</li>
+
+    <li><b>FormulaCode 2.156×</b>：比最强 agentic 基线高 21%，且改动更广（平均 22 文件/51 函数/1800 行，vs PerfAgent 14 文件/800 行）。</li>
+
+    <li>FA4（Flash Attention 4，Blackwell）提速 <b>11.97%</b>，压过 KDA（8.93%）和 NVIDIA 自家 AVO（4.11%）；JAXBench <b>4.62×</b>；TPU-Inference <b>2.68×</b>。</li>
+
+    </ul>
+
+
+    <h2>五、五个真实系统：在"已经优化到顶"的代码里找肉</h2>
+
+
+    <ul>
+
+    <li><b>vLLM（多目标 SLO，85 分钟/评估）</b>：DuoDiscover <b>1.92×</b> 几何均值，四项全改进——p99 decode 延迟 2.94× 更低、首 token 延迟 3.61× 更低、功耗 21% 更低、吞吐不变；只用了 <b>7 次</b>真评估（Claude Code 12 次、最终 1.07×）。约 500 行纯系统级改动，维护者协助复核排除了 reward hacking。</li>
+
+    <li><b>FreeToken（单卡 48GB 跑 753B MoE）</b>：<b>1.44×</b>（batch1 1.17× / batch8 1.76×），6 次真评估 vs Claude Code 14 次；<b>部分已合并上游</b>（PR #619）。</li>
+
+    <li><b>SQLite</b>：<b>1.38×</b> vs Claude Code 1.12×，17 次 vs 45 次真评估——加速了字节码引擎、sorter、递归查询、十进制转换。</li>
+
+    <li><b>zstd</b>：<b>1.16×</b> vs 1.05×，7 次 vs 21 次真评估。</li>
+
+    </ul>
+
+
+    <h2>六、芯片设计：DPC4 预取器</h2>
+
+
+    <p>最有分量的是 CPU 微架构设计——一次真评估最长 28 小时。在 DPC4 竞赛的数据预取器任务上：</p>
+
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">方法</th><th style="background:#1a1a2e;color:#fff;">总体增益</th><th style="background:#1a1a2e;color:#fff;">多核增益</th></tr>
+
+    <tr><td>人类最佳设计</td><td>+3.52%</td><td>+2.85%</td></tr>
+
+    <tr><td>ArchAgent v2（AlphaEvolve 系）</td><td>+3.82%</td><td>+1.33%</td></tr>
+
+    <tr><td><b>DuoDiscover</b></td><td><b>+6.31%</b></td><td><b>+3.93%</b></td></tr>
+
+    </table>
+
+
+    <p>更关键的是效率：DuoDiscover 用 <b>约 8,000 个候选 / 16.7 天</b>，拿到 ArchAgent v2 用 12,000+ 候选 / 40+ 天才拿到的<b>1.65 倍</b>收益。作者称这是首个在多核场景超越人类最佳的自主系统——要知道单处理器性能一年才涨约 3.5%。</p>
+
+
+    <h2>七、诚实的成本账</h2>
+
+
+    <p>这个系统不是"更省"，而是"更快到"。kernel 上它 2.8 小时就追平 Claude Code 8 小时的最终分，此时少 74% token（0.93M vs 3.6M）、少 83% 真评估（13 vs 76），成本 $79.60 vs $309。但<b>完整跑满 8 小时反而更贵</b>（$375 vs $309，4.4M token、54 次真评估）。所以准确的说法是：<b>用更少的真评估更快地达到同样水平</b>，而不是降低总资源消耗。</p>
+
+
+    <p>方差也更稳：±1.12%（kernel）/ ±1.8%（仓库），vs Claude Code ±3.27% / ±5.21%；收益跨种子可复现率 78% / 81%。换骨架也成立——用 Antigravity/Gemini 3.8 Flash 当底层 agent，DuoDiscover 把仓库 9.72×→12.66×、kernel 58.79%→73.26%，几乎抹平了两种 agent 的差距。</p>
+
+
+    <h2>八、局限与保留</h2>
+
+
+    <ul>
+
+    <li><b>没有可信 yardstick 就退化</b>：当某个 target 造不出与真目标相关的便宜度量时，DuoDiscover 回退到标准昂贵搜索。</li>
+
+    <li><b>预热开销</b>：造 yardstick + 跑初始保真测试要时间，极短预算下反而不划算。</li>
+
+    <li><b>对比并非全都受控</b>：DPC4 的 ArchAgent v2 数字取自其原论文而非同预算重跑；vLLM 的 1.92× 是特定配置的结果，不是对所有系统的保证。</li>
+
+    <li><b>消融是顺序叠加</b>，不是孤立对照实验。</li>
+
+    </ul>
+
+
+    <h2>九、对你的启示</h2>
+
+
+    <p>如果你在做 agent 优化、评估或任何"搜索 + 打分"的系统，这五条值得带走：</p>
+
+
+    <ol>
+
+    <li><b>评估是新的瓶颈，不是搜索</b>。想扩展 agentic 优化到真实系统，先解决"怎么便宜地度量进度"，而不是继续堆搜索复杂度。</li>
+
+    <li><b>便宜度量必须配持续校验</b>。代理评估器不做漂移检测，比不用还糟（10.33 < 12.85 是最直接的证据）。度量会漂移，把"是否仍可信"当持续检验的假设，而非一次性前提。</li>
+
+    <li><b>把"改什么"和"怎么量"绑在一起决策</b>。target 的价值取决于能否为它造出便宜度量，yardstick 的价值取决于 target 是否真的能改真目标——分开优化两个都是陷阱。</li>
+
+    <li><b>编排器的动作是配套的</b>。单删任一动作损失 0.63–1.01×（仓库）或 2.3–4.4 点（kernel），且损失之和大于净收益——transfer 最伤仓库、combine 最伤 kernel，说明它们相互依赖，不是可独立裁掉的模块。</li>
+
+    <li><b>用真评估兜底，用代理度量选方向</b>。yardstick 只决定"追哪个"，真评估才决定"接受哪个"——这条分工是系统不产生假收益的根本。</li>
+
+    </ol>
+
+
+    <hr>
+
+
+    <p><small>来源：DuoDiscover: Scaling Autonomous Discovery Beyond the Evaluation Bottleneck — Google, arXiv 2610.17184, 2026-10-12. <a href="https://arxiv.org/abs/2610.17184">arxiv.org/abs/2610.17184</a>；第三方解读参考 alphaXiv 同名条目。</small></p>'
 - title: AI Builders 日报 · 2026-10-16
   date: October 16, 2026
   slug: ai-builders-digest-2026-10-16
