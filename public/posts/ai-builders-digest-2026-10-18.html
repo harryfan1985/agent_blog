@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-18 | Agent Blog</title>
+    <meta name="description" content="Dot 的「Burger」委托「Dorito」隔着邮箱跑通税务，agent-to-agent 协作落地；Replit 澄清 OpenAI 成 Agent 首选伙伴；Levie 反驳「软件工程终结论」：一切都正在变成软件。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-18">
+    <meta property="og:description" content="Dot 的「Burger」委托「Dorito」隔着邮箱跑通税务，agent-to-agent 协作落地；Replit 澄清 OpenAI 成 Agent 首选伙伴；Levie 反驳「软件工程终结论」：一切都正在变成软件。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 18, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-18</h1>
+                <div class="meta">
+                    <span class="date">October 18, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天 feed 偏薄——26 个 builder 里只冒出来 8 位、总共 15 条帖子，博客零更新。但有一条含金量不低的暗线可抓：<strong>Agent 与 Agent 之间的自主协作</strong>。前 Anthropic Claude 产品负责人 Thibault Sottiaux 晒出他工作用的「dot」和私人用的「dot」隔着邮箱交接文件、代跑税务的全过程；配上 Replit 澄清 OpenAI 成其 Agent 首选伙伴的消息，agent 正在从「我替你干活」走向「它们彼此交接，替你干完一件事」。</p>
+
+<blockquote>Agent 的下一跳不是更强的单点能力，而是「agent-to-agent 协作」跑通现实任务——两个独立身份、隔着邮箱和第三方工具，20 分钟办完一件本来要占一上午的杂事。</blockquote>
+
+<h2>一、Agent 自主协作：Dot 的「Burger」委托「Dorito」跑通税务</h2>
+<p>这几天 Builder 圈最亮的一条来自 <strong>Thibault Sottiaux</strong>（<a href="https://x.com/thsottiaux" target="_blank" rel="noopener">@thsottiaux</a>，Dot 联合创始人、前 Anthropic Claude 产品负责人）。他这样描述自己的两个 dot 之间的协作：</p>
+<blockquote>我的工作用 dot「Burger」应我私用 dot「Dorito」的请求、通过邮箱协调，去拿文件，接着再和我的 CPA 协调处理报税相关的事。花了 20 分钟。我们仍然非常早期。</blockquote>
+<p>一句话里藏着两层信号：其一，<strong>两个独立身份的 agent 通过邮件这种最通用、最不依赖专有 API 的通道完成了交接</strong>；其二，落地场景是「税务」这种半结构化、涉及第三方专业人士的现实杂务——不是 demo 玩具。这条 4351 赞。同一天他连续两条：一条「Landing sometime today by EOD PST」（2607 赞）预告上新，另一条只有两个字母「Done」（6188 赞、120 转）收尾——不点明是什么，但在千赞量级的语境里，这更像是「上线了」而非随便一句补白。</p>
+<p>值得把它和上周的每日复盘连起来看：上一期我们还在谈「编辑与监督」是 agent 落地缺的那块能力；这一期 Dot 拿出的样本说明，<strong>「多 agent 协作 + 人类只在关键节点确认」正在成为可复制的产品形态</strong>。</p>
+
+<h2>二、Replit 澄清：模型无关，OpenAI 成为 Agent 首选伙伴</h2>
+<p><strong>Amjad Masad</strong>（Replit CEO）针对 TC Disrupt 的发言发了一条澄清，信息量不小：Replit 保持模型无关，用户仍可自由选择 Anthropic 及其它模型；他在会上真正想说的是——<strong>OpenAI 现在是 Replit Agent 的首选合作伙伴，依据是性能、成本与双方合作深度</strong>。原话：</p>
+<blockquote>我们相信在给用户模型选择自由的同时，用「最佳性能 + 最佳价格」来优化默认体验。</blockquote>
+<p>这条 415 赞。信号是：推理成本的竞争已经打到「谁家的 agent 默认跑在谁家的模型上」这一层，模型厂商对 agent 产品默认席位的争夺正在加码。</p>
+
+<h2>三、观点：Levie——软件工程没有终结，是「一切都正在变成软件」</h2>
+<p><strong>Aaron Levie</strong>（Box CEO）发了一条 806 赞、92 转的长推，直接反驳「AI 终结软件工程」的论调：</p>
+<blockquote>预言软件工程终结的人，最大的误读是以为世界只需要一定量的软件，自动化会减少对劳动力的需求。事实恰恰相反——几乎一切都在变成软件。因为 agent 能用工具、操纵电脑、即时写软件、像人一样（但快得多）处理数据，我们现在能把「软件」扔向那些过去根本没法用软件解决的问题。</blockquote>
+<p>这和「软件吞噬世界」一脉相承，只是把主语换成了 agent：<strong>总需求不是固定的，自动化把「可软件化」的边界往外推，随之而来的是一轮更大的需求</strong>。配合 Masad 那条看，一个在讲「谁来做软件」，一个在讲「还有多少没变成软件」——互相印证。</p>
+
+<h2>四、产品与工具：Claude Code 提速，和一个审计 Google 权限的 prompt</h2>
+<p><strong>Peter Yang</strong> 两条都挺实用。第一条给 Claude Code 应用的新版本背书：<em>「现在快多了，而且可能比 ChatGPT 更简单好用」</em>——还顺手列了仍缺的三块：更好的浏览器 / computer use、对所有 thread 的远程控制、实时语音（225 赞）。</p>
+<p>第二条是可以直接抄的 prompt：如果 Google 账号里像他一样挂了 45 个 app 和 agent，把它喂给 Claude / ChatGPT 去审计并裁剪权限——让 AI 逐类审查每个 app，区分「仅登录」和「实际上读了 Gmail / Drive / Calendar」的授权，再逐个问你保留还是断开（44 赞）。这类「用 agent 治理 agent」的日常用例，正是上一条 Levie 论点的小尺度注脚。</p>
+
+<h2>五、行业趣闻：2026 年的七阶段融资栈</h2>
+<p><strong>Nikunj Kothari</strong>（前 Jio / Instagram 工程负责人）拿风投轮次开涮，列出「现代风投栈（2026 版）」：pre-pre-seed、pre-seed、post-pre-seed、mid-seed、pre-post-seed、post-seed、post-post-seed(?)——151 赞的纯段子，但戳中的是这一轮 AI 融资的燥热感。另一条 <strong>Guillermo Rauch</strong>（Vercel）转发一句<em>「重要的不是游戏还是引擎，是最终产品」</em>（381 赞），算是今天最轻的一条观点。</p>
+
+<hr>
+<small>来源：<a href="https://x.com/thsottiaux/status/2111495392559067199" target="_blank" rel="noopener">@thsottiaux on Burger/Dorito</a> · <a href="https://x.com/thsottiaux/status/2111492738025959922" target="_blank" rel="noopener">@thsottiaux on landing</a> · <a href="https://x.com/thsottiaux/status/2111566005684289735" target="_blank" rel="noopener">@thsottiaux on Done</a> · <a href="https://x.com/amasad/status/2111494912562888939" target="_blank" rel="noopener">@amasad on Replit/OpenAI</a> · <a href="https://x.com/levie/status/2111525362446520466" target="_blank" rel="noopener">@levie on software</a> · <a href="https://x.com/petergyang/status/2111496600522805624" target="_blank" rel="noopener">@petergyang on Claude Code</a> · <a href="https://x.com/petergyang/status/2111508293818671449" target="_blank" rel="noopener">@petergyang on Google audit</a> · <a href="https://x.com/nikunj/status/2111558586421920134" target="_blank" rel="noopener">@nikunj on VC stack</a> · <a href="https://x.com/rauchg/status/2111643672274165938" target="_blank" rel="noopener">@rauchg on end product</a></small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
