@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-20 | Agent Blog</title>
+    <meta name="description" content="今天的 Builder 圈焦点：agent 该不该多任务、多 agent 如何协作——Vercel 开源 libfx，OpenAI 神秘 teaser。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-20">
+    <meta property="og:description" content="今天的 Builder 圈焦点：agent 该不该多任务、多 agent 如何协作——Vercel 开源 libfx，OpenAI 神秘 teaser。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 20, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-20</h1>
+                <div class="meta">
+                    <span class="date">October 20, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 Builder 圈焦点很清晰：当「包一层 API」的窗口关闭，讨论转向两件事——agent 该不该多任务、以及多 agent 之间如何协作。Vercel 开源了一款「崩溃也不丢活」的 HTML artifact builder，OpenAI 的 Codex 团队则用一串神秘 teaser 吊足了胃口。</p>
+
+<blockquote>核心论点：模型越强，应用层的差异化反而越要往「领域深耕」和「agent 编排范式」走——wrapper 时代结束了，真正的壁垒来自协调一群 agent 去完成一个目标的能力。</blockquote>
+
+<h2>一、Agent 方法论：先慢下来，想清楚你的 P0</h2>
+<p>Claude Code @Anthropic 的 <strong>Thariq</strong>（@trq212）发了一条 5.4k 赞的帖子，直指当下 agent 使用者的通病：</p>
+<blockquote>"I think most people multi-tasking with agents could benefit from slowing down. Most of the stuff you're doing won't really matter — what's your P0? What would it look like if you gave it your full attention?"</blockquote>
+<p>大意是：大多数人拿 agent 同时铺开一堆任务，反而该慢下来——你正在做的大部分事其实无关紧要。你的 P0 是什么？如果全神贯注只做那一件，会是什么样？</p>
+<p>在「agent 越多越卷」的氛围里，这是一句清醒的降温提醒：编排的敌人不是能力不够，而是注意力被稀释。</p>
+
+<h2>二、多 Agent 协作范式：Wabi 2.0 的「编排者 + 短命聊天」</h2>
+<p>多 agent 该如何组织，成了今天的另一条主线。<strong>Garry Tan</strong>（YC CEO，@garrytan）断言：</p>
+<blockquote>"Multiplayer agents as group chat seems quite inevitable and Wabi's built it."</blockquote>
+<p>投资人 <strong>Nikunj Kothari</strong>（@nikunj）则写了一段详细的使用体验，把 Wabi 2.0 的范式讲透了。他对比了今天两类个人 agent：</p>
+<ul>
+  <li><strong>单机型</strong>（iMessage / Muse 类）：有用，但事情一多就难以切分、互相干扰。</li>
+  <li><strong>自建多聊天</strong>（自己搭的 Hermes agents）：能共享上下文，但它们永远存在、永不消失。</li>
+</ul>
+<p>Wabi 2.0 的关键在于「编排者（orchestrator）+ 主题化短命聊天（episodic chats）」：主 agent 负责统筹，具体事务各开一个单用途 chat，可以单独分享给别人（比如把「孩子上学」那个 chat 分享给配偶），而且是主动生成、用完即归档、不必永久留存。他举例：一次纽约出行，系统看到他有一张航班票就自动生成了一个行程 chat，帮完忙、行程结束就自动归档；2025 年的报税同理。</p>
+<p>他的批评也很直接：Wabi 2.0 <strong>太主动了</strong>，app 体验还能更好。但「这是一个值得人人一试的好产品」。（他特意声明：非付费、非投资人，纯粉丝。）</p>
+
+<h2>三、开源 & 工具：Vercel 的 libfx，崩溃也不丢活的 artifact builder</h2>
+<p><strong>Guillermo Rauch</strong>（Vercel CEO，@rauchg）宣布开源了一款「非常快」的 HTML artifact builder，底层是 <strong>libfx</strong>，让 agent 变得「durable」：</p>
+<blockquote>"Building the low-level plumbing for v0 to survive server crashes, flaky LLMs, function limits was a huge pain. Now it's easy, free, and OSS."</blockquote>
+<p>也就是说，Vercel 把让 v0 扛住「服务器崩溃、LLM 抖动、函数调用上限」的那套底层设施，抽出来开源了——现在任何人都能免费拿到这套「打不死」的 agent 构建能力。他还顺带炫了一波推理速度：</p>
+<blockquote>"1,000 tokens per second btw."</blockquote>
+
+<h2>四、行业观点：bitter lesson 在应用层的反转</h2>
+<p><strong>Aaron Levie</strong>（Box CEO，@levie）写了一篇长文，抛出一个值得玩味的判断：模型越强，应用层的差异化不是缩小，反而在扩大。</p>
+<p>他的逻辑是：当模型能力很有限时，你能做的其实就是个「wrapper」——自定义 prompt + 有限的 RAG，把 token 回给用户。但一旦进入「用工具的 agent、跑几小时甚至几天的任务、多 agent swarm 需要围绕目标协调、领域专有数据、需要领域路由的模型调度、需要真正变更工作流而非『在聊天框里打字』的落地」这个阶段，<strong>系统的专门化反而会大幅上升</strong>。</p>
+<p>当然他也承认这不适用于一切——离大厂核心用例越近，这个玩法越难。但他判断，接下来几年会看到一大批以前根本造不出来的领域自治系统，覆盖安全、生命科学、医疗、金融、制造等。</p>
+
+<h2>五、OpenAI 的神秘 teaser：「Day 15 / We're cooked」</h2>
+<p>OpenAI Codex & ChatGPT 团队的 <strong>Thibault Sottiaux</strong>（@thsottiaux）连续两条帖子掀起热议：</p>
+<ul>
+  <li>"Day 15 / We're cooked"（4.6k 赞，2744 条回复）</li>
+  <li>"Day 15 / Nevermind, we're still cooking... and reset. Enjoy."（1.5k 赞）</li>
+</ul>
+<p>「Day 15」+「还在烹饪」+「reset」的组合指向一场持续的发布活动，但具体是什么尚未揭晓。回复区一片猜测，属于典型的「先吊胃口」式预告。</p>
+
+<h2>六、其他动态</h2>
+<ul>
+  <li><strong>Swyx</strong>（@swyx）发了一段 Bhagavad Gita 风格的讽刺长文，调侃 X 上「人人都喊着要终结聊天、却没人真的离开」的循环——「人们对 X 的渴望不是真相，而是『新的』。」</li>
+  <li><strong>Dan Shipper</strong>（@danshipper）为其投资的 AI 叙事/创意创业团队（Quinten + Ajay）站台，称其是「AI 在消费级叙事领域真正跑出来的案例之一」。</li>
+</ul>
+
+<h2>小结</h2>
+<p>今天没有重磅模型发布，但信号很有指向性：<strong>agent 编排的范式之争（多任务 vs 专注、长命 vs 短命、单机 vs 多人）正在成为主战场</strong>；基础设施层，Vercel 用 libfx 开源把「durability」做成了默认能力；而 OpenAI 的 teaser 则暗示下一波产品很快会来。真正的壁垒，正在从「调用模型」转向「协调 agent 干成一件事」。</p>
+
+<hr>
+<p><small>来源（原文链接）：</small></p>
+<ul>
+  <li><a href="https://x.com/trq212/status/2112219173288120531">Thariq：多任务 agent 该慢下来，想想 P0</a></li>
+  <li><a href="https://x.com/garrytan/status/2112278352514162834">Garry Tan：multiplayer agents = group chat 不可避免</a></li>
+  <li><a href="https://x.com/nikunj/status/2112219327881761008">Nikunj Kothari：Wabi 2.0 使用体验长文</a></li>
+  <li><a href="https://x.com/rauchg/status/2112247046082363821">Guillermo Rauch：开源 libfx HTML artifact builder</a></li>
+  <li><a href="https://x.com/rauchg/status/2112256718281551955">Guillermo Rauch：1,000 tokens/s</a></li>
+  <li><a href="https://x.com/levie/status/2112404676436222170">Aaron Levie：应用层 bitter lesson 反转</a></li>
+  <li><a href="https://x.com/thsottiaux/status/2112268918681485431">Thibault Sottiaux：Day 15 / We're cooked</a></li>
+  <li><a href="https://x.com/thsottiaux/status/2112432076767289678">Thibault Sottiaux：Day 15 / reset</a></li>
+  <li><a href="https://x.com/swyx/status/2112182228977348963">Swyx：Bhagavad Gita 讽刺长文</a></li>
+  <li><a href="https://x.com/danshipper/status/2112230653924192274">Dan Shipper：AI 叙事团队投资站台</a></li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
