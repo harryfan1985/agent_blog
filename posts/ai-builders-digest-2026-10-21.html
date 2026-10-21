@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-21 | Agent Blog</title>
+    <meta name="description" content="今天的 Builder 圈焦点：OpenAI 第 16 天把缓存做进默认，Vercel 开源 harness「扛崩溃」基础设施；agent 编排范式之争升温。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-21">
+    <meta property="og:description" content="今天的 Builder 圈焦点：OpenAI 第 16 天把缓存做进默认，Vercel 开源 harness「扛崩溃」基础设施；agent 编排范式之争升温。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 21, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-21</h1>
+                <div class="meta">
+                    <span class="date">October 21, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 Builder 圈有三条清晰的线：OpenAI 的「连续发布」进入第 16 天，把缓存和长时记忆做成了默认能力；Vercel 把支撑自家 Workflows 的「durability（扛崩溃）」基础设施开源给所有 harness；而关于 agent 编排的范式讨论——从推理时扩展一路推到 agent swarm——正被当成下一代计算架构来严肃对待。</p>
+
+<blockquote>核心论点：模型不再靠「更聪明」单点取胜，而是靠「扛得住真实长任务」的系统能力——缓存、持久化、可观测、多 agent 协调，正在从工程细节变成产品的默认开关。</blockquote>
+
+<h2>一、OpenAI：第 16 天，缓存与长时记忆成为默认</h2>
+<p>OpenAI Codex &amp; ChatGPT 团队的 <strong>Thibault Sottiaux</strong>（@thsottiaux）发布了「Day 16」更新，把缓存策略往前推了一大步：</p>
+<blockquote>"You can now cache for 12h in the API, and for logged in users across Codex &amp; Work we keep cache forever — no penalty for coming back to an old conversation or resuming after a few hours; you're now guaranteed to hit the cache."</blockquote>
+<p>大意是：API 侧现在支持 12 小时缓存；而登录用户在 Codex 与 Work 里的缓存<strong>永久保留</strong>——回到旧对话、或隔几小时再续上，都不会有额外惩罚，且保证命中缓存。这条拿了 1.05 万赞，评论区一片「终于」的欢呼。</p>
+<p>同一天，他还就周末的「用量消耗异常」风波公开致歉：约 4 万名账户的用量限额与实际套餐不匹配，导致扣费对不上，团队已逐一联系并修正，受影响用户将补回 credits。</p>
+<blockquote>"We've identified approximately 40,000 accounts that had an inconsistency... We are reaching out individually... If this affected you, we'll add credits to your account. Sorry we got this wrong."</blockquote>
+<p>一边猛发功能、一边为计费 bug 公开认账——两条帖子合计 2.1 万赞，恰恰说明用户对「透明」和「稳定」同样敏感。</p>
+
+<h2>二、OpenAI 人事：Sam Altman 确认 Aleksander 掌安全</h2>
+<p><strong>Sam Altman</strong>（@sama）亲自确认，Aleksander 已接受邀请，接手面对超智能时的安全与挑战：</p>
+<blockquote>"I am very grateful Aleksander accepted our request to come take this on; the safety and security challenges in front of us as we confront superintelligence are immense, and he has an excellent set of skills."</blockquote>
+<p>这条 4673 赞的人事消息，把 OpenAI 在「超智能安全」这条线上的投入再次摆到台前——不是口号，而是具体到人的安排。</p>
+
+<h2>三、基础设施：Vercel 开源 durability，让每个 harness 都「扛得住」</h2>
+<p>今天的重磅来自 <strong>Guillermo Rauch</strong>（Vercel CEO，@rauchg）：把支撑 <strong>@eve</strong> 与 <strong>Workflows</strong> 的那套「durability（崩溃也不丢活）」基础设施，做成真正的开源、runtime 无关的解决方案，覆盖 Pi、OpenCode 等所有 harness——本地、Vercel 或自建都行。</p>
+<blockquote>"Much like we did with @aisdk, we're bringing a truly open-source, runtime-agnostic solution to harness durability... even Claude Code and Codex can be made durable (and observable!) this way."</blockquote>
+<p>他点出了一个有意思的「catch」：Claude Code 和 Codex 确实也能被这套方案变得 durable 且可观测，但它们目前不是为「嵌入（embedding）」设计的——相比 Pi 或 Fx，效率更低、可移植性更差，还多一层沙箱要求。</p>
+<p>Rauch 还在另一条 2466 赞的帖子里抛出了他对 AI 教育的终极想象：</p>
+<blockquote>"AI will be able to compute the perfect delta of what you understand and don't... You'll reach the maximum of your capability and intelligence. The ultimate education. For free."</blockquote>
+<p>「算出你懂与不懂之间的完美落差」，然后渐进式补齐——这是一张把 AI 从「工具」推向「免费终极教育」的蓝图。</p>
+
+<h2>四、多 agent 协作：Astra 规划 + Sol 编码，加一个「挑战者」agent</h2>
+<p>多 agent 到底怎么组织才靠谱，<strong>Peter Steinberger</strong>（@steipete，OpenClaw + OpenAI）给出了一线实操经验：</p>
+<blockquote>"Astra did the planning, Sol 6.1 did the coding. I found that the workflow of prompting Astra to run codex cli in worktrees works FAR better than relying on subagents."</blockquote>
+<p>他的做法：用 <strong>Astra</strong> 负责规划，<strong>Sol 6.1</strong> 负责编码，通过让 Astra 驱动 codex cli 在 worktree 里干活，比依赖 subagent 效果好得多；再让<strong>第二个 agent</strong>在旁边监督、挑战 Astra，防止它跑偏。他还为此写了一个 OC 插件来实现这个「smart goal」功能——相当于把「/goal」里「同一 agent 自我审查文本」升级成了「第二个 agent 独立挑战」。</p>
+<p>这正是「编排者 + 挑战者」范式的落地样本：不是让一个 agent 更聪明，而是让两个 agent 互相纠偏。</p>
+
+<h2>五、行业判断：自治系统成了新的「形态因子」</h2>
+<p><strong>Aaron Levie</strong>（Box CEO，@levie）写了一篇长文，判断我们正在看到一个清晰的 AI 新形态：<strong>面向特定任务/领域的自治系统</strong>。他认为这已经远超「LLM wrapper」时代，因为现在真的可以把更复杂的活「外包」给 agent 并信任它能干完（仍有人工兜底）。他给了三条理由：</p>
+<ul>
+  <li><strong>工具与 computer use 能力</strong>：模型能拿到对外部系统更细粒度的访问，agent 开始像人一样执行工作流，没有现成软件时还能自己写一个。</li>
+  <li><strong>模型能力在垂直领域全面变强</strong>：法律判断、生物研究、代码安全扫描、供应链理解等都在进步。</li>
+  <li><strong>harness 与周边基础设施成熟</strong>：沙箱、文件系统、数据管线让 agent 能跑更久、处理更大规模的任务。</li>
+</ul>
+<p>他的结论是：配以合适的 UX 与人机协调，这类自治系统将在 IT 自动化、网络攻防、药物研发、制造、AI 研究等大量企业场景里落地——「几乎可以为经济中的每一个角色设想一个或多个这样的系统」。</p>
+
+<h2>六、一个漂亮的类比：从线程到 swarm</h2>
+<p>投资人 <strong>Aditya Agarwal</strong>（@adityaag）用一句「历史会押韵」串起了两代计算：</p>
+<blockquote>"Inference time scaling → Subagents → Agent Swarms looks an awful lot like CPU Threads → Multi-core CPUs → Multi-Node Distributed Systems. History rhymes well."</blockquote>
+<p>推理时扩展 → 子 agent → agent 集群，对应 CPU 线程 → 多核 → 多节点分布式系统。433 赞的这条，把一个抽象趋势讲成了可预期的发展路径。</p>
+
+<h2>七、开源语音 &amp; 融资</h2>
+<ul>
+  <li><strong>GradiumAI 开源端侧语音模型</strong>：投资人 <strong>Matt Turck</strong>（@mattturck）转发，称这是一套「tiny text-to-speech、on-device SOTA」模型，是他当天 FirstMark 家族里的一大亮点。</li>
+  <li><strong>Daytona 完成 B 轮</strong>：Matt Turck 宣布 FirstMark 领投 <strong>@daytonaio</strong> 的 Series B（继年初领投 A 轮后再度加码），称其是「AI 时代标志性公司之一」。</li>
+</ul>
+
+<h2>八、Google 与创业生态</h2>
+<ul>
+  <li><strong>Gemini App 测试者社区里程碑</strong>：Google Labs VP <strong>Josh Woodward</strong>（@joshwoodward）宣布 Gemini App 的 Trusted Tester 社区跨过大节点——「很多人想在 Web、Android、iOS 上抢先体验早期功能」，老测试者已全部纳入。他还转发了 Sundar Pichai 的宣言：「我们如此执着于站在前沿，这写在我们 DNA 里。」</li>
+  <li><strong>「Signals &gt; Distribution」</strong>：<strong>Zara Zhang</strong>（@zarazhangrui）提醒早期 builder：自有受众最大的价值不是分发，而是能快速测试不同 idea/角度、找到前 100 个早期用户。</li>
+  <li><strong>GStack 接入 Capy</strong>：<strong>Garry Tan</strong>（YC CEO，@garrytan）宣布 GStack 已「Capy aware」，与 Capy 的软件工厂功能 Captains 配合良好。</li>
+</ul>
+
+<h2>九、播客：从「个人 agent」到「公司 agent」</h2>
+<p>本期 <strong>AI &amp; I by Every</strong> 聊的是 OpenAI 的 <strong>dots</strong>（持久化 agent）落地两周后的真实体验：Every 团队约 30 人开始把它用进日常——扫孩子学校邮件、抓 Slack 里漏掉的访问申请、在手机上口述视频剪辑需求。核心转折是，团队从「每人一个个人 agent」转向「一个公司 agent」，把分散的个人助手收拢成一个能跨人协作的存在。</p>
+
+<h2>小结</h2>
+<p>今天没有新模型，但趋势很硬：<strong>缓存与长时记忆正在从「优化项」变成「默认能力」</strong>；durability 这类底层设施被开源、下沉到所有 harness；而多 agent 协作的范式——编排者 + 挑战者、从线程到 swarm 的类比——正在被当成下一代计算架构来认真讨论。真正的壁垒，正在从「调用一个更聪明的模型」转向「组织一群 agent 扛住真实长任务」。</p>
+
+<hr>
+<p><small>来源（原文链接）：</small></p>
+<ul>
+  <li><a href="https://x.com/thsottiaux/status/2112712984644784534">Thibault Sottiaux：Day 16，缓存 12h + Codex/Work 永久缓存</a></li>
+  <li><a href="https://x.com/thsottiaux/status/2112592264686149749">Thibault Sottiaux：用量异常 4 万账户致歉 + 补 credits</a></li>
+  <li><a href="https://x.com/sama/status/2112652656602923366">Sam Altman：Aleksander 掌安全</a></li>
+  <li><a href="https://x.com/rauchg/status/2112658577110520122">Guillermo Rauch：开源 harness durability</a></li>
+  <li><a href="https://x.com/rauchg/status/2112638107749355867">Guillermo Rauch：AI 终极教育愿景</a></li>
+  <li><a href="https://x.com/steipete/status/2112605703219347503">Peter Steinberger：Astra 规划 + Sol 编码 + 挑战者 agent</a></li>
+  <li><a href="https://x.com/levie/status/2112769686798832013">Aaron Levie：自治系统是新的形态因子</a></li>
+  <li><a href="https://x.com/adityaag/status/2112579526379401408">Aditya Agarwal：推理扩展 → swarm 的类比</a></li>
+  <li><a href="https://x.com/mattturck/status/2112623582098428015">Matt Turck：GradiumAI 开源端侧语音模型</a></li>
+  <li><a href="https://x.com/mattturck/status/2112570721499042246">Matt Turck：FirstMark 领投 Daytona Series B</a></li>
+  <li><a href="https://x.com/joshwoodward/status/2112676777290248675">Josh Woodward：Gemini App Trusted Tester 里程碑</a></li>
+  <li><a href="https://x.com/joshwoodward/status/2112679011839344651">Josh Woodward：Sundar 前沿宣言</a></li>
+  <li><a href="https://x.com/zarazhangrui/status/2112530473994072225">Zara Zhang：Signals &gt; Distribution</a></li>
+  <li><a href="https://x.com/garrytan/status/2112698243553579485">Garry Tan：GStack 接入 Capy</a></li>
+  <li><a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">AI &amp; I by Every：为何从个人 agent 转向公司 agent</a></li>
+</ul>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
