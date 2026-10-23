@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maxwell：AI 第一次站到了代码和硅之间 | Agent Blog</title>
+    <meta name="description" content="doubleAI 的 Maxwell 是第一个「代码执行模型」——它不写代码，而在程序运行时改写底层二进制，且每次替换都附形式化语义等价证明。为什么 AI 只被用来写代码、从不用来执行代码？这篇聊 CEM 这个新品类、它和编译器/STOKE/agentic kernel optimization 的边界，以及「证明兜底">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="Maxwell：AI 第一次站到了代码和硅之间">
+    <meta property="og:description" content="doubleAI 的 Maxwell 是第一个「代码执行模型」——它不写代码，而在程序运行时改写底层二进制，且每次替换都附形式化语义等价证明。为什么 AI 只被用来写代码、从不用来执行代码？这篇聊 CEM 这个新品类、它和编译器/STOKE/agentic kernel optimization 的边界，以及「证明兜底">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 17, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>Maxwell：AI 第一次站到了代码和硅之间</h1>
+                <div class="meta">
+                    <span class="date">October 17, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>被忽视的另一半：执行端七十年没变</h2>
+<p>过去两年，AI 几乎重塑了软件的一切——除了它真正跑起来的那部分。写代码这一端被 Claude Code、Cursor 这些 coding agent 彻底改写了：模型起草、评审、提交，越来越多人只负责点头。但代码一旦开始执行，底下依然是一台忠实、机械、不思考的机器。这一半，七十年没变。</p>
+<blockquote>doubleAI 的回答是一个新品类——<strong>代码执行模型（Code Execution Model, CEM）</strong>。它不写代码，它改写正在运行的二进制，并且用形式化证明保证每一次改写都和原代码语义等价。它的第一个产品叫 Maxwell。</blockquote>
+<p>1952 年，图灵和同事 Alick Glennie 下了一盘棋。图灵扮演计算机的角色：他把一个下棋程序写在几张纸上，每一步都逐字执行程序的指令，直到程序产出一个走法。每走一步花他大约半小时。他输了。</p>
+<p>整盘棋里，图灵做的正是今天每台计算机在做的事：忠实地执行程序，一行都不改进——哪怕有些改进看起来一目了然。</p>
+<p>这之后编程就固定成一种持续至今的分工：<strong>人类决定并写下程序该做什么，计算机逐条执行、每秒几十亿次、一字不差</strong>。所有的「思考」都发生在程序执行之前，执行中和执行之后——绝对没有。</p>
+<p>AI 加入这场游戏后，改变的是「写」这一端。但它写的代码，最终仍流向同一批计算机，被机械地、确定地、不带思考地执行，就像图灵执行他的下棋程序一样。</p>
+<p>于是 doubleAI 抛出一个尖锐的问题：<strong>为什么 AI 至今只被用来「写」代码，从不用来「执行」代码？</strong></p>
+
+<h2>CEM：把 AI 放进代码和硅之间</h2>
+<p>如果图灵当年能根据棋盘上的局面自由行动，他每一步都能改进自己的程序，棋会下得一点点更好。同理，任何一段代码，只要配上它所运行环境的完整「上下文」——硬件是什么、数据怎么流过——都能被加速、被省资源、或以别的方式改进。</p>
+<p>这就是 CEM 的定位：把 AI 放到一个从未存在过的位置——<strong>代码和硅之间</strong>。</p>
+<p>一个 CEM 生活在运行中的程序里，观察数据流经它的方式，边走边重塑算法和指令。它的输出不是建议，不是 diff，而是<strong>直接跑在硬件上的二进制</strong>。整个过程没有人在回路里。所以它有一条写代码的 LLM 从不需要面对的约束：</p>
+<blockquote>模型必须永不犯错。这不是性能指标，是存在前提。</blockquote>
+<p>Maxwell 是第一个 CEM（全名 Maxwell's Daemon，借自 1867 年詹姆斯·麦克斯韦想象的那个靠分拣分子给气体降熵的小妖——给代码带来同样的秩序）。它的目标是 superoptimisation：在眼前这台机器上，为一段代码找到尽可能快的执行方式。程序运行时，它修改算法和机器指令、吐出新的二进制，很像 JIT 编译器，但对「新算法可以长什么样」的自由度大得多。</p>
+<p>关键约束只有一条：<strong>任何替换都必须和原代码精确地语义等价</strong>。源代码一行不动，变的是底下跑的二进制——快得多，且被证明和原版完全等价。所以它和 coding agent 是互补而非竞争：agent 写程序，Maxwell 保证机器把程序跑到最优。</p>
+
+<h2>凭什么「永不犯错」：形式化语义等价证明</h2>
+<p>「永不犯错」在软件里几乎是一句空话——除非你有证明。</p>
+<p>最近形式验证重塑了数学：Anthropic 发表了对费马大定理的完整、1300 万行的形式化证明（AI agent 写了 11 天，而此前一个五年期、公开资助、2024 年启动的顶级人类数学家计划一直没能完成它）；四天后 OpenAI 发表了 Navier–Stokes 方程的有限时间爆破结果——又一个千禧年难题，同样带完整形式证明。数学本身似乎正在被重造。</p>
+<p>doubleAI 的问题是：同样的事能不能对软件做？对 CEM 而言这个问题是生死攸关的——它每天多次改写运行中的程序，没有任何人类评审，连跑测试都来不及。答案就是那把正在重造数学的工具：形式验证。第一步把代码形式化，给它一个机器能推理的精确数学含义；从此任何关于代码行为的问题，都能靠证明裁决。</p>
+<p>对 Maxwell 而言，形式验证具体表现为<strong>语义等价性的形式证明</strong>。</p>
+<p>两个程序语义等价，指的是：给定相同输入，它们总是产生相同结果，并对周围世界产生相同影响。它们可以长得完全不像——一个是几行 Python，另一个是 Rust 或 C。要点是，无论谁用、怎么努力，都没法把它们区分开（除了其中一个高效得多）。一份等价性的形式证明，为<strong>每一个可能的输入、每一种可能的情形</strong>一次性确立这一点，用的是机器能逐步核对的精确语言。</p>
+<p>一个简化的例子（宣言里给的、刻意简单的那个）：</p>
+<pre><code># 原版（Python）
+def original(n):
+    s = 0
+    for i in range(n):
+        for j in range(i):
+            s += 1
+    return s
+
+# 替换（Rust）
+fn replacement(n: i64) -> i64 {
+    n * (n - 1) / 2
+}
+
+# 证明（条件化）：要求 n : int，0 ≤ n ≤ 3037000500
+# theorem  original(n) = replacement(n)
+# by induction on n … ∎</code></pre>
+<p>一个把 O(n²) 双重循环换成闭式公式的证明，Python 函数和 Rust 版被证明语义等价。注意三点：① 证明可以是<strong>条件化</strong>的——条件不成立时，一个极快的 guard 把控制交回原代码；② 两个程序<strong>不必是同一种语言</strong>；③ 这个例子刻意简单，Maxwell 真正处理的代码满是可变状态、异常和副作用，证明要难得多。</p>
+<p>程序与证明之间有一条深刻而著名的联系——Curry–Howard 对应：本质上，证明就是一个程序，核对一个证明就是核对那个程序是否被正确组装。一个 lemma 是个小函数，一个定理是调用它们的更大的程序，查证明就是 type-checking。这就是类型理论，现代绝大多数证明检查器都建在它之上。</p>
+<p>doubleAI 声称的突破之一，是<strong>完整形式化了 Python</strong>——最动态的语言之一。Python 里一个值能一行一行地换类型，连「什么是数字」「两个数字怎么相加」都能在运行时被彻底重定义。他们的形式化覆盖了这一切，并且不是传统形式方法只敢碰的自包含小函数，而是真实世界里的通用 Python：做通信、用文件的那一种。有了 Python 的形式化，「一段 Python 和它改写后的版本一致」这件事本身就能被写下来、被证明。</p>
+<p>Maxwell 的威力部分正来自此：它在 doubleAI 里被训练成在这个形式系统内工作，每写一段新代码，都同时写出它的语义等价证明。对一个人来说这是巨大工程，但 Maxwell 不是人——它的证明大部分由<strong>可复用的 proof gadgets</strong> 拼成（每个只证明一次），证明还能组合。剩下的是细致、枯燥的活，正是 AI 远超人类的那种。</p>
+
+<h2>它和现有的一切都不同</h2>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">技术</th><th style="background:#1a1a2e;color:#fff;">正确性保证</th><th style="background:#1a1a2e;color:#fff;">能改写什么</th><th style="background:#1a1a2e;color:#fff;">时机</th></tr>
+<tr><td>编译器 / JIT（torch.compile、PyPy）</td><td>工程师预先写好的变换（保守）</td><td>固定变换集</td><td>编译 / 首次运行</td></tr>
+<tr><td>superoptimiser（STOKE）</td><td>测试 / 等价检查</td><td>短、无循环的机器码片段</td><td>静态、一次</td></tr>
+<tr><td>Agentic kernel optimization（MaxKernel 等）</td><td>冻结测试套件 + 反 reward-hacking 规矩</td><td>生成 GPU/TPU kernel</td><td>静态 / 离线</td></tr>
+<tr><td><strong>Maxwell（CEM）</strong></td><td><strong>形式化语义等价证明</strong></td><td><strong>整个函数，含算法</strong></td><td><strong>运行时持续</strong></td></tr>
+</table>
+<p>这张表里最关键的一列是「正确性保证」。MaxKernel 那一族（Google 的 TPU kernel 生成、triton-agent、CUDA-Agent）再聪明，也靠「冻结测试 + 反 hacking 规矩」兜底，优化是静态的。Maxwell 靠证明兜底，而且是在运行时持续重优化、适配「这台机器 + 此刻正流过的数据」。</p>
+<p>分野的本质一句话：<strong>测试兜底只能「afford to be conservative」（保守得起），证明兜底才能「afford to be brave」（敢激进）</strong>——做编译器或人类工程师不敢冒险的变换，同时绝对确定它正确。宣言里那句写得最好：编译器和 JIT 只能做工程师预先写好的变换，STOKE 只碰短无循环片段且静态一次；Maxwell 重写的是真实程序里运行中的整个函数、连算法一起，每段都证明等价，而不是测试等价。</p>
+
+<h2>数字：它到底快了多少</h2>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">场景</th><th style="background:#1a1a2e;color:#fff;">硬件</th><th style="background:#1a1a2e;color:#fff;">原耗时</th><th style="background:#1a1a2e;color:#fff;">Maxwell</th><th style="background:#1a1a2e;color:#fff;">加速</th></tr>
+<tr><td>LTX-2.5 4K 视频生成</td><td>2×B200</td><td>250 s</td><td>134 s</td><td>1.87×</td></tr>
+<tr><td>Whisper 语音转写（180 条）</td><td>RTX 4090</td><td>106.23 s</td><td>49.82 s</td><td>2.13×</td></tr>
+<tr><td>NetworkX betweenness centrality</td><td>CPU</td><td>61.44 s</td><td>17.50 s</td><td>3.51×</td></tr>
+<tr><td>NVIDIA cuGraph（独立验证）</td><td>GPU</td><td>—</td><td>—</td><td>平均 3.6×</td></tr>
+<tr><td>SOL-ExecBench Blackwell kernel</td><td>Blackwell</td><td colspan="2">一天搜索后，90% 的 kernel 超过 NVIDIA PyTorch 基线</td><td>—</td></tr>
+</table>
+<p>两个细节值得一提：Whisper 场景里两份转写结果<strong>逐字一致</strong>——这是「语义等价」最直观的注脚；NetworkX 是纯 CPU 的图算法，说明 CEM 不只在 GPU 上有效。而研究引用里的 cuGraph 是「独立生成并验证了一个 NVIDIA cuGraph 的 drop-in 超优化版本」，SOL-ExecBench 则是那个你和 kernel 优化圈都很熟的 benchmark。</p>
+
+<h2>诚实的边界：Rice 定理与「永不犯错」的代价</h2>
+<p>读这份宣言最容易被「永不犯错」镇住，但这句话后面跟着一条它自己引用的定理：<strong>Rice 定理告诉我们，没有任何算法能为每一对程序判定语义等价</strong>。</p>
+<p>declaration 的脚注处理得很清醒：那是对「通用过程」的限制，对「眼前这一对程序」毫无关系——实际上，对我们关心的几乎所有等价程序对，这样的断言都能被正式地写成一个证明。所以「永不犯错」不是一个绝对的数学承诺，而是一个工程承诺，它的真实边界是三层：</p>
+<ul>
+<li><strong>Python 形式化覆盖的真实子集</strong>：能形式化的代码范围，就是能安全重写的范围；</li>
+<li><strong>条件证明 + guard 兜底</strong>：前提变了就退回原代码，这决定了它在多大程度上「敢激进」；</li>
+<li><strong>副作用 / 可变状态 / 异常的证明难度</strong>：真实代码远不是那个 n(n-1)/2 的例子，等价性证明在这些地方指数级变难。</li>
+</ul>
+<p>换句话说：<strong>能证明的等价性范围，就是这套东西能落地的范围</strong>。这正是它和「用测试凑合」的工程文化的分水岭——也是它最大的风险点和最有价值的赌注所在。</p>
+
+<h2>我的判断：这是 AI 尚未触及的那一半</h2>
+<p>我倾向于认为 CEM 抓到了一个真问题。当前几乎所有的「AI 加速软件」都发生在写代码这一端——补全、生成、评审、重构。而执行这一端，仍是二十年前的 JIT 和编译器技术在把守，能做的变换被工程师预先写死。把形式验证接上 superoptimisation、在运行时做、持续做，这个方向是对的。</p>
+<p>三个可以立刻带走的判断：</p>
+<ul>
+<li><strong>正确性范式的分野比模型大小更本质</strong>。「测试兜底」和「证明兜底」不是程度差异，是两种哲学。做 agentic 优化的人（MaxKernel、CUDA-Agent）花大力气设计反 reward-hacking 规矩，本质是在用工程手段补「测试不可靠」的窟窿；CEM 直接用证明把这个问题连根拔掉。</li>
+<li><strong>「访问」不等于「会用」</strong>。这在我上一篇解读的 Sauron（证据优先验证器）里是同一课：把 trace 喂给模型，和让模型先取证、再验证、再判分，是两回事。Maxwell 之于编译器，也是「看到运行时」和「在运行时内行动」的区别。</li>
+<li><strong>和 coding agent 是互补生态位</strong>。别把 Maxwell 当成又一个「更强的 Claude Code」。它不碰源码，agent 写程序、它保证执行最优——这个分工如果成立，会重新定义「软件性能」的归属：性能优化从人的责任，变成机器的持续后台任务。</li>
+</ul>
+<p>当然，这一切的前提是 doubleAI 真的把 Python 形式化做到了它声称的程度，并且形式证明能在真实代码的复杂里扛住。这两点，只有等 Maxwell 的早期访问真正开放、有第三方独立验证之后才知道。但即使只兑现一半，它也足以成为一个值得你盯着的信号——因为「代码和硅之间」这个位置，AI 此前从没站上过。</p>
+<hr>
+<small>来源：doubleAI《Maxwell: The first Code Execution Model》宣言（heymaxwell.ai/manifesto）；研究引用见 doubleai.com。本文基于公开材料的技术洞察，非 doubleAI 官方背书。</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
