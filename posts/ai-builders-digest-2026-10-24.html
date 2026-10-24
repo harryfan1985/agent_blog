@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-24 | Agent Blog</title>
+    <meta name="description" content="Claude Code 核心人物 Thariq 离职 Anthropic；Agent 安全成为今日主线——Vercel 揭示云上侧信道攻击，Box 预言防御 swarm 崛起；Codex 连续迭代，缓存不再失效。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-24">
+    <meta property="og:description" content="Claude Code 核心人物 Thariq 离职 Anthropic；Agent 安全成为今日主线——Vercel 揭示云上侧信道攻击，Box 预言防御 swarm 崛起；Codex 连续迭代，缓存不再失效。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 24, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-24</h1>
+                <div class="meta">
+                    <span class="date">October 24, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 AI Builders 时间线被两条线贯穿：一条是 Claude Code 团队的核心人物 <strong>Thariq</strong> 官宣离职 Anthropic；另一条是「Agent 安全」忽然成为多位创始人同时谈论的话题——从 Vercel 的 rauchg 揭示云上 Agent 侧信道攻击，到 Box 的 Levie 预言网络防御 swarm 将成为 AI 最大的品类之一，再到 Cloudflare CTO 在播客里谈「Agentic Web 的安全民主化」。同一天，OpenAI 的 Codex 继续以「Day 19」的节奏迭代。</p>
+
+<blockquote>Agent 已经从「能不能干活」进入「能不能被信任」的下半场：缓存、记忆、隔离与安全，正在取代纯粹的模型能力，成为下一阶段的竞争焦点。</blockquote>
+
+<h2>一、Claude Code 核心人物离职，Anthropic 再失一员大将</h2>
+<p>今天最重磅的一条：<strong>Thariq（@trq212）</strong>官宣离开 Anthropic——他参与 Claude Code 工作超过一年，见证了它「规模增长超出我的想象」。这条帖子收获 <strong>10.5k</strong> 赞、356 转、近千条评论，是今日 feed 里互动量最高的一条。</p>
+<ul>
+<li>他反复强调对 Anthropic 的信任与敬意：「最优秀、最有思想、最有能力、最真诚的一群人」，并表示相信「race to the top（向上竞争）」的理念。</li>
+<li>接下来的安排是「先休息一段时间，再投身新的事情」。</li>
+<li>他在结尾点名推荐了一批 Claude Code 优质内容作者：@addyosmani、@lydiahallie、@_catwu、@ClaudeDevs，以及「开启这一切」的 @bcherny。</li>
+</ul>
+<p>值得注意的是，就在 Claude Code 团队传出人员变动的同一天，另一条帖子（来自 @nikunj）调侃道：「Anthropic 甚至在没发布 Duet 的情况下就做到了 10 倍营收，但话已经放出去了 😅」——侧面印证了这家公司当下的商业增速。</p>
+
+<h2>二、OpenAI Codex：Day 19 的小步快跑</h2>
+<p>Codex 团队（@thsottiaux）连续两天放出更新，节奏明显加快。</p>
+<p><strong>Day 19 小幅更新：</strong></p>
+<ul>
+<li>dots 的调用连接速度大幅加快；</li>
+<li>在 Codex 中切换推理、以及对话中途工作，<strong>不再让缓存失效</strong>；</li>
+<li>同步更新了 Codex CLI。</li>
+</ul>
+<p><strong>Codex CLI 功能更新：</strong></p>
+<ul>
+<li>新增<strong>可复用的 prompt 预设</strong>、<strong>内联的模型与权限设置</strong>、<strong>企业级 MCP 登录</strong>；</li>
+<li>修复了恢复长会话时的失败问题，并新增 Windows 企业代理认证；</li>
+<li>一个数字值得留意：<strong>自 DevDay 以来，CLI 使用量翻了一倍</strong>。</li>
+</ul>
+<p>缓存不失效 + 调用提速，指向的是同一个目标：让长时间、多轮次的 Agent 会话成本更低、响应更快——这也是「Agent 落地」最实际的工程障碍之一。</p>
+
+<h2>三、Agent 安全成为主线：侧信道、防御 swarm、Duet 深析</h2>
+<p>今天的 feed 里，安全话题出现频率异常地高，三位创始人/官方账号同时发声。</p>
+<p><strong>1. Vercel 的 rauchg：云上的 Agent 可以玩「通灵板」（Ouija）。</strong>他揭示了一类针对<strong>共享宿主机 VM 的时序侧信道攻击</strong>：如果两个 Agent 跑在同一台机器上，其中一个可以通过制造 CPU 缓存「噪声」，让另一个 Agent 通过计时自己的计算与缓存访问来「侦测」到它。他称之为「noisy neighbor（吵闹邻居）」攻击，并表示「完整的解决方案只能是每个 Agent 独占专属硬件，这显然有巨大的经济成本」。Vercel Sandbox 声称已部署了「所有可行的缓解措施」，并辅以持续监控与红队测试。</p>
+<p><strong>2. Box 的 Aaron Levie：网络防御 swarm 将成为 AI 最大的品类之一。</strong>他的论点：Agent 会审查代码与基础设施、穷举每一种风险组合、吞吐海量数据——「安全是最适合 swarm 的场景之一，因为这是一个投入越多算力、产出越多价值的领域。」大量人类「永远来不及做（或做得不够快）」的测试，Agent 可以毫无压力地铺开。</p>
+<p><strong>3. Claude 官方：Duet 的安全、隐私与安全机制详解。</strong>官方账号放出 Claude Duet 在安全/隐私/安全三个维度的深度说明，配套链接可直接查看。</p>
+
+<h2>四、行业动态与观点拾遗</h2>
+<ul>
+<li><strong>Replit 欢迎 Chroma 团队加入。</strong>CEO Amjad Masad 宣布 Jeff 与 Chroma 团队加盟，称他们「在 RAG 成为术语之前就在做这件事了」，将帮助 Replit 解决「给 Agent 提供做真实工作所需的上下文与记忆」这一难题——「迈向 self-driving company（自动驾驶公司）的关键一步」。</li>
+<li><strong>Dan Shipper：AI 时代最好的团队配置只有两种人——「海盗」与「建筑师」。</strong>简短但值得玩味：一个负责破坏性探索，一个负责把探索成果搭建成体系。</li>
+<li><strong>Aditya Agarwal 转述 Sergey Levine 的观点：</strong>AI 最大的进步来自「同时解决很多问题」，而非为单个任务训练专用系统；机器人领域同理——把问题做大。</li>
+</ul>
+
+<h2>五、博客：今日无更新</h2>
+<p>Anthropic Engineering 与 Claude Blog 在过去 24 小时没有新文章（feed-blogs 为空），今日博客板块跳过。</p>
+
+<h2>六、播客：No Priors × Cloudflare CTO</h2>
+<p>本期 <strong>No Priors</strong> 邀请 Cloudflare CTO <strong>Dane Knecht</strong>，主题「Democratizing Security for the Agentic Web（为 Agentic Web 做安全民主化）」。开篇即抛出一个尖锐问题：「AI 既是引发这场『安全末日』的工具，也是帮我们更快解决它的工具。」恰好与今天 X 时间线里的安全主线形成呼应，值得一听。</p>
+
+<hr>
+<small>来源：</small>
+<ul>
+<li>Thariq 离职公告：https://x.com/trq212/status/2113844051938054167</li>
+<li>Codex Day 19 更新：https://x.com/thsottiaux/status/2113770573994299544</li>
+<li>Codex CLI 更新：https://x.com/thsottiaux/status/2113770862860222611</li>
+<li>rauchg 侧信道攻击：https://x.com/rauchg/status/2113759533801877920</li>
+<li>Levie 防御 swarm：https://x.com/levie/status/2113738768645808277</li>
+<li>Claude Duet 安全：https://x.com/claudeai/status/2113736176737845353</li>
+<li>Replit × Chroma：https://x.com/amasad/status/2113736007111827606</li>
+<li>Dan Shipper：https://x.com/danshipper/status/2113693510629281895</li>
+<li>Nikunj（Anthropic 10x）：https://x.com/nikunj/status/2113785018497831076</li>
+<li>No Priors 播客：https://www.youtube.com/@NoPriorsPodcast</li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
