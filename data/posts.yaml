@@ -1,4 +1,131 @@
 posts:
+- title: 形式验证的 LLM 时刻：Claude 写下了 1.8 亿行证明
+  date: October 17, 2026
+  slug: llm-formal-verification-at-scale
+  excerpt: Anthropic 和 Theorem 让 Claude 在二进制级别为 123 个开源库写出了 1.8 亿行 Rocq 证明，把形式验证从「20 人年验证一个内核」压缩到「几周验证上百个库」。这篇拆解它的三个方法决策、顺带挖出的 bug，以及「formally verified ≠ bug-free」这个最诚实的边界。
+  content: '<h2>一个老问题的下半场：证明比代码还贵</h2>
+
+    <p>形式验证（formal verification）不是新东西。它的承诺很诱人：把代码翻译成一个数学模型，然后用数学证明「它永远遵循一组安全规则」。一旦证明成功，你就得到了测试永远给不了的东西——<strong>「这里没有 bug 可找」的保证</strong>，而不是「我试了很多输入没崩」的推断。</p>
+
+    <p>但它一直是奢侈品。证据要多大有多大：seL4 微内核的实现花了 2 人年，形式化验证却花了 <strong>20 人年</strong>。证明常常是原代码的好几倍，写证明又是一门极小众的手艺。所以它只在真正 mission-critical 的地方——比如空客的航电代码——才有人肯付这个账。</p>
+
+    <blockquote>而 Anthropic 和 Theorem 刚做了一件让这个等式动摇的事：让 Claude 在编译后的二进制级别，为 123 个开源库写出总共 1.8 亿行 Rocq 证明——历史上第一次，把这个「20 人年」的量级，压缩到了「几周」。</blockquote>
+
+
+    <h2>三个方法决策，绕开两道墙</h2>
+
+    <p>形式验证规模化推进不下去，主要卡在两个老难题：<strong>spec 从哪来</strong>（怎么才算「一个文本编辑器是正确的」？），以及<strong>源码要重写</strong>（很多验证工具要求代码用特定语言、特定风格）。Anthropic 的这份成果，本质上是对这两道墙的三个绕法：</p>
+
+    <ul>
+
+    <li><strong>test → spec</strong>：不要求人写规范，而是把库已有的 OSS-Fuzz 模糊测试编码成一条性质——「这条测试永远不会崩溃」。模糊测试本来就是「任何导致崩溃的输入都是 bug」，把它映射成 spec 顺理成章。</li>
+
+    <li><strong>binary-level 证明</strong>：证明作用在 RISC-V 编译后的可执行文件上（中位数约 1.8 万条指令），而不是源码。这样就不必要求库换语言——C、C++、什么都能做。</li>
+
+    <li><strong>只信任三个组件</strong>：Rocq 证明内核、RISC-V 指令语义、Linux 进程语义。把这三样做对，就能保护无限多个项目——而不是逐行审阅那 1.8 亿行证明。</li>
+
+    </ul>
+
+    <p>这种「test→spec」的转写尤其漂亮，因为它把形式验证历史上最劝退的一步——「谁来写精确规范」——直接越过了。fuzzer 已经替你写好了 spec，只是它写的是「用 crash 表达的 spec」。</p>
+
+
+    <h2>最抓人的不是证明，是顺带挖出的 bug</h2>
+
+    <p>Claude 在「试图证明」的过程中，发现并修掉了数百个 bug。关键不在于数量，而在于这些 bug 的性质——它们大多是 fuzzer <strong>几乎不可能找到</strong>的那种：</p>
+
+    <ul>
+
+    <li>一个解压器里的计数器下溢，导致越界写——但只在 <strong>约 20MB 输入 + 一种稀有布局</strong>时触发（fuzzer 通常只喂 1MB 以内的小输入）；</li>
+
+    <li>一个图像解码器的越界读，需要 <strong>64MB 输入 + 超过 2GB 内存</strong>；</li>
+
+    <li>一个库的越界读，需要跨同一文件的两个 handle 的<strong>特定调用序列</strong>；</li>
+
+    <li><strong>重新发现了 libexpat 的 CVE-2026-56132</strong>，触发条件是深嵌套输入；</li>
+
+    <li>还有根本不崩溃的<strong>逻辑 bug</strong>：一个「限制可加载哪些文件」的功能，有时根本不生效。</li>
+
+    </ul>
+
+    <p>以及一个 PDF reader 的验证尝试：<strong>一周挖出的安全 bug，等于平时一年报告的量</strong>。</p>
+
+    <p>这里藏着一条比「证明成功」更普适的洞察：<strong>光是「尝试证明」这个动作本身，就会逼出真 bug</strong>。证明失败时，你会得到一个具体的反例或性质违反，而不是「某次输入崩了」这种要自己猜的线索。这跟跑测试找 bug 是两种完全不同的收益机制。</p>
+
+
+    <h2>证明不止于「不崩溃」</h2>
+
+    <p>「永不崩溃」听起来窄，实际能证明的远不止内存安全。OSS-Fuzz 的 fuzz test 经常在测高层面性质：编解码往返（encode 再 decode 等于原文）、幂等性、代数律、微分测试、与参考实现等价。因为这些测试崩溃=性质不成立，所以「证明它永不崩溃」就等于「证明那个高层性质成立」。</p>
+
+    <p>两个最有说服力的案例：</p>
+
+    <ul>
+
+    <li><strong>cpp-httplib</strong>：为了排除 std::set 析构栈溢出，Claude 必须证明 libc++ 红黑树重平衡算法在<strong>机器码级别</strong>保持对数深度——从一个高层性质，逼出了底层数据结构的正确性。</li>
+
+    <li><strong>zlib</strong>：Claude 先写 RFC 1950 的形式化 spec，再证明 Linux 内核里的 zlib 实现正确实现它——而且是 <strong>x86 二进制级别</strong>，用的还是 Claude 自己生成、重度测试过的 x86 语义。</li>
+
+    </ul>
+
+    <p>另一个旁证是 Python interpreter 实验：用 Verus 证明一个 Rust 写的 Python 解释器子集符合 CPython 语义，再实测 170 万随机程序，<strong>99.95%</strong> 行为与 CPython 一致。</p>
+
+
+    <h2>成本在肉眼可见地下降</h2>
+
+    <p>有人会说：1.8 亿行证明，一个 proof 60 万行，这成本还是天文数字。但文章给了两个正在发生的下降引擎，而且都带数据：</p>
+
+    <ul>
+
+    <li><strong>模型变强 → 省 token</strong>：在 36 个真实 OSS-Fuzz 小任务上，Opus 5.5 用比 Opus 5 <strong>少 40% 的 token</strong> 证明了一半任务。且这个趋势预计会随着模型训练数据包含更多长程证明而继续。</li>
+
+    <li><strong>证明可复用 → 省重复劳动</strong>：让 agents 在共享 workspace 里互相拷贝 proof，整体省 <strong>17% token</strong>，而且有些此前 solo 失败的 agent 因此成功了。绝大多数证明的内容是每个程序都有的公共部分（C runtime 初始化、AddressSanitizer），所以不同的程序证明高度重叠。</li>
+
+    </ul>
+
+    <p>复用的想象力在「依赖幂律」上被拉到最大：软件依赖遵循幂律分布，所以<strong>只要验证一小撮共享库（glibc、OpenSSL、cURL），就能让一大片软件变得可证明</strong>。Theorem 的路线图就是验证整个 Nix 生态。这正是 Mathlib 的剧本——那个数学库里近 30 万条定理、700 多个贡献者，每条新证明都踩在旧证明上。</p>
+
+
+    <h2>诚实的边界：formally verified ≠ bug-free</h2>
+
+    <p>这是整篇文章里含金量最高、也最诚实的一段，值得原样记住：</p>
+
+    <blockquote>proof checker 只能告诉你「代码满足 spec」，不能告诉你「spec 匹配现实」。"Formally verified" 不等于 "bug-free"。</blockquote>
+
+    <p>三个具体的裂缝：</p>
+
+    <ul>
+
+    <li><strong>模型 ≠ 真实机器</strong>：证明的是「单线程静态二进制、RISC-V、musl libc」，但你实际跑的是 x86/ARM + glibc。语义一旦和现实有差，那道缝里就藏着 bug。</li>
+
+    <li><strong>claim 未必覆盖你关心的全部</strong>：ASan 检不全所有内存安全 bug；没验证每个入口；死代码不受保护；调用者误用库仍然会内存破坏。</li>
+
+    <li><strong>spec 本身可能错</strong>：你需要一个正确建模 CPU 和 OS 的 spec，而 spec 是人写的、由模型生成的，也可能偏离真实。</li>
+
+    </ul>
+
+    <p>但文章给了一个务实的反转：这些裂缝<strong>之所以是好事</strong>，是因为它们精确地告诉你「剩下的 bug 该去哪找」——就藏在那些 trusted components 里，而不是散落在 1.8 亿行证明覆盖的每条路径上。把 Rocq、RISC-V 语义、Linux 语义这几样做对，是远比「逐行审旧代码」可解的问题。</p>
+
+
+    <h2>我的判断：这是「形式验证 × AI」这条线里离落地最近的一步</h2>
+
+    <p>过去几天我连续看了三篇这条线上的东西，放在一起才看得清全貌：</p>
+
+    <ul>
+
+    <li><strong>Eliciting Specifications</strong>（Emergence AI）：形式化<em>之前</em>，用澄清代理把 spec 问清楚——发现澄清不是普遍有效，postcondition 是瓶颈。</li>
+
+    <li><strong>Anthropic × Theorem（本文）</strong>：形式化<em>之中</em>，把 spec 变成 proof，规模化到 123 个库。</li>
+
+    <li><strong>Maxwell</strong>（doubleAI）：形式化<em>之后 / 运行时</em>，用语义等价证明做持续重写。</li>
+
+    </ul>
+
+    <p>三者拼成一条完整的「用形式验证重构软件正确性」的链路。而本文之所以「离落地最近」，是因为它绕开的恰恰是最劝退的两步——spec 难写、源码要重写。对任何一个手里有测试的工程团队，<strong>把已有 fuzz test 升级成一份证明</strong>，在今天是可能直接套用的动作了。</p>
+
+    <p>保留一个判断：1.8 亿行 proof 的量级意味着「证明复用」不是加分项，而是生死线。如果复用率上不去，成本曲线会在更大规模重新抬头。所以我最想盯的下一个指标，不是「能证明多少库」，而是「每证明一个新库，需要新写多少行」——这个比值才是这条线能不能滚到 internet scale 的真正命门。</p>
+
+    <hr>
+
+    <small>来源：Anthropic Research《LLMs are making formal software verification feasible at a much larger scale》（anthropic.com/research/formal-verification），与 Theorem 合作。本文为基于公开材料的技术解读，非官方立场。</small>'
 - title: AI Builders 日报 · 2026-10-23
   date: October 23, 2026
   slug: ai-builders-digest-2026-10-23
