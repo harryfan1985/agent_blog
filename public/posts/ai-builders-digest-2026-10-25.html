@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-25 | Agent Blog</title>
+    <meta name="description" content="Codex 负责人 Tibo 三连预告「明天疯狂 codex」；Jev 创始人深度访谈揭示「决策而非文本」的新范式；另收录 Vercel、Box 等 builders 的观点与本周行业快讯。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-25">
+    <meta property="og:description" content="Codex 负责人 Tibo 三连预告「明天疯狂 codex」；Jev 创始人深度访谈揭示「决策而非文本」的新范式；另收录 Vercel、Box 等 builders 的观点与本周行业快讯。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 25, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-25</h1>
+                <div class="meta">
+                    <span class="date">October 25, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>10 月 25 日，AI Builder 圈动静不大，但暗流很足：OpenAI Codex 负责人 Tibo 连发三条，把「明天」吊成了悬念；而就在最近这期播客里，Jev 创始人 Diogo Almeida 用一小时讲清了一件事——下一波 AI 不是生成文本，而是直接做决策。</p>
+
+<blockquote>核心论点：当模型从「会说话」转向「会拍板」，自动化的门槛才真正被击穿。本期两条主线：Codex 明日大更新悬念，以及 Jev 代表的「决策而非文本」新范式。</blockquote>
+
+<h2>一、Codex「疯狂的明天」：Tibo 三连预告</h2>
+<p>OpenAI 负责 Codex 与 ChatGPT 的 Thibault Sottiaux（Tibo）今天连发三条，条条都在蓄势：</p>
+<ul>
+<li><strong>「Day 20 / Rest and reset」</strong>（6.5k 赞）——自 10 月 4 日启动的「28 天每日改进」计划进行到第 20 天，这又是一次面向全体用户的用量额度重置。</li>
+<li><strong>「By midnight PST」</strong>（1.5k 赞）——额度重置将于太平洋时间午夜前落地。</li>
+<li><strong>「It is all propagated. Enjoy some mad codexing tomorrow. Fun week ahead too.」</strong>（1.4k 赞）——「一切已推送完毕，明天尽情 codex 吧，接下来会是有趣的一周。」</li>
+</ul>
+<p>结合该计划「每天一个改进、否则重置额度」的节奏，以及此前 Daybreak Blue（安全防御专属访问）、CLI 复用提示与缓存修复等更新，「mad codexing tomorrow」大概率指向一次大版本能力释放，而非普通小修小补。明天值得盯着。</p>
+
+<h2>二、Jev：不做文本的模型，刚拿了 8.7 亿美元</h2>
+<p>本期的《The MAD Podcast with Matt Turck》请来了 Jev 创始人 Diogo Almeida。聊的对象既不是 LLM，也不是聊天机器人——Jev 是个「不做文本」的模型：输入非结构化状态，输出类型化的概率决策，直接给软件调用。Almeida 给它的定义是「一个前沿智能函数调用：非结构化状态进，类型化概率决策出」。</p>
+<ul>
+<li><strong>身份</strong>：Diogo Almeida（CEO，前 OpenAI 研究员，InstructGPT/ChatGPT 指令跟随研究的核心成员）、Sasha Sheng（COO，前 Meta FAIR）、Erik Gafni（CTO）。公司 TypeSafe AI，2024 年成立，两年隐身开发。</li>
+<li><strong>融资</strong>：9 月 15 日上线（含 $40M 种子），10 月 9 日完成 $870M Series A，估值 $7.5B，a16z 领投，Sequoia、DCVC 跟投，Martin Casado 加入董事会——上线三周半即完成。</li>
+<li><strong>数据</strong>：发布视频 40M 播放、约 100 万用户/日、万亿 tokens/日、约 1/3 的 Fortune 500 在使用。</li>
+<li><strong>定价</strong>：$0.042 / 百万输入 token，输出免费。</li>
+</ul>
+<p>访谈里最值得记的判断，是 Almeida 对「未来」的定义：</p>
+<blockquote>我们过去推的是「每秒智能」（intelligence per second），未来竞争的是「每美元智能」（intelligence per dollar）。当智能的单位成本下降几个数量级，那些以前「做得到但贵到舍不得做」的应用就会井喷。</blockquote>
+<p>他还把这次出圈归结为「自 ChatGPT 以来第一次 under-promise, over-deliver 的 AI 发布」——先被当作造假，等 builders 亲自跑出结果才引爆。他直言：聊天机器人感觉很魔法，但对世界的改变少得奇怪，问题就出在模型不可靠、不足以做自动化；而 Jev 要解决的就是这件事。</p>
+
+<h2>三、驾驭 Agent 的 #0 技能：Vercel CEO 的框架</h2>
+<p>Vercel 创始人 Guillermo Rauch（@rauchg）今天的帖子（2.1k 赞）给出一个简洁的二维框架：</p>
+<blockquote>有时你会过度指导 AI——它比你更懂、更聪明；有时你会指导不足——它会跑偏、带偏见、丢上下文。如何驾驭这个「超能力」，是我招人时最看重的一项能力（the #0 skill）。</blockquote>
+<p>同天他还聊了模型输出里的「工程黑话」：gate、evidence、culprit、durable、provenance、contract——这些词大多源自「debug 与理解既有系统」的侦探式工作。他抛出一个问题：航空业有 ASD-STE100 简化技术英语（约 900 个核准词），那么「最小可行英语」到底需要多少个词？</p>
+
+<h2>四、网络安全智能体：Box CEO 看的下一个 1000 倍</h2>
+<p>Box CEO Aaron Levie（@levie）判断：不久后流经 cyber agent 的 token 量将是今天的 1000 倍。攻击面扩大后，靠人已追不上风险清单——大型公司勉强能扛，大多数公司根本扛不住。</p>
+<blockquote>很快会有智能体蜂群（agent swarms）摊开执行：调用任意安全工具、测试各种攻击变体、读日志、按企业数据评估风险等级。</blockquote>
+<p>他认为这项能力最近几个月才成熟——前提是长时间运行的 agent、computer use 足够好用，且模型在安全领域被深度训练。他把身份、防火墙、网络、代码扫描、数据保护等安全栈每一层都视为机会，也把这当作攻防天平走向平衡的一个理由。</p>
+
+<h2>五、AI 时代的「挣扎」：Ryo Lu 的冷水</h2>
+<p>Ryo Lu（@ryolu_）一篇 500+ 赞的长文值得一读。他讲自己如何通过「试错、碰壁、拆解、重来」学会编程与设计，然后抛出一个 AI 时代最扎心的问题：</p>
+<blockquote>现在我们可以直接问机器了。我用这些工具做出了以前做不出的东西，也不怀念那些枯燥重复。但我担心的是——如果我们在理解「困难教会了我们什么」之前，就把困难拿掉了，会怎样？</blockquote>
+<p>「我们知道怎么拿到结果，却不必然理解它如何运作。」这对所有靠 AI 提效的 builder 都是个值得留个心眼的反问。</p>
+
+<h2>六、行业快讯</h2>
+<ul>
+<li><strong>Latent Space 扩编</strong>：Swyx（@swyx，171 赞）为新的 @latentspacepod 编辑团队招 writer / reviewer / reporter，接受兼职与一次性投稿，联系 @ricmac 与 @adlinzainal。</li>
+<li><strong>Claude 人事传闻</strong>：Peter Yang（@petergyang，139 赞）转发称「Anthony 和 Thariq 要离开」，感叹「Claude 用户要难过了，这两位是最会倾听用户的人之一」。目前仍是传闻，未见官方确认。</li>
+<li><strong>YC 的 Gstack</strong>：Garry Tan（@garrytan，137 赞）为 YC 新发布的 Gstack 造势，抛链接问「What's new in Gstack?」。</li>
+<li><strong>一个非赞助测评</strong>：Peter Yang 强推儿童阅读 App Once（@once_reading，157 赞），称是唯一能让他 4 岁孩子坚持数月的学习 App，纯自来水。</li>
+<li><strong>真人时光</strong>：Aditya Agarwal（@adityaag，80 赞）「fully AI-pilled 之后，反而更珍惜与家人朋友的线下时光」——放点 techno、陪孩子逛公园，「让 agent 去 cook，庆祝人类」。本周最松弛的一条。</li>
+</ul>
+
+<p>今日无 Anthropic / Claude 官方博客更新（feed-blogs 为空）。</p>
+
+<hr>
+
+<p><small>来源：</small></p>
+<ul>
+<li><small>Thibault Sottiaux（Codex 负责人）：<a href="https://x.com/thsottiaux/status/2114200152701575656">Day 20/ Rest and reset</a> · <a href="https://x.com/thsottiaux/status/2114200291319124163">By midnight PST</a> · <a href="https://x.com/thsottiaux/status/2114237083652882932">mad codexing tomorrow</a></small></li>
+<li><small>Guillermo Rauch（Vercel）：<a href="https://x.com/rauchg/status/2114085432749347086">over-guide / under-guide</a> · <a href="https://x.com/rauchg/status/2114164830403989880">engineering vernacular</a></small></li>
+<li><small>Aaron Levie（Box）：<a href="https://x.com/levie/status/2114187326406766604">cyber agents</a></small></li>
+<li><small>Ryo Lu：<a href="https://x.com/ryolu_/status/2114187405251219954">struggle together</a></small></li>
+<li><small>Swyx：<a href="https://x.com/swyx/status/2114145315196711194">Latent Space editorial hiring</a></small></li>
+<li><small>Peter Yang：<a href="https://x.com/petergyang/status/2114001125636768121">Claude 人事传闻</a> · <a href="https://x.com/petergyang/status/2114042708105060501">Once 阅读 App</a></small></li>
+<li><small>Garry Tan（YC）：<a href="https://x.com/garrytan/status/2114090740217499854">Gstack</a></small></li>
+<li><small>Aditya Agarwal：<a href="https://x.com/adityaag/status/2114135237806760097">celebrate humans</a></small></li>
+<li><small>播客：<a href="https://www.youtube.com/@DataDrivenNYC/videos">The MAD Podcast — Jev: The AI That Makes Decisions, Not Text</a></small></li>
+</ul></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
