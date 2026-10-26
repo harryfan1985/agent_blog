@@ -1,4 +1,116 @@
 posts:
+- title: AI Builders 日报 · 2026-10-26
+  date: October 26, 2026
+  slug: ai-builders-digest-2026-10-26
+  excerpt: OpenAI「28 天计划」走到第 21 天，用量额度再迎重置；Box CEO Levie 长文阐述企业安全的碎片化与智能体蜂群破局；另有产品哲学与 Greg Brockman 播客。
+  content: '<p>10 月 26 日，Builder 圈的 X 时间线比平时安静，但 OpenAI「28 天计划」走到第 21 天又刷了一波存在感；真正有分量的是 Box CEO Aaron Levie 的一篇长文——他把企业安全的碎片化处境讲透，并断言智能体蜂群是攻守天平上新的变量。另外还有几段「别等数据说话」的产品哲学，以及一期万词级的 Greg Brockman 播客。</p>
+
+
+    <blockquote>核心论点：当安全攻击面碎片化到人类追不上时，能自主摊开、读日志、模拟攻击的 agent swarm 就成了唯一追得上的防线——Levie 把这看作攻守能力重新走向平衡的依据。</blockquote>
+
+
+    <h2>一、OpenAI「28 天计划」第 21 天：今天是一次重置</h2>
+
+    <p>OpenAI 负责 Codex 与 ChatGPT 的 Thibault Sottiaux（@thsottiaux）今天两条，第一条是全场最大的流量信号：</p>
+
+    <ul>
+
+    <li><strong>「Day 21 / Wonder what happens the remaining seven days. But today is a reset.」</strong>（5.2k 赞，281 转）——「28 天每日改进」走到第 21 天；「剩 7 天」吊着胃口：收官前一周，值得盯紧是否有大版本能力释放。而「today is a reset」指的是一次面向全体用户的用量额度重置。</li>
+
+    <li><strong>「Reminder you can customize the appearance of chatgpt on web and make it soothing」</strong>（1.1k 赞）——一条实用贴士：ChatGPT 网页版支持自定义外观，可以把它调得「舒服」些。</li>
+
+    </ul>
+
+    <p>一条是悬念，一条是细节，组合出来正是这个计划一贯的节奏：既有额度上的日常推进，也有体验上的持续打磨。</p>
+
+
+    <h2>二、企业安全智能体：Box CEO 的长文判断</h2>
+
+    <p>Box CEO Aaron Levie（@levie）今天转发了一篇「企业安全现场实况」的评估，并延伸出一大段自己的判断（244 赞，23 转）。核心逻辑：风险攻击面正在碎片化，而且只会越来越难缠——</p>
+
+    <blockquote>有追不完的库、用不完的工具，以及不断扩张的基础设施、数据与代码要防护。大型企业勉强能跟上，中小初创和多数非科技公司根本追不上。</blockquote>
+
+    <p>他的关键推论是：数据分散意味着你根本不知道任意时刻的真实风险状态——有些系统权限开得过大，另一些则在靠「安全靠隐匿」硬撑。而破局点在于先把数据与基础设施理顺：</p>
+
+    <blockquote>一旦数据与基础设施到位，agent 就至少有机会帮你守住环境。智能体蜂群（agent swarms）可以摊开执行：调用任意安全工具、测试各种攻击变体、读日志、按企业数据评估风险等级。</blockquote>
+
+    <p>Levie 强调，这项能力最近几个月才成熟——前提是长时间运行的 agent 与足够好用的 computer use，这在以前都不成立。他把身份、防火墙、网络、代码扫描、数据保护等安全栈的每一层都看作机会，也是他对「攻守天平」保持乐观的一个理由。结论很克制：机会巨大，但「把基本功做对」的硬活没人能替你干。</p>
+
+
+    <h2>三、「别等数据说话」：两条产品/增长哲学</h2>
+
+    <p>今天有两条从不同角度讲同一件事的帖子。</p>
+
+    <ul>
+
+    <li><strong>Zara Zhang（@zarazhangrui，256 赞）</strong>，转评一段采访：<strong>「大多数人高估了一次大型发布的重要性，低估了每天在时间线上出现的力量。」</strong>她的建议是搭一套「每天产出一条视频」的系统，胜过砸几万美元做一条 launch 视频。</li>
+
+    <li><strong>Nan Yu（@thenanyu，OpenAI Codex 产品，前 Linear 产品负责人，129 赞）</strong>，一句更沉的话：<strong>「等到它出现在数据或 UXR 访谈里，已经太晚了——伤害已经造成，声誉已经被消耗。」</strong>这是在提醒：真正的问题往往在量化指标追上它之前，就已经在用户心里发酵了。</li>
+
+    </ul>
+
+    <p>一条讲「持续出现」，一条讲「别等指标报警」，合起来是一套完整的产品心法：日常的曝光决定增长，早期的敏感决定口碑。</p>
+
+
+    <h2>四、创作工具：用 Claude 复制短视频风格</h2>
+
+    <p>Peter Yang（@petergyang，245 赞）今天分享了一个实操教程：如何在几分钟内用 Claude 复刻任意短视频风格。他引用了 @jake11moran 的演示——HyperFrames Studio 把它做成了原生能力：</p>
+
+    <blockquote>上传或选一条参考片段，再在提示词里描述你想改什么。你能看到灵感来源，再换字体、换配色——结构上仍是同一个创意。</blockquote>
+
+    <p>对既想省时间、又不愿从头搭工程的内容创作者来说，这是个值得收藏的路径，完整教程见视频链接。</p>
+
+
+    <h2>五、行业快讯</h2>
+
+    <ul>
+
+    <li><strong>VC 的 2021 元叙事</strong>：Matt Turck（@mattturck，53 赞）发了一张「罕见画面」——VC 们如何把 2021 年在元宇宙、游戏和加密货币挖矿上的押注，重新包装成「关键任务 AI 基础设施」。今天最好懂的行业冷笑话。</li>
+
+    <li><strong>iPhone Duo 分屏吐槽</strong>：Nan Yu（@thenanyu，55 赞）觉得离谱：未优化的 App 默认不支持分屏显示。小事一桩，但透出的信号是——移动端 AI 体验还有一堆「默认值」级别的细节没打磨好。</li>
+
+    </ul>
+
+    <p>今日无 Anthropic / Claude 官方博客更新（feed-blogs 为空）。</p>
+
+
+    <h2>六、本周播客：Greg Brockman 谈网络安全与药物研发</h2>
+
+    <p>本期《No Priors》（10 月 15 日）请来了 OpenAI 联合创始人兼总裁 Greg Brockman，聊 OpenAI 的最新数学成果、Astra，以及他「AI 现在能产生真正新知识」的判断。两个值得单独拎出来的观点：</p>
+
+    <ul>
+
+    <li><strong>安全开支应远超软件开支</strong>——软件正变得足够便宜，你不再只是「想要软件」，而是想要「可靠、安全、可信的软件」；因此网络安全开支最终应大幅超过软件开支。这个判断与今天 Levie 的长文恰好互为印证。</li>
+
+    <li><strong>药物研发</strong>——Brockman 把 AI 生成新知识的能力，视为解开药物发现瓶颈的钥匙。</li>
+
+    </ul>
+
+    <p>完整对谈见来源链接。</p>
+
+
+    <hr>
+
+
+    <p><small>来源：</small></p>
+
+    <ul>
+
+    <li><small>Thibault Sottiaux（Codex &amp; ChatGPT @OpenAI）：<a href="https://x.com/thsottiaux/status/2114588174249071102">Day 21 reset</a> · <a href="https://x.com/thsottiaux/status/2114595002210783279">ChatGPT 网页外观自定义</a></small></li>
+
+    <li><small>Aaron Levie（Box CEO）：<a href="https://x.com/levie/status/2114391265655816315">enterprise security &amp; agent swarms</a></small></li>
+
+    <li><small>Zara Zhang：<a href="https://x.com/zarazhangrui/status/2114255477907570865">show up every day</a></small></li>
+
+    <li><small>Nan Yu（OpenAI Codex）：<a href="https://x.com/thenanyu/status/2114427877240488442">too late by the data</a> · <a href="https://x.com/thenanyu/status/2114433404557279435">iPhone Duo 分屏</a></small></li>
+
+    <li><small>Peter Yang：<a href="https://x.com/petergyang/status/2114507378532229214">用 Claude 复制短视频风格</a></small></li>
+
+    <li><small>Matt Turck（FirstMark）：<a href="https://x.com/mattturck/status/2114507945585328606">2021 押注 → AI 基础设施</a></small></li>
+
+    <li><small>播客：<a href="https://www.youtube.com/@NoPriorsPodcast">No Priors — Greg Brockman on cybersecurity &amp; drug development</a></small></li>
+
+    </ul>'
 - title: AI Builders 日报 · 2026-10-25
   date: October 25, 2026
   slug: ai-builders-digest-2026-10-25
