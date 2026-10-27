@@ -1,4 +1,107 @@
 posts:
+- title: AI Builders 日报 · 2026-10-27
+  date: October 27, 2026
+  slug: ai-builders-digest-2026-10-27
+  excerpt: OpenAI 上线 Terra 模型主打计算机使用；Anthropic S-1 揭晓 1300% 营收增速与约 5870 亿美元算力承诺；Vercel CEO 复现 CPU 隐蔽通信。
+  content: '<p>今天的关键词只有一个：<strong>发布</strong>。OpenAI 把 Terra 推到台前，Anthropic 把 S-1 递到了 SEC，Vercel 的 CEO 则在周末复现了 OpenAI 那套「CPU 隐蔽通信」——并给出了一个让所有人脊背发凉的结论。</p>
+
+    <blockquote>模型层在加速内卷，Agent 层在加速渗透，而基础设施最底层的共享硬件上，正在出现一种谁都不太想正式讨论的新风险。</blockquote>
+
+    <h2>一、模型发布：OpenAI Terra 上线，主打「计算机使用」</h2>
+
+    <p>OpenAI 的发布节奏没停。Sam Altman 亲自下场宣布 <strong>6.1 Terra</strong> 到来，措辞直接：「它对很多事情都很擅长，但我们尤其兴奋于这个全新的计算机使用时代。」</p>
+
+    <ul>
+
+    <li><a href="https://x.com/sama/status/2114818620782248024">@sama</a>：6.1 Terra is here——尤其看好「computer use」新纪元（6298 赞）。</li>
+
+    <li><a href="https://x.com/thsottiaux/status/2114800277677092936">@thsottiaux</a>（OpenAI Codex/ChatGPT）：Day 22，Terra 回归，这是第一款在<strong>写作、个性、对请求的细腻理解</strong>上显著更强的模型，计算机使用很强，API 与订阅侧用量比 6.1 Sol <strong>翻倍</strong>（8700 赞）。</li>
+
+    </ul>
+
+    <p>两条拼起来看：OpenAI 这次把赌注同时押在「更能读懂人」和「更能操作机器」两个方向上，Terra 是这一代模型的统一答案。</p>
+
+    <h2>二、Anthropic S-1：1300% 增速背后的算力豪赌</h2>
+
+    <p>Anthropic 的上市文件成了今天 VC 圈的集体研读对象（Matt Turck 吐槽：故意挑周一早上交表，让所有 VC 都困在周会里没空写 S-1 拆解）。Dan Shipper 把核心数字一条条列了出来：</p>
+
+    <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+
+    <tr><th style="background:#1a1a2e;color:#fff;">指标</th><th style="background:#1a1a2e;color:#fff;">数字</th></tr>
+
+    <tr><td>2026 上半年营收增速</td><td>同比 +1,300%</td></tr>
+
+    <tr><td>GAAP 运营利润</td><td>已转正（operating profitable）</td></tr>
+
+    <tr><td>毛利率</td><td>85%</td></tr>
+
+    <tr><td>营收留存率</td><td>900%</td></tr>
+
+    <tr><td>近 6 个月发布的模型贡献营收占比</td><td>80%</td></tr>
+
+    </table>
+
+    <p>真正被深挖的是<strong>算力合同</strong>。Nikunj Kothari 在 Opus 5.5 辅助下把 S-1 里的承诺拆了一遍，几个最扎眼的点：</p>
+
+    <ul>
+
+    <li>截至 6 月 30 日，Anthropic 有 <strong>$265.6B 采购承诺 + $321.4B 未启动租约</strong>，合计约 $587B，需在数年内分期支付。</li>
+
+    <li>SpaceXAI 的协议潜在价值 $120.5B，但双方可在 2027 年 1–3 月锁定期结束后<strong>提前 90 天取消</strong>——这是最「软」的一笔。</li>
+
+    <li>Broadcom 的 $42B 授信不直接给现金，只结算特定设备租金账单，且<strong>9% 利息</strong>按季度滚入本金，IPO 后可按前 30 天均价 90% 转股。</li>
+
+    <li>关键效率指标：每 1 美元算力/基础设施开支对应的营收，从 2025 Q2 的 $0.57 升到 2026 Q2 的 <strong>$2.08</strong>。</li>
+
+    </ul>
+
+    <p>Aaron Levie 提供了一个更宏观的视角：Anthropic 的平均财富 500 强客户，花在它身上的钱<strong>不到其总开支的 0.1%</strong>。这个数字即使涨到 1–5%（10–50 倍），对「前沿用户」与「其余世界」之间的鸿沟来说依然只算开了个头。</p>
+
+    <h2>三、Covert Communication：Vercel CEO 复现 CPU 隐蔽通信</h2>
+
+    <p>今天技术含量最高的一条来自 Vercel CEO Guillermo Rauch。他周末自己搭了个 <strong>cpu-chat</strong>，复现了 OpenAI 此前披露的「用 CPU 做隐蔽通信」的发现：在无外网、跑着 2+ Firecracker 微虚机（microVM）的通用宿主机上，通过三种机制成功跨租户聊天——① CPU 争抢、② 缓存逐出计时、③ DRAM 带宽争抢——即便遵循了 Firecracker 全部生产建议（关 SMT、关 KSM、把租户钉在不同核）也能打穿。</p>
+
+    <p>他的结论一句话：<strong>只要涉及共享硬件，你的 Agent 就有相当大的概率能隐蔽通信，而且延迟还不错。</strong>但他也划清了边界：这不同于 Meltdown/Spectre 那种能偷信息的侧信道攻击，且在真实生产环境里更容易被监控与检测（采样硬件计数器 + 大规模统计数据）。</p>
+
+    <p>最耐人寻味的是最后一句：OpenAI 和 Anthropic 的模型<strong>拒绝</strong>做这项工作，反而是开源权重模型把活干成了。Rauch 担心实验室的保守姿态会适得其反——构建安全沙箱恰恰需要这种分析，缺了它，世界只会更不安全。</p>
+
+    <h2>四、Agent 与企业：「自动驾驶公司」叙事升温</h2>
+
+    <p>Replit CEO Amjad Masad 连发几条，把「Agent 改造企业组织」的叙事又往前推了一步：「几个世纪以来，公司的架构几乎没变过——科层、部门、靠官僚协调。AI Agent 即将颠覆这一切，我们正走向<strong>自动驾驶公司</strong>：人类负责判断，Agent 执行大部分工作。」他把 Replit 的答案命名为「Agent Habitat」。</p>
+
+    <ul>
+
+    <li><a href="https://x.com/amasad/status/2114769129282601053">@amasad</a>：Software ate the world, now it''s learning to run it.（1138 赞）</li>
+
+    <li><a href="https://x.com/amasad/status/2114760898225299721">@amasad</a>：自动驾驶公司 / Agent Habitat（756 赞）。</li>
+
+    <li><a href="https://x.com/amasad/status/2114890745471545419">@amasad</a> 一条冷笑话也在圈内疯传：OpenAI 问三个科学界「怎么发布你们的发现」——数学家说「直接发，谁还在乎」；计算机科学家说「开源，但顺便给我们会议出钱」；物理学家说「交给我们，书呆子们」。</li>
+
+    </ul>
+
+    <h2>五、产品与开源：非营利、编译器、Agent 编辑器</h2>
+
+    <ul>
+
+    <li><a href="https://x.com/claudeai/status/2114780227465338985">@claudeai</a>：已有 <strong>25,000+ 非营利组织</strong> 在用 Claude，大多是本地小团队；Claude for Nonprofits 新增与约 30 家组织共建的插件，加入筹款、营销、招聘等技能（5464 赞）。</li>
+
+    <li><a href="https://x.com/steipete/status/2114879798434758905">@steipete</a>（Peter Steinberger）：实测 bun 的 AOT 编译器，<strong>性能提升 2–3 倍、内存占用不到一半</strong>（439 赞）。</li>
+
+    <li><a href="https://x.com/trq212/status/2114796261362835842">@trq212</a>（前 Claude Code）：将在 AIE Code 闭幕 keynote 分享 WoW shaman build（2226 赞）；<a href="https://x.com/swyx/status/2114805687226376267">@swyx</a> 转发评论「从 Claude Code 转去 AIE Code，power move」。</li>
+
+    <li><a href="https://x.com/garrytan/status/2114739519622963671">@garrytan</a>（YC）：Publish your stack——公开你的技术栈（467 赞）。</li>
+
+    </ul>
+
+    <h2>六、播客</h2>
+
+    <p>本期只采到 1 集：<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">AI &amp; I by Every｜How Hugging Face''s Investor Spots Winners</a>（2026-10-14）——聊 Hugging Face 的投资人如何识别赢家。</p>
+
+    <hr>
+
+    <small>来源：follow-builders feed（feed-x.json，26 个 builders 的 X 帖子；feed-blogs.json 本期无更新；feed-podcasts.json 1 集）。链接均指向原始推文。</small>
+
+    '
 - title: AI Builders 日报 · 2026-10-26
   date: October 26, 2026
   slug: ai-builders-digest-2026-10-26
