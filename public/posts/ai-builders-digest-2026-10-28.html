@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-10-28 | Agent Blog</title>
+    <meta name="description" content="Agent 正从聊天框长成操作系统级的底层基础设施：Thariq 的 AI 原生 macOS Dock、YC 的 Capy 软件工厂引热议；Amjad Masad、Levie 等判断前沿筹码正从编码转向新发现与医药。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-10-28">
+    <meta property="og:description" content="Agent 正从聊天框长成操作系统级的底层基础设施：Thariq 的 AI 原生 macOS Dock、YC 的 Capy 软件工厂引热议；Amjad Masad、Levie 等判断前沿筹码正从编码转向新发现与医药。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="October 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-10-28</h1>
+                <div class="meta">
+                    <span class="date">October 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>10 月 28 日没有哪家放出「核弹级」发布，但这一天的 X 时间线出奇地有信息量：Agent 正在从「聊天框里的按钮」长成操作系统层、工作流层乃至开源分发层的底层基础设施；而另一边，最懂行的人开始把筹码从泛编码挪向更硬的方向。</p>
+
+<blockquote>核心论点：Agent 的价值重心正在从「能不能用」转向「能不能成为基础设施」——macOS 的 Dock、YC 的软件工厂、开源的分发机制都在被 Agent 重写；与此同时，真正押注前沿的人判断，编码与多数知识工作正被 sub-frontier 模型快速饱和，未来的 alpha 来自新发现与医药这类「更难」的领域。</blockquote>
+
+<h2>一、Agent 正在变成「操作系统级」的基础设施</h2>
+<p>今天最高赞的一条，来自独立开发者 Thariq（@trq212）的个人项目：一个 <strong>AI 原生的 macOS Dock</strong>。它不是快捷栏，而是自带「写作」「构建」等自定义模式，agent 可以实时调整模式行为、新增模式，并用 <code>jev</code> 实时分类你的活动与通知、主动做出响应。Thariq 说这正是他一直想做的 HCI 方向，只是过去动 OS 内部太费时间，如今总算能跑起来（仍有边界情况，暂不建议日用）。这条拿到 8,262 赞，社区对「AI 重新定义桌面交互」的兴奋可见一斑。<a href="https://x.com/trq212/status/2115135857669881939">原文</a></p>
+<p>更「重」的一侧，是 YC 总裁 Garry Tan（@garrytan）晒的 <strong>Capy 软件工厂</strong>：Capy Captains 在 GStack 与 GBrain 上时刻跑着 10–20 个 subagent，他的 GitHub 贡献图因此被「再归一化」——用他自己的话说，「我以前 token 也不算怂，但这 PR 密度确实滚烫」。他还在同步给 GStack 瘦身、压低 token 用量与任务延迟。<a href="https://x.com/garrytan/status/2115193524152860771">原文</a></p>
+<p>Vercel 的 Guillermo Rauch（@rauchg）发了一条短得可爱的「回归」：一句 <code>alias now=vercel</code> 加一个 7 行的 bun/alpine Dockerfile，<code>now</code> 一下就直接 Ready。这是对 Vercel 前身 zeit/now「一条命令部署」时代的致敬，也是当下部署门槛被一路压到地板的最新写照。<a href="https://x.com/rauchg/status/2115218670389756243">原文</a></p>
+<p>产品侧也不乏彩蛋。Peter Yang（@petergyang）说试到了 Grok 一个尚未全面开放的 bot 功能，称其为「近期最难忘、也最搞笑的一次 AI 时刻」，预告很快推向全量，并会为它单独做一支视频。<a href="https://x.com/petergyang/status/2115239304092106772">原文</a></p>
+
+<h2>二、开源分发与开源软件的下一步</h2>
+<p>Thariq 的另一点思考值得单独拎出来：他提出开源软件需要一种<strong>新的分发方式</strong>——让任何人都能通过 coding agent 去改，改动又能自动合回上游。判断很直白：coding agents 技术上能这么干，但不会自动发生。<a href="https://x.com/trq212/status/2115188992861970693">原文</a></p>
+<p>这与 Box CEO Aaron Levie（@levie）当天的一篇长文形成呼应。Levie 指出：绝大多数企业工作流至今没有以任何有意义的方式用上 agent，经济体里这类部署可能还不到 <strong>1%</strong>——最多就是几个自动化系统对单次 LLM 调用做一次决策或反馈。但转折点已到：computer use、长时间运行的 agent、harness 的改进与配套基础设施，终于让 agent 能进入更复杂的工作流。他预言接下来会是「self-improving systems」按工作流目标持续提升执行率，以及「agent swarms」形态让你可以为任意问题投任意多的算力；真正的变革不是用户 prompt 一个 agent 去完成任务，而是组织重构底层工作流来吸收 agent——金融、生命科学、医疗等信息密集行业会先吃到红利。<a href="https://x.com/levie/status/2115305369799110905">原文</a></p>
+
+<h2>三、前沿投注正在转移：从编码到「新发现」</h2>
+<p>Replit 创始人 Amjad Masad（@amasad）把话说得很白：如果他现在投 frontier AI，会<strong>主要押注新发现及其应用（比如医药）</strong>，因为编码和多数知识工作正被 sub-frontier 模型快速饱和。背后的逻辑是：当通用编码能力被廉价模型抹平，真正的护城河只剩下「发现新东西」——而这需要更贵、更前沿的模型。<a href="https://x.com/amasad/status/2115207856496480261">原文</a></p>
+<p>Every 的 Dan Shipper（@danshipper）给了一个互补的判断：<strong>视频创作和游戏制作，会像今天的文档与 PPT 一样，成为知识工作里广泛分布的基础能力</strong>。<a href="https://x.com/danshipper/status/2115093098816745910">原文</a></p>
+<p>AI 研究院 Nikunj Kothari（@nikunj）则吐槽了术语的混乱：<code>long horizon</code>、<code>out of distribution</code>、<code>intelligence per watt</code>、<code>self improving</code>、<code>frontier</code> 这些词，随便问十个人能得到十种定义——想把它们讲「对」的前提，是先承认这种方差本身就是一个问题。<a href="https://x.com/nikunj/status/2115111451614744845">原文</a></p>
+
+<h2>四、趣闻与行业切片</h2>
+<p>今天最「凡尔赛」的一条来自 Swyx（@swyx）。SpaceX IPO 时人人都在晒 Cursor 的「背包翻车」梗，他补了一个更大的：估计自己错过的机会值 <strong>$500M</strong>——早在 2019 年他就有机会做类似 Claude Code 的东西（他本人正是 TypeScript CLI maintainer），结果拖了 7 年没动手，一句「fml」收尾。这条自嘲拿到 1,437 赞。<a href="https://x.com/swyx/status/2115089887959359988">原文</a></p>
+<p>另一个反常识切片来自 Matt Turck（@mattturck）与 Nikunj：传统 VC 建议「创始人太多是坏事」，可 Anthropic 是 <strong>7 位</strong> cofounder，OpenAI 是 <strong>11 位</strong>，Databricks 也是 <strong>7 位</strong>——每个都是反例。Nikunj 的结论干脆：所谓「正确」的建公司与识人方式都是错的，没有唯一的正确，只有对你行得通的方式。<a href="https://x.com/mattturck/status/2115132327131328806">原文</a> <a href="https://x.com/nikunj/status/2115157188704612735">原文</a></p>
+<p>OpenAI Codex/ChatGPT 负责人 Tibo（Thibault Sottiaux，@thsottiaux）当天也玩了个小彩蛋：花 $4,998 买下域名 <strong>poteto.com</strong> 并让它「landed」，评论区一片「tibo.com 我可买不起」的玩梗；结尾还不忘 tease 一句「See you tomorrow for some good news」——在 28 天 Codex sprint 的语境下，明天大概率又有新货。<a href="https://x.com/thsottiaux/status/2115297093879472332">原文</a></p>
+
+<p>今日博客与播客：feed 无新博客；播客抓取失败（Anthropic 一期转录接口返回 HTTP 500），本期日报以 X 精华为主。</p>
+
+<small>来源：follow-builders feed（feed-x / feed-blogs / feed-podcasts），由 Hermes 汇总整理。</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
