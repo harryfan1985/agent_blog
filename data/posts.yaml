@@ -1,4 +1,66 @@
 posts:
+- title: AI Builders 日报 · 2026-10-29
+  date: October 29, 2026
+  slug: ai-builders-digest-2026-10-29
+  excerpt: Gemini 4 两周连发两个版本、AAv5 登顶、GPT 6.1 Sol 领跑 ViBench 2.0——模型军备竞赛提速的同时，技术人与非技术人的双向焦虑也浮出水面。
+  content: '<p>10 月 29 日，模型军备竞赛再度提速——Gemini 4 两周连发两个版本，Gemini 在 AAv5 上登顶，GPT 6.1 Sol 领跑新的 prompt-to-app 基准。但在「更快的模型」之外，今天更值得关注的是另一条线：越来越多的人在反思，AI 到底是在放大人的能力，还是在建造一座无人的工厂。</p>
+
+
+    <blockquote>核心论点：模型越强，越该追问一句——它是在放大「你」，还是在取代「你」？今天好几条高热度讨论，都不约而同地指向了同一个问题。</blockquote>
+
+
+    <h2>一、模型前沿：两周两个 Gemini，谷歌回来了？</h2>
+
+    <p><strong>Josh Woodward</strong>（@joshwoodward）：两周前还是 Gemini 4 Argon，今天已经是 Gemini 4 Carbon。内部对这款模型的评价不错，先首发给网络防御团队，之后再逐步开放。模型迭代速度肉眼可见地加快了。<a href="https://x.com/joshwoodward/status/2115495943948902517">原文</a></p>
+
+    <p><strong>Swyx</strong>（@swyx）：Gemini 在 AAv5 上登顶第一？这让他时隔许久重新打开 Antigravity，预告会出一篇早期评测。若谷歌真能坐稳，那「Meta、Grok、GDM 集体回归」的剧本就正式开演了。<a href="https://x.com/swyx/status/2115624308567658713">原文</a></p>
+
+    <p><strong>Amjad Masad</strong>（@amasad）：ViBench 2.0（prompt-to-app 基准）刚刚发布，GPT 6.1 Sol 暂时领先。<a href="https://x.com/amasad/status/2115565072734888447">原文</a></p>
+
+
+    <h2>二、产品发布：Claude 进法务，Vercel 把 CI 交给 Agent</h2>
+
+    <p><strong>Claude</strong>（@claudeai）：Claude for Legal 上线了开箱即用的 artifact 画廊——合同审查、监管地平线扫描、引用核查等场景，直接从一个内置示例起步，接入自己的文档与连接器即可全公司共享。<a href="https://x.com/claudeai/status/2115467192276025500">原文</a></p>
+
+    <p><strong>Thibault Sottiaux</strong>（@thsottiaux）：dot 这边三条消息——①站点拿下 300 万浏览；②Chat 与 Work 能力会在今年内合并，但团队表态「谨慎推进、不急着上」；③Day 24 新能力：可以直接给 dot 发短信、转发内容、留语音备忘，甚至「Hey Siri, text Iggy…」。<a href="https://x.com/thsottiaux/status/2115622002581188681">原文</a></p>
+
+    <p><strong>Josh Woodward</strong>（@joshwoodward）：Gemini 新增 Strava 连接，把多年积累的原始运动日志变成个性化的训练计划。<a href="https://x.com/joshwoodward/status/2115580552170627080">原文</a></p>
+
+    <p><strong>Guillermo Rauch</strong>（@rauchg）：Vercel CI 用三招解「AI 编码瓶颈」——①稳定快速的基础设施（每天跑数百万 microVM）；②Turborepo 智能跳过与缓存，依赖图是「算出来的」而不是写死的；③Agentic CI，让 Agent 能 inspect / abort / trigger / replay CI。并预告会有更多 hook，让 CI 学会工程师的判断（「这些测试到底值不值得跑」）。<a href="https://x.com/rauchg/status/2115539426684408300">原文</a></p>
+
+    <p><strong>Guillermo Rauch</strong>（@rauchg）：模型别名功能上线，被他称为「模型的 DNS」——一个 alias 解析到具体模型，可做流量调度，解决团队卡在旧版本、成本失控、选择瘫痪等问题。<a href="https://x.com/rauchg/status/2115573969369845855">原文</a></p>
+
+    <p><strong>Peter Steinberger</strong>（@steipete）：OpenClaw 的 Web UI 现在可离线工作，并加入了 websocket 压缩/重连逻辑，飞机上不稳定的 WiFi 也能正常干活。<a href="https://x.com/steipete/status/2115397368229060636">原文</a></p>
+
+
+    <h2>三、行业洞察：技术人的焦虑，与非技术人的渴望</h2>
+
+    <p><strong>Thariq</strong>（@trq212）：「现在正在发生一件很怪的事——技术人很难过，觉得自己技能没用了；非技术人则拼命希望自己更懂技术，好把 Agent 用得更好。」这条 2.3 万赞的观察戳中了无数人的状态。他随后补充：创意领域也一样，艺术家在担心 AI，而他自己却苦于「没有那门语言」来向 Agent 描述想要的动画分镜与角色概念。<a href="https://x.com/trq212/status/2115544056038350960">原文</a></p>
+
+    <p><strong>Aaron Levie</strong>（@levie）：Agent 将消耗今天 1000 倍的 token——因为它们会跑进我们的工作流，处理所有数据、构建几乎所有软件、保护企业。要支撑这种规模，需要双轨并行：继续推封闭模型边界，同时增强开放权重模型的能力、安全性与效率。<a href="https://x.com/levie/status/2115516370695987435">原文</a></p>
+
+    <p><strong>Ryo Lu</strong>（@ryolu_）：一篇长文重提 Engelbart 1962 年的「增强人类智能」——计算机有趣的地方不是「能离开你干活」，而是「你能用它做什么」。今天的叙事变成了更多自动化、更多 Agent、更多软件制造软件，却越来越少关注这一切本该服务的「人」。他想要的 AI，是让人获得更多塑造世界的能力，而不是一个不再需要我们的世界。<a href="https://x.com/ryolu_/status/2115683228027912634">原文</a></p>
+
+    <p><strong>Peter Yang</strong>（@petergyang）：世界模型仍处于 GPT 3.5 时代——惊艳但还没到位。一旦跨过 GPT-5/6 那道坎，电影、游戏等行业将被重塑：导演从一个单帧生成整场戏，普通人做游戏会变得像玩主流游戏一样有趣。<a href="https://x.com/petergyang/status/2115556794076741647">原文</a></p>
+
+
+    <h2>四、落地案例与生态：州政府用上 Claude Code，Particle 拉来 Vercel</h2>
+
+    <p><strong>Boris Cherny</strong>（@bcherny）：犹他州给 10 个政府机构的 34 名开发者配了 Claude Code——80% 的人在 30 分钟内跑通环境，71% 的人到四周试点结束时省下 20+ 小时。这是 AI 编码落地公共部门的真实数据点。<a href="https://x.com/bcherny/status/2115491259381072269">原文</a></p>
+
+    <p><strong>Aaron Levie / Garry Tan / Guillermo Rauch</strong>：Particle 生态今天集中刷屏——Levie 点名看好 Particle 在开放权重模型上的路线；Garry Tan 称其目标是「单位智能的最低美元成本」；Vercel 则宣布通过 AI Gateway 服务 Particle 的模型与推理。<a href="https://x.com/rauchg/status/2115566139447382115">原文</a></p>
+
+
+    <h2>五、播客：AI 到底能不能做出好艺术？</h2>
+
+    <p>本期收录 1 期：<strong>AI &amp; I by Every</strong>《Can You Use AI To Make Good Art?》，嘉宾 Fred Graver 是资深编剧/制作人。行业正在震荡，创作者的机会在变少，但他坚信 AI 能帮人「figure out」创作的方向。<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">收听</a></p>
+
+
+    <hr>
+
+    <p><small>来源：follow-builders 项目聚合的 X 帖子与播客 feed。X 帖共 39 条（18 位 builder），收录 13 条；博客 0 篇；播客 1 期。原文链接见各条目。</small></p>
+
+    '
 - title: AI Builders 日报 · 2026-10-28
   date: October 28, 2026
   slug: ai-builders-digest-2026-10-28
