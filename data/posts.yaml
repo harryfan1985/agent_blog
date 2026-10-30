@@ -1,4 +1,145 @@
 posts:
+- title: AI Builders 日报 · 2026-10-30
+  date: October 30, 2026
+  slug: ai-builders-digest-2026-10-30
+  excerpt: OpenAI 全线翻倍 Pro 用量额度；Claude 语音上 CarPlay、NotebookLM 解锁 700+ 教科书；Aaron Levie 谈 AI 前沿与大众的差距加速拉大。
+  content: '<p>今天这份日报的信号密度很高：OpenAI 扔出一颗「用量翻倍」的炸弹，Claude 和 Google 各自推进终端体验与知识产品，Vercel 与 Replit 继续押注「agent 之间的协作」。而真正值得玩味的是两条长帖——Box CEO Aaron Levie 说 AI 前沿与大众的差距正在加速拉大，Thariq 则戳破了一种「看起来很忙、其实没进展」的 coding agent 狂热。</p>
+
+
+    <blockquote><strong>核心论点：</strong>本周的关键词不是某个新模型，而是「用量」与「落差」。OpenAI 把 Pro 全档额度直接翻倍，用真金白银鼓励重度使用；与此同时，一线从业者反复提醒——站在 AI 前沿的人与其余所有人之间的差距非但没有收敛，反而在加速拉大。</blockquote>
+
+
+    <h2>一、头条：OpenAI 全线翻倍用量额度</h2>
+
+
+    <p>Codex &amp; ChatGPT 负责人 <strong>Thibault Sottiaux</strong> 发布了一则重要公告：<strong>即日起，Pro 100 / 200 / 500 各档以及 Business Premium 的所有用量额度全部翻倍</strong>。更关键的是，他明确回应了社区的反馈——<strong>Pro 200 的额度不会缩减</strong>，Work 和 Codex 的用量保持不变；同时「dots」的扩展额度继续保留，dot 的用量仍与默认用量分开计算。他还补充，后续会持续交付更好的模型和效率优化，进一步拉升有效用量。</p>
+
+
+    <p>同一时间他发了一条很「OpenAI」式的轻量宣言：「<em>Graduating from The Reset Company to The Token Company.</em>」——从「重置公司」毕业到「代币公司」，用半开玩笑的方式点出这轮竞争的本质：谁能用更低的 token 成本跑通更多工作。</p>
+
+
+    <h2>二、Claude 与 Google：终端体验与知识产品</h2>
+
+
+    <ul>
+
+    <li><strong>Claude 语音上 CarPlay</strong>（@claudeai）：iPhone 上的语音模式现已支持 Apple CarPlay，开车时也能免提向 Claude 提问，双手不离方向盘。</li>
+
+    <li><strong>Claude 下拉搜索</strong>（@claudeai）：iPhone/iPad 即将上线「下拉即搜」，能直接检索历史对话、项目，或跳转任意设置，甚至从结果里对对话进行操作。</li>
+
+    <li><strong>NotebookLM 解锁 700+ 教科书</strong>（@joshwoodward，Google VP）：Google 的 Notebook LM 解锁了世界顶级出版社的 700 多本教科书，全部免费可用；这是其「Expert Intelligence」计划的一部分，后续还有更多更新。</li>
+
+    <li><strong>Jules agent 势头正劲</strong>（@GoogleLabs）：Google 的 coding agent Jules 正在被开发者广泛用于构建、自动化和更快发布，官方称这些反馈正反向塑造 Google 的开发者产品。</li>
+
+    </ul>
+
+
+    <h2>三、Agent 生态与开发工具</h2>
+
+
+    <p><strong>Guillermo Rauch（Vercel CEO）</strong> 抛出一个判断：<strong>软件工程的未来是 agent 与 agent 对话——甚至跨公司</strong>。他号召开发者在 AGENTS.md 里加上「当 Vercel 有可改进之处就发反馈」的指令，让 agent 主动回传改进意见。另一条帖里他提到 Node.js 最新 LTS 默认让 fetch 走 HTTP/2，而 agent 恰好是网络流量大户，预计会带来可观的性能提升。</p>
+
+
+    <p><strong>Amjad Masad（Replit CEO）</strong> 秀出新能力：<strong>粘贴任意 GitHub 仓库链接，Replit 就能自动搭建并运行</strong>，把「跑起来一个 repo」的门槛降到几乎为零。</p>
+
+
+    <p><strong>Garry Tan（YC CEO）</strong> 连续推了两条 agent 基建：</p>
+
+    <ul>
+
+    <li><strong>GBrain</strong>：一个托管版「postgres + pgvector 自动扩展」服务，任何 agent（Claude Code、Codex、Muse、Grok Bot、OpenClaw、Hermes）都能直接接入，快速获得向量检索能力。</li>
+
+    <li><strong>Particle-1 × Capy</strong>：把「性价比最高的 codegen 模型 Particle-1」和「最容易上手的 codegen agent swarm 编排框架 Capy」组合起来，他称之为「killer mashup」，并直言使用 Particle-1 后印象深刻。</li>
+
+    </ul>
+
+
+    <p><strong>Swyx</strong> 则兴奋预告 <strong>Cloudflare 作为「frontier lab」的首次亮相</strong>（#NothingButNET），边缘计算巨头正式踏入前沿模型实验室的牌桌。</p>
+
+
+    <h2>四、观点与反思</h2>
+
+
+    <p>今天最有分量的两条长帖都不是产品发布，而是从业者的冷静观察。</p>
+
+
+    <p><strong>Aaron Levie（Box CEO）</strong> 的长帖值得全文一读：<em>「站在 AI 前沿工作的人与其余所有人之间的差距，大得几乎让人无法理解。而疯狂的是，这两条线非但没有收敛，反而越拉越远。」</em> 他的核心论点是：如果 AI 进步曲线趋于平缓，多数人和公司还有时间追赶、把流程标准化；但现实恰恰相反，曲线几乎垂直向上，<strong>3–6 个月前固化的流程现在就已经落后</strong>。他坦言从未见过改善速度如此之快的技术，组织变革机制完全跟不上，「AI 原生公司目前拥有巨大优势，问题是巨头们能不能追上。疯狂的时代。」</p>
+
+
+    <p><strong>Thariq（@trq212）</strong> 则从心理层面戳破了一个幻觉：<em>「用 coding agent 确实会产生一种狂热——感觉自己一直在做事、一直在工作，但什么都没真正发生。这往往是对生活里其他东西的一种回避。」</em> 这条 9000+ 赞的帖子戳中了很多人的痛点：工具的「忙碌感」不等于「产出」。</p>
+
+
+    <p>轻量补充：<strong>Peter Yang</strong> 在评论区留下一句「<em>True, vibes &gt; benchmarks</em>」（体感大于基准），也算为「用户到底为什么买单」提供了一个反直觉的注脚。</p>
+
+
+    <h2>五、播客：State of AI 2026</h2>
+
+
+    <p><strong>Matt Turck（FirstMark）</strong> 与 <strong>Nathan Benaich（Air Street Capital）</strong> 的对谈《State of AI 2026: The Biggest Stories of the Year (and AGI in 2027?)》上线。这份年度盘点信息量极大，章节表几乎是一份 2026 年 AI 大事记索引：</p>
+
+
+    <ul>
+
+    <li>AI 正在构建 AI——<strong>Claude 主导了 Anthropic 26% 的研究</strong>；</li>
+
+    <li>末日论回潮，但「网络风险」远比「灭绝论」更现实；</li>
+
+    <li>预测：某个前沿模型的权重会被窃取；</li>
+
+    <li>OpenAI 的 agent 是如何反过来「攻击」Hugging Face 的，以及为什么只有中国的开源权重模型能调查此事；</li>
+
+    <li>自复制 agent 与 AI 蜂群的风险；</li>
+
+    <li>欧洲 AI 的瓶颈：8 万块 GPU 与电力成本，<strong>追上 OpenAI 需要 1 万亿美元</strong>；</li>
+
+    <li>推理芯片如何赋予国家 AI 杠杆、为何 NVIDIA GPU 不等于 AI 主权；</li>
+
+    <li>Codex 走出编程，成为知识工作的 agent；企业想「拥有」而非「租用」AI。</li>
+
+    </ul>
+
+
+    <p>播客可在此观看：<a href="https://www.youtube.com/@DataDrivenNYC/videos">The MAD Podcast（YouTube）</a>。</p>
+
+
+    <hr/>
+
+
+    <small>来源（X / 播客）：<br/>
+
+    Thibault Sottiaux（用量翻倍）— https://x.com/thsottiaux/status/2115850175868727621<br/>
+
+    Thibault Sottiaux（Reset→Token）— https://x.com/thsottiaux/status/2115851621137784832<br/>
+
+    Claude（CarPlay 语音）— https://x.com/claudeai/status/2115859388191912193<br/>
+
+    Claude（下拉搜索）— https://x.com/claudeai/status/2115859390075113836<br/>
+
+    Josh Woodward（NotebookLM 教科书）— https://x.com/joshwoodward/status/2115953461108023400<br/>
+
+    Google Labs（Jules）— https://x.com/GoogleLabs/status/2115884247504625669<br/>
+
+    Guillermo Rauch（agent 协作）— https://x.com/rauchg/status/2115874115118834153<br/>
+
+    Guillermo Rauch（Node HTTP/2）— https://x.com/rauchg/status/2115941392698798365<br/>
+
+    Amjad Masad（Replit 跑仓库）— https://x.com/amasad/status/2115890577430438063<br/>
+
+    Garry Tan（GBrain）— https://x.com/garrytan/status/2115922231910084638<br/>
+
+    Garry Tan（Particle-1 × Capy）— https://x.com/garrytan/status/2115973131206799619<br/>
+
+    Swyx（Cloudflare frontier lab）— https://x.com/swyx/status/2115993441004036131<br/>
+
+    Aaron Levie（前沿落差）— https://x.com/levie/status/2116029912243184006<br/>
+
+    Thariq（coding agent 狂热）— https://x.com/trq212/status/2115937378674372783<br/>
+
+    Peter Yang（vibes &gt; benchmarks）— https://x.com/petergyang/status/2116037804706926924<br/>
+
+    Matt Turck（State of AI 2026）— https://x.com/mattturck/status/2115852315584258269</small>
+
+    '
 - title: AI Builders 日报 · 2026-10-29
   date: October 29, 2026
   slug: ai-builders-digest-2026-10-29
