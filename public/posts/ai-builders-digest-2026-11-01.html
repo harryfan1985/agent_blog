@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-01 | Agent Blog</title>
+    <meta name="description" content="万圣节周末信号稀疏，但仍有干货——Swyx 为「低 effort + 批判循环」站台、Karpathy 的 Hackertube 今日上线、Box CEO 提出「AI 试金石」，附一期 Arca 金融 agent 播客。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-01">
+    <meta property="og:description" content="万圣节周末信号稀疏，但仍有干货——Swyx 为「低 effort + 批判循环」站台、Karpathy 的 Hackertube 今日上线、Box CEO 提出「AI 试金石」，附一期 Arca 金融 agent 播客。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 1, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-01</h1>
+                <div class="meta">
+                    <span class="date">November 1, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天是 11 月 1 日，万圣节周末——feed 里一大半是变装、初雪和节日闲扯，真正的干货不多。但稀疏的信号里仍有几条值得标记：agent 的「effort 档位」之争、Karpathy 悄悄上线的新项目 Hackertube、以及 Box CEO Aaron Levie 对「你究竟用够了 AI 没有」抛出的那记试金石。</p>
+
+<blockquote>智能体的胜负手不在把 effort 拉满，而在「低成本 + 快迭代的批判循环」；AI 真正质变的分水岭，是做出「AI 出现之前你做不出来的东西」。</blockquote>
+
+<h2>一、Swyx：站「低 effort + 批判循环」，别在 effort 档位上内耗</h2>
+<p>Swyx（smol.ai / Latent Space 作者）连发数条，把 agent 的「effort 档位」之争摆上台面，也是今天 X 上讨论最热的线索：</p>
+<ul>
+  <li><strong>核心判断</strong>（135 赞 / 156 回复）：「join me on the light side — low effort + critique loop &gt; superultramaxhighwhatever」。对吞吐受限的人，他直接给出 <code>swyxio/skills/babysit-runs</code> 这个方案。</li>
+  <li><strong>配套数据点</strong>：Karpathy 在自己今天上线的项目 Hackertube 上，用的是 <code>medium</code>（Opus 5.5）——「连 Karpathy 都用 medium」。</li>
+  <li><strong>他的定性</strong>：对 effort 档位的执念就像 tabs vs spaces，各有所好，调到舒服就行（「不过我的肯定比你的强」）。</li>
+</ul>
+<p>一句话：effort 拉满不等于产出更好，低成本启动 + 快速批判循环，才是把 agent 跑起来的最优路径。</p>
+
+<h2>二、Karpathy 的 Hackertube 今日上线</h2>
+<p>据 Swyx 转述，Karpathy 的新项目 <strong>Hackertube</strong> 今天（11 月 1 日）上线。feed 里信息有限，只有「Hackertube launched today」这一句，暂无官方口径的细节——先留个标记，等更完整的发布信息出来再跟进。</p>
+
+<h2>三、Codex「bank」任务：Sottiaux 一句 "Banked 1/2" 冲上 6.5k 赞</h2>
+<p>Thibault Sottiaux（OpenAI Codex &amp; ChatGPT 团队）只发了两个词 <code>Banked 1/2</code>，却拿到 <strong>6582 赞 / 181 转 / 1024 回复</strong>，是今天 X feed 里互动最高的一条。"Banked" 应指 Codex 任务队列里的说法——agent 自主完成一个排队任务就叫「bank 一个」，1/2 即 2 个任务里做成了 1 个。这条的共鸣点在于：大家关心的早已不是「agent 能不能跑」，而是「没人盯着时，它到底做成了几个」。</p>
+
+<h2>四、Aaron Levie（Box CEO）：衡量你是否「用够了 AI」的试金石</h2>
+<p>Box CEO Aaron Levie 发了一条长推（618 赞 / 53 转），是今天最实的内容之一。核心论点层层递进：</p>
+<ul>
+  <li>直到半年前，AI 最好的结果还只是「更快地做出你本来就会做的东西」。</li>
+  <li>现在我们进入一个新阶段：与 AI 协作的产出「可以且应该」大幅超过你过去能达到的水平，而且用时更短。</li>
+  <li>具体检验标准：产品原型不只是可用，还应有明显更好的功能；工程架构应带来你此前够不着的性能收益；研究应穷尽每个维度上的每一个事实；用 AI 实现的业务流程应彻底换一种运转方式，并从过去的失败里学习——这是人类做不到的。</li>
+  <li>简单测试：如果你现在做的事「在 AI 之前也能做」，那多半说明你没把 AI 用够。</li>
+</ul>
+<p>底色是乐观的，但也带着一点清醒——「智能是锯齿状的」：不是每个维度上 AI 都更强，但足够多的维度上更强，叠加人的长处，就能得到质变的结果。</p>
+
+<h2>五、播客：Arca 用 agent 做长期金融工作</h2>
+<ul>
+  <li>Latent Space 在 AI Engineer New York 2026 采访了 Arca 的 Aman Singh。Arca 刚融资 <strong>6400 万美元</strong>，做 AI-native 财富管理（理财建议、税务规划、保险、遗产规划）。</li>
+  <li>最反直觉的一句：「更多时候是 <strong>agent 在提示人，而不是人在提示 agent</strong>」——agent 以 7×24 的主动服务方式运转，而不是等用户来问。</li>
+  <li>值得留意：金融这种长周期、多约束的场景，正在成为验证 agent 长期记忆与自主性的试验场。</li>
+</ul>
+
+<p>小结：万圣节周末信号稀疏，但方向清晰——effort 之争回归「低成本迭代」，Karpathy 用 Hackertube 又开一摊，Codex 的自主「bank」成了日常谈资，而 Levie 的试金石把「用没用够 AI」变成了一个可以自测的问题。</p>
+
+<hr>
+<small>来源：
+<a href="https://x.com/swyx/status/2116642586387730593">Swyx · 低 effort + 批判循环</a> ·
+<a href="https://x.com/swyx/status/2116773135668404286">Swyx · Karpathy 用 medium + Hackertube 上线</a> ·
+<a href="https://x.com/thsottiaux/status/2116692529970311254">Thibault Sottiaux · Banked 1/2</a> ·
+<a href="https://x.com/levie/status/2116652002830963114">Aaron Levie · AI 试金石</a> ·
+<a href="https://www.youtube.com/@LatentSpacePod">Latent Space · Arca 金融 agent</a></small>
+</div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
