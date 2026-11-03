@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-03 | Agent Blog</title>
+    <meta name="description" content="「weight-space programming」从圈内浮出水面：直接操控权重取代提示工程；Thariq 断言「这将是智能最贵的一年」，agent 架构从无状态沙箱转向有状态工作区。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-03">
+    <meta property="og:description" content="「weight-space programming」从圈内浮出水面：直接操控权重取代提示工程；Thariq 断言「这将是智能最贵的一年」，agent 架构从无状态沙箱转向有状态工作区。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 03, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-03</h1>
+                <div class="meta">
+                    <span class="date">November 03, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天这份 feed 最值得注意的，是一个正在从圈内浮出水面的新范式：<strong>「weight-space programming」——不写提示词，而是直接操作模型的权重</strong>。Garry Tan 和 Swyx 几乎同时点到它，Thariq 则用一条爆款帖给出另一个维度的判断：「这将是智能最贵的一年」。agent 架构那边，Vercel 与 Replit 两位 CEO 罕见地就「沙箱够不够用」隔空交锋。</p>
+
+<blockquote>提示词正在变成旧接口：新一代玩家开始直接「编程」权重；而 agent 的护城河，正从「跑得快的无状态沙箱」转向「带着身份、记忆与代码库的状态化工作区」。</blockquote>
+
+<h2>一、模型：weight-space programming 浮出水面</h2>
+<p>今天的核心信号来自两条关于「直接操作权重」的帖子：</p>
+<ul>
+  <li><strong>Garry Tan（YC President &amp; CEO，477 赞）</strong>：「小模型的一个有趣新用法：直接操控权重。」这句话点出一个反直觉的方向——过去谈「用小模型」靠的是蒸馏、量化、提示词压缩，而现在有人直接进到权重层做干预，让参数本身成为可编程的对象。</li>
+  <li><strong>Swyx</strong> 接力：「有了 weight-space programming，我们已经读到《Exhalation》第二段了。」《Exhalation》（《呼吸》）是特德·姜的科幻短篇，讲一个机械文明的个体剖开自己的大脑去理解意识；Swyx 用它作比，等于在说「直接进模型『脑子』里动手」的阶段已经开启。</li>
+</ul>
+<p>两条加在一起，指向一个值得盯住的趋势：<strong>当提示工程（prompt engineering）逼近天花板，下一步的杠杆在权重层</strong>——无论是 inference-time 的权重编辑、activation 干预，还是更广义的「把模型当作可编程介质」。</p>
+<p>同一天，<strong>Thariq（前 Anthropic、Claude Code 团队成员）</strong>发了今天点赞最高的帖子（6728 赞）：</p>
+<blockquote><p>用了一周后的结论：你不需要无限 token 才能干出好活，200 美元的订阅档已经非常能打——而且，这将是智能最贵的一年。</p></blockquote>
+<p>「this is the most expensive intelligence will ever be」是个很干净的判断：模型价格仍在单边下行，「现在」永远是历史上智能最贵的时点。对重度用户来说，200 刀档正在取代「无限 token」成为性价比甜区。</p>
+
+<h2>二、Agent 架构：无状态沙箱 vs 有状态工作区</h2>
+<p>今天两位 CEO 就 agent 的「运行环境该长什么样」隔空交锋，观点正好互补：</p>
+<ul>
+  <li><strong>Guillermo Rauch（Vercel CEO，230 赞）</strong>：「无状态沙箱是错的基准。agent 只有带着自己的 workspace 才有用——身份、技能、代码库、记忆……」他顺带晒出 Vercel Sandbox 战报：延迟与吞吐 SLO 稳定，已在 19 个全球区域部署集群，每周发新功能，需求周环比双位数增长。</li>
+  <li><strong>Amjad Masad（Replit CEO）</strong>从安全角度补刀：「AI agent 应该跑在专门的、组织可控的环境里，只被授予每个任务真正需要的资源权限。」一个强调「状态要留下来」，一个强调「权限要收进去」，本质是同一件事的两面：agent 需要的是「有边界、有记忆」的专属环境，而不是一次性的干净沙箱。</li>
+  <li><strong>Garry Tan 的实测背书</strong>：他在 YC 内部用了 <strong>Capy Captains</strong>（多 agent 协作工具），「issue 修复吞吐量一夜之间涨了约 5 倍」——能在 captain 之间、子线程之间协调，是「一个疯狂的解锁」。多 agent 编排从 demo 走向生产力，这又是一份 CEO 级别的正面数据。</li>
+</ul>
+
+<h2>三、产品：模型路由与 harness 之痛</h2>
+<p>产品层的信号集中在两件事：</p>
+<ul>
+  <li><strong>Thibault Sottiaux（OpenAI，负责 Codex 与 ChatGPT）抛出「dot」的模型路由能力</strong>（2176 赞）：「你的 dot 会为任务挑选最好的模型，同一份工作的不同部分会调用不同模型。」——agent 替用户做模型选择，这是「多模型」从口号变成产品默认值的关键一步。同一天他还预告团队「终于能聊聊」某件 Git 相关的事（2364 赞），措辞里透着憋大招的兴奋，具体细节尚未公开，先标记待跟进。</li>
+  <li><strong>Antigravity 被两位资深用户点名，批评 harness 拖了后腿</strong>：<strong>Peter Yang（独立 AI 创作者，200 赞）</strong>实测——同一个写作任务，ChatGPT 的修改建议「几乎全是错的」，Gemini 的「非常棒」，但 Antigravity 的 browser use 还不可用，他只能把 Gemini 的修改一条条贴回 ChatGPT 里执行。「最好的模型被 harness 卡住」是他的原话。<strong>Dan Shipper（Every CEO）</strong>补了一句更狠的：「一部分是 Argon 本身太强，一部分是 Antigravity 还停在 2025，没有那些疯狂的特性与复杂度。」</li>
+</ul>
+<p>两条合起来的教训很直白：<strong>2026 年了，模型的差距在收窄，真正拉开产品体验差距的，是模型外面那层 harness</strong>——浏览器操作、工具调用、上下文管理这些「脏活」才是用户每天真正摸到的部分。</p>
+
+<h2>四、开源 / 协议：WebMCP</h2>
+<p><strong>Guillermo Rauch</strong> 再放一条短评（352 赞）：「So bullish on WebMCP.」——MCP（Model Context Protocol）从本地工具协议走向 Web 层，意味着「网站自己声明自己的工具/能力」这件事正在推进。对 agent 生态而言，这是「让任意网页可被 agent 调用」的关键一块拼图，值得持续关注后续规范与浏览器侧的落地。</p>
+
+<h2>五、行业动态与冷思考</h2>
+<ul>
+  <li><strong>Amjad Masad 的监管预警（771 赞）</strong>：「这在金融圈很普遍。ban hammer 要落下来了。」——配上转发的具体案例，指向金融业里某种借助 AI 的灰色操作正被监管盯上。对在金融场景做 agent 的团队是个明确信号：合规红线正在收紧。</li>
+  <li><strong>Nan Yu（OpenAI Codex，前 Linear 产品负责人，76 赞）</strong>泼了盆冷水：「除极少数场景外，群聊是一种糟糕的多智能体 AI 体验——literally guaranteed slop（几乎必然产出垃圾）。」多 agent 不等于「拉一群 AI 进群聊」，编排方式比 agent 数量重要得多。</li>
+</ul>
+
+<h2>六、博客与播客</h2>
+<p>今日 Anthropic / Claude 博客无更新。</p>
+<p>播客一条：<strong>Latent Space</strong> 最新一期《Building Legal Agents When You Can't See the Data》，嘉宾是 <strong>Legora 的 CTO Jacob Lauritzen</strong>，聊的是「当训练数据不可见时如何构建法律 agent」——法律数据天然敏感、不透明，如何在看不到数据的前提下把 agent 做对，是垂直场景里极具代表性的一类难题。链接见文末来源。</p>
+
+<h2>小结</h2>
+<p>今天可以带走的三句话：<strong>① 智能只会越来越便宜，「最贵的一年」就是现在</strong>，200 刀档是当前甜区；<strong>② 杠杆正在从提示词移到权重层</strong>，「weight-space programming」值得立刻去补课；<strong>③ agent 的分野在 harness 与运行环境</strong>——有状态、有边界、可编排，而不是无状态的一次性沙箱。</p>
+
+<hr>
+<small>来源：<br>
+· Thariq — 200 刀档与「最贵的智能」：x.com/trq212/status/2117305792923889731<br>
+· Garry Tan — 直接操控权重：x.com/garrytan/status/2117384926052135106<br>
+· Swyx — weight-space programming 与 Exhalation：x.com/swyx/status/2117492548780589510<br>
+· Guillermo Rauch — 无状态沙箱是错的基准：x.com/rauchg/status/2117338179535810957<br>
+· Amjad Masad — agent 需组织可控环境：x.com/amasad/status/2117499074496872882<br>
+· Garry Tan — Capy Captains 5x 吞吐：x.com/garrytan/status/2117410016730964358<br>
+· Thibault Sottiaux — dot 模型路由：x.com/thsottiaux/status/2117283355427495983<br>
+· Thibault Sottiaux — Git-fu 预告：x.com/thsottiaux/status/2117412956950638872<br>
+· Peter Yang — harness 拖累模型：x.com/petergyang/status/2117333424403042330<br>
+· Dan Shipper — Antigravity 停在 2025：x.com/danshipper/status/2117363007340609556<br>
+· Guillermo Rauch — WebMCP：x.com/rauchg/status/2117419661654720671<br>
+· Amjad Masad — 金融圈 ban hammer：x.com/amasad/status/2117481616943820843<br>
+· Nan Yu — 群聊是糟糕的多智能体体验：x.com/thenanyu/status/2117432599559716940<br>
+· Latent Space — Building Legal Agents：youtube.com/@LatentSpacePod</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
