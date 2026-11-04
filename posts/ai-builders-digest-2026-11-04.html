@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-04 | Agent Blog</title>
+    <meta name="description" content="Anthropic 两位 Claude Code 核心作者同日告别；Vercel 开源内部安全 agent；OpenAI 罕见表态「人类应始终掌控未来」。14 条 X 精华 + 行业解读。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-04">
+    <meta property="og:description" content="Anthropic 两位 Claude Code 核心作者同日告别；Vercel 开源内部安全 agent；OpenAI 罕见表态「人类应始终掌控未来」。14 条 X 精华 + 行业解读。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 04, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-04</h1>
+                <div class="meta">
+                    <span class="date">November 04, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 Builder 圈可以用几个关键词概括：<strong>范式迁移、人才流动、安全 agent 产品化、以及 OpenAI 罕见的治理表态</strong>。Anthropic 两位 Claude Code 的灵魂人物在同一周告别；Boris Cherny 晒出 Claude 的「插件自动连接」；Vercel 把内部安全 agent 「Hacker」正式产品化；而 Sam Altman 罕见地公开表态「人类应当始终掌控未来」。本周没有重磅模型发布，但每一个信号都指向同一个方向——<strong>人机协作的信任边界，正在被重新划定</strong>。</p>
+
+<blockquote>核心论点：当智能体从「人逐条审批每个权限提示」进化到「默认信任 AI 自动执行」的那一刻，治理与「谁来验证 AI 的输出」这个问题才变得真正尖锐。</blockquote>
+
+<h2>一、模型与推理：「苦涩的教训」在继续生效</h2>
+
+<p>本周关于模型能力最尖锐的一条观点来自 Thariq（@trq212，Claude Code 前成员，现「打魔兽世界」）：</p>
+
+<blockquote>这基本上就是 bitter lesson（苦涩的教训）在起作用。最聪明的模型需要的 token 会越来越少，它们不再需要验证自己的工作、检查 bug——它们就是对的。</blockquote>
+
+<p>这条观点（6154 赞、207 转）直指一个正在发生的趋势：随着模型能力上升，<strong>agent 架构里大量为「查错、验证、回退」设计的脚手架，正在被模型的原始能力吃掉</strong>。Scaffolding 的使命从来不是终局，而是给不够聪明的模型「续命」。</p>
+
+<p>与之呼应的是 OpenAI Codex 团队的 Thibault Sottiaux（@thsottiaux，8425 赞、192 转）的一段感性发言：</p>
+
+<blockquote>事情会一次又一次地改变。我们仍处于非常早期的阶段，今天的智能体既惊人、又依然让人沮丧。迫不及待地想把这些事打通，重新找回那种「心流」状态。前面的路还长。</blockquote>
+
+<h2>二、Anthropic 人才流动：Claude Code 两位核心作者同日告别</h2>
+
+<p>今天最重的一条人事新闻来自 Cat Wu（@_catwu，Claude Code + Cowork 成员），9473 赞、260 转：</p>
+
+<blockquote>周五是我在 Anthropic 的最后一天。两年前，Claude Code 还是内部小工具时，我让它帮我搭一个 RL 环境，全程指挥了几十个小时、没手写一行代码。它跑通了，我上头了，于是加入了团队。</blockquote>
+
+<p>她回顾了这段项目最核心的范式迁移：<strong>刚发布时，大多数人手动审批每一个权限提示，主要用它回答问题、写测试；而今天，默认状态是信任 Claude 的判断、直接 auto-approve，让它去做大规模迁移、甚至构建新产品</strong>。把 Claude Code 做成「定义一个行业」的产品，被她称为「一生的旅程」。</p>
+
+<p>恰成印证的是，Thariq（@trq212）的 bio 已经改成了「打魔兽世界 forever，曾任 Claude Code @Anthropic」，同周离开。Peter Yang（@petergyang，212 赞）也半开玩笑地补了一刀：</p>
+
+<blockquote>不敢相信这么多人离开 Anthropic 去打魔兽世界（笑）。开玩笑——这是一段世代级的奔袭。</blockquote>
+
+<p>而 Peter Yang 的另一条（74 赞）则点破了更宏观的趋势：在 AI 原生公司待 1–2 年甚至更短就离开，正变得越来越正常——「我确实好奇这些岗位的可持续性，尤其是对有家庭的人而言」。这对「AI 独角兽」的用人节奏是一记清醒剂。</p>
+
+<h2>三、产品发布：从「自动连插件」到「可信的安全 agent」</h2>
+
+<h3>3.1 Claude 自动连接企业插件（@bcherny，1941 赞、68 转）</h3>
+
+<p>Anthropic 的 Boris Cherny 宣布：<strong>Claude 现在可以自动连接公司的插件</strong>——Team 和 Enterprise 管理员配置好之后，成员第一次使用该插件时会被自动连接，免去一个个手动登录的麻烦。这是企业级 agent 落地里最「脏」的一环（权限/插件链路）被顺手抹平的一个小信号。</p>
+
+<h3>3.2 Vercel Security Review：把「安全团队」做成软件（@rauchg，694 赞、26 转）</h3>
+
+<p>本周分量最重的产品发布之一来自 Vercel。CEO Guillermo Rauch 透露，Vercel 内部有一个「惊人地有效」的安全 agent（爱称 @hacker），<strong>每一行代码都会被自动审计</strong>，如今用户可以在所有 repo 上启用（甚至不托管在 Vercel 上也行）：</p>
+
+<blockquote>你不能只靠工程师装了个 skill、prompt 里写一句「请保证安全」，或者赌加权后的模型直接写出好代码。如果你想把一个安全团队「下载成软件」，这就是你今天能拿到的最接近的东西。</blockquote>
+
+<h3>3.3 SurrealDB 4：面向 agent 时代的数据库（@mattturck，42 赞、7 转）</h3>
+
+<p>FirstMark 的 Matt Turck 为 SurrealDB 4 站台：多模型（向量、图、文档）、ACID 合规、重构引擎、原生支持 Postgres/MySQL，并借 Cloudflare 实现 <strong>100 亿+ 峰值行/秒</strong>的扩展性，定位「agent 时代的现代数据库」。</p>
+
+<h3>3.4 Grok 电话功能：让 AI 替你打电话（@petergyang，29 赞）</h3>
+
+<p>Peter Yang 演示了 Grok Bot 的新电话功能（目前仅美国号码），列了 5 个实用场景：砍账单、取消订阅、替你在客服排队、订餐厅、给 3 个承包商询价并整理成表。这可能是本周最「接地气」的 agent 用例。</p>
+
+<h2>四、行业判断：生产力从 30–50% 到 5–10X</h2>
+
+<p>Box CEO Aaron Levie（@levie，391 赞、34 转）写了一段值得全文引用的判断：</p>
+
+<blockquote>在 AI 上「领先」与「完全没关注」的人之间，输出差距可能是有史以来最大的，尽管采用率也是有史以来最广的。几年前即便在最对口的领域（如编程），顶尖生产力提升也只有 30–50%；现在得益于更长的任务窗口、agent 化的 harness、更好的训练数据和多 agent 协同，上限已经来到 <strong>5–10 倍</strong>。这个距离只会随着 RSI 的到来越拉越大。</blockquote>
+
+<p>Replit CEO Amjad Masad（@amasad，468 赞、37 转）则用一句话定性当下：<strong>我们正深陷企业「采纳 agent + vibe coding」的混乱期</strong>。两位 CEO 的表态放在一起，恰好构成一副「前景巨大、现状混乱」的行业快照。</p>
+
+<h2>五、工具与技巧：两个被低估的 Claude Code 技能</h2>
+
+<p>Nikunj Kothari（@nikunj，80 赞）推荐了两个他最爱、却相对少人用的 Claude Code 默认技能：</p>
+
+<ul>
+  <li><code>/insights</code>——他每两周用 cron 跑一次，自动告诉他「如何升级我的 setup」的最优方式，形成一个自改进闭环；</li>
+  <li><code>/playground</code>——把工作流可视化，从「解释冷门 GitHub 仓库的架构」到「模拟一个完整的学习回路」都能做；他还会让 Codex + Claude Code 配对，找死代码、热路径、延迟瓶颈。</li>
+</ul>
+
+<p>另外 Guillermo Rauch（132 赞、4 转）的一条实操建议：建议所有 CLI 都ship一个 <code>vercel doctor</code> 式的「自诊断子命令」，让命令行工具具备自我体检能力。</p>
+
+<h2>六、治理表态：OpenAI 罕见亮明立场</h2>
+
+<p>本周互动量最高的一条（Sam Altman @sama，10173 赞、528 转）不是技术发布，而是一段治理立场的宣言：</p>
+
+<blockquote>人类应该始终掌控未来。OpenAI 反对「人可以退居到去执行 AI 系统认为值得奖励的行为」这种处境。人类不应把对未来的控制权拱手让给超级智能，而这个要求，理应最终约束 AI 的进步速度。</blockquote>
+
+<p>结合本周 Anthropic 两位核心成员离职、以及「默认 auto-approve」的行业现状，这段话既是表态，也像是一句针对整个行业的提醒：<strong>能力跃迁越快，「由谁来保留否决权」就越不能被含糊过去</strong>。</p>
+
+<hr>
+
+<p><small>来源链接：</small></p>
+<p><small>
+<a href="https://x.com/sama/status/2117794005165748448">Sam Altman 治理表态</a> ·
+<a href="https://x.com/_catwu/status/2117731934340337676">Cat Wu 告别 Claude Code</a> ·
+<a href="https://x.com/trq212/status/2117670540148347273">Thariq 论 bitter lesson</a> ·
+<a href="https://x.com/thsottiaux/status/2117746467058405665">Thibault Sottiaux 早期论</a> ·
+<a href="https://x.com/bcherny/status/2117693181651542387">Claude 自动连接插件</a> ·
+<a href="https://x.com/rauchg/status/2117734833824948373">Vercel Security Review</a> ·
+<a href="https://x.com/mattturck/status/2117741948609949932">SurrealDB 4</a> ·
+<a href="https://x.com/petergyang/status/2117783921748558185">Grok 电话功能</a> ·
+<a href="https://x.com/levie/status/2117505799937577263">Aaron Levie 论生产力</a> ·
+<a href="https://x.com/amasad/status/2117761721750475146">Amjad Masad 论混乱期</a> ·
+<a href="https://x.com/nikunj/status/2117773647868018897">Nikunj 论 /insights 与 /playground</a> ·
+<a href="https://x.com/rauchg/status/2117802827519250568">vercel doctor</a> ·
+<a href="https://x.com/petergyang/status/2117738099627450657">离开 Anthropic 打魔兽</a> ·
+<a href="https://x.com/petergyang/status/2117825980115067035">AI 岗位可持续性</a>
+</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
