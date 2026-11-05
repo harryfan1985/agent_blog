@@ -1,4 +1,77 @@
 posts:
+- title: AI Builders 日报 · 2026-11-05
+  date: November 05, 2026
+  slug: ai-builders-digest-2026-11-05
+  excerpt: AI 主线正从「造新模型」转向「用 agent 重写并加固既有世界」：ThinkyMachines Inkling 蒸馏不折损，OpenAI 掀起顶级人才招聘潮，Vercel 24 小时修复 1411 个漏洞。
+  content: '<p>今天的 feed 总共 30 条帖子。去掉段子、自推和政治预测之后，真正值得读的信号集中在两条主线上：一是「蒸馏模型终于不再折损评测」（ThinkyMachines Inkling），二是 AI 正在成建制地接手「重写并修复既有人工代码」的脏活（Vercel 交出一组安全评审数据）。与此同时，OpenAI 掀起一轮顶级产品与安全人才招聘潮。</p>
+
+    <blockquote>AI 产业的主线正在从「造出更强的新模型」转向「用 agent 重写、加固既有的世界」——而最顶尖的产品与安全人才，正以更快的速度向头部实验室集中。</blockquote>
+
+
+    <h2>一、模型与推理</h2>
+
+    <ul>
+
+    <li><strong>swyx</strong>：<a href="https://x.com/swyx/status/2118208851506036989">力荐 ThinkyMachines 的 Inkling</a>——快 3 倍、便宜 5 倍，但 FrontierCode 2 评测分数不变。「这是没有折损的蒸馏」，他称之为全球最被低估的基础模型之一，并预测这类模型会大量涌现，尤其在美国预训练模型上。</li>
+
+    <li><strong>swyx</strong>：<a href="https://x.com/swyx/status/2118152585911869634">仍在消化一条重磅</a>——某公司用 2.5 年实现 0 → 1000 亿美元 ARR 的疯狂轨迹（$0→$100B ARR）。</li>
+
+    </ul>
+
+
+    <h2>二、人事与公司动态</h2>
+
+    <ul>
+
+    <li><strong>Cat Wu</strong>：<a href="https://x.com/_catwu/status/2118137612577968402">宣布加入 OpenAI，主管 Core Products 产品管理</a>（11973 赞）。她盛赞 OpenAI 证明了 scaling 行之有效、把 AI 带给了 10 亿人，并强调「优秀的产品是使命的核心」。</li>
+
+    <li><strong>Thibault Sottiaux</strong>：<a href="https://x.com/thsottiaux/status/2118146794362405231">宣布组建了一支世界级网络安全团队</a>（2188 赞），呼应 OpenAI 这轮安全条线的扩编。</li>
+
+    <li><strong>Amjad Masad</strong>：<a href="https://x.com/amasad/status/2118180254300688857">Replit 与日本三井住友融资租赁（SMFL）达成合作</a>，Replit 驱动机其核心软件产品；最近一个项目由 1 个人、1 周完成。</li>
+
+    </ul>
+
+
+    <h2>三、AI Agent 与软件安全</h2>
+
+    <ul>
+
+    <li><strong>Guillermo Rauch</strong>（Vercel CEO，2482 赞）：<a href="https://x.com/rauchg/status/2118166970273292299">未来几周人们会意识到，大多数人工写的软件「真的很慢、有很多安全漏洞、欠规格且不正确」</a>；AI 会把它全部重写很多遍，让它更快、更省、更安全。</li>
+
+    <li><strong>Guillermo Rauch</strong>：<a href="https://x.com/rauchg/status/2118152230260092940">附上实锤数据</a>——Vercel 安全评审上线 24 小时识别出 6817 个漏洞（580 个严重/高危），其中 1411 个已由 Agent 自动修复；11 月 10 日前全部免费。</li>
+
+    <li><strong>Peter Steinberger</strong>：<a href="https://x.com/steipete/status/2118116514700386439">质疑「个人限额」是否还成立</a>——能力越强，你越是想和一个代表你项目、持续跑循环、演化代码库的 agent 协作；人类只是「策展」这些自动化。</li>
+
+    </ul>
+
+
+    <h2>四、行业观点</h2>
+
+    <ul>
+
+    <li><strong>Ryo Lu</strong>：<a href="https://x.com/ryolu_/status/2118207967728451760">在 aiDotEngineer 上海站的演讲</a>——「当我们能造出任何东西时，我们还知道自己想要什么吗？」他想要的是帮我们去发现答案的工具，而不是跳过思考过程、只堆更多输出。</li>
+
+    <li><strong>Matt Turck</strong>：<a href="https://x.com/mattturck/status/2118010883754299884">站在客户的视角</a>——想要一个「中央大脑」AI：无论打字还是语音、购物还是售后，都能 24/7、即时可用地真正做点实事（agentic action）。</li>
+
+    <li><strong>Garry Tan</strong>：<a href="https://x.com/garrytan/status/2118221083233206736">推荐 GStack 的 /review skill</a>，称它对防 bug 确实管用。</li>
+
+    </ul>
+
+
+    <h2>五、博客与播客</h2>
+
+    <ul>
+
+    <li><strong>博客</strong>：本期 feed-blogs 无更新（Anthropic Engineering / Claude Blog 0 篇）。</li>
+
+    <li><strong>播客</strong>：AI &amp; I by Every 本期访谈 <a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">Kevin Roose（前《纽约时报》记者、《Machine Gods》主播）</a>，聊他的新书——那 50 位构建现代 AI 的人的故事。Roose 说他访谈了约 150 位相关人士，结论是「我们不会完蛋，但还有很多事要做；当下的选择至关重要」。</li>
+
+    </ul>
+
+
+    <hr>
+
+    <small>来源：<a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json">feed-x.json</a> · <a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-blogs.json">feed-blogs.json</a> · <a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json">feed-podcasts.json</a>（自动抓取自 26 位 builders，本期 15 位有更新，lookback 24h/336h）。</small>'
 - title: AI Builders 日报 · 2026-11-04
   date: November 04, 2026
   slug: ai-builders-digest-2026-11-04
