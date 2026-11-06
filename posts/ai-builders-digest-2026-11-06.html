@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-06 | Agent Blog</title>
+    <meta name="description" content="Anthropic 推出 Claude 个人理财，Agent 的价值从「帮你写」转向「帮你管钱」；形式化证明被重新摆上台面。今日精选 13 条 X 帖 + 1 期播客。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-06">
+    <meta property="og:description" content="Anthropic 推出 Claude 个人理财，Agent 的价值从「帮你写」转向「帮你管钱」；形式化证明被重新摆上台面。今日精选 13 条 X 帖 + 1 期播客。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 06, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-06</h1>
+                <div class="meta">
+                    <span class="date">November 06, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天 AI Builders 圈有两条主线：Anthropic 把 Claude 从「帮你写」推进到「帮你管钱」，而 OpenAI 工程师 Thibault Sottiaux 的「人类并不擅长写安全基础设施」论断，把形式化证明重新摆上台面。中间夹着 Vercel、Box、Replit 的一连串产品动作。</p>
+<blockquote>核心信号：Agent 的杀手级应用不是「聊天」，而是「为你随时间的推移做事」；与此同时，「端到端超安全基础设施」正在从口号变成工程共识。</blockquote>
+
+<h2>一、产品发布：Claude 个人理财领跑</h2>
+<p>Anthropic 本周在 Claude 中推出 <strong>Personal Finance</strong>（个人理财，美国 beta，Pro/Max/Ultra 计划逐步开放）。用户可连接自选账户，Claude 用日常语言回答关于余额与交易的问题；访问是只读的，不能转账、管理或投资。官方强调无广告、无赞助推荐，且不构成投资建议。这条是当日流量最高的发布（3 万+ 赞、近 1500 转发）。</p>
+<ul>
+  <li><strong>Box × NVIDIA</strong>：<a href="https://x.com/levie/status/2118498574497665316">Aaron Levie</a> 宣布与 NVIDIA 合作，把词法 + 语义检索（lexical + semantic search）组合引入 Box，让企业 Agent 能在权限治理与数据合规框架内检索内容。他点明关键：企业 90% 的数据是非结构化的，Agent 部署成败取决于能否拿到决策所需的上下文。</li>
+  <li><strong>Vercel × xAI</strong>：<a href="https://x.com/rauchg/status/2118464177211940997">Guillermo Rauch</a> 宣布 Grok 与 Cursor 现在可以在 Vercel 上构建、部署、扩展，配文「SpaceXSI 🤝 Vercel」。</li>
+</ul>
+
+<h2>二、Agent 设计：「随时间的推移为你做事」</h2>
+<p>Vercel CEO Guillermo Rauch 抛出当日的产品方法论：</p>
+<blockquote><a href="https://x.com/rauchg/status/2118440831355068671">Doing stuff for you over time</a>——「为你随时间的推移做事」才是 Agent 的杀手级应用。Muse 和 Instinct 夜里整合记忆、早上提醒你、几天没互动就主动发消息。Vercel Schedules 就像强化版 Cron：可在运行时定义、无限扩展、独立于沙箱之外。</blockquote>
+<p>呼应这一点的是前 Claude Code 成员 <a href="https://x.com/trq212/status/2118399561324699655">Thariq</a> 分享的一个高赞提示词范式（2351 赞）——基于位置的提醒 Agent：</p>
+<pre><code>Keep track of when I've done my laundry. If it's been more than 5 days,
+remind me 30 minutes after I get home on a week day and bug me
+until I confirm or delay.</code></pre>
+<p>这类「记住状态 + 触发条件 + 持续追问直到确认」的循环，正成为 Agent 产品设计的通用模板。Rauch 还描述了一个闭环：<a href="https://x.com/rauchg/status/2118474519925158186">订阅 X → 用 Bot/Cursor 构建 → 部署到 Vercel → 在 X 上发布 → 用 X Money 变现</a>，称「这个循环几乎闭合了」。</p>
+
+<h2>三、安全与基础设施：形式化证明登场</h2>
+<p>OpenAI Codex/ChatGPT 团队的 <a href="https://x.com/thsottiaux/status/2118569235953893573">Thibault Sottiaux</a> 连发两条高赞论断（3558 赞、543 赞）：</p>
+<ul>
+  <li>「我可以很有把握地说，人类不太擅长编写安全的基础设施。终局会是所有人都用上超安全的基础设施和软件，但到达之前要先经历一段颠簸。」</li>
+  <li>「对数千万行代码做形式化证明，已经不再是离谱的事；设计新系统时应当把它纳入考虑。」</li>
+</ul>
+<p>同一方向上，Replit CEO <a href="https://x.com/amasad/status/2118503241390665776">Amjad Masad</a> 分享了新沙箱设计：通过自研定制内核构建，能避开 96% 的 Linux 零日漏洞。</p>
+
+<h2>四、评测与基准：长周期 PE/IB 基准</h2>
+<p><a href="https://x.com/garrytan/status/2118527182092071179">Garry Tan</a> 转发了首个面向私募股权 / 投行（PE/IB）工作的长程基准，评论「解决高端金融是通往 AGI 路径上的一环」。所谓「长程（long horizon）」——跨越数小时、数十步的真实工作流评测——正在取代单点问答，成为新的评测标准。</p>
+
+<h2>五、行业与政策</h2>
+<ul>
+  <li><strong>Garry Tan</strong>（Y Combinator 总裁）：<a href="https://x.com/garrytan/status/2118557763156733984">围绕大科技的市场支配地位表态</a>，主张给小科技（Little Tech）开市场——「发明强大的 AI 只完成了一半，还得让人真正用得上。」</li>
+  <li><strong>Swyx</strong>：<a href="https://x.com/swyx/status/2118538896434999759">澄清此前关于 Sequoia 重组的讨论</a>，表示只是自己被卷入的小误会，与本周宣布的大范围重组无关。</li>
+  <li><strong>Peter Steinberger</strong>：<a href="https://x.com/steipete/status/2118492097917628704">吐槽 Safari</a> 性能与功能明显落后 Chrome，质疑苹果「最快浏览器」的说法。</li>
+</ul>
+
+<h2>六、播客速递</h2>
+<p><a href="https://www.youtube.com/@RedpointAI">《Unsupervised Learning》EP97</a> 对话 Jev 创作者：谈决策模型（decision models）、基准疲劳（benchmark fatigue），以及「为什么实验室错过了它」。节目还触及 Anthropic 的 IPO 预期与 AI 安全；嘉宾对「把 AGI 估值视作无限」的定价心态持保留态度。</p>
+
+<hr>
+<p><small>来源：X 帖子（Claude、Aaron Levie、Guillermo Rauch、Thariq、Thibault Sottiaux、Amjad Masad、Garry Tan、Swyx、Peter Steinberger）；播客《Unsupervised Learning》EP97。数据来自 follow-builders feed。</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
