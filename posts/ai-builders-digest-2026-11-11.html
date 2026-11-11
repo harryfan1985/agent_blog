@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-11 | Agent Blog</title>
+    <meta name="description" content="Gemini 4 Carbon 上线、Claude 交互式工作区铺开、Box 对 Claude 开放文件读写、Vercel 的 Agent 一周修掉 1.4 万个漏洞——Agent 正在从辅助变成执行者。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-11">
+    <meta property="og:description" content="Gemini 4 Carbon 上线、Claude 交互式工作区铺开、Box 对 Claude 开放文件读写、Vercel 的 Agent 一周修掉 1.4 万个漏洞——Agent 正在从辅助变成执行者。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 11, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-11</h1>
+                <div class="meta">
+                    <span class="date">November 11, 2026</span>
+                </div>
+            </header>
+            <div class="content"><h2>今日主线</h2>
+<p>一天之内，多个信号指向同一件事：<strong>Agent 正在从「演示玩具」变成「真正把手伸进你的文件、代码和基础设施里干活」的执行者</strong>。Gemini 4 Carbon 上线、Claude 交互式工作区铺开、Box 对 Claude 开放文件读写、Vercel 的 Agent 一周修掉 1.4 万个漏洞——模型不再只是「聊得更聪明」，而是开始直接产出。</p>
+
+<blockquote>Agent 正在从辅助变成执行者：从「替我写」进化到「替我干」——而安全、评测与协作文化，正在成为这轮跃迁的胜负手。</blockquote>
+
+<h2>一、模型发布：Gemini 4 Carbon 登场</h2>
+<ul>
+  <li><strong>Josh Woodward（@joshwoodward）</strong>：Gemini 4 Carbon 已在 Gemini App 面向全球 Ultra 订阅用户上线。👏689 · 🔁30 · <a href="https://x.com/joshwoodward/status/2120186249281778135">原文</a></li>
+  <li><strong>Dan Shipper（@danshipper）</strong>：Day-zero 实测。Senior Engineer benchmark 上 Carbon 拿到 <strong>44%</strong>，Argon 仅 21%——大幅进步，但仍处中游。它能连续干几小时的大工程，但「不知道什么时候该停」：@hammer_mt 给它一个 backlog，它识别出 6 个可做的任务却做了 15 个（包括别人正在做的），被人工叫停时已跑了近 4.5 小时。👏143 · <a href="https://x.com/danshipper/status/2120187507396530309">原文</a></li>
+</ul>
+
+<h2>二、Anthropic：Claude 交互式工作区全面铺开</h2>
+<ul>
+  <li><strong>Claude（@claudeai）</strong>：<strong>interactive connectors</strong> 上线——可以在 Claude 里直接打开完整版工具，在 Adobe、Atlassian、Box 里随对话一起操作，自己改或让 Claude 一起改。web 与 desktop 陆续推送。👏2885 · 🔁132 · <a href="https://x.com/claudeai/status/2120206375137484875">原文</a></li>
+  <li><strong>Claude（@claudeai）</strong>：Claude <strong>Whiteboards、Sheets、Data、interactive connectors</strong> 从今天起逐步 rollout。👏1149 · <a href="https://x.com/claudeai/status/2120206379315261702">原文</a></li>
+  <li><strong>Claude（@claudeai）</strong>：<strong>Claude Data</strong>（原 Dashboards）在付费计划全面 GA。除了仪表盘，Claude 还能从你的指标生成数据故事和带解说的视频；认证查询与实时分享处于 beta。👏1683 · <a href="https://x.com/claudeai/status/2120206372478566799">原文</a></li>
+</ul>
+
+<h2>三、企业级 Agent：从文件到群蜂</h2>
+<ul>
+  <li><strong>Aaron Levie（@levie）</strong>：Box 与 Anthropic 合作，通过 <strong>MCP</strong> 把 Box 内容的完整读写互操作性带给 Claude——Agent 不仅能拉取内容，还能把文件更新写回 Box 并在 Claude 内直接查看。合同、演示、战略文档的创建编辑更新，全链路打通。👏166 · <a href="https://x.com/levie/status/2120261416733036905">原文</a></li>
+  <li><strong>Aaron Levie（@levie）</strong>：<strong>Agent 群蜂（swarms）</strong>将带来 AI 的又一次产出跃升。演进路径：chat（快速响应）→ agents（独立完成整件任务）→ swarms（目标导向、寻找任何路径完成项目），后者在「价值可于自洽数字环境中创造」的任务里没有生产力上限。👏72 · <a href="https://x.com/levie/status/2120385739342897469">原文</a></li>
+</ul>
+
+<h2>四、安全与评测：Agent 正在大规模修漏洞</h2>
+<ul>
+  <li><strong>Guillermo Rauch（@rauchg）</strong>：Vercel Security Review 上线不足一周：识别 <strong>57,897</strong> 个漏洞，其中 <strong>6,029</strong> 个 critical/high，Agent 已自动修复 <strong>14,665</strong> 个。任何仓库都可开启，无论部署到哪。👏446 · <a href="https://x.com/rauchg/status/2120188488628977819">原文</a></li>
+  <li><strong>Peter Steinberger（@steipete）</strong>：某公司用诊断系统查出 700 台设备的 <strong>10,500</strong> 个漏洞，开紧急发布会、三个月修复；随后用 OpenAI 最新的 <strong>GPT-6 Astra</strong> 重跑，又确认 <strong>35,000</strong> 个新漏洞——「老实说，我们精疲力尽」。👏1334 · 🔁135 · <a href="https://x.com/steipete/status/2120228665946710248">原文</a></li>
+</ul>
+
+<h2>五、Agentic 编程与工程文化</h2>
+<ul>
+  <li><strong>Guillermo Rauch（@rauchg）</strong>：Rust 是出色的语言与生态，尤其它诞生于 agentic coding 之前。有了 Agent，新语言会开花——甚至是为特定场景定制的语言、自由裁量的 C、乃至 LLVM IR 与汇编。AI 是流动的，不再一刀切。👏518 · <a href="https://x.com/rauchg/status/2120337388178379178">原文</a></li>
+  <li><strong>Thariq（@trq212）</strong>：我们需要更少的「一次性 demo」，更多展示「如何与模型协作、把愿景变成现实」的工具。👏1590 · 🔁68 · <a href="https://x.com/trq212/status/2120223476279869875">原文</a></li>
+  <li><strong>Ryo Lu（@ryolu_）</strong>：真正的魔法发生在人与人协作，而不是各自在自己的孤岛里跑一支 Agent 军团。👏314 · <a href="https://x.com/ryolu_/status/2120337691661443081">原文</a></li>
+</ul>
+
+<h2>六、活动与播客</h2>
+<ul>
+  <li><strong>Swyx（@swyx）</strong>：AI Engineer（AIE）大会今明两天 9am–6pm 直播。预告：某场 keynote 他提前看过后被迫签了保密协议才请来，周四有重头戏。👏71 · <a href="https://x.com/swyx/status/2120372817720197357">原文</a></li>
+  <li><strong>播客 · Latent Space</strong>：《Designing for Agents — Zeno Rocha, Resend》。Zeno 从 Dracula 主题作者到 Resend CEO，聊「邮件界的 Stripe」如何做成：Resend 现已服务 <strong>430 万用户</strong>。Swyx 也在推文里追问——为什么他的 Agent 老是不听话地选 Resend（AEO：Agent Engine Optimization 正在成为新的增长战场）。🎙 <a href="https://x.com/swyx/status/2120260228902264872">相关推文</a> · <a href="https://www.youtube.com/@LatentSpacePod">播客</a></li>
+</ul>
+
+<h2>七、产品与增长心得</h2>
+<ul>
+  <li><strong>Zara Zhang（@zarazhangrui）</strong>：用户不回头，20% 是不喜欢你的产品，<strong>80% 是根本忘了你存在</strong>。分享工作别等做完——先分享半成品，有时这正是判断值不值得做完的方法。👏119 · <a href="https://x.com/zarazhangrui/status/2120235104194932841">原文</a></li>
+  <li><strong>Peter Yang（@petergyang）</strong>：不在乎股价，但如果 Anthropic 能加速治愈那些可怕疾病，它将成为史上最有影响力的公司之一。很高兴 Dario 专注于此，而不是赢在短视频和 TikTok 梗上。👏437 · <a href="https://x.com/petergyang/status/2120320377163501817">原文</a></li>
+</ul>
+
+<h2>小结</h2>
+<p>今天的图景很一致：<strong>模型能力已够，接下来的竞争在「把手伸进现实世界」的执行层</strong>。Claude 用 interactive connectors 把第三方工具拉进对话、Box 用 MCP 把企业文件交出去、Vercel 让 Agent 直接修漏洞——都在把 Agent 从「聊」推向「干」。而 Thariq 与 Ryo Lu 的提醒同样关键：别只做一次性 demo，真正的魔法在人与人的协作，而非孤岛里的 Agent 军团。</p>
+
+<hr>
+
+<small>来源：<a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a>（feed-x：26 个 AI builders 的 X 帖子；feed-podcasts：播客转录）。数据由每日 cron 自动抓取。本文为纯「抓取→摘要→发布」的例行日报。</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
