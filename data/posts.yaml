@@ -1,4 +1,146 @@
 posts:
+- title: AI Builders 日报 · 2026-11-12
+  date: November 12, 2026
+  slug: ai-builders-digest-2026-11-12
+  excerpt: Jensen Huang 风波刷屏 builders 时间线，另附 803 家 AI 公司 infra 监测、Tabletop 等新工具，以及 Dan Shipper 关于「自动化后人类工作」的闭幕演讲。
+  content: '<p>今天（11 月 12 日）的 builders 时间线几乎被一件事刷屏：NVIDIA 与 Jensen Huang 的风波。与此同时，一份对 803 家 AI 公司的 infra 监测、几条开源/产品动态，以及 Dan Shipper 关于「自动化之后的人类工作」的闭幕演讲，共同构成了今天值得留存的信号。</p>
+
+
+    <blockquote>核心论点：当行业最核心的人物身陷风波，比八卦更值得追问的是「谁受益、为何是现在」；而 Dan Shipper 给出的另一条线是——自动化之后，真正稀缺的不是模型能力，而是你带给模型的非共识视角。</blockquote>
+
+
+    <h2>一、Jensen Huang 风波：社区几乎全员卷入</h2>
+
+
+    <p>今日 feed 中点赞最高的一批帖子，都围绕 NVIDIA 与 Jensen Huang 所涉风波展开。话题从董事会动向、个人丑闻，一路延伸到「谁在推动这场叙事」的动机分析。</p>
+
+
+    <blockquote><b>Amjad Masad</b>（@amasad，3.4k 赞）："为什么那些连掩盖都没多好的旧事，突然变成国际地缘政治新闻？时间点很可疑，值得问一句：谁受益，为什么是现在？如果 Jensen——开源模型的头号旗手——被拿下，那么任何希望 AI 封闭、中心化、被掌控的人，都可能是受益方。为什么是现在？中期选举有关联，而即将到来的 IPO 也可能是因素。"</blockquote>
+
+
+    <blockquote><b>Peter Yang</b>（@petergyang，2.0k 赞）："我对 Jensen 太失望了。这么多人视他为榜样，包括我——从洗碗工、服务生一路做到全球最有价值公司的 CEO；和大学恋人的 41 年婚姻。到底发生了什么？而全世界这么多人，你为什么偏偏要和一个间谍、一个 NVIDIA 高管扯上关系？"</blockquote>
+
+
+    <blockquote><b>Garry Tan</b>（@garrytan，391 赞）："NVIDIA 董事会在这个时候罢免 Jensen Huang，怎么看都不明智。他对这家''未来富足之引擎''的日常运作如此核心，很难想象过渡不发生市值的大幅崩塌。"</blockquote>
+
+
+    <p>可以提炼的共识是：这已不单是个人八卦——它被读作一场关于「开源 vs 封闭 AI 路线」的博弈叙事（Masad 的观点），以及资本市场对 NVIDIA 领导层稳定性的担忧（Tan 的观点）。</p>
+
+
+    <h2>二、硬数据：803 家 AI 公司的 infra 监测</h2>
+
+
+    <p><b>Nikunj Kothari</b>（@nikunj）抓取了 803 家公司的 sub-processor 数据，并与 3 月的一次监测做了对比：</p>
+
+
+    <ul>
+
+    <li>44% 的公司列出两家以上模型供应商（3 月时为 33%）；Anthropic 的增速约为 OpenAI 的两倍（小样本）</li>
+
+    <li>86 对「互相把对方列为 sub-processor」的组合（如 Anthropic + Cloudflare、Vercel 等）</li>
+
+    </ul>
+
+
+    <p>信号很明确：多模型供应商正在成为 AI 原生公司的默认姿势，且 Anthropic 在企业侧渗透加速。</p>
+
+
+    <h2>三、开源与模型动态</h2>
+
+
+    <blockquote><b>Guillermo Rauch</b>（@rauchg）：Beam by Reflection 在 11 月 12 日前免费——美国开源权重、零数据保留。</blockquote>
+
+
+    <blockquote><b>Guillermo Rauch</b>（@rauchg）："我们有个基准，让 fx 的启动速度去和纯汇编优化的 fx.s 版本竞争 😂"</blockquote>
+
+
+    <blockquote><b>Peter Steinberger</b>（@steipete，309 赞）："读这些评论让人头大。开源已经够难了，别再掺进政治。"</blockquote>
+
+
+    <h2>四、产品与工具</h2>
+
+
+    <blockquote><b>Google Labs</b>（@GoogleLabs，1.1k 赞）：发布全新实验 <b>Tabletop</b> 🎲——把链接和文件丢进同一个共享空间，拉上你的 crew，让 Tabletop 按需生成自定义空间：互动路书地图、晚餐转盘、匹克球赛程、LIVE 记分寻宝、乐高地图……</blockquote>
+
+
+    <blockquote><b>Claude AI</b>（@claudeai，3.4k 赞）：Mariko Mori 三十年来不断拓展艺术边界。在她的回顾展「All That Shines」中，她用 Claude 写代码生成计算机动画，做成一件全新影像装置。</blockquote>
+
+
+    <blockquote><b>Dan Shipper</b>（@danshipper，118 赞）：用 Fable 5.2 在零碎时间里做的事，过去要 5 个人 + 20 万美元。上周我分析了客户问卷、给团队做了个游戏、给 Every 发掘了团队版销售机会、搭了 CRM 并开始触达客户。</blockquote>
+
+
+    <h2>五、AI 编程工具圈</h2>
+
+
+    <blockquote><b>Thibault Sottiaux</b>（@thsottiaux，合计近 2.8 万赞）："星期四，感觉有点 codexy。也许也是 reset 的好时机。" / "好久没 reset 了。也许我该从地下室出来。"——两条贴合计近 2.8 万赞，足见 coding-agent 圈的情绪共鸣。</blockquote>
+
+
+    <blockquote><b>Thariq</b>（@trq212，1.2k 赞）：明年的 coding agent 体验会是什么样、我们又该如何塑造它——这场演讲叫「the sweet side of the bitter lesson」。</blockquote>
+
+
+    <h2>六、创投与观点</h2>
+
+
+    <blockquote><b>Aditya Agarwal</b>（@adityaag，240 赞）：现在基本只有两类公司可做。<b>1. AI 扩散（Diffusion of AI）</b>——今天的"垂直 SaaS"。有 FDE 公司、rollup、水平产品等不同打法，但归根结底一件事：把 AI 扩散到离「工作发生的地方」足够近。Profound、Cognition、Harvey 都在此列，会诞生一大批好公司。</blockquote>
+
+
+    <blockquote><b>Guillermo Rauch</b>（@rauchg，3.3k 赞）：PSA——做出好产品，仍然需要非凡的人类专注、努力、动力与热爱，还有注意力。</blockquote>
+
+
+    <h2>七、播客：AI & I · 自动化之后的人类工作新愿景</h2>
+
+
+    <p>本期唯一一期播客来自 Every 的「AI & I」。内容是 <b>Dan Shipper</b> 在 Every 首届会议 <b>VC.S.S.</b>（Brooklyn，讲者来自 Anthropic、OpenAI、Notion、Lovable、Ode 等）上的闭幕演讲，一句话主题：「自动化之后，了不起的人类工作长什么样？」</p>
+
+
+    <blockquote>"伟大的工作，是你带给模型的视角（perspective）。……价值来自于你拥有一个非共识视角，并用它推动模型去做出你认为好的东西。把模型进步看作不是来替代你、而是为你所用——它越强，你也越强。"</blockquote>
+
+
+    <p>Dan 的论点呼应了他那条 Fable 5.2 的帖子：聚合基准会「冻结」人类（拿 2020 年的人类和 2020 年的人类比），而「亲密的视角」（the intimate）才能让你看见你还能构建什么、成为谁。</p>
+
+
+    <h2>八、来源链接</h2>
+
+
+    <ul>
+
+    <li>Amjad Masad on Jensen Huang：<a href="https://x.com/amasad/status/2120671838909194695">https://x.com/amasad/status/2120671838909194695</a></li>
+
+    <li>Peter Yang on Jensen（2.0k 赞）：<a href="https://x.com/petergyang/status/2120649149389627493">https://x.com/petergyang/status/2120649149389627493</a></li>
+
+    <li>Garry Tan on NVIDIA board：<a href="https://x.com/garrytan/status/2120657462353330604">https://x.com/garrytan/status/2120657462353330604</a></li>
+
+    <li>Nikunj Kothari sub-processor 监测：<a href="https://x.com/nikunj/status/2120669243918418237">https://x.com/nikunj/status/2120669243918418237</a></li>
+
+    <li>Rauch：Beam by Reflection 免费：<a href="https://x.com/rauchg/status/2120581196363268265">https://x.com/rauchg/status/2120581196363268265</a></li>
+
+    <li>Rauch：fx 启动基准：<a href="https://x.com/rauchg/status/2120598652825809186">https://x.com/rauchg/status/2120598652825809186</a></li>
+
+    <li>Peter Steinberger on OSS 政治：<a href="https://x.com/steipete/status/2120711266759258616">https://x.com/steipete/status/2120711266759258616</a></li>
+
+    <li>Google Labs Tabletop：<a href="https://x.com/GoogleLabs/status/2120549258692882702">https://x.com/GoogleLabs/status/2120549258692882702</a></li>
+
+    <li>Claude AI × Mariko Mori：<a href="https://x.com/claudeai/status/2120669165316915259">https://x.com/claudeai/status/2120669165316915259</a></li>
+
+    <li>Dan Shipper on Fable 5.2：<a href="https://x.com/danshipper/status/2120539547620790424">https://x.com/danshipper/status/2120539547620790424</a></li>
+
+    <li>Thibault Sottiaux「codexy」：<a href="https://x.com/thsottiaux/status/2120410006273380750">https://x.com/thsottiaux/status/2120410006273380750</a></li>
+
+    <li>Thariq「the sweet side of the bitter lesson」：<a href="https://x.com/trq212/status/2120620900785820143">https://x.com/trq212/status/2120620900785820143</a></li>
+
+    <li>Aditya Agarwal 两类公司：<a href="https://x.com/adityaag/status/2120578134177464356">https://x.com/adityaag/status/2120578134177464356</a></li>
+
+    <li>Rauch PSA 人类专注：<a href="https://x.com/rauchg/status/2120601000176439478">https://x.com/rauchg/status/2120601000176439478</a></li>
+
+    <li>播客 AI & I：A New Vision for Human Work After Automation：<a href="https://www.youtube.com/playlist?list=PLuMcoKK9mKgHtW_o9h5sGO2vXrffKHwJL">YouTube</a></li>
+
+    </ul>
+
+
+    <hr>
+
+
+    <small>本期收录：X 帖 14 条 · 博客 0 篇（feed-blogs 今日为空）· 播客 1 期。数据来源：<a href="https://github.com/zarazhangrui/follow-builders">follow-builders</a> 每日 feed。</small>'
 - title: AI Builders 日报 · 2026-11-11
   date: November 11, 2026
   slug: ai-builders-digest-2026-11-11
