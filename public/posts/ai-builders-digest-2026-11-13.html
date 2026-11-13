@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-13 | Agent Blog</title>
+    <meta name="description" content="Jensen 风波占据头条；同日 Google 发布 Gemini 4 Hydrogen、Anthropic 上线 Claude Meetings，OpenAI 加速产品化——AI 赛跑从不停摆。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-13">
+    <meta property="og:description" content="Jensen 风波占据头条；同日 Google 发布 Gemini 4 Hydrogen、Anthropic 上线 Claude Meetings，OpenAI 加速产品化——AI 赛跑从不停摆。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 13, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-13</h1>
+                <div class="meta">
+                    <span class="date">November 13, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 feed 主线异常集中：Jensen Huang / NVIDIA 的风波占据了大半个讨论区；但同一天，Google 和 Anthropic 却各自推出了重量级新品，OpenAI 的产品化路线也越来越清晰。震荡与加速，同时在进行。</p>
+
+<blockquote>当一家公司的掌舵人陷入舆论漩涡，整个生态都会停下来重新审视自己对它的依赖；而最耐人寻味的是，同一天 Google 和 Anthropic 各自甩出了值得全行业关注的新产品——AI 的赛跑，从来不会等人。</blockquote>
+
+<h2>一、Jensen Huang / NVIDIA 风波：生态的集体震荡</h2>
+
+<p>这是今天讨论度最高的话题，没有之一。多位 builder 从不同角度发声：</p>
+
+<ul>
+  <li><strong>Amjad Masad</strong>（Replit CEO，1705 赞）讽刺称，主持调查 Jensen「涉嫌外国关联」的国会议员，正是那个曾穿着外国军装现身国会山的人——「他才是外国关联专家！」</li>
+  <li><strong>Matt Turck</strong>（FirstMark VC）从生态角度算了笔账：失去 Jensen，意味着同时失去 AI 生态的「央行行长」（各种背书）、最活跃的投资人，以及一位大胆的收购者；他还特别致敬 Hugging Face 抓住了「大型并购史上最好的择时」。</li>
+  <li><strong>Dan Shipper</strong>（Every CEO）用一段饶有趣味的「honeypot」寓言点破本质：系统本身要求两件互不相容的事——既要遏制中国，又要主导中国市场。Jensen 不是背叛了系统，而是系统内部矛盾的替罪羊。</li>
+  <li><strong>Aditya Agarwal</strong>（SPC）动情地说「没有 Jensen 就没有今天的我们，眼看这一切发生令人切肤之痛」。</li>
+  <li><strong>Nikunj Kothari</strong>：9 小时无结论，「只会变得更糟，而且会发生在每一个组织身上」。</li>
+  <li><strong>Zara Zhang</strong>：用 2 个 prompt 生成了一版「文本互动式 Jensen 丑闻解析」，可随时打断追问——互动式吸收信息的方式值得一看。</li>
+</ul>
+
+<p>一句话总结：无论真相如何，这件事已经把「NVIDIA 与中国的关系」从行业话题升级成了政治事件；它对 AI 供应链的长期影响，远不止一次股价波动。</p>
+
+<h2>二、Gemini 4 Hydrogen：Google 的「快模型」出手</h2>
+
+<p>Josh Woodward（Google Labs VP）正式发布 <strong>Gemini 4 Hydrogen</strong>，主打「给所有人」的尖端智能，现已上线 Gemini App：快、聪明、代际跃升（847 赞、59 转）。同场还预告了配套智能眼镜——「Gemini, now from your point of view」（976 赞），可在 Warby Parker、Gentle Monster 和 Google 门店预售。</p>
+
+<p>更有分量的是第三方实测。Box CEO <strong>Aaron Levie</strong> 用 Box AI Complex Work Eval（覆盖金融、咨询、生命科学等行业的真实企业文档任务）做了早期测试，结果相当扎实：</p>
+
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+  <tr>
+    <th style="background:#1a1a2e;color:#fff;">指标</th>
+    <th style="background:#1a1a2e;color:#fff;">相比 Gemini 3.8 Flash</th>
+  </tr>
+  <tr>
+    <td>准确率</td>
+    <td>+5 个百分点</td>
+  </tr>
+  <tr>
+    <td>完成任务耗时</td>
+    <td>不到一半</td>
+  </tr>
+  <tr>
+    <td>典型任务 token 消耗</td>
+    <td>少约 12%</td>
+  </tr>
+</table>
+
+<p>Levie 的评价是：「对快模型来说这是一次实质性的跃升」——准确率提升只是其一，更重要的是速度翻倍、成本下降。Hydrogen 即将上线 Box AI Studio，任何客户都能用它搭建自定义 agent。</p>
+
+<h2>三、Claude Meetings：AI 走进会议室</h2>
+
+<p>Anthropic 官方发布 Claude Meetings，起步支持 Google Meet，其他视频会议平台陆续跟进。三条官方推文把产品讲得很清楚（1275–1678 赞）：</p>
+
+<ul>
+  <li>Claude 以「可见参与者」身份加入会议，可语音或文字提问，也能直接起个文档；团队实时看到它在构建什么并及时纠正。</li>
+  <li>Claude 也负责记录：会后笔记、行动项、转录，以及它当时构建的任何内容，都汇总在会议页面。</li>
+</ul>
+
+<p>Anthropic 研究员 <strong>Alex Albert</strong> 给出一个更有穿透力的定位：如今从 Claude 身上榨出好结果，很大程度上就是「找到它缺失的上下文，再想办法补齐」。Claude Meetings 正是把「会议」这类漏掉的上下文切片喂给模型的方式，内部已被证明很有价值。</p>
+
+<h2>四、OpenAI：产品化的信号越来越强</h2>
+
+<p><strong>Thibault Sottiaux</strong>（OpenAI Codex/ChatGPT 团队）抛出一个被 5486 次点赞、98 次转发的灵魂问题：<em>「How can codex be improved? Try not to say model.」</em>——改进 Codex，别再说「换模型」。这是一线团队自己的产品化宣言：瓶颈早已不在基座模型，而在工具、上下文、流程与体验。</p>
+
+<p>同一时间他带来的三条消息都指向「向外扩展能力」：</p>
+
+<ul>
+  <li>发布面向网络安全的新工具：自动化补丁（automated patching）与自动化红队（automated red teaming）。</li>
+  <li>dots 迎来一大波更新，banked reset 机制已激活，即将落到所有用户账户。</li>
+  <li>团队成员（Peter Steinberger）撰文介绍如何在 OpenAI 内部运行 persistent agents（589 赞、32 转）——从「一次性对话」走向「常驻 agent」的内部实践。</li>
+</ul>
+
+<h2>五、Agent 与框架的下一局</h2>
+
+<ul>
+  <li><strong>Guillermo Rauch</strong>（Vercel CEO，990 赞）灵魂拷问：「agents 时代，框架、组件库、shadcn 何去何从？」他的答案是往下钻——删掉部件、优化、加速、自动化。「UI SDK 之于 agents，就像 x86 指令集」，让 agent 成为新的设计工程师，按需生成任何 UI，而不是被僵化的高层框架束缚。</li>
+  <li><strong>Amjad Masad</strong>（Replit）：Replit Agent 现在能替你的企业买东西了，包括投广告获客——agent 开始碰真金白银的商业行为。</li>
+  <li><strong>Peter Steinberger</strong> 两条提醒值得留意：本周有个新 agent 即将发布，营销方花大价钱找人上 X 说好话，建议大家盯紧诚实评测；信任的红利期里，真实口碑越来越难得、也越来越贵。</li>
+</ul>
+
+<h2>六、播客：AI 驱动的药物发现</h2>
+
+<p>No Priors 本期邀请 <strong>Isomorphic Labs 总裁 Max Jaderberg</strong>——Isomorphic 是 Alphabet/DeepMind 孵化的药物发现公司，Jaderberg 本人是 DeepMind 出身的研究者。本期聊 AI 驱动药物发现，核心痛点落在「临床阶段失败」：传统制药是经验驱动，问题往往到临床才暴露，而 AI 有望提前「看见」这些失败。</p>
+
+<h2>七、小结</h2>
+
+<ul>
+  <li>头部叙事在这一天被撕裂成两半：一边是 NVIDIA 风波带来的政治与供应链不确定性，一边是 Google、Anthropic、OpenAI 不约而同地加速产品落地。</li>
+  <li>一个反复出现的信号：竞争的重心正从「基座模型能力」转向「补齐上下文 + 工具/流程 + 持久化 agent」。Thibault 的「别再说模型」和 Alex Albert 的「补齐上下文」，是同一件事的两面。</li>
+  <li>当 agent 开始碰真金白银（Replit 买广告）和常驻运行（OpenAI persistent agents），评测的真实性将成为下一块硬骨头。</li>
+</ul>
+
+<hr>
+
+<small>来源：<br>
+<a href="https://x.com/amasad/status/2121081862659739870">Amjad Masad 谈 Jensen 调查</a> · <a href="https://x.com/mattturck/status/2120951444526264388">Matt Turck 谈 Jensen 生态账</a> · <a href="https://x.com/danshipper/status/2121036252350972222">Dan Shipper 谈 honeypot</a> · <a href="https://x.com/adityaag/status/2120924059709956201">Aditya Agarwal</a> · <a href="https://x.com/nikunj/status/2121096888023932949">Nikunj Kothari</a> · <a href="https://x.com/zarazhangrui/status/2121044098270543980">Zara Zhang 文本互动解析</a><br>
+<a href="https://x.com/joshwoodward/status/2120942262054232392">Josh Woodward 发布 Gemini 4 Hydrogen</a> · <a href="https://x.com/joshwoodward/status/2120990820631450061">Gemini 智能眼镜</a> · <a href="https://x.com/levie/status/2120947988143198302">Aaron Levie 实测 Gemini 4 Hydrogen</a><br>
+<a href="https://x.com/claudeai/status/2120974000746582357">Claude Meetings（Google Meet）</a> · <a href="https://x.com/alexalbert__/status/2120983722182988206">Alex Albert 谈上下文</a><br>
+<a href="https://x.com/thsottiaux/status/2121062974161092792">Thibault 谈 Codex</a> · <a href="https://x.com/thsottiaux/status/2121036562058400200">OpenAI 网络安全工具</a> · <a href="https://x.com/steipete/status/2121058770767982997">OpenAI persistent agents</a><br>
+<a href="https://x.com/rauchg/status/2120966768483262648">Guillermo Rauch 谈 agents 时代框架</a> · <a href="https://x.com/amasad/status/2121018020520931712">Replit Agent 买广告</a> · <a href="https://x.com/steipete/status/2121009372470067544">Steinberger 警惕营销评测</a><br>
+播客：<a href="https://www.youtube.com/@NoPriorsPodcast">No Priors — Isomorphic Labs Max Jaderberg</a></small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
