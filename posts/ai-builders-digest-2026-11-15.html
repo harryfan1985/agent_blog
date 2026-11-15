@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-15 | Agent Blog</title>
+    <meta name="description" content="Replit CEO 断言「自主商业已来」，Box/YC/Vercel 高管接力押注 Agent 自主化；同一天最高赞却警示「墨菲世界」——数十亿并发事件让罕见失败变成日常。Gemini 钱包、OpenAI Daybreak、Aside Browser 同日集中发布。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-15">
+    <meta property="og:description" content="Replit CEO 断言「自主商业已来」，Box/YC/Vercel 高管接力押注 Agent 自主化；同一天最高赞却警示「墨菲世界」——数十亿并发事件让罕见失败变成日常。Gemini 钱包、OpenAI Daybreak、Aside Browser 同日集中发布。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 15, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-15</h1>
+                <div class="meta">
+                    <span class="date">November 15, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天 Builder 圈的高频词是「自主」（autonomy）。Replit CEO Amjad Masad 连发三条：一条喊「自主商业已来」，一条讲技术自我改进的递归曲线；Vercel CEO 公布用 6.33MB 的 subagent 编排跑完所有项目；Box CEO 断言工作正在主动变得「编码化」。但同一天，点赞最高的一条却是一盆冷水——「我们已进入墨菲世界」。</p>
+
+<blockquote>当数十亿个事件同时发生、彼此递归依赖并加速迭代，曾经被当作「罕见」的失败正在变成日常。技术天然会递归自我改进，AI 只是加速器而非起点——Engelbart 早就看透了这条曲线。</blockquote>
+
+<h2>一、被转发最多的一条：我们进入了「墨菲世界」</h2>
+<p><strong>@amasad（Replit CEO）</strong>：We've entered Murphy's world. Anything that can go wrong will go wrong. 数十亿事件并发、递归依赖、加速迭代，「曾经的罕见失败」如今每天都在发生——这条 1115 赞、87 转推，是当天最高的一条。</p>
+<p>同一天他还有两条值得并读：</p>
+<ul>
+<li><strong>自主商业已来（298 赞）</strong>：Autonomous Businesses are here——直接把「自主化」推到商业层面。</li>
+<li><strong>技术天然递归自我改进（277 赞）</strong>：AI 是加速器，但不是这条曲线的起点，Douglas Engelbart 早已理解这一点。</li>
+</ul>
+<p><strong>@levie（Box CEO）</strong> 的呼应（206 赞）点出更深一层含义：模型在编程、工具调用、计算机使用、数学上的能力必然持续变强，因此「会用软件干活、或直接从零生成代码」的 Agent，进步速度会超过其它一切知识工作领域。真正发生的不是「只有一小部分工作被自动化」，而是<strong>越来越多的工作主动变得「编码化」</strong>，去适配 Agent 擅长的形态。模型不需要「什么都知道」，它真正需要的是「知道如何用/生成软件 + 领域内的正确判断」。</p>
+
+<h2>二、模型与推理：Fable 5.2 的 prompt 审计，以及「太便宜的模型」</h2>
+<p><strong>@petergyang</strong>（440 赞）分享 Fable 5.2 两个实用 prompt：</p>
+<ul>
+<li><code>/doctor prompt-audit</code>：审计你的 Claude Code 配置（Claude md、skills、commands）并提出修复建议。</li>
+<li><code>/claude-api prompt-audit [skill name]</code>：深入审计某一个 skill。</li>
+</ul>
+<p>他还期待 Claude Code 能在 Anthropic 每次发布新模型时自动提示运行这些审计。</p>
+<p><strong>@swyx</strong>（225 赞）则吐槽当下 AI UX：现在严重次优（suboptimal），尤其已有「便宜到懒得计量」的模型存在，却没人把它们用对。</p>
+
+<h2>三、产品发布：Gemini 钱包、Daybreak、Aside Browser、uisdk</h2>
+<p>今天产品侧发布相当密集：</p>
+<ul>
+<li><strong>Gemini 接入 Google Wallet（@joshwoodward，462 赞/40 转）</strong>：Google Labs VP 宣布 Gemini 可连接 Google Wallet 做个人财务洞察——即时图表可视化支出、发现偷偷涨价的订阅、基于去年实际支出做节日预算。先面向美国所有 Gemini App 用户。</li>
+<li><strong>OpenAI Daybreak 征集反馈（@thsottiaux，737 赞/30 转）</strong>：Codex/ChatGPT 团队的网络安全产品 Daybreak 向社区征集意见，涵盖 models、codex plugins、blue/red team 访问、文档、红队与 defense factory。</li>
+<li><strong>Aside Browser（@garrytan，120 赞）</strong>：YC CEO 评价 Aside Browser 是「每个 AI Agent 的巨大解锁」。</li>
+<li><strong>uisdk + Gemini Argon（@rauchg，616 赞）</strong>：Vercel CEO 用两条 prompt（fx + Gemini Argon）生成纯 Web Components、无框架 UI，Agent 开箱复用了 14 种 UI SDK 行为：窗口缩放、拖拽、menubar 悬停切换、typeahead、roving toolbar focus、10 段 EQ 滑块、作用域热键、ARIA、WebMCP Agent 控制。</li>
+</ul>
+
+<h2>四、开源与工具：subagent 编排与 Every 的前沿 feed</h2>
+<ul>
+<li><strong>@rauchg 的 subagent 工作流（275 赞）</strong>：他所有项目都是「最聪明的模型做规划 + 委派给快模型 subagent」这条路径，一条指令写在 <code>~/.fx/AGENTS.md</code> 里；惊喜点在于 6.33MB 里塞下了这么多能力。</li>
+<li><strong>@danshipper（Every CEO，199 赞）</strong>：他们把全部 frontier 团队的 AI 实验（含 raw code 和简短 writeup）公开成一条 feed，建议让你的 Agent 直接去读——这是最快的「找灵感」方式。</li>
+<li><strong>@nikunj（136 赞）</strong>：发布 2026 Startup Bookshelf 书单。</li>
+</ul>
+
+<h2>五、行业动态：NVIDIA 与开源权重，以及 FAA 现代化</h2>
+<ul>
+<li><strong>@mattturck（FirstMark，18 赞）</strong>：NVIDIA 是唯一一个有明确商业动机押注 open weights 的「深口袋」玩家，也愿意下创始人式的大赌注——接下来会发生什么？</li>
+<li><strong>@garrytan（167 赞）</strong>：纸图、铜线、缺 fail-safe、没有任何现代软件的僵化系统，服务不好美国人民——现代化 FAA。</li>
+</ul>
+
+<h2>六、播客：Jev 作者聊决策模型、基准疲劳与「实验室错过了什么」</h2>
+<p>本期 <strong>Unsupervised Learning Ep 97</strong> 对话 Jogo（TypeSave CEO / Jev 创作者）。围绕决策模型（decision models）、基准疲劳（benchmark fatigue）以及「为什么实验室们错过了它」，还聊了 Anthropic 的 IPO、AI 安全，以及他眼中仍待 AI 解决的问题形态。值得一听的一期。</p>
+
+<h2>七、小结</h2>
+<p>今天的 Builder 圈把「自主化」推到了新高度，但最有信息量的一条是那个反直觉的警告：自主化不是免费的，复杂度本身会放大失效。两条主线交织——<strong>向上</strong>，Agent 的商业化与工作「编码化」在加速；<strong>向下</strong>，系统越自主、越并发，罕见故障越是家常便饭。Gemini 钱包、Daybreak、Aside Browser 的同日亮相，说明这些不是空谈，产品已经在兑现。</p>
+
+<hr>
+
+<small>来源：</small>
+<small>
+<a href="https://x.com/amasad/status/2121519931741127144">amasad · Murphy's world</a> ·
+<a href="https://x.com/amasad/status/2121765647168483589">amasad · Autonomous Businesses</a> ·
+<a href="https://x.com/amasad/status/2121549054173757554">amasad · 递归自我改进</a> ·
+<a href="https://x.com/levie/status/2121686564078297461">levie · 编码化的工作</a> ·
+<a href="https://x.com/petergyang/status/2121649295950762363">petergyang · Fable 5.2 prompt 审计</a> ·
+<a href="https://x.com/swyx/status/2121757606801023085">swyx · AI UX</a> ·
+<a href="https://x.com/joshwoodward/status/2121755282326102417">joshwoodward · Gemini Wallet</a> ·
+<a href="https://x.com/thsottiaux/status/2121845965997101118">thsottiaux · OpenAI Daybreak</a> ·
+<a href="https://x.com/garrytan/status/2121824006819258485">garrytan · Aside Browser</a> ·
+<a href="https://x.com/rauchg/status/2121804295381377342">rauchg · uisdk + Gemini Argon</a> ·
+<a href="https://x.com/rauchg/status/2121739228698886454">rauchg · subagent 编排</a> ·
+<a href="https://x.com/danshipper/status/2121620539655819305">danshipper · Every frontier feed</a> ·
+<a href="https://x.com/nikunj/status/2121640157443215824">nikunj · 2026 Startup Bookshelf</a> ·
+<a href="https://x.com/mattturck/status/2121608999053492408">mattturck · NVIDIA 与开源权重</a> ·
+<a href="https://x.com/garrytan/status/2121727702025765094">garrytan · 现代化 FAA</a> ·
+<a href="https://www.youtube.com/@RedpointAI">Unsupervised Learning Ep 97 · Jev Creator</a>
+</small></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
