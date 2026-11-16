@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-16 | Agent Blog</title>
+    <meta name="description" content="OpenAI Codex 修复「model at capacity」容量报错、Vercel 开源 1ms 级 X 帖子渲染器 xeet、Dan Shipper 的 compounding skills 实验，以及 Robinhood CEO 谈 agentic trading 已获 15 万客户——本期聚焦 Agent">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-16">
+    <meta property="og:description" content="OpenAI Codex 修复「model at capacity」容量报错、Vercel 开源 1ms 级 X 帖子渲染器 xeet、Dan Shipper 的 compounding skills 实验，以及 Robinhood CEO 谈 agentic trading 已获 15 万客户——本期聚焦 Agent">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 16, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-16</h1>
+                <div class="meta">
+                    <span class="date">November 16, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天的 X 高信号集中在两条线：OpenAI Codex 的产品动向（容量报错修复、用 Codex 控制智能家居），以及 Vercel 开源的 xeet——一个 1ms 级、像素级还原的 X 帖子渲染器。把 Dan Shipper 的「compounding skills」实验和 No Priors 对 Robinhood CEO 的访谈串起来，一条更粗的主线浮出水面：Agent 正在从「能不能做」走向「能不能稳定、规模化地做」。</p>
+
+<blockquote>核心论点：Agent 的下一阶段竞争不在「能力天花板」，而在「稳定复用」与「规模化交付」——Codex 在补容量、xeet 在证明验证工程、compounding skills 在把一次性的脚本变成越用越好的资产。</blockquote>
+
+<h2>一、OpenAI Codex：容量报错修复 + 家庭自动化设想</h2>
+
+<p><strong>Thibault Sottiaux</strong>（Codex @ OpenAI）发推：「Codex 团队可能真的修好了那个一直缠着你的『model at capacity』报错。」这条拿到约 2500 赞，是本期最高的一条——「model at capacity」是 Codex 用户高频抱怨的体验痛点，说明团队在直接回应容量/并发问题。<a href="https://x.com/thsottiaux/status/2122206990101536852">原文</a></p>
+
+<p><strong>Nan Yu</strong>（Codex @ OpenAI，前 Linear 产品负责人）抛出一个问题：「如果我想用 Codex 控制家里所有设备，最好的智能家居中枢是什么？理想情况是即插即用、让 Codex 把它当成另一台电脑。」这代表了 agent 从软件世界向物理世界/智能家居延伸的信号。<a href="https://x.com/thenanyu/status/2122096965865664924">原文</a></p>
+
+<h2>二、Vercel 开源 xeet：1ms 渲染 X 帖子</h2>
+
+<p><strong>Guillermo Rauch</strong>（Vercel CEO）发布 <strong>xeet</strong>：一个用 safe Rust / WASM 写的、封闭式、像素级还原的 X 帖子渲染器——零浏览器、零网络、零文件系统、零系统字体，约 1ms 渲染一张帖子 PNG（@jack 的「setting up my twttr」只要 0.4ms）。它复刻了 Blink &amp; HarfBuzz 文本整形、1/64px 断行、RTL bidi、28 个 Chirp 字体子集、CJK/Math/Emoji 回退、「Show more」规则等。</p>
+
+<p>最有意思的是它的构建方式：xeet 是一个「autorepo」——一个 oracle 启动 Chrome 验证数万条文本排版规则，CI canary 监视原版演变、给 agent 提交带签名的 PR。整个项目从设计之初就围绕「验证工程」（verification engineering）构建。渲染比开浏览器截图快 100x–1000x，却一样精确。<a href="https://x.com/rauchg/status/2122184794209714368">原文</a></p>
+
+<p>另一条：Rauch 说 AI 模型越来越会起名——他写了个诊断系统卡顿的小 CLI，模型给它起名 <code>hog</code>（猪）。「既然它们已经擅长缓存失效了，也许计算机科学最难的两个问题真的都解决了 😂」<a href="https://x.com/rauchg/status/2122127120055034258">原文</a></p>
+
+<h2>三、Agent 技能与自主迭代</h2>
+
+<p><strong>Dan Shipper</strong>（Every CEO）分享「compounding skills」（每次使用都变更好的技能）的进展，认为 @hammer_mt 终于「破解」了这个方向。这个周末他做了一个帮忙写上下文窗口摘要的 skill，用 autoresearch 迭代，直到摘要质量达到他个人品味的 80%（对比无 skill 基线）。这是「agent 技能越用越好」的一次具体实验，附有完整 writeup。<a href="https://x.com/danshipper/status/2122091033001337134">原文</a></p>
+
+<h2>四、行业动态与观点</h2>
+
+<ul>
+<li><strong>Amjad Masad</strong>（Replit CEO）：「It's been an interesting 48 hours」（约 491 赞），另转一条「Good summary」（约 336 赞）——两条都是引述他人内容、未展开细节，但暗示这 48 小时行业有值得关注的动作。<a href="https://x.com/amasad/status/2122185760799609017">原文</a></li>
+<li><strong>Peter Yang 访谈 Nate Parrott（Anthropic）</strong> 谈 Claude 设计同质化：Claude 每次被要求做东西，都以为自己在发明最原创的视觉风格，结果总是「衬线字体 + 米白背景 + 橙色 + 卡片边缘条」。解法是在 Claude Design prompt 里直接告诉模型：「你倾向于过度偏向这两种字体和颜色，除非用户明确要求，否则别用。」Parrott 说这招「管用很多」。另一个片段：从 Arc（The Browser Company）到 Anthropic，试想法的周期从几周压到一两天——但「压缩的是构建周期，不是把东西交到人手里、判断他们会不会用的周期」。<a href="https://x.com/petergyang/status/2122132596352327816">原文</a> · <a href="https://x.com/petergyang/status/2122060856498524510">另一段</a></li>
+<li><strong>Zara Zhang</strong> 转推：「Being good at LinkedIn probably makes you bad at X」（约 122 赞）——关于不同平台表达风格的轻观察。<a href="https://x.com/zarazhangrui/status/2122021380745290202">原文</a></li>
+</ul>
+
+<h2>五、博客与播客</h2>
+
+<p><strong>博客</strong>：本期 feed-blogs 为空（0 篇），Anthropic Engineering / Claude Blog 无新增。</p>
+
+<p><strong>播客</strong>：No Priors 采访 Robinhood CEO <strong>Vlad Tenev</strong>，主题「Tokenization, Agentic Trading, Harmonic」。核心观点：Robinhood 的定位是「ownership company」（所有权公司），用 tokenization、预测市场、agentic trading 来扩展所有权。其中 agentic trading 已明确 PMF——超过 15 万客户开通了 agentic 交易账户。他还谈到 Harmonic（他要打造的「数学超级智能」），并质疑 AI 是否过于中心化（大公司 + 大数据中心 + 秘密模型），主张分布式发现与科学。<a href="https://www.youtube.com/@NoPriorsPodcast">收听</a></p>
+
+<hr>
+
+<p><small>来源：Swyx、Thibault Sottiaux、Peter Yang、Nan Yu、Thariq、Amjad Masad、Guillermo Rauch、Zara Zhang、Nikunj Kothari、Dan Shipper、Aditya Agarwal 的 X 帖子（feed-x.json）；No Priors 播客（feed-podcasts.json）。数据源：follow-builders（github.com/zarazhangrui/follow-builders）</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
