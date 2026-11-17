@@ -1,4 +1,59 @@
 posts:
+- title: AI Builders 日报 · 2026-11-17
+  date: November 17, 2026
+  slug: ai-builders-digest-2026-11-17
+  excerpt: 软件工厂是临时问题，agent 协作的工作台与「数据/模型所有权」才是下一段主线——Replit、Vercel、Garry Tan、Aaron Levie 的同日判断。
+  content: '<p>今天（11 月 17 日）的 builders 时间线，最响的一枪来自 Replit 联创 <a href="https://x.com/trq212/status/2122438326431154210">@trq212</a>——近 5000 赞的一条「软件工厂是临时问题」。再叠加 Vercel、Garry Tan、Aaron Levie 各自的判断，今天日报的主题可以收敛成一句话：</p>
+
+    <blockquote>Agent 时代的分水岭不是「模型有多强」，而是「所有权归谁」：你的数据、你的 trace、你的模型选择，以及那个让 agent 能真正与你协作的工作台。</blockquote>
+
+
+    <h2>一、Agent 协作与软件工程：工作台才是下一个主战场</h2>
+
+    <p><a href="https://x.com/trq212/status/2122438326431154210">@trq212</a>（4841 赞 / 200 转）抛出一个被广泛转发的判断：<strong>「software factories（软件工厂）是临时问题，模型迟早会自己学会建它们；更有趣的问题是，怎么造一个 agent 能跟你协作的工作台（workspace）」</strong>。他顺手放了一段与多个 agent 一起迭代游戏角色的实操视频（<a href="https://x.com/trq212/status/2122438328079524159">1329 赞</a>）——重点不在单 agent 能力，而在多 agent 与人如何在一个共享空间里对齐上下文。</p>
+
+    <p><a href="https://x.com/rauchg/status/2122415506451841215">@rauchg</a>（585 赞）补了一句方法论层面的呼应：<strong>「旧世界的用户是人，你跑用户访谈；新世界的用户是 agent，你跑 evals，eval 反过来驱动软件工程循环」</strong>——并附了 Vercel 内部如何做 eval 的长文。</p>
+
+    <p><a href="https://x.com/nikunj/status/2122543500814336281">@nikunj</a>（109 赞）用一句话给 2026 的 infra 战争做了个季度编年：<strong>Q1 vibe coding → Q2 harness → Q3 sandbox → Q4 agentic CI</strong>，并调侃「provider 多到数不过来」。这跟上面两条正好串成同一条主线：基础设施的竞争已经从「模型层」下探到「agent 运行环境」层。</p>
+
+    <p>一个扎心的现实对照来自 <a href="https://x.com/steipete/status/2122463466304971068">@steipete</a>（1089 赞）：<strong>大家求 Apple 少弹权限框、让 agent 能在 macOS 上免人肉盯梢地干活，Apple 却上新了一批更吓人的告警</strong>——桌面端 agent 的「运维成本」仍然是最大隐性瓶颈。</p>
+
+
+    <h2>二、模型、推理与「所有权」</h2>
+
+    <p><a href="https://x.com/rauchg/status/2122396034186014919">@rauchg</a>（3933 赞 / 142 转）给新时代软件下了个宣言式的定义：<strong>「个性化、完全自有、开源——而且比它所替代的东西质量更高」</strong>。紧接着他给出了可操作的路线图（<a href="https://x.com/rauchg/status/2122458782294847807">273 赞</a>）：① 用开放 SDK 与 harness；② 用 Gateway 拿回模型选择权；③ 拥有自己的 trace 与数据、强制执行 ZDR（零数据保留）；④ 用私有推理拥有自己的模型。</p>
+
+    <p>盒装 CEO <a href="https://x.com/levie/status/2122508098351038532">@levie</a>（192 赞）从需求侧背书：<strong>「人均 token 消耗的曲线仍然看不到天花板，而离 AI 越近，越能感到我们还在 token 采用曲线的早期」</strong>——今夏今秋的模型发布一直在把 SOTA 往上推，需求只会更猛。</p>
+
+    <p>可解释性这边，<a href="https://x.com/adityaag/status/2122367547312119843">@adityaag</a>（41 赞）说团队多年打磨的可解释性方法，<strong>终于到了可以放心应用到前沿模型的地步</strong>——对齐与安全从「黑箱调参」走向「能读内部激活」的关键一步。</p>
+
+
+    <h2>三、产品与开源动态</h2>
+
+    <p><a href="https://x.com/garrytan/status/2122517681740124271">@garrytan</a>（317 赞）继续推进他的 GBrain：<strong>个人脑 → 团队脑 → 公司脑，记忆（memory）按你想要的方式层层汇总</strong>，Hosted 版本开箱即用。技术上更有料的是另一条（<a href="https://x.com/garrytan/status/2122576951080792543">12 赞</a>）：GBrain 后端引擎用 Rust（基于 Vorflux）重写，<strong>将替换 postgres+pgvector / pglite，作为向量搜索、图搜索、embedding、RAG 与 HNSW 的底层存储</strong>。</p>
+
+    <p>Google 侧两条：<a href="https://x.com/joshwoodward/status/2122453269842886788">@joshwoodward</a>（294 赞）演示了用 <strong>NotebookLM 把一堆资料来源一键做成可交互网站</strong>（现场用元素周期表名称做了一个）；官方账号 <a href="https://x.com/GoogleLabs/status/2122461899178820069">@GoogleLabs</a>（502 赞）宣布 <strong>Howie AI 团队加入 Google Labs</strong>——这支队深耕日程与日历管理多年，将并入面向小企业的下一代 AI 工具。</p>
+
+    <p>硬件侧，<a href="https://x.com/adityaag/status/2122386958101959118">@adityaag</a>（81 赞）领投了 <strong>BharatSemi 的 2400 万美元种子轮</strong>，方向是「把 AI 嵌入尽量贴近硅层」的硬科技，并直言「我们能在印度造半导体，正在证明质疑者是错的」。</p>
+
+
+    <h2>四、设计与行业观察</h2>
+
+    <p><a href="https://x.com/petergyang/status/2122347721298510021">@petergyang</a>（138 赞）转述了 @nateparrott 关于「如何让 Claude 做设计而不产出 AI slop」的 5 条经验，核心都是给上下文：先喂截图、你喜欢的页面、过往作品；对已有产品，让 Claude 直接从代码重建真实界面；先调研成熟 UX 模式再动手。</p>
+
+    <p><a href="https://x.com/danshipper/status/2122541401804054826">@danshipper</a>（13 赞）抛了个值得玩味的假设：<strong>AI 时代最好的 feed 排序信号也许是「proof of work」——让 agent 上报自己为某段内容消耗了多少 token，用这个来给人和 agent 共同阅读的 feed 排序</strong>。</p>
+
+
+    <h2>五、博客与播客</h2>
+
+    <p>今天的 feed-blogs 为空，无新增博文。播客有一期值得听：<strong>Latent Space 百万订阅特别节目</strong>，嘉宾 Mihail Eric（斯坦福 CS146「Modern Software Developer」讲师、Monaco Head of AI）。他聊了斯坦福怎么教「AI 原生工程」——从对抗 slop、system one 模型到「大胆重写一切代码」，并分享了 Monaco 内部的家当：基于 Coder.com 改造的 agent 平台 <strong>Monocoder</strong>、以及住在 Slack 里兼职 AE/客服/QA 的 bot <strong>Hal</strong>。</p>
+
+
+    <hr>
+
+    <p><small>来源：follow-builders feed（feed-x / feed-blogs / feed-podcasts）。本文收录 X 帖 15 条、博客 0 篇、播客 1 期。原文链接见各条目内链。</small></p>
+
+    '
 - title: AI Builders 日报 · 2026-11-16
   date: November 16, 2026
   slug: ai-builders-digest-2026-11-16
