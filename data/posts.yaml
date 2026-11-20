@@ -1,4 +1,102 @@
 posts:
+- title: AI Builders 日报 · 2026-11-20
+  date: November 20, 2026
+  slug: ai-builders-digest-2026-11-20
+  excerpt: Anthropic 上市成史上最大 IPO，芯片叙事是暗线；腾讯混元 Hy4 全量开源；OpenAI 把 dots 做进 ChatGPT 移动端；Gemini 4 Neon 第三方评测出炉、性价比直逼 Opus。
+  content: '<p>今天的主线就一条：Anthropic 在纳斯达克上市，成为史上最大 IPO——但真正有意思的是它 IPO 视频里的芯片叙事：Claude 已跑满四大芯片家族，接入 AMD GPU 只用 3 天。同一晚，腾讯混元 Hy4 全量开源、OpenAI 把 dots 智能体推进 ChatGPT 移动端、Gemini 4 Neon 的第三方评测出炉。下面是今天的日报。</p>
+
+
+    <blockquote>核心论点：Nvidia 的「稀缺性叙事」正在被多方围剿——Anthropic 说自己已把 Claude 的训练+推理跑在四大芯片家族上、AMD 只用 3 天接入；高通 Dragonfly AI200 单机架 43TB 内存要跑 10T 级大模型；马斯克的 Terafab 张口就是「全球 30 倍」。与此同时，Agent 正在从「能聊」走向「能在你的手机和电脑上干活」：OpenAI 给 dots 开了独立标签页，Gemini 的 Mac 版 App 也能直接操作电脑了。</blockquote>
+
+
+    <h2>一、Anthropic 上市：史上最大 IPO，芯片叙事是暗线</h2>
+
+
+    <p>Anthropic 以每股 83 美元在纳斯达克上市（代码 $ANT），融资 813 亿美元，超过 SpaceX 成为史上最大 IPO；首日收涨约 17% 至 97.17 美元，完全稀释市值约 1.76 万亿美元（<a href="https://aihot.news/items/t3mx9fwmjqz97bj0zwxxtkkiq">AIHOT</a>）。<a href="https://x.com/mattturck/status/2123465585166295351">Matt Turck</a> 调侃「lol NASDAQ hedging their bets」——纳斯达克也在给自己对冲。（58 赞）</p>
+
+
+    <p><a href="https://x.com/adityaag/status/2123494873919783073">Aditya Agarwal</a> 借上市讲了个更长的故事：Anthropic 两位核心成员 Tom Brown 和 Thariq 都曾在 South Park Commons（SPC）起步——Tom 2016 年进 SPC 时毫无 ML 背景，靠啃论文起步，后来参与创立 Anthropic。（95 赞 / 5 转）</p>
+
+
+    <p>真正值得注意的细节在 IPO 视频里：Claude 的训练和推理现已跑在「全部四大芯片家族」上，不同供应商/架构/地点的芯片被当成可互换的算力池、按性价比选用；今年首次接入 AMD GPU，由 Mythos 在 3 天内跑通，几乎无人工干预，计算内核近 100% 由 Claude 自己移植或编写——过去这类工作要几十名工程师干几个月（<a href="https://aihot.news/items/wxnv1ek19ha6vdwcsbqsv3oic">AIHOT</a>）。这可以被读作：用模型写代码的能力，正在降低 Nvidia 的稀缺性。</p>
+
+
+    <h2>二、开源模型：腾讯混元 Hy4 全量开源</h2>
+
+
+    <p>腾讯混元发布 Hy4 开放权重，定位原生多模态旗舰 MoE，总参数 770B、激活 49B，支持 1M 上下文；同步放出含安全评估报告的 System Card，权重在 GitHub / Hugging Face / ModelScope / GitCode 上线，还有 GGUF，团队本周五在 r/LocalLLaMA 开 AMA（<a href="https://aihot.news/items/jl6m0eymz9z0kleh54c3guowx">AIHOT</a>）。至此混元 LLM 系列（Hy3 preview / Hy3 / Hy4 preview / Hy4 / Hy4 flash）全部开源。</p>
+
+
+    <h2>三、Gemini 4 Neon：第三方评测出炉，性价比直逼 Opus</h2>
+
+
+    <p>Google 这次给 Neon 的定位是「更快、更低成本地做高难度编码」。Cognition 在自家 FrontierCode 2.0 基准上评测：Neon 得分 46.2%，与 Opus 5.5 相差不到 1 分，但每任务成本仅 $4.38、约为 Opus 的三分之一（<a href="https://aihot.news/items/sr374ahztizayy7ozug6u9pii">AIHOT</a>）。<a href="https://x.com/petergyang/status/2123540875733315815">Peter Yang</a> 出了段对比视频：Opus 在 3D 和设计上仍更强，但 Neon 在写作与「个性」上持平甚至更好，他预测自己 99% 的任务会用 Neon 跑，因为「比 Carbon 快太多」。（164 赞 / 5 转）</p>
+
+
+    <p><a href="https://x.com/joshwoodward/status/2123534862569324703">Josh Woodward</a> 则宣布一个被大量点名的需求落地：Gemini 的 Mac 版 App 现在能直接在电脑上操作任务（top feature request）。（876 赞 / 35 转）另一侧，<a href="https://x.com/steipete/status/2123487048250327497">Peter Steinberger</a> 报了 OpenClaw 修掉一个嵌入 harness 的 bug，并已接入 Gemini 4 Neon。（198 赞）</p>
+
+
+    <p>彩蛋：DeepMind 的 Omar Sanseviero 在没改固件、没加计算板的情况下，用打印机内置 PostScript 解释器跑起了 2.7 亿参数的 Gemma 3 270M，峰值内存 14.1MB、约每词元 60 秒（<a href="https://aihot.news/items/bnydt76bzk61kr5c82ifgt0d6">AIHOT</a>）。</p>
+
+
+    <h2>四、OpenAI：dots 进移动端、GPT-Live-1.1、ChatGPT for Accounting</h2>
+
+
+    <p><a href="https://x.com/thsottiaux/status/2123557171321561133">Thibault Sottiaux</a> 官宣全新 ChatGPT 移动体验：先从 Pro 用户起测，dots 拿到独立标签页，Codex / Projects / Images 都能固定到标签栏。（5244 赞 / 276 转）核心变化是 <strong>dots 从隐藏能力变成一等公民</strong>——之前它藏在对话里，现在你手机上一眼就能看到自己的 agent，还能随时开关（<a href="https://aihot.news/items/s0q4y5e0r662omayvlae6yt7n">AIHOT</a>）。</p>
+
+
+    <p>同日 OpenAI 还放了两样东西：一是 <strong>GPT-Live-1.1 API</strong> 开放，第三方可接入实时双向语音模型、构建能边聊边执行复杂任务的智能体（<a href="https://aihot.news/items/c8uvlm6nforqa30qamikr0hi9">AIHOT</a>）；二是 <strong>ChatGPT for Accounting</strong>，配 QuickBooks / Xero / NetSuite 等插件处理月末报告、对账、审计准备（<a href="https://aihot.news/items/aymr6zzcf1cofecsalgbdnps4">AIHOT</a>）。</p>
+
+
+    <p>顺带一条 Replit 创始人的观点：<a href="https://x.com/amasad/status/2123535544718418191">Amjad Masad</a> 教人「用一句 prompt 造一个 Muse 式的个人 agent」（393 赞），而他前一天说的「与你的 agent 有合同（contract）会是被广泛抄走的范式」（75 赞，<a href="https://x.com/amasad/status/2123535362568134894">原文</a>）也值得标记——Agent 的可预期性正在成为产品竞争点。</p>
+
+
+    <h2>五、算力与芯片：高通 Dragonfly、英伟达买 Inception、马斯克 Terafab</h2>
+
+
+    <p>高通与 Cirrascale 启动 Dragonfly AI200 推理加速器客户评估：单卡 768GB LPDDR5X，一个 140kW 液冷机架 56 卡、总内存 43TB、带宽 0.414 PB/s，可在单机架跑 10T 级大模型（<a href="https://aihot.news/items/syl2h5owiylbnovitaiy2q92g">AIHOT</a>）。</p>
+
+
+    <p>另一边据 The Information，英伟达正洽谈收购扩散式 LLM 公司 Inception，估值 5 亿美元以上（<a href="https://aihot.news/items/t6wzx65ctskjx88zzi864ob15">AIHOT</a>）——巨头一边被围剿、一边也在补模型侧的短板。</p>
+
+
+    <p>最夸张的数字来自马斯克：Terafab 的目标是造出「全球 AI 芯片当前年产量的 30 倍」——「如果全球今年产约 20–25 GW，明年约 35–45 GW，想做一太瓦（1TW），你需要的是今天水平的 30 倍」（<a href="https://aihot.news/items/i86ghk2pk4wu6e8rsj5eziksj">AIHOT</a>）。</p>
+
+
+    <h2>六、Agent 工程与成本：Uber 在 400K tokens 处压缩会话、Performance Factory、token 滥用</h2>
+
+
+    <p>Uber 的账算得很实际：AI 预算耗尽后，即便在用百万 token 模型，也在 400K tokens 处压缩工程师的 Claude Code 会话。数据是：2 月到 8 月每周 agent 请求增 9.4 倍、AI 编码工具周活增 7 倍，但 4 月以来 AI 支出大致持平——用压缩换规模（<a href="https://aihot.news/items/eoyfltoc1jox1797nr1f73346">AIHOT</a>）。</p>
+
+
+    <p>OpenAI 的 Performance Factory 也曝光了细节：ChatGPT 变慢的告警会启动 Codex agent 翻日志、查近期代码变更定位原因，第二个 agent 尝试「推翻诊断」，第三个出修复方案、交人工批准。每天约 17 次调查，约 70% 诊断准确；但修复是短板——600 多例确诊里只有约 15 个 agent 自产修复原样上线（<a href="https://aihot.news/items/h752zv2kvlbxzg1rkqntlxmyh">AIHOT</a>）。诊断易、落地难，是当下 agent 的普遍真相。</p>
+
+
+    <p>风险侧：<a href="https://aihot.news/items/kr38rsh6t0btykt81y31xoz9k">Simon Willison</a> 转发了 ChatPRD 创始人 Claire Vo 的经历——产品免费试用被滥用者轮流薅优惠码，把她的 agent 转去卖 token 或搭 Roblox/Fortnite 地图工作室。Agent 产品的滥用成本是真实且正在发生的。</p>
+
+
+    <h2>七、观点：Bostrom 论时机、工程师价值重估、评论界的夸张激励</h2>
+
+
+    <p><a href="https://x.com/garrytan/status/2123496208316694669">Garry Tan</a> 引用 Bostrom 的一句「if nobody builds it, everyone dies」并「Hard agree」。（263 赞 / 21 转）背景是 Bostrom 的新论文《Optimal Timing for Superintelligence》：只要 AI 灭绝风险低于 97%，尽快推出超级智能就能提高当代人的预期寿命（<a href="https://aihot.news/items/i6cpo955oidg8h7nokm6fhmdv">AIHOT</a>）。与之呼应，前 Anthropic/OpenAI 研究员 Jacob Coxon 在 YC 辩论中预测：Anthropic 研究者从 AI 获得的加速每 3 个月翻倍，2027 年达 100 倍、Claude 将接管全部 AI 研究；到 2028 年底 80% 认知劳动被自动化（<a href="https://aihot.news/items/kyln6tc9x7v3fciz4l4knrze6">AIHOT</a>）。</p>
+
+
+    <p><a href="https://x.com/rauchg/status/2123505400591106113">Guillermo Rauch</a> 给「工程师是否还有价值」算了笔账：结果导向、有创造力的工程师现在是 1000x 工程师；纠结 tabs-vs-spaces、只见树木不见森林的是 -10x；普通知识工作者则是 2x。他说这是由他和企业/初创客户看到的 token 消耗分布支撑的。（1574 赞 / 94 转）</p>
+
+
+    <p>最后一条「清醒剂」来自 <a href="https://x.com/swyx/status/2123591875349422435">Swyx</a>：在社媒上说「达到 SOTA 的概率已归零」能拿很多赞，三个月后等人家真到了 SOTA 再发个道歉表又能拿更多赞，被写的那个人还会打印出来感谢你给的动力——不准确没有代价，夸张却全是激励。（261 赞 / 6 转）</p>
+
+
+    <h2>八、播客：No Priors — 超级智能需要物理世界</h2>
+
+
+    <p>本周收录 1 期：No Priors 对话 Arda CEO 兼联创 <a href="https://www.youtube.com/watch?v=_wLzJINt9iQ">Bob McGrew</a>（前 OpenAI 首席研究官、Palantir 早期 exec）。核心论点：过去十年 AI 几乎没改变我们的物理世界（「Waymo 里第三次之后你只会抱怨堵车」），而「不改变物理世界，你不可能到达超级智能」；未来是「能造机器的机器」，以及去探索星辰。</p>
+
+
+    <hr>
+
+
+    <small>来源：<a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json">feed-x.json</a>（14 个 builders 的 X 帖子）· <a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-blogs.json">feed-blogs.json</a>（本日 0 篇）· <a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json">feed-podcasts.json</a> · <a href="https://aihot.news/feed/all.xml">AIHOT 中文聚合</a>。本日报由 Hermes 自动生成，链接均为各帖/各源原文。</small>'
 - title: AI Builders 日报 · 2026-11-19
   date: November 19, 2026
   slug: ai-builders-digest-2026-11-19
