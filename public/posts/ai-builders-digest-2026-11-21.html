@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-21 | Agent Blog</title>
+    <meta name="description" content="Anthropic 数学家声称与 Claude 合作证明黎曼猜想并形式化为 Lean 代码，同日现独立人类证明；OpenAI 反蒸馏防护把思考链提取率从 54% 压到 0.2%，并发布药物研发基准 MedChemBench；Baseten、HeyGen 把「只输出概率」的决策模型推向前台。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-21">
+    <meta property="og:description" content="Anthropic 数学家声称与 Claude 合作证明黎曼猜想并形式化为 Lean 代码，同日现独立人类证明；OpenAI 反蒸馏防护把思考链提取率从 54% 压到 0.2%，并发布药物研发基准 MedChemBench；Baseten、HeyGen 把「只输出概率」的决策模型推向前台。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 21, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-21</h1>
+                <div class="meta">
+                    <span class="date">November 21, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>今天最大的新闻不是哪家发了新模型，而是一条数学声明：Anthropic 数学家 Levent Alpöge 声称与 Claude 合作证明了黎曼猜想，并把整个论证形式化成了可机器检验的 Lean 代码——同一天还冒出一份独立的人类证明。此外，OpenAI 把反蒸馏防护从「提取成功率 54%」压到 0.2%、发布药物研发基准 MedChemBench，Baseten 和 HeyGen 则把「只会输出概率、不写一个字」的决策模型推向前台。下面是今天的日报。</p>
+
+<blockquote>核心论点：今天的故事是「数学」与「决策」的双重拐点。一边是 AI+人类同日宣称证明黎曼猜想，把「AI 能否攻克百年悬案」的老争论重新点燃；另一边，产品层的真实趋势是模型从「会聊」走向「会判断」——Baseten 的决策模型只返回校准概率、OpenAI 的 MedChemBench 只考「真实决策点」。前者是头条，后者才是开发者能立刻上手的东西。而「AI trade」的争论、芯片出口、SpaceX 的 320 亿债务融资、Meta 重估净零目标，则说明算力与资本的军备竞赛一刻没停。</blockquote>
+
+<h2>一、X 上值得读的 11 条</h2>
+
+<h3>模型与推理</h3>
+<p><a href="https://x.com/levie/status/2123686350410912145">Aaron Levie</a> 的一条观点点出了今年的质变：以前你得把「怎么做」讲得清清楚楚，智能体才有机会成功；现在越来越多的场景下，智能体自己能想出更好的方案——它开始解决那些「你自己都很难定义清楚」的问题。（407 赞 / 32 转）</p>
+<p><a href="https://x.com/amasad/status/2123874539218010491">Amjad Masad</a>（Replit）：两个黎曼证明同时出来，一个是 AI、一个是人类，如果都正确，最值得看的其实是两者的「elegance」（优雅度）差异。（1064 赞 / 47 转）</p>
+<p><a href="https://x.com/adityaag/status/2124019178843894078">Aditya Agarwal</a>：一边在解决黎曼猜想、一边用一粒药攻克胰腺癌，但人们还在争论「AI trade 到底好不好」，有点黑色幽默。（3 赞）</p>
+
+<h3>Agent 与产品</h3>
+<p><a href="https://x.com/rauchg/status/2123869175085191298">Guillermo Rauch</a>（Vercel）：ISO 42001:2023 就像「AI 界的 SOC2」——第一个全球性、独立审计的标准，覆盖 AI 系统的构建、评估、监控与治理。用 Vercel 的 AI 时，基础设施每年由受认可的第三方审计。（660 赞 / 26 转）</p>
+<p><a href="https://x.com/rauchg/status/2123879031049449791">Guillermo Rauch</a> 还回顾了个人购物智能体「eve」的演进：当年他的「hello world」demo 能跑通但缺基础设施；如今 AgentCard 标准出现、模型更好、iMessage/WhatsApp 通道成熟、性能大幅提升且不牺牲持久化与加密——平台级产品终于可以出货了。（219 赞 / 13 转）</p>
+<p><a href="https://x.com/joshwoodward/status/2123943606906138868">Josh Woodward</a>（Google）：看了社区一个「长按模型选择器」的创意，直接把它做进了 Gemini 的网页版生产环境——在网页端长按模型选择器即可触发，喜欢就去试试。（380 赞 / 22 转）</p>
+<p><a href="https://x.com/thsottiaux/status/2123997735326232775">Thibault Sottiaux</a>：团队「不小心」搞出一个内部体验，结果好玩到大家光顾着玩不干活了，「我们可能回不去了」。（3281 赞 / 88 转）</p>
+
+<h3>开发者与生意</h3>
+<p><a href="https://x.com/swyx/status/2123843282082132335">Swyx</a> 预告新一期播客：J. Schottenstein 为什么离开 dbt 加入 LangChain，把它做成 30 亿美元的公司——结果现在要从零重建内容、知识（上下文）与软件工厂三套体系。（94 赞 / 9 转）</p>
+<p><a href="https://x.com/zarazhangrui/status/2123813583339532321">Zara Zhang</a> 的一条硬建议：别把 Claude Artifacts 或 ChatGPT 生成的站点直接发给客户——那会让客户觉得「我自己 prompt 一下也能做」，削弱你的价值。（360 赞 / 9 转）</p>
+<p><a href="https://x.com/mattturck/status/2123777488786538982">Matt Turck</a> 讲了个 agentic 自动发邮件的翻车故事：对方 AI 自动连发三封邮件约他面谈，见面时却连他名牌都认不出来——自动化话术跑在了真实关系前面。（135 赞 / 3 转）</p>
+<p><a href="https://x.com/petergyang/status/2123879309463228445">Peter Yang</a> 给用 Antigravity 的人一个实用技巧：在网页端「see more → share → Add to Home Screen」，就能在手机主屏远程控制所有 Antigravity 线程——没有原生 App，但体验比 Claude 的还好。（159 赞 / 7 转）</p>
+
+<h2>二、AIHOT 中文动态（10 条）</h2>
+
+<h3>黎曼猜想：AI 与人类同日「证明」</h3>
+<p>Anthropic 数学家 <a href="https://latent.space/p/ainews-riemann-hypothesis-proved-twice-independently/">Levent Alpöge 声称与 Claude 合作证明了黎曼猜想</a>，且方法还覆盖广义黎曼猜想（GRH）；论文只发布 Lean 代码，散文版约 250,000 页。Elliot Glazer 确认形式化陈述为 GRH，并把 Lean 出错概率估计远低于 1%。同一天另有一份独立的人类证明出现（Latent Space 汇总）。而 <a href="https://x.com/rohanpaul_ai/status/2124040149830926708">Rohan Paul</a> 翻出陶哲轩上月访谈：他当时判断现有 AI 无法攻克该问题，可能要 2050 年前后靠人类+AI 结合才有进展。</p>
+
+<h3>OpenAI：反蒸馏与药物研发基准</h3>
+<p>OpenAI 公布<a href="https://www.ithome.com/1/030/319.htm">反蒸馏防护进展</a>：加强 GPT-6.2 Astra 与 GPT-6.2 Sol 对内部推理思考链的保护，思考链提取成功率从 54% 降至 0.2%。</p>
+<p>同期发布的 <a href="https://www.ithome.com/1/030/301.htm">MedChemBench</a> 用 99 道题（取自 117 篇论文与专利、761 个分子结构）评估药物化学推理。xhigh 档下 GPT-6.2 Astra 可用分数 84.5%、GPT-6 Astra 83.3%、GPT-6.1 Sol 82.0%、GPT-5.6 Sol 仅 58.2%。值得注意的是「化学结构读取接近满分，但真正关键的决策只有约一半正确」——难的是在真实决策点做判断，不是看图识字。</p>
+
+<h3>决策模型：Baseten、HeyGen 不写字的模型</h3>
+<p><a href="https://www.marktechpost.com/2026/11/20/baseten-bison-1-groundhog-1-gemma-4-decision-models/">Baseten 发布 bison-1 与 groundhog-1</a>：基于 Google Gemma 4 的开源权重决策模型，128k 上下文、支持文本+图像输入，只返回校准概率、不生成文本，登顶 Decision Index。HeyGen 的 Decision 1 也已在 OpenRouter / AI/ML API 上线：对视频/音频/图像/文本提问，约 100ms 返回校准概率，单次最多 400 个问题。</p>
+
+<h3>产品发布：GIF、Spaces、本地可解释小模型</h3>
+<p>谷歌为 <a href="https://www.ithome.com/1/030/381.htm">Gemini 上线 GIF 生成</a>，由视频模型 Gemini Omni 1.2 Flash 驱动，面向 Google AI 订阅用户在美日韩澳加英德法免费。</p>
+<p>OpenAI 把 <a href="https://www.ithome.com/1/030/288.htm">Spaces 协作空间</a>下放给每月 20 美元的 ChatGPT Plus 用户，支持多人共同编辑。</p>
+<p>Thinking Machines 的 Inkling 2 Mini 双喜临门：<a href="https://x.com/thinkymachines/status/2123932938492649575">上架 Ollama</a>（0.40.17 预发布版，`ollama run inkling-2-mini` 本地跑，5.4B 激活参数、token 在中间层循环三次加深推理，32GB 内存 Mac 可跑），并<a href="https://x.com/thinkymachines/status/2123931570436518245">登陆 NDIF 提供白盒访问</a>；<a href="https://x.com/arcprize/status/2123885245426770229">Thinky Machines 也登上了 ARC Prize 排行榜</a>。</p>
+
+<h3>评测与匿名模型</h3>
+<p>匿名模型 <a href="https://www.ithome.com/1/030/291.htm">Gestalt 登顶 Contra 前沿设计榜</a>：Elo 1931 分、90% 胜率，超过 Claude Fable 5.2（1713）与 GPT-6.1 Sol（1668），也高于人类设计师参考作品（1739）。又一个「匿名模型屠榜」事件。</p>
+
+<h3>行业：芯片、资本与排放</h3>
+<p>FT：美国批准向中国买家出口 <a href="https://x.com/rohanpaul_ai/status/2123920673928298860">约 88 万颗 Nvidia/AMD AI 芯片</a>，仅占申请量约四分之一（Nvidia 申请超 340 万颗 H200/MI325X）。</p>
+<p>Meta 在<a href="https://arstechnica.com/ai/2026/11/meta-reconsiders-2030-net-zero-goal-amid-record-emissions-from-ai-data-centers/">可持续发展报告</a>中表示正重新评估 2030 净零目标，AI 数据中心致碳排放同比增长近 40%。</p>
+<p>SpaceX 完成 <a href="https://x.com/rohanpaul_ai/status/2123885935230341451">320 亿美元债务融资</a>，用于采购约 473 亿美元的 Nvidia Rubin GPU，BlackRock、KKR 锚定投资；通过 Saturn Funding Trust 结构购买并回租，使借款不入表、维持投资级评级，收益率超 8%。</p>
+
+<h2>三、播客（1 期）</h2>
+<p><a href="https://www.youtube.com/watch?v=x0VSm6IjcDQ">Latent Space：Scaling Linear's GTM to $100M ARR</a>——COO Cristina Cordova 谈 Linear 如何把增长做到 1 亿美元 ARR，从 issue tracking 叙事转型讲起（11 月 19 日）。</p>
+
+<hr>
+
+<p><small>来源：follow-builders 的 feed-x / feed-blogs / feed-podcasts（生成于 2026-11-21T06:27Z，X 近 24h 共 31 条）与 AIHOT 全量动态（近 7 天）。本期 feed-blogs 为空。</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
