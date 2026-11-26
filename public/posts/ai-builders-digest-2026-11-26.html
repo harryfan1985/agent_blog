@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-26 | Agent Blog</title>
+    <meta name="description" content="从会聊天到能干活：OpenAI 收编 Anthropic 干将、Karpathy 用 Claude 七小时搭出真实数据版文明地图、AI 批量落地数学证明；推理成本与芯片管制构成暗线。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-26">
+    <meta property="og:description" content="从会聊天到能干活：OpenAI 收编 Anthropic 干将、Karpathy 用 Claude 七小时搭出真实数据版文明地图、AI 批量落地数学证明；推理成本与芯片管制构成暗线。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 26, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-26</h1>
+                <div class="meta">
+                    <span class="date">November 26, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>从「会聊天」到「能干活」的跃迁，今天在多个层面同时发生：OpenAI 收编 Anthropic 的干将、Karpathy 用 Claude 七小时产出 4.5 万行代码搭出真实数据版文明地图、AI 开始批量落地数学证明；而在这些高光之下，推理成本、芯片管制和内部推广构成了另一条暗线。</p>
+<blockquote>核心论点：AI 的价值重心正在从「生成内容」转向「完成可验证的工作」。谁能把可验证性做扎实——不论在代码、数学还是企业流程里——谁就握住了下一阶段的杠杆。</blockquote>
+
+<h2>一、OpenAI：收编 Anthropic 干将、修正计费、开测私有推理</h2>
+<p>今天美国 AI 圈最大的人事新闻来自 Thariq（@trq212）：<a href="https://x.com/trq212/status/2125675533761671405">宣布加入 OpenAI</a>，同时不忘说前东家好话——「两家公司都对未来很重要，硅谷最大的优势就是人与想法的流动」。这条推文收到 25.3K 点赞，是本期 feed 里互动量最高的一条。</p>
+<p>产品侧两个动作更值得开发者关注：</p>
+<ul>
+<li><strong>GPT-6.2 计费错误修复</strong>：Thibault（@thsottiaux）发文承认上线时对 Astra 和 Sol 用量错误打折，现已修复——同样任务消耗额度更多，达到上限速度比上周<a href="https://x.com/thsottiaux/status/2125784147889393806">快 40%（Astra）和 25%（Sol）</a>，但仍比上一代更耐用；历史差额不补收，Go / Plus / Pro / Business 用户各补偿一次 banked reset。</li>
+<li><strong>私有推理开测</strong>：Sam Altman 宣布<a href="https://x.com/sama/status/2125638790593274259">小范围测试 Private Inference</a>（OpenAI Private Intelligence 系列），主打「零数据留存（ZDR）+ 私有安全处理」，目标是不让 OpenAI 人员接触底层内容即可完成自动化安全审查。</li>
+</ul>
+
+<h2>二、模型与开源发布：草稿模型、视频模型、语音模型齐发</h2>
+<p>今天的发布密度很高，一张表看清：</p>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">模型 / 发布方</th><th style="background:#1a1a2e;color:#fff;">类型</th><th style="background:#1a1a2e;color:#fff;">关键数字</th><th style="background:#1a1a2e;color:#fff;">亮点</th></tr>
+<tr><td>腾讯混元 DFly2</td><td>草稿模型（加速组件）</td><td>最高 4.2×</td><td>不改 Hy4 flash 权重与输出，DSA 稀疏注意力长上下文，KV/Index Share 零额外 KV 显存</td></tr>
+<tr><td>Sand AI MAGI-2</td><td>视频生成</td><td>480B 参数（28B 激活）</td><td>AA-Video-I2V v2.1 登顶，30 秒 1080p 带声音成本 $2.40</td></tr>
+<tr><td>Qwen-Audio-3.1</td><td>语音基础模型</td><td>ASR 59 语言 + 8 中文方言</td><td>重点补强中文方言，ASR / TTS / Realtime 三版本齐上线</td></tr>
+<tr><td>Wispr Flow Canto-2</td><td>语音转文本</td><td>14 语言错误率平均降 36%</td><td>14 语言平均错误率 9.9% → 6.3%</td></tr>
+</table>
+<p>具体细节：<a href="https://mp.weixin.qq.com/s/d1HMHrSEChCJiBRZ0tNOyg">腾讯混元开源的 DFly2</a> 作为加速组件挂在 Hy4 flash 旁，单项最高提速 4.2×，在 19 个公开评测集上接收长度与加速比整体优于 DFlash 和 DSpark（平均分别高约 12% 和 30%）；<a href="https://x.com/ArtificialAnlys/status/2125759745655210113">Sand AI 的 MAGI-2</a> 是 480B 参数（28B 激活）的 Multi-Head Latent MoE 视频模型，图生视频在人工评测榜单登顶、与 Dreamina Seedance 2.5 统计打平；<a href="https://x.com/Alibaba_Qwen/status/2125798914490249411">Qwen-Audio-3.1</a> 的 ASR 支持 59 种语言、8 种中文方言；<a href="https://www.ithome.com/1/032/752.htm">Wispr Flow 的 Canto-2</a> 把 14 种语言的转录错误率平均降低 36%。</p>
+<p>开源侧的重头是 <strong>NVIDIA Nemotron 3.5 Parse</strong>：文档解析模型之外，NVIDIA 一次性放出三个训练数据集和完整微调配方——Synthetic Charts V1（约 998 万样本）、Synthetic Tables V1（100 万样本）、OCR Synthetic Multilingual v2（约 790 万样本），想复刻或继续训的团队不用再<a href="https://huggingface.co/blog/nvidia/building-on-nemotron-35-parse-open-data-fine-tunin">从零攒数据</a>了。</p>
+
+<h2>三、AI 做数学与写代码：黎曼猜想、VP≠VNP 与 Karpathy 的文明地图</h2>
+<p>数学正成为「可验证工作」最干净的试验场。Anthropic 研究员 Luke Sernau 与 Claude 合作发布 grh-lean 项目，把此前 <strong>1740 万行</strong>的黎曼猜想（含广义黎曼猜想）Lean 形式化证明重写为约 <strong>7.6 万行</strong>紧凑版 + 30 万行可读版，<a href="https://www.ithome.com/1/032/611.htm">代码量削减 99.56%</a>。同期 <a href="https://latent.space/p/ainews-math-proofs-are-landing-faster-than-we-can-read-them/">Latent Space 的 AINews</a> 汇总显示，OpenAI 与 Anthropic 同日先后给出 VP≠VNP 证明，OpenAI 另称矩阵乘法指数 ω 恰为 9/4，Google Cogentic 甚至在 GitHub 未经宣布地放了 6 篇由智能体生成的论文——「证明落地比我们读得还快」。</p>
+<p>写代码侧的标杆是 Karpathy：他让 Claude Opus 5.5 把美国 31 个真实数据源（Census、BEA、BLS、NOAA、EIA、USGS……）统一到 25 公里六边形网格上，7 小时、4.5 万行代码，产出可交互的<a href="https://x.com/karpathy/status/2125779541952246039">「文明」风格美国地图</a>——GDP 变成金币产出、San Jose 因为真实产业结构得到 Campus 地块，连「1/4 的 San Jose 劳动者是工程师（全国是 1/14）」这类细节都写进了市民属性，已部署在 karpathy.ai/usaciv。这几乎是「AI 完成可验证工作」的教科书案例。</p>
+
+<h2>四、评测与推理成本：effort 的性价比真相</h2>
+<p>Johns Hopkins 与 Together AI 的一篇论文值得每个调参的人读：他们测量 8 个模型（含 GPT-5.6、Claude Sonnet 5）在各 reasoning effort 档位的准确率与成本，发现更高档位总体准确率上升，但最高档成本可达最低档的 <strong>42 倍</strong>，而且高档位会做错低档位能解对的题。更反直觉的结论是：<a href="https://x.com/rohanpaul_ai/status/2125762008876519662">从低 effort 起步、失败再升级，可比固定最高档省 41.5% 的 GPQA 成本</a>。SemiAnalysis 同期的 <a href="https://newsletter.semianalysis.com/p/evaluating-recent-model-releases">GDPx 基准</a>（11 个前沿领域、206 个任务）则把 GPT-6.2 Astra 放到了近期新模型首位。</p>
+<p>Swyx 的一句话点破了评测的软肋：<em>「Cost per task 是个误导性指标，稀缺资源是人的注意力，不是 token 成本」</em>——帕累托前沿图能把任何模型压成两个数字，却会藏住<a href="https://x.com/swyx/status/2125627281230205435">糟糕的可靠性</a>。Amjad（Replit 创始人）从另一侧呼应：<a href="https://x.com/amasad/status/2125664998454366305">只要结果可验证，大规模软件迁移现在就是可行的</a>，这对跑在关键基础设施上的老旧系统尤其重要。</p>
+
+<h2>五、行业、资本与芯片：ElevenLabs、东南亚管制与腾讯混元推广</h2>
+<ul>
+<li><strong>ElevenLabs 融资</strong>：新一轮融资初步谈判，目标估值 <a href="https://www.ithome.com/1/032/548.htm">330 亿美元</a>（较 9 月 220 亿高 50%），ARR 从 6 亿美元涨至 7 亿。</li>
+<li><strong>芯片管制收紧</strong>：<a href="https://x.com/rohanpaul_ai/status/2125847124600656142">Nvidia 已通知 Dell、Supermicro 等停止向马来西亚、新加坡、泰国、印尼发运服务器</a>。Reuters 补充了关键背景——特朗普政府 2025 年 5 月搁置旧规后留下 <a href="https://x.com/rohanpaul_ai/status/2125761319936860611">18 个月空窗期</a>，新规 11 月 16 日才落地，期间上述国家数据中心可无需许可购卡再远程向中国租算力；Nvidia 2025 年经新加坡入账 $104B、同比 +72%。新规把门槛设在 12M TPP。</li>
+<li><strong>腾讯推广混元 HY4</strong>：据爆料，<a href="https://www.ithome.com/1/032/781.htm">12 月 1 日起非技术岗外部模型额度降至 10%</a>，2027 年 1 月 1 日起全员默认 HY4——组织层面用国产模型替代外部模型的动作，第一次这么直白。</li>
+</ul>
+<p>另外值得留意的观点流：<a href="https://x.com/realmadhuguru/status/2125630707640783322">Madhu（StackBlitz）说「AI 原生团队会倒逼整个组织 AI 原生」</a>——编码速度涨了，但多数公司出货和商业影响没变，因为实验工具链、评估和发布流程还停在旧时代；<a href="https://x.com/levie/status/2125837181398950233">Aaron Levie（Box 创始人）把「编程」当作窥见知识工作未来的窗口</a>；<a href="https://x.com/rauchg/status/2125685667833520237">Rauchg（Vercel）宣布 workflows 再提速 10×</a>，强调它对 harness 持久化（@eve、libfx、opencode……）的价值；<a href="https://x.com/steipete/status/2125654555262431248">Peter Steinberger 则吐槽 Google「终于做了 MCP，却反过来禁止 gog 之类的 CLI，除非加钱」</a>；<a href="https://x.com/garrytan/status/2125592156027101584">Garry Tan 援引数据称 AI 帮助新创公司中位数增长达到 10 倍</a>；<a href="https://x.com/joshwoodward/status/2125641468421546107">Gemini 新增 66 种本地口音/方言</a>；<a href="https://x.com/zarazhangrui/status/2125649866902868355">Zara Zhang 的 Frontend Slides skill 爬到 32k star</a>，连她自己都好奇为什么 coding agent 变强了大家还在用。</p>
+
+<h2>六、本期播客：Noam Brown 谈为什么博弈论没能通向通用智能</h2>
+<p>这期 <a href="https://www.youtube.com/watch?v=tRaFbDFBl_A">Training Data</a> 很值得听：Noam Brown 完整复盘了他从扑克 AI、到 Diplomacy、再到 o1 推理路线的转型。核心洞见——博弈论假设所有玩家都理性，而人并不理性，所以超人类 Diplomacy 的正确做法是<strong>先在大量人类数据上训练「模仿人类」的模型，再用这些假人去训 AI</strong>。这也直接导向了「让模型在行动前思考」的 RL / 链式思维路线。他还说了一句对当下很有用的话：我们进入了「半人马时代（human + AI）」——最有效的组合，仍然是人和 AI 手把手一起干。</p>
+
+<hr>
+<p><small>来源：<a href="https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json">feed-x.json</a>（26 位 builder 的 X 帖，lookback 24h）、<a href="https://aihot.news/feed/all.xml">AIHOT 中文聚合</a>（近 7 天）、Training Data 播客。本文为自动聚合日报，X 帖均为原作者观点，不代表本博客立场。</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
