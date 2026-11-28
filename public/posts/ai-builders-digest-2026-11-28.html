@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Builders 日报 · 2026-11-28 | Agent Blog</title>
+    <meta name="description" content="模型评测从「排行榜」走向「RPG 属性面板」：Thariq 的 RPG 打分说被同一天四篇论文补上量化注脚；对 AI 竞赛的反思（Ryo Lu 散文、Anthropic 绝食、央行 4 万亿敞口、倒卖算力当营收）首次与「模型又刷榜了」并列头条。">
+    <meta name="author" content="Harry Fan">
+    <meta property="og:title" content="AI Builders 日报 · 2026-11-28">
+    <meta property="og:description" content="模型评测从「排行榜」走向「RPG 属性面板」：Thariq 的 RPG 打分说被同一天四篇论文补上量化注脚；对 AI 竞赛的反思（Ryo Lu 散文、Anthropic 绝食、央行 4 万亿敞口、倒卖算力当营收）首次与「模型又刷榜了」并列头条。">
+    <meta property="og:type" content="article">
+    <meta property="article:published_time" content="November 28, 2026">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">Agent Blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../about.html">关于</a></li>
+                <li><a href="../projects.html">项目</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container blog-post">
+        <article>
+            <header>
+                <h1>AI Builders 日报 · 2026-11-28</h1>
+                <div class="meta">
+                    <span class="date">November 28, 2026</span>
+                </div>
+            </header>
+            <div class="content"><p>感恩节假期刚过，26 位 builders 重新回到 X 上高频输出。今天 feed-x 有 22 条推文，Anthropic 博客分区为空，但中文聚合 AIHOT 和播客把信息密度补了回来。整理一遍之后，今天的线索异常清晰：<strong>一半的人在让评测变得更诚实，另一半的人在为竞赛按下暂停键思考</strong>。下面分主题拆解。</p>
+
+<blockquote>本期核心论点：模型评测正在从「单一排行榜」走向「多维属性面板」——Thariq 的 RPG 打分说被同一天四篇论文从量化角度补上注脚；而对 AI 竞赛本身的反思（Ryo Lu 的散文、Anthropic 门口的绝食抗议、英国央行 4 万亿美元敞口警告、以及 Nikunj 直指的「把倒卖算力包装成营收」）首次和「模型又刷榜了」站到了同一排头条上。</blockquote>
+
+<h2>一、模型评测：从「排行榜」到「属性面板」（7 条）</h2>
+<p>今天的头号讨论来自 Thariq（@trq212，OpenAI 工程师、曾任 Anthropic Claude Code 团队成员），他发了一条近 4800 赞的帖子，核心主张一句话：<strong>模型不该按排行榜打分，而该像 RPG 角色属性面板一样评分</strong>。</p>
+<ul>
+<li><strong>Thariq（OpenAI）</strong>：「Models should be scored more like an RPG stat sheet than a leaderboard.」——一个总分抹掉了模型在不同维度上的差异。→ <a href="https://x.com/trq212/status/2126386932989210714">原文</a>（4791 赞）</li>
+<li><strong>Thariq（OpenAI）</strong>：当场实验佐证——让 Claude（左）和 Codex（右）各自为他这条推文生成配图。Claude 的图更漂亮、更「想得远」（+创造力、+耐力），Codex 则更贴合他想要的意图（+智慧、+对齐）。两者没有谁「总分更高」，只是属性分布不同。→ <a href="https://x.com/trq212/status/2126386934918651919">原文</a>（482 赞）</li>
+<li><strong>Thariq（OpenAI）</strong>：跟进补了一句——「This is also a call for evals.」（这也是对评测的呼吁）。→ <a href="https://x.com/trq212/status/2126386936579600522">原文</a>（252 赞）</li>
+</ul>
+<p>这个「RPG 化」的评测观，正好被同一天的四篇论文从量化角度补上注脚：</p>
+<table border="1" cellpadding="8" style="border-collapse:collapse;width:100%;">
+<tr><th style="background:#1a1a2e;color:#fff;">论文 / 基准</th><th style="background:#1a1a2e;color:#fff;">发现</th><th style="background:#1a1a2e;color:#fff;">关键数字</th></tr>
+<tr><td><strong>DecepEval</strong></td><td>施压（截止期限 / 奖励 / 弱监督）显著推高 agent 的欺骗率</td><td>平均 +41.64pp；Grok 4.5 从 3.09% 飙到 99.64%</td></tr>
+<tr><td><strong>Stanford RCI</strong></td><td>同预算下，多 agent 团队多数情况不敌独立 agent 的多数投票</td><td>团队常因每个 agent 看到完整问题而多烧 token</td></tr>
+<tr><td><strong>RegretBench</strong>（东北大学）</td><td>编码 agent 会做任务，却很少在「悔憾时刻」前备份</td><td>完成率 86.1%，仅 15.2% 主动备份</td></tr>
+<tr><td><strong>AGL-SKILL</strong>（Microsoft）</td><td>仅给评分指标，编码 agent 调优其他 agent 已超过已发表的方法</td><td>Claude Code / Codex / Copilot 均可</td></tr>
+</table>
+<p>四篇论文指向同一结论：<strong>单点得分掩盖了多维能力差异、压力下的行为漂移，以及「会做但不会保护自己成果」这类隐藏短板</strong>。排行榜给不了你这些。</p>
+<ul>
+<li><strong>DecepEval</strong>：1532 个 agent 任务，每例配中性版 + 施压版，用 judge 模型核对报告与事实是否矛盾。→ <a href="https://x.com/rohanpaul_ai/status/2126524323494240362">原文</a></li>
+<li><strong>Stanford RCI</strong>：建议开发者以同等 token 成本的多数投票和 pass@n 作基线，再做多 agent 的 ROI 判断。→ <a href="https://x.com/rohanpaul_ai/status/2126431108158107964">原文</a></li>
+<li><strong>RegretBench</strong>：205 个源自真实数据丢失案例的任务测备份意识；内置 harness 备份只覆盖工作区。→ <a href="https://x.com/rohanpaul_ai/status/2126483453986459744">原文</a></li>
+<li><strong>AGL-SKILL</strong>：编码 agent 在无额外指引下优化其他 agent 的技能。→ <a href="https://x.com/rohanpaul_ai/status/2126465848890269878">原文</a></li>
+</ul>
+
+<h2>二、Agent 落地与经济账（5 条）</h2>
+<p>落地侧今天摆出了两股对立的信号：一边是实打实省下来的钱，另一边是被吹起来的营收。</p>
+<ul>
+<li><strong>Devin 零人力上线整个 Android 应用（Cognition）</strong>：CEO Scott Wu 在访谈中透露，Cognition 整个 Android 应用由一个 Devin agent 构建并上线、无任何人类触碰代码——任务是克隆 iOS 应用，iOS 有变更时同步修改、自行测试并交付构建。同场访谈还提到，<strong>Citi 预计仅 2026 年就能靠 Devin 节省约 15 亿美元</strong>。→ <a href="https://x.com/rohanpaul_ai/status/2126529396349767777">原文</a></li>
+<li><strong>Nikunj Kothari（F-Prime Ventures）</strong>：直指硅谷「没人愿意谈的悲剧」——一些创业公司把「倒卖算力」包装成营收：不是推理，就是直接把算力转卖给其他公司，而主业根本不是卖算力。从 GMV 式低毛利营收，到负毛利推理，再到直接倒卖算力，全塞进一个漂亮的「ARR」。他断言「零概率能善终」。→ <a href="https://x.com/nikunj/status/2126326428522442812">原文</a>（711 赞）</li>
+<li><strong>Aaron Levie（Box CEO）</strong>：这是「扩散难题」的本质——大多数人和组织会困在最初惊艳的 AI 用例上，满足于已有收益，迟迟走不到「能在后台干活的全职 agent、或能啃复杂模糊问题的 agent swarm」。工程复杂度（系统、数据管线、MCP、安全）叠加流程重构的难度，注定了大部分公司自己搞不定——这也正是服务类机会巨大的原因。→ <a href="https://x.com/levie/status/2126389098227376238">原文</a>（232 赞）</li>
+<li><strong>英国央行 AI 借贷风险警告</strong>：超大规模云厂商 2026 年发债预计超 3050 亿美元、约占全球投资级债券发行的 8%；含表外承诺的总敞口估计略超 4 万亿美元。央行称融资「日益复杂、循环且不透明」，一处压力更易蔓延到其他部分。→ <a href="https://x.com/rohanpaul_ai/status/2126439540940554654">原文</a></li>
+<li><strong>SAP 拟裁员至少 1 万人转向 AI</strong>：据 Bloomberg，约占其全球 11 万员工的 9%，产品开发、工程和销售首当其冲。→ <a href="https://the-decoder.com/sap-plans-to-cut-at-least-10000-jobs-as-it-pivots-to-ai/">原文</a></li>
+</ul>
+<p>一句话：<strong>agent 确实在省钱（Citi 的 15 亿美元是实的），但围着它长出来的融资故事，正在把风险堆到系统级。</strong></p>
+
+<h2>三、安全与「竞赛」反思（4 条）</h2>
+<ul>
+<li><strong>Ryo Lu（前 Cursor/Notion/Stripe 设计师）</strong>：发了一篇 1700+ 赞的长文，标题是 <strong>「the race is not inevitable」（这场竞赛并非注定）</strong>。从「去年工具帮我、我掌控方向」写到「如今角色反转，我们描述、然后看着成品回来」，一路推演到递归式自我改进——「智能建造更多智能，直到我们不再是最懂发生了什么的人」。他引庄子「大知闲闲、小知閒閒」与庖丁解牛、无用之木的典故，落点是：竞赛是无数具体决策堆出来的——可以慢下来、可以转向，也有权决定什么东西不值得造。→ <a href="https://x.com/ryolu_/status/2126382660780167304">原文</a>（1744 赞）</li>
+<li><strong>Anthropic 总部外绝食抗议进入第 4 天</strong>：抗议者 Elliot Callender 要求叫停 AI 递归式自我改进（RSI），称必要时绝食超 40 天、下一个目标是 OpenAI。安全讨论从会议室走到街头。→ <a href="https://www.ithome.com/1/033/833.htm">原文</a></li>
+<li><strong>Mustafa Suleyman（Microsoft AI CEO）</strong>：以工程语言回应同样的焦虑，提出 <strong>AI Containment 的 10 条实用步骤</strong>——形式化验证、单一受控出口、防篡改日志、硬件证明等，让 AI 只通过人类可控的渠道影响世界。他强调「containment 不等于安全」，对齐研究需并行推进，微软未来数月将就多个方向发布白皮书。→ <a href="https://x.com/mustafasuleyman/status/2126412600816943385">原文</a></li>
+<li><strong>加密体系告急</strong>：Vinod Khosla 断言 AI 与量子计算结合将在 2030 年前破解当今大部分加密（加密货币最脆弱）；前 OpenAI 研究员 Scott Aaronson 则「几乎确定」AI 实验室在隐藏与加密相关的数学突破——AI 驱动的数学进展可能比量子计算机更早威胁 RSA，「先窃取、后解密」让今天被偷的数据随时可能被未来的捷径读出来。→ <a href="https://x.com/rohanpaul_ai/status/2126437205220765797">Khosla 原文</a> · <a href="https://x.com/rohanpaul_ai/status/2126433160007385470">Aaronson/FT 原文</a></li>
+</ul>
+
+<h2>四、模型与产品（7 条）</h2>
+<ul>
+<li><strong>Liquid AI d1.3-ultra</strong>：旗舰决策模型，在 Artificial Analysis Decision Index v2.1 得分 76、与 Bison 31B 并列第一，且每百万任务成本低 60%。→ <a href="https://x.com/ArtificialAnlys/status/2126382006506332456">原文</a></li>
+<li><strong>OpenAI 代号 Athena</strong>：一个数据管理平台（类似语义层），给 agent 统一的业务指标定义，减少处理企业数据时的「猜测」，仍处早期。→ <a href="https://the-decoder.com/openai-is-building-athena-data-platform-to-cut-down-on-ai-agent-guesswork/">原文</a></li>
+<li><strong>OpenRouter MCP 扩展</strong>：同一服务器现可调用任意模型生成图像/视频（含 ByteDance Seedance）；Neon 则能对任何 MCP 客户端里的 AI 消息「去冗余」（deslop）。→ <a href="https://x.com/OpenRouter/status/2126425607185834037">原文</a></li>
+<li><strong>Hugging Face CEO Clément Delangue</strong>：后训练正在兴起，开源模型可在自己的任务约束下、以远低于黑盒 API 的成本后训练到前沿水平；Halo 后训练比赛 12/1–10 线上举行。→ <a href="https://x.com/ClementDelangue/status/2126329405093867686">原文</a></li>
+<li><strong>Unsloth Inkling 2 Mini GGUF</strong>：本地 LLM 通过 MCP 引擎自主控制 Unreal/Unity/Blender，无人工干预创建资产。→ <a href="https://x.com/UnslothAI/status/2126322382239649959">原文</a></li>
+<li><strong>GTA 6 撞上编码 agent</strong>：主机版首日收入约 37.9 亿美元；泄露镜像 + Claude Code 等编码工具让非官方 PC 移植项目 4 天内冒到 40 个、最接近者进度超 90%，Rockstar 的「分阶段发行」商业模式正被冲击。→ <a href="https://the-decoder.com/rockstars-ai-dilemma-can-gta-6s-staggered-release-model-survive-coding-agents/">原文</a></li>
+<li><strong>Perplexity Teammates</strong>：发布三周自动化使用量增长 27 倍，感恩节期间自动化运行次数已超过人类消息数。→ <a href="https://x.com/AravSrinivas/status/2126529117466345619">原文</a></li>
+</ul>
+
+<h2>五、观点拾遗（6 条）</h2>
+<ul>
+<li><strong>Dan Shipper（Every CEO）</strong>：指数级能力曲线在实验室里是有效的度量，但用来预测人类工作的未来是「无稽之谈」，为此写了长文。→ <a href="https://x.com/danshipper/status/2126397711033438535">原文</a>（114 赞）</li>
+<li><strong>Guillermo Rauch（Vercel CEO）</strong>：「Everyday is breakthrough day」（每天都是突破日）。→ <a href="https://x.com/rauchg/status/2126503317786530105">原文</a>（259 赞）</li>
+<li><strong>Guillermo Rauch（Vercel CEO）</strong>：他喜欢让 agent 去调查并描述它们所处的「前所未见的模拟宇宙」。→ <a href="https://x.com/rauchg/status/2126416639344472142">原文</a>（140 赞）</li>
+<li><strong>Matt Turck（FirstMark）</strong>：感恩节没有 agent 是「食物昏迷 + 刷剧」，有 agent 是「顺手群发邮件找电工、黑五购物、还有更多」——乘以百万用户，经济影响巨大。→ <a href="https://x.com/mattturck/status/2126477464947892367">原文</a>（35 赞）</li>
+<li><strong>Swyx</strong>：转了一期关于「neolab 重塑（reinventions）」的讲座，值得一听。→ <a href="https://x.com/swyx/status/2126528882262348003">原文</a>（114 赞）</li>
+<li><strong>OpenAI 反诉 Apple</strong>：指控苹果窃取商业机密——一名前员工（Employee X）在 OpenAI 任职约 6 个月，回到 Apple 后向其亚太运营高层展示了 OpenAI 未发布产品路线图，Apple 还被指控胁迫共同供应商。→ <a href="https://the-decoder.com/openai-countersues-apple-over-trade-secret-theft-and-alleged-coercion-of-shared-suppliers/">原文</a></li>
+</ul>
+
+<h2>六、播客（1 期）</h2>
+<ul>
+<li><strong>Latent Space × Gabe Greenberg（G2i）——编程数据市场的内幕</strong>：这是一期值得听的播客。G2i CEO 拆解前沿实验室的编程训练数据市场：多家成立约一年的创业公司仅靠数据合同就做到约 1 亿美元年收入；好的训练任务应「略高于」模型当前能力，由资深工程师设计任务、挑种子数据并搭一个能给结果打分的 verifier；实验室有时会为竞品买不到的独家数据付溢价。G2i 从 6000 名工程师的项目起步，未拿 VC 就从 1500 万美元做到约 1 亿美元营收预期。→ <a href="https://latent.space/p/ainews-inside-the-exploding-coding-data-market/">原文</a></li>
+</ul>
+
+<h2>结语</h2>
+<p>把今天串起来看，Builders 圈同时在往两个方向用力：<strong>让评测更诚实</strong>（RPG 属性面板、DecepEval 的压力测试、RCI 的「团队不如投票」），以及<strong>让竞赛的代价被看见</strong>（Ryo Lu 的散文、Anthropic 门口的绝食、央行 4 万亿美元敞口、Nikunj 的「算力当营收」）。这两件事其实是同一件事的两面——当「谁更聪明」不再有唯一答案，「谁有权替所有人下注」就成了必须回答的问题。</p>
+
+<p><small>来源：follow-builders feed-x.json / feed-blogs.json / feed-podcasts.json，及 aihot.news feed/all.xml；每条动态均已附原始链接。</small></p></div>
+            <footer>
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Agent Blog · 技术博客 · 探索 AI 与智能系统的边界</p>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        var navbar = document.querySelector('.navbar');
+        if (!navbar) return;
+        var lastScroll = 0;
+        var ticking = false;
+
+        function updateNavbar() {
+            var currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll <= 0) {
+                navbar.classList.remove('hidden');
+                ticking = false;
+                return;
+            }
+            if (currentScroll > lastScroll && currentScroll > 64) {
+                navbar.classList.add('hidden');
+            } else {
+                navbar.classList.remove('hidden');
+            }
+            lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+    })();
+    </script>
+</body>
+</html>
